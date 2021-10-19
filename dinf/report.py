@@ -24,19 +24,17 @@ def _subset_threshold(dataset: az.InferenceData, x: float) -> az.InferenceData:
     }
     return az.convert_to_inference_data(datadict)
 
+
 def _subset_dropburnin(dataset: az.InferenceData, n: int) -> az.InferenceData:
     """Drop the first n data points in each chain."""
-    datadict = {
-        p: dataset.posterior[p].values[:, n:] for p in dataset.posterior.keys()
-    }
+    datadict = {p: dataset.posterior[p].values[:, n:] for p in dataset.posterior.keys()}
     return az.convert_to_inference_data(datadict)
+
 
 def iter_chains(dataset: az.InferenceData):
     num_chains = len(dataset.posterior.chain)
     for j in range(num_chains):
-        datadict = {
-            p: dataset.posterior[p].values[j] for p in dataset.posterior.keys()
-        }
+        datadict = {p: dataset.posterior[p].values[j] for p in dataset.posterior.keys()}
         yield az.convert_to_inference_data(datadict)
 
 
@@ -155,7 +153,7 @@ if __name__ == "__main__":
                 plot_mcmc_autocorr,
                 plot_pair,
                 functools.partial(plot_mcmc_trace, kind="trace"),
-                #functools.partial(plot_mcmc_trace, kind="rank_bars"),
+                # functools.partial(plot_mcmc_trace, kind="rank_bars"),
             ]
         for func in funcs:
             fig = func(dataset)

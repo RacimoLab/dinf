@@ -13,10 +13,22 @@ def parse_args():
     subparsers = parser.add_subparsers(dest="subcommand")
     subparsers.required = True
 
-    train_parser = subparsers.add_parser("train", help="Train discriminator")
-    abc_parser = subparsers.add_parser("abc", help="ABC")
-    opt_parser = subparsers.add_parser("opt", help="gradient-free optimisation")
-    mcmc_parser = subparsers.add_parser("mcmc", help="MCMC")
+    train_parser = subparsers.add_parser(
+        "train",
+        help="Train discriminator",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    abc_parser = subparsers.add_parser(
+        "abc", help="ABC", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    opt_parser = subparsers.add_parser(
+        "opt",
+        help="gradient-free optimisation",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    mcmc_parser = subparsers.add_parser(
+        "mcmc", help="MCMC", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
 
     for p in (train_parser, abc_parser, opt_parser, mcmc_parser):
         p.add_argument(

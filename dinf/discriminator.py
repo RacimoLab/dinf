@@ -109,15 +109,13 @@ def fit(
     loss_fn = keras.losses.BinaryCrossentropy(from_logits=True)
     opt = keras.optimizers.Adam()
     nn.compile(optimizer=opt, loss=loss_fn, metrics=["accuracy"])
-    training = nn.fit(
+    nn.fit(
         train_x,
         train_y,
         batch_size,
         epochs,
         validation_data=(val_x, val_y),  # shuffle=True
     )
-
-    # nn.summary(line_length=75, positions=[0.58, 0.86, 0.99, 0.1])
 
 
 def predict(nn: tf.keras.Model, x) -> np.ndarray:

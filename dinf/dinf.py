@@ -1,16 +1,14 @@
-import argparse
 import concurrent.futures
 import itertools
 import logging
 import functools
-import pathlib
 
 import numpy as np
 import gradient_free_optimizers
 import zeus
 import arviz as az
 
-from . import models, cache, discriminator
+from . import cache, discriminator
 
 logger = logging.getLogger(__name__)
 
