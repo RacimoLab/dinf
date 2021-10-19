@@ -1,0 +1,5 @@
+*.pdf
+*.ncf
+*.hdf5
+*.zarr
+__pycache__
