@@ -188,6 +188,7 @@ def cli():
             parallelism=args.parallelism,
             validation_ratio=args.validation_ratio,
             training_epochs=args.training_epochs,
+            working_directory=args.output_directory,
             rng=rng,
         )
     elif args.subcommand == "abc":

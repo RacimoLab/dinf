@@ -99,6 +99,7 @@ def train(
     validation_ratio,
     parallelism,
     training_epochs,
+    working_directory,
     rng,
 ):
 
@@ -121,17 +122,17 @@ def train(
         logger.info("saving training data to {train_zarr_cache}")
         train_cache.save((train_x, train_y, val_x, val_y))
 
-    nn = discriminator.build(train_x.shape[1:])
-    nn.summary()
-    discriminator.fit(
-        nn,
+    discr = discriminator.Discriminator.from_input_shape(train_x.shape[1:])
+    discr.nn.summary()
+    discr.fit(
         train_x=train_x,
         train_y=train_y,
         val_x=val_x,
         val_y=val_y,
         epochs=training_epochs,
+        tensorboard_log_dir=working_directory / "tensorboard" / "fit",
     )
-    discriminator.save(nn, discriminator_filename)
+    discr.to_file(discriminator_filename)
 
 
 def abc(
@@ -159,15 +160,15 @@ def abc(
         )
         abc_cache.save((params, data))
 
-    nn = discriminator.load(discriminator_filename)
-    predictions = discriminator.predict(nn, data)
+    d = discriminator.Discriminator.from_file(discriminator_filename)
+    predictions = d.predict(nn, data)
     datadict = {p.name: params[:, j] for j, p in enumerate(generator.params)}
     datadict["D"] = predictions
     dataset = az.convert_to_inference_data(datadict)
     az.to_netcdf(dataset, working_directory / "abc.ncf")
 
 
-def _opt_func(gfo_params, *, nn, generator, rng, num_replicates, parallelism):
+def _opt_func(gfo_params, *, discr, generator, rng, num_replicates, parallelism):
     """
     Function to be maximised by gfo.
     """
@@ -186,7 +187,7 @@ def _opt_func(gfo_params, *, nn, generator, rng, num_replicates, parallelism):
         num_replicates=num_replicates,
         parallelism=parallelism,
     )
-    D = np.mean(discriminator.predict(nn, M))
+    D = np.mean(discr.predict(M))
     return D
 
 
@@ -200,13 +201,14 @@ def opt(
     num_Dx_replicates,
     rng,
 ):
-    nn = discriminator.load(discriminator_filename)
+
+    discr = discriminator.Discriminator.from_file(discriminator_filename)
     search_space = {p.name: np.arange(*p.bounds) for p in generator.params}
     opt = gradient_free_optimizers.SimulatedAnnealingOptimizer(search_space)
     # opt = gradient_free_optimizers.RandomAnnealingOptimizer(search_space)
     f = functools.partial(
         _opt_func,
-        nn=nn,
+        discr=discr,
         generator=generator,
         parallelism=parallelism,
         num_replicates=num_Dx_replicates,
@@ -221,7 +223,7 @@ def opt(
     az.to_netcdf(dataset, working_directory / "gfo.ncf")
 
 
-def _mcmc_log_prob(mcmc_params, *, nn, generator, rng, num_replicates, parallelism):
+def _mcmc_log_prob(mcmc_params, *, discr, generator, rng, num_replicates, parallelism):
     """
     Function to be maximised by zeus mcmc.
     """
@@ -240,7 +242,7 @@ def _mcmc_log_prob(mcmc_params, *, nn, generator, rng, num_replicates, paralleli
         num_replicates=num_replicates,
         parallelism=parallelism,
     )
-    D = np.mean(discriminator.predict(nn, M))
+    D = np.mean(discr.predict(M))
     with np.errstate(divide="ignore"):
         return np.log(D)
 
@@ -256,10 +258,10 @@ def mcmc(
     num_Dx_replicates,
     rng,
 ):
-    nn = discriminator.load(discriminator_filename)
+    discr = discriminator.load(discriminator_filename)
     f = functools.partial(
         _mcmc_log_prob,
-        nn=nn,
+        discr=discr,
         generator=generator,
         parallelism=parallelism,
         num_replicates=num_Dx_replicates,
