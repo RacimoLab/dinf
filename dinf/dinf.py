@@ -171,8 +171,15 @@ def _opt_func(gfo_params, *, nn, generator, rng, num_replicates, parallelism):
     """
     Function to be maximised by gfo.
     """
+    param_values = tuple(gfo_params.values())
+    if not all(
+        p.bounds[0] <= x <= p.bounds[1] for x, p in zip(param_values, generator.params)
+    ):
+        # param out of bounds
+        return -np.inf
+
     seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates)
-    params = np.tile(tuple(gfo_params.values()), (num_replicates, 1))
+    params = np.tile(param_values, (num_replicates, 1))
     M = _sim_replicates(
         generator=generator,
         args=zip(seeds, params),
