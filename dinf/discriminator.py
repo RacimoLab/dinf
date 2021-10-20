@@ -1,5 +1,4 @@
 from __future__ import annotations
-import abc
 import pathlib
 import datetime
 
@@ -162,7 +161,7 @@ class Discriminator:
         train_y,
         val_x,
         val_y,
-        batch_size: int = 128,
+        batch_size: int = 32,
         epochs: int = 1,
         tensorboard_log_dir=None,
     ):
@@ -219,10 +218,10 @@ class Discriminator:
         :param batch_size: Size of data batches for prediction.
         :return: A vector of predictions, one for each input instance.
         """
-        if len(x.shape) != 4 or x[1:] != self.nn.input_shape[1:]:
+        if len(x.shape) != 4 or x.shape[1:] != self.nn.input_shape[1:]:
             raise ValueError(
                 f"Input data has shape {x.shape} but discriminator network "
-                f"has shape {self.nn.input_shape}."
+                f"expects shape {self.nn.input_shape}."
             )
 
         data = tf.data.Dataset.from_tensor_slices(x)
@@ -233,4 +232,4 @@ class Discriminator:
         )
         data = data.with_options(options)
 
-        return self.nn.predict(x)[:, 0]
+        return self.nn.predict(data)[:, 0]

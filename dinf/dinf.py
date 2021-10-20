@@ -26,16 +26,19 @@ def _sim_replicates(*, generator, args, num_replicates, parallelism):
             else:
                 return
 
-    global _ex
-    if _ex is None:
-        _ex = concurrent.futures.ProcessPoolExecutor(max_workers=parallelism)
-        # _ex = concurrent.futures.ThreadPoolExecutor(max_workers=parallelism)
-    ex = _ex
+    if parallelism == 1:
+        map_f = map
+    else:
+        global _ex
+        if _ex is None:
+            _ex = concurrent.futures.ProcessPoolExecutor(max_workers=parallelism)
+            # _ex = concurrent.futures.ThreadPoolExecutor(max_workers=parallelism)
+        map_f = _ex.map
 
     result = None
     j = 0
     for chunk_args in chunkify(args, chunk_size=1000):
-        for m in ex.map(generator.sim, chunk_args):
+        for m in map_f(generator.sim, chunk_args):
             if result is None:
                 result = np.zeros((num_replicates, *m.shape), dtype=m.dtype)
             result[j] = m
@@ -161,7 +164,7 @@ def abc(
         abc_cache.save((params, data))
 
     d = discriminator.Discriminator.from_file(discriminator_filename)
-    predictions = d.predict(nn, data)
+    predictions = d.predict(data)
     datadict = {p.name: params[:, j] for j, p in enumerate(generator.params)}
     datadict["D"] = predictions
     dataset = az.convert_to_inference_data(datadict)
@@ -233,7 +236,6 @@ def _mcmc_log_prob(mcmc_params, *, discr, generator, rng, num_replicates, parall
         # param out of bounds
         return -np.inf
 
-    #    logging.basicConfig(level="WARNING")
     seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates)
     params = np.tile(mcmc_params, (num_replicates, 1))
     M = _sim_replicates(
@@ -247,6 +249,41 @@ def _mcmc_log_prob(mcmc_params, *, discr, generator, rng, num_replicates, parall
         return np.log(D)
 
 
+def _mcmc_log_prob_vector(
+    mcmc_params, *, discr, generator, rng, num_replicates, parallelism
+):
+    """
+    Function to be maximised by zeus mcmc. Vectorised version.
+    """
+    num_walkers, num_params = mcmc_params.shape
+    assert num_params == len(generator.params)
+    log_D = np.full(num_walkers, -np.inf)
+
+    # Identify workers with one or more out-of-bounds parameters.
+    lo, hi = zip(*[p.bounds for p in generator.params])
+    in_bounds = np.all(np.logical_and(lo <= mcmc_params, mcmc_params <= hi), axis=1)
+    num_in_bounds = np.sum(in_bounds)
+    if num_in_bounds == 0:
+        return log_D
+
+    seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates * num_in_bounds)
+    params = np.repeat(mcmc_params[in_bounds], num_replicates, axis=0)
+    assert len(seeds) == len(params)
+    M = _sim_replicates(
+        generator=generator,
+        args=zip(seeds, params),
+        num_replicates=len(seeds),
+        parallelism=parallelism,
+    )
+    Dreps = discr.predict(M).reshape(num_in_bounds, num_replicates)
+    D = np.mean(Dreps, axis=1)
+    assert len(D) == num_in_bounds
+    with np.errstate(divide="ignore"):
+        log_D[in_bounds] = np.log(D)
+
+    return log_D
+
+
 def mcmc(
     *,
     generator,
@@ -258,9 +295,8 @@ def mcmc(
     num_Dx_replicates,
     rng,
 ):
-    discr = discriminator.load(discriminator_filename)
-    f = functools.partial(
-        _mcmc_log_prob,
+    discr = discriminator.Discriminator.from_file(discriminator_filename)
+    kwargs = dict(
         discr=discr,
         generator=generator,
         parallelism=parallelism,
@@ -269,12 +305,17 @@ def mcmc(
     )
     ndim = len(generator.params)
     start = generator.draw_params(num_replicates=walkers, random=True, rng=rng)
-    sampler = zeus.EnsembleSampler(walkers, ndim, f, verbose=False)
+    sampler = zeus.EnsembleSampler(
+        walkers, ndim, _mcmc_log_prob, kwargs=kwargs, verbose=False, vectorize=False
+    )
     sampler.run_mcmc(start, nsteps=steps)
     chain = sampler.get_chain()
+    D = np.exp(sampler.get_log_prob())
     # shape is (steps, walkers, params), but arviz needs walkers first
     chain = chain.swapaxes(0, 1)
+    D = D.swapaxes(0, 1)
 
     datadict = {p.name: chain[..., j] for j, p in enumerate(generator.params)}
+    datadict["D"] = D
     dataset = az.convert_to_inference_data(datadict)
     az.to_netcdf(dataset, working_directory / "mcmc.ncf")
