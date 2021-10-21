@@ -306,7 +306,12 @@ def mcmc(
     ndim = len(generator.params)
     start = generator.draw_params(num_replicates=walkers, random=True, rng=rng)
     sampler = zeus.EnsembleSampler(
-        walkers, ndim, _mcmc_log_prob, kwargs=kwargs, verbose=False, vectorize=False
+        walkers,
+        ndim,
+        _mcmc_log_prob_vector,
+        kwargs=kwargs,
+        verbose=False,
+        vectorize=True,
     )
     sampler.run_mcmc(start, nsteps=steps)
     chain = sampler.get_chain()

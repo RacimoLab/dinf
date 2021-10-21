@@ -72,6 +72,14 @@ class BinnedHaplotypeMatrix(FeatureExtractor):
             in which case np.int16 might be preferred.
 
         """
+        if maf_thresh < 0 or maf_thresh > 1:
+            raise ValueError("must have 0 <= maf_thresh <= 1")
+        if num_samples < 2 or int(num_samples) != num_samples:
+            raise ValueError("num_samples must be an integer >= 2")
+        if fixed_dimension < 1 or int(fixed_dimension) != fixed_dimension:
+            raise ValueError("fixed_dimension must be an integer >= 1")
+        if dtype not in (np.int8, np.int16, np.int32):
+            raise ValueError("dtype must be np.int8, np.int16, or np.in32")
         self._shape = (num_samples, fixed_dimension)
         self.allele_count_threshold = maf_thresh * num_samples
         self.dtype = dtype
@@ -100,7 +108,7 @@ class BinnedHaplotypeMatrix(FeatureExtractor):
 
         for variant in ts.variants():
             if len(variant.alleles) > 2:
-                # TODO: figure out a strategy for finite sites simulations
+                # TODO: figure out a strategy for multi-allelic simulations
                 raise ValueError("Must use a binary mutation model")
 
             # Filter by MAF

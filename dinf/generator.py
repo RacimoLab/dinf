@@ -90,7 +90,7 @@ class MsprimeHudsonSimulator(abc.ABC):
     """
 
     @abc.abstractmethod
-    def demography(*args) -> demes.Graph:
+    def demography(self, *args) -> demes.Graph:
         """Return a Demes demographic model."""
         raise NotImplementedError
 

@@ -210,7 +210,7 @@ class Discriminator:
             callbacks=callbacks,
         )
 
-    def predict(self, x, *, batch_size: int = 32) -> np.ndarray:
+    def predict(self, x, *, batch_size: int = 1024) -> np.ndarray:
         """
         Make predictions about data using a pre-fitted neural network.
 
