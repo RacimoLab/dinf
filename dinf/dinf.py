@@ -308,10 +308,11 @@ def mcmc(
     sampler = zeus.EnsembleSampler(
         walkers,
         ndim,
-        _mcmc_log_prob_vector,
+        _mcmc_log_prob,
+        #_mcmc_log_prob_vector,
         kwargs=kwargs,
         verbose=False,
-        vectorize=True,
+        #vectorize=True,
     )
     sampler.run_mcmc(start, nsteps=steps)
     chain = sampler.get_chain()
@@ -322,5 +323,5 @@ def mcmc(
 
     datadict = {p.name: chain[..., j] for j, p in enumerate(generator.params)}
     datadict["D"] = D
-    dataset = az.convert_to_inference_data(datadict)
-    az.to_netcdf(dataset, working_directory / "mcmc.ncf")
+    #dataset = az.convert_to_inference_data(datadict)
+    #az.to_netcdf(dataset, working_directory / "mcmc.ncf")

@@ -45,6 +45,13 @@ class BinnedHaplotypeMatrix(FeatureExtractor):
     If the sequence length is L, then each bin spans L / m nucleotides.
     For a matrix M, the M[i][j]'th entry is the count of minor alleles in
     the j'th bin of haplotype i.
+    Alleles are polarised by choosing the most frequent allele to be encoded
+    as 0, and the other allele as 1. In the event that both alleles are equally
+    frequent, the polarisation is chosen at random.
+
+    .. note::
+
+        This class only makes sense for biallelic polymorphisms.
     """
 
     def __init__(
@@ -74,10 +81,10 @@ class BinnedHaplotypeMatrix(FeatureExtractor):
         """
         if maf_thresh < 0 or maf_thresh > 1:
             raise ValueError("must have 0 <= maf_thresh <= 1")
-        if num_samples < 2 or int(num_samples) != num_samples:
-            raise ValueError("num_samples must be an integer >= 2")
-        if fixed_dimension < 1 or int(fixed_dimension) != fixed_dimension:
-            raise ValueError("fixed_dimension must be an integer >= 1")
+        if num_samples < 2:
+            raise ValueError("must have num_samples >= 2")
+        if fixed_dimension < 1:
+            raise ValueError("must have fixed_dimension >= 1")
         if dtype not in (np.int8, np.int16, np.int32):
             raise ValueError("dtype must be np.int8, np.int16, or np.in32")
         self._shape = (num_samples, fixed_dimension)
@@ -100,9 +107,12 @@ class BinnedHaplotypeMatrix(FeatureExtractor):
             the M[i][j]'th entry is the count of minor alleles in the j'th bin
             of haplotype i.
         """
-        assert self.shape[0] == ts.num_samples
+        if ts.num_samples != self.shape[0]:
+            raise ValueError("Number of samples doesn't match feature matrix shape")
+        if ts.sequence_length < self.shape[1]:
+            raise ValueError("Sequence length is shorter than fixed dimension")
         if ts.num_populations != 1:
-            raise ValueError("Multi-population models not yet supported.")
+            raise ValueError("Multi-population tree sequences not yet supported")
 
         M = np.zeros(self.shape, dtype=self.dtype)
 

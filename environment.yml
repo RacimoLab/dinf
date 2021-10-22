@@ -1,0 +1,22 @@
+name: dinf
+channels:
+  # prioritise defaults channel over conda-forge
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.9
+  # https://docs.anaconda.com/mkl-optimizations/index.html
+  - mkl
+  - numpy
+  # tensorflow 2.5 and 2.6 are bugged
+  - tensorflow=2.4
+  - keras
+  # The rest.
+  - arviz
+  - msprime
+  - zarr
+  - zeus-mcmc
+  - pip
+  - pip:
+    # No conda packages available.
+    - gradient-free-optimizers

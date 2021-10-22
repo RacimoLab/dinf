@@ -41,15 +41,15 @@ class TestGenerator:
         )
         assert params.shape == (num_replicates, len(self.generator.params))
         for j, p in enumerate(self.generator.params):
-            assert all(params[: j] == p.value)
+            assert all(params[:j] == p.value)
 
         params = self.generator.draw_params(
             num_replicates=num_replicates, random=True, rng=rng
         )
         assert params.shape == (num_replicates, len(self.generator.params))
         for j, p in enumerate(self.generator.params):
-            assert all(params[: j] >= p.bounds[0])
-            assert all(params[: j] <= p.bounds[1])
+            assert all(params[:j] >= p.bounds[0])
+            assert all(params[:j] <= p.bounds[1])
 
     def test_sim(self):
         rng = np.random.default_rng(1234)

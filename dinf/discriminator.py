@@ -49,7 +49,7 @@ def my_conv2d(**kwargs):
     return keras.layers.Conv2D(**conv_kwargs)
 
 
-def _build_cnn1(input_shape: tuple[int, int, int]) -> tf.keras.Model:
+def _build_cnn1(input_shape: tuple[int, int, int]) -> keras.Model:
     """
     Build a permutation invariant discriminator neural network.
 
@@ -87,7 +87,7 @@ def _build_cnn1(input_shape: tuple[int, int, int]) -> tf.keras.Model:
     return nn
 
 
-def _load_cnn1(filename: str) -> tf.keras.Model:
+def _load_cnn1(filename: str) -> keras.Model:
     """Load neural network from a file."""
     return keras.models.load_model(
         filename,
@@ -98,9 +98,11 @@ def _load_cnn1(filename: str) -> tf.keras.Model:
 
 
 class Discriminator:
+    # XXX: MirroredStrategy is broken in tf 2.5.0/2.6.0
+    # https://github.com/tensorflow/tensorflow/issues/50487
     default_strategy = tf.distribute.MirroredStrategy
 
-    def __init__(self, nn: tf.keras.Model):
+    def __init__(self, nn: keras.Model):
         """
         Instantiate a discriminator. Not
         :param nn: The neural network.
@@ -188,7 +190,7 @@ class Discriminator:
         if tensorboard_log_dir is not None:
             now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
             log_dir = pathlib.Path(tensorboard_log_dir) / now
-            cb = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+            cb = keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
             callbacks.append(cb)
 
         train_data = tf.data.Dataset.from_tensor_slices((train_x, train_y))
