@@ -1,0 +1,39 @@
+name: dinf
+channels:
+  # prioritise defaults channel over conda-forge
+  - defaults
+  - conda-forge
+dependencies:
+  # Tensorflow. Getting the GPU build is a nightmare...
+  # We have CUDA v10.1 drivers, and this is the only way
+  # to get a vaguely recent tensorflow with GPU support,
+  # as recent pip tensorflow packages need CUDA >= 11.
+  # NOTE: The tensorflow-gpu conda package comes from the defaults
+  #       channel. This is a metapackage that happily installs non-gpu
+  #       builds of tensorflow from conda-forge unless the defaults
+  #       channel has priority.
+  - cudatoolkit=10.1
+  - tensorflow-gpu
+  - tensorflow
+  # This version/build is know to work with cudatoolkit 10.1
+  #- tensorflow=2.4.1=gpu_py39h8236f22_0
+
+  # Numpy. We choose the Intel MKL variant of BLAS, which is faster
+  # than the OpenBLAS variant.
+  # NOTE: Numpy builds are available from both the defaults channel and
+  #       conda-forge. Numpy from the defaults channel uses MKL BLAS,
+  #       whereas the conda-forge numpy package will use whatever BLAS
+  #       is installed in the environment, which will be OpenBLAS unless
+  #       we install MKL BLAS explicitly.
+  - blas=*=mkl
+  - numpy
+
+  # The rest.
+  - arviz
+  - msprime
+  - zarr
+  - zeus-mcmc
+  - pip
+  - pip:
+    # No conda packages available.
+    - gradient-free-optimizers
