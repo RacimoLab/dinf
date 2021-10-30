@@ -36,22 +36,24 @@ class CNN1(nn.Module):
         # permutation invariant layer
         symmetric = lambda axis: functools.partial(jnp.sum, axis=axis, keepdims=True)
 
+        print(x.shape, x.dtype)
         x = norm()(x)
+        print(x.shape, x.dtype)
 
         x = conv(features=32, strides=(1, 2))(x)
         x = nn.elu(x)
-        x = norm()(x)
+        #x = norm()(x)
 
         x = conv(features=64, strides=(1, 2))(x)
         x = nn.elu(x)
-        x = norm()(x)
+        #x = norm()(x)
 
         # collapse haplotypes
         x = symmetric(axis=-3)(x)
 
         x = conv(features=64)(x)
         x = nn.elu(x)
-        x = norm()(x)
+        #x = norm()(x)
 
         # collapse genomic bins
         x = symmetric(axis=-2)(x)
@@ -64,7 +66,7 @@ class CNN1(nn.Module):
         return x
 
 
-def binary_accuracy(logits, labels):
+def binary_accuracy(*, logits, labels):
     return jnp.mean(jnp.abs(jax.nn.sigmoid(logits) - labels) < 0.5)
 
 
@@ -113,7 +115,7 @@ class Discriminator:
         return cls(dnn, params)
 
     def summary(self):
-        print(jax.tree_map(lambda x: x.shape, self.variables))
+        print(jax.tree_map(lambda x: (x.shape, x.device_buffer.device()), self.variables))
 
     def fit(
         self,
@@ -123,7 +125,8 @@ class Discriminator:
         train_y,
         val_x,
         val_y,
-        batch_size: int = 32,
+        #batch_size: int = 32,
+        batch_size: int = 256,
         epochs: int = 1,
         tensorboard_log_dir=None,
     ):
@@ -154,7 +157,7 @@ class Discriminator:
             grad_fn = jax.value_and_grad(batch_loss, has_aux=True)
             (loss, (logits, updated_batch_stats)), grads = grad_fn(state.params)
             state = state.apply_gradients(grads=grads, batch_stats=updated_batch_stats)
-            metrics = dict(loss=loss, accuracy=binary_accuracy(logits, batch["label"]))
+            metrics = dict(loss=loss, accuracy=binary_accuracy(logits=logits, labels=batch["label"]))
             return state, metrics
 
         @jax.jit
@@ -169,7 +172,7 @@ class Discriminator:
                 batch["image"], batch["label"]
             )
             loss = jnp.mean(loss)
-            accuracy = binary_accuracy(logits, batch["label"])
+            accuracy = binary_accuracy(logits=logits, labels=batch["label"])
             metrics = dict(loss=loss, accuracy=accuracy)
             return metrics
 
@@ -185,10 +188,13 @@ class Discriminator:
             for perm in perms:
                 batch = {k: v[perm, ...] for k, v in train_ds.items()}
                 state, metrics = train_step(state, batch)
+                #print("state", jax.tree_map(lambda x: (x.shape, x.device_buffer.device()), state))
+                #print("metrics", jax.tree_map(lambda x: (x.shape, x.device_buffer.device()), metrics))
+
                 batch_metrics.append(metrics)
-                for k, v in metrics.items():
-                    print(k, jax.device_get(v), end=", ")
-                print("\r")
+                line = [f"{k}: {jax.device_get(v):.4f}" for k, v in metrics.items()]
+                print(*line, sep=", ", end="\r")
+                break
 
             # compute mean of metrics across each batch in epoch.
             batch_metrics_np = jax.device_get(batch_metrics)
@@ -219,13 +225,17 @@ class Discriminator:
         key = jax.random.PRNGKey(rng.integers(2 ** 63))
 
         train_ds = dict(image=train_x, label=train_y)
+        #train_ds = jax.device_put(train_ds)
         test_ds = dict(image=val_x, label=val_y)
+        #test_ds = jax.device_put(test_ds)
 
         for epoch in range(1, epochs + 1):
             # Use a separate PRNG key to permute image data during shuffling
             key, input_key = jax.random.split(key)
             # Run an optimization step over a training batch
+            print("state", jax.tree_map(jnp.shape, state))
             state = train_epoch(state, train_ds, batch_size, epoch, input_key)
+            print("state", jax.tree_map(jnp.shape, state))
             # Evaluate on the test set after each training epoch
             test_loss, test_acc = eval_model(state, test_ds)
             print(f"test epoch: {epoch}, loss: {test_loss:.4f}, accuracy: {test_acc:.4f}")
