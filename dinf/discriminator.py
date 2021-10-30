@@ -1,6 +1,7 @@
 from __future__ import annotations
 import pathlib
 import functools
+import itertools
 from typing import Any
 
 import numpy as np
@@ -19,18 +20,29 @@ PyTree = Any
 class TrainState(flax.training.train_state.TrainState):
     batch_stats: Any
 
+def batchify(dataset, batch_size):
+    k0 = tuple(dataset.keys())[0]
+    size = len(dataset[k0])
+    i, j = 0, batch_size
+    while i < size:
+        batch = {k: v[i:j, ...] for k, v in dataset.items()}
+        yield batch
+        i = j
+        j += batch_size
+
+def nop(*args, **kwargs):
+    """No-op. Do nothing."""
+    pass
 
 class CNN1(nn.Module):
     @nn.compact
-    def __call__(self, x, *, train: bool, print=lambda *x, **y: None):
+    def __call__(self, x, *, train: bool, print=nop):
         # flax uses channels-last (NHWC) convention
         conv = functools.partial(nn.Conv, kernel_size=(1, 5), use_bias=False)
         # https://flax.readthedocs.io/en/latest/howtos/state_params.html
         norm = functools.partial(
             nn.BatchNorm,
             use_running_average=not train,
-            momentum=0.99,
-            epsilon=0.001,
         )
         # permutation invariant layer
         symmetric = lambda axis: functools.partial(jnp.sum, axis=axis, keepdims=True)
@@ -65,11 +77,11 @@ class CNN1(nn.Module):
         x = symmetric(axis=2)(x)
         print("Symm", x.shape, x.dtype, sep="\t")
 
-        x = x.reshape((x.shape[0], -1))  # flatten
-        print("Flatten", x.shape, x.dtype, sep="\t")
-
         x = nn.Dense(features=1)(x)
         print("Dense", x.shape, x.dtype, sep="\t")
+
+        x = x.reshape((x.shape[0],))  # flatten
+        print("Flatten", x.shape, x.dtype, sep="\t")
 
         # x = nn.sigmoid(x)
 
@@ -198,19 +210,13 @@ class Discriminator:
 
         def train_epoch(state, train_ds, batch_size, epoch, key):
             """Train for a single epoch."""
-            train_ds_size = len(train_ds["image"])
-            steps_per_epoch = train_ds_size // batch_size
-
-            perms = jax.random.permutation(key, train_ds_size)
-            perms = perms[: steps_per_epoch * batch_size]  # skip incomplete batch
-            perms = perms.reshape((steps_per_epoch, batch_size))
             batch_metrics = []
-            for perm in perms:
-                batch = {k: v[perm, ...] for k, v in train_ds.items()}
+            for i, batch in enumerate(batchify(train_ds, batch_size)):
                 state, metrics = train_step(state, batch)
                 batch_metrics.append(metrics)
-                line = [f"{k}: {jax.device_get(v):.4f}" for k, v in metrics.items()]
-                print(*line, sep=", ", end="\r")
+                if i % 20 == 0:
+                    line = [f"{k}: {jax.device_get(v):.4f}" for k, v in metrics.items()]
+                    print(*line, sep=", ", end="\r")
 
             # compute mean of metrics across each batch in epoch.
             batch_metrics_np = jax.device_get(batch_metrics)
@@ -227,10 +233,16 @@ class Discriminator:
 
             return state
 
-        def eval_model(state, test_ds):
-            metrics = eval_step(state, test_ds)
-            metrics = jax.device_get(metrics)
-            summary = jax.tree_map(lambda x: x.item(), metrics)
+        def eval_model(state, test_ds, batch_size):
+            batch_metrics = []
+            for batch in batchify(test_ds, batch_size):
+                metrics = eval_step(state, batch)
+                batch_metrics.append(metrics)
+            batch_metrics = jax.device_get(batch_metrics)
+            summary = {
+                k: np.mean([metrics[k] for metrics in batch_metrics])
+                for k in batch_metrics[0]
+            }
             return summary["loss"], summary["accuracy"]
 
         state = TrainState.create(
@@ -254,7 +266,7 @@ class Discriminator:
             state = train_epoch(state, train_ds, batch_size, epoch, input_key)
             # print("state", jax.tree_map(jnp.shape, state))
             # Evaluate on the test set after each training epoch
-            test_loss, test_acc = eval_model(state, test_ds)
+            test_loss, test_acc = eval_model(state, test_ds, batch_size)
             print(
                 f"test epoch: {epoch}, loss: {test_loss:.4f}, accuracy: {test_acc:.4f}"
             )
