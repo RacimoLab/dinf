@@ -1,117 +1,99 @@
 from __future__ import annotations
 import pathlib
-import datetime
+import functools
+from typing import Any
 
 import numpy as np
-import tensorflow as tf
-from tensorflow import keras
+import jax
+import jax.numpy as jnp
+from flax import linen as nn
+import flax.training.train_state
+import optax
+
+# A type for jax PyTrees.
+# https://github.com/google/jax/issues/3340
+PyTree = Any
+
+# Because we use batch normalistion, the training state needs to also record
+# batch_stats to maintain the running mean and variance.
+class TrainState(flax.training.train_state.TrainState):
+    batch_stats: Any
 
 
-class Symmetric(keras.layers.Layer):
-    """
-    Network layer for a permutation invariant cnn. This layer collapses
-    a dimension using the specified summary function.
-    """
+class CNN1(nn.Module):
+    @nn.compact
+    def __call__(self, x, train: bool = False):
+        # flax uses channels-last (NHWC) convention
+        conv = functools.partial(nn.Conv, kernel_size=(1, 5), use_bias=False)
+        # https://flax.readthedocs.io/en/latest/howtos/state_params.html
+        norm = functools.partial(
+            nn.BatchNorm,
+            use_running_average=not train,
+            momentum=0.99,
+            epsilon=0.001,
+            axis_name="batch",  # Name batch dim
+        )
+        # permutation invariant layer
+        symmetric = lambda axis: functools.partial(jnp.sum, axis=axis, keepdims=True)
 
-    def __init__(self, summary_function, axis, **kwargs):
-        assert summary_function in ("sum", "mean", "min", "max")
-        self.summary_function = summary_function
-        self.axis = axis
-        super().__init__(**kwargs)
+        x = norm()(x)
 
-    def call(self, x):
-        if self.summary_function == "sum":
-            f = keras.backend.sum
-        elif self.summary_function == "mean":
-            f = keras.backend.mean
-        elif self.summary_function == "min":
-            f = keras.backend.min
-        elif self.summary_function == "max":
-            f = keras.backend.max
-        return f(x, axis=self.axis, keepdims=True)
+        x = conv(features=32, strides=(1, 2))(x)
+        x = nn.elu(x)
+        x = norm()(x)
 
-    def get_config(self):
-        # Record internal state, so we can load and save the model.
-        config = super().get_config().copy()
-        config["summary_function"] = self.summary_function
-        config["axis"] = self.axis
-        return config
+        x = conv(features=64, strides=(1, 2))(x)
+        x = nn.elu(x)
+        x = norm()(x)
 
+        # collapse haplotypes
+        x = symmetric(axis=-3)(x)
 
-def my_conv2d(**kwargs):
-    conv_kwargs = dict(
-        kernel_size=(1, 5),
-        padding="same",
-        strides=(1, 2),
-        use_bias=False,
-    )
-    conv_kwargs.update(**kwargs)
-    return keras.layers.Conv2D(**conv_kwargs)
+        x = conv(features=64)(x)
+        x = nn.elu(x)
+        x = norm()(x)
 
+        # collapse genomic bins
+        x = symmetric(axis=-2)(x)
 
-def _build_cnn1(input_shape: tuple[int, int, int]) -> keras.Model:
-    """
-    Build a permutation invariant discriminator neural network.
+        x = x.reshape((np.prod(x.shape),))  # flatten
 
-    :param input_shape:
-        The shape of the data that will be given to the network.
-        This should be a 3-tuple of (n, m, c), where n is the number of
-        hapotypes, m is the size of the "fixed dimension" after resizing
-        along the sequence length, and c is the number of colour channels
-        (which should be equal to 1).
-    :return: The neural network.
-    """
-    assert len(input_shape) == 3
-    assert input_shape[-1] == 1
-    nn = keras.models.Sequential(name="discriminator")
-    nn.add(keras.Input(input_shape))
-    nn.add(keras.layers.BatchNormalization())
-    nn.add(my_conv2d(filters=32))
-    nn.add(keras.layers.ELU())
-    nn.add(keras.layers.BatchNormalization())
-    nn.add(my_conv2d(filters=64))
-    nn.add(keras.layers.ELU())
-    nn.add(keras.layers.BatchNormalization())
-    nn.add(Symmetric("sum", axis=1))
-    nn.add(my_conv2d(filters=64, strides=(1, 1)))
-    nn.add(keras.layers.ELU())
-    nn.add(keras.layers.BatchNormalization())
-    nn.add(Symmetric("sum", axis=2))
-    nn.add(keras.layers.Flatten())
-    # nn.add(keras.layers.Dense(128, activation="elu"))
-    nn.add(keras.layers.Dense(1, activation="sigmoid"))
+        x = nn.Dense(features=1)(x)
+        #x = nn.sigmoid(x)
 
-    loss_fn = keras.losses.BinaryCrossentropy(from_logits=True)
-    opt = keras.optimizers.Adam()
-    nn.compile(optimizer=opt, loss=loss_fn, metrics=["accuracy"])
-    return nn
+        return x
 
 
-def _load_cnn1(filename: str) -> keras.Model:
-    """Load neural network from a file."""
-    return keras.models.load_model(
-        filename,
-        custom_objects={
-            "Symmetric": Symmetric,
-        },
-    )
+def binary_accuracy(logits, labels):
+    return jnp.mean(jnp.abs(jax.nn.sigmoid(logits) - labels) < 0.5)
 
 
 class Discriminator:
-    # XXX: MirroredStrategy is broken in tf 2.5.0/2.6.0
-    # https://github.com/tensorflow/tensorflow/issues/50487
-    default_strategy = tf.distribute.MirroredStrategy
+    def __init__(self, dnn: nn.Module, variables: PyTree):
+        """
+        Instantiate a discriminator.
 
-    def __init__(self, nn: keras.Model):
+        Not intended to be used directly. Use from_file() or from_input_shape()
+        class methods instead.
+
+        :param dnn: The neural network. This has an apply() method.
+        :param variables: A PyTree of the network parameters.
         """
-        Instantiate a discriminator. Not
-        :param nn: The neural network.
+        self.dnn = dnn
+        self.variables = variables
+
+    @classmethod
+    def from_file(cls, filename) -> Discriminator:
         """
-        self.nn = nn
+        Load neural network from the given file.
+
+        :param filename: The filename of the saved flax model.
+        """
+        raise RuntimeError("TODO")
 
     @classmethod
     def from_input_shape(
-        cls, input_shape: tuple[int, int, int], strategy=None
+        cls, input_shape: tuple[int, int, int], rng: np.random.Generator
     ) -> Discriminator:
         """
         Build a neural network with the given input shape.
@@ -122,42 +104,20 @@ class Discriminator:
             hapotypes, m is the size of the "fixed dimension" after resizing
             along the sequence length, and c is the number of colour channels
             (which should be equal to 1).
-        :param strategy:
-            The tensorflow distribute strategy. If None, the MirroredStrategy
-            will be used. See tensorflow documentation:
-            https://www.tensorflow.org/tutorials/distribute/keras
-        :return: The discriminator object
         """
-        if strategy is None:
-            strategy = cls.default_strategy()
-        with strategy.scope():
-            nn = _build_cnn1(input_shape)
-        return cls(nn)
+        dnn = CNN1()
+        key = jax.random.PRNGKey(rng.integers(2 ** 63))
+        shape = (1,) + input_shape  # add leading batch dimension
+        dummy_input = jnp.zeros(shape, dtype=np.int8)
+        params = dnn.init(key, dummy_input)
+        return cls(dnn, params)
 
-    @classmethod
-    def from_file(cls, filename, strategy=None) -> Discriminator:
-        """
-        Load neural network from the given file.
-
-        :param filename: The filename of the saved keras model.
-        :param strategy:
-            The tensorflow distribute strategy. If None, the MirroredStrategy
-            will be used. See tensorflow documentation:
-            https://www.tensorflow.org/tutorials/distribute/keras
-        :return: The discriminator object
-        """
-        if strategy is None:
-            strategy = cls.default_strategy()
-        with strategy.scope():
-            nn = _load_cnn1(filename)
-        return cls(nn)
-
-    def to_file(self, filename: str) -> None:
-        """Save neural network to a file."""
-        self.nn.save(filename)
+    def summary(self):
+        print(jax.tree_map(lambda x: x.shape, self.variables))
 
     def fit(
         self,
+        rng: np.random.Generator,
         *,
         train_x,
         train_y,
@@ -168,70 +128,106 @@ class Discriminator:
         tensorboard_log_dir=None,
     ):
         """
-        Fit a neural network to labelled training data.
+        Fit discriminator to training data.
 
-        :param train_x: Training data.
-        :param train_y: Labels for training data.
-        :param val_x: Validation data.
-        :param val_y: Labels for validation data.
-        :param batch_size: Size of minibatch for gradient update step.
-        :param epochs: The number of full passes over the training data.
-        :param tensorboard_log_dir:
-            Directory for tensorboard logs. If None, no logs will be recorded.
+        :param rng: Numpy random number generator.
         """
-        assert len(train_y.shape) == len(val_y.shape) == 1
-        assert len(train_x.shape) == len(val_x.shape) == 4
-        assert train_x.shape[1:] == val_x.shape[1:]
-        assert train_x.shape[1] > 1
-        assert train_x.shape[2] > 1
-        assert train_x.shape[3] == 1
 
-        callbacks = []
-        if tensorboard_log_dir is not None:
-            now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-            log_dir = pathlib.Path(tensorboard_log_dir) / now
-            cb = keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
-            callbacks.append(cb)
+        @jax.jit
+        def train_step(state, batch):
+            """Train for a single step."""
 
-        train_data = tf.data.Dataset.from_tensor_slices((train_x, train_y))
-        val_data = tf.data.Dataset.from_tensor_slices((val_x, val_y))
-        train_data = train_data.batch(batch_size)
-        val_data = val_data.batch(batch_size)
+            def batch_loss(params):
+                def loss_fn(x, y):
+                    logits, batch_stats = state.apply_fn(
+                        dict(params=params, batch_stats=state.batch_stats),
+                        x, mutable=["batch_stats"], train=True
+                    )
+                    loss = optax.sigmoid_binary_cross_entropy(logits=logits, labels=y)
+                    return loss, logits, batch_stats
 
-        options = tf.data.Options()
-        options.experimental_distribute.auto_shard_policy = (
-            tf.data.experimental.AutoShardPolicy.DATA
-        )
-        train_data = train_data.with_options(options)
-        val_data = val_data.with_options(options)
+                loss, logits, batch_stats = jax.vmap(
+                    loss_fn, out_axes=(0, 0, None), axis_name="batch"
+                )(batch["image"], batch["label"])
+                return jnp.mean(loss), (logits, batch_stats)
 
-        self.nn.fit(
-            train_data,
-            epochs=epochs,
-            validation_data=val_data,
-            callbacks=callbacks,
-        )
+            grad_fn = jax.value_and_grad(batch_loss, has_aux=True)
+            (loss, (logits, updated_batch_stats)), grads = grad_fn(state.params)
+            state = state.apply_gradients(grads=grads, batch_stats=updated_batch_stats)
+            metrics = dict(loss=loss, accuracy=binary_accuracy(logits, batch["label"]))
+            return state, metrics
 
-    def predict(self, x, *, batch_size: int = 1024) -> np.ndarray:
-        """
-        Make predictions about data using a pre-fitted neural network.
+        @jax.jit
+        def eval_step(state, batch):
+            def loss_fn(x, y):
+                params = dict(params=state.params, batch_stats=state.batch_stats)
+                logits = state.apply_fn(params, x)
+                loss = optax.sigmoid_binary_cross_entropy(logits=logits, labels=y)
+                return loss, logits
 
-        :param x: The data instances about which to make predictions.
-        :param batch_size: Size of data batches for prediction.
-        :return: A vector of predictions, one for each input instance.
-        """
-        if len(x.shape) != 4 or x.shape[1:] != self.nn.input_shape[1:]:
-            raise ValueError(
-                f"Input data has shape {x.shape} but discriminator network "
-                f"expects shape {self.nn.input_shape}."
+            loss, logits = jax.vmap(loss_fn, out_axes=(0, 0), axis_name="batch")(
+                batch["image"], batch["label"]
             )
+            loss = jnp.mean(loss)
+            accuracy = binary_accuracy(logits, batch["label"])
+            metrics = dict(loss=loss, accuracy=accuracy)
+            return metrics
 
-        data = tf.data.Dataset.from_tensor_slices(x)
-        data = data.batch(batch_size)
-        options = tf.data.Options()
-        options.experimental_distribute.auto_shard_policy = (
-            tf.data.experimental.AutoShardPolicy.DATA
+        def train_epoch(state, train_ds, batch_size, epoch, key):
+            """Train for a single epoch."""
+            train_ds_size = len(train_ds["image"])
+            steps_per_epoch = train_ds_size // batch_size
+
+            perms = jax.random.permutation(key, train_ds_size)
+            perms = perms[: steps_per_epoch * batch_size]  # skip incomplete batch
+            perms = perms.reshape((steps_per_epoch, batch_size))
+            batch_metrics = []
+            for perm in perms:
+                batch = {k: v[perm, ...] for k, v in train_ds.items()}
+                state, metrics = train_step(state, batch)
+                batch_metrics.append(metrics)
+                for k, v in metrics.items():
+                    print(k, jax.device_get(v), end=", ")
+                print("\r")
+
+            # compute mean of metrics across each batch in epoch.
+            batch_metrics_np = jax.device_get(batch_metrics)
+            epoch_metrics_np = {
+                k: np.mean([metrics[k] for metrics in batch_metrics_np])
+                for k in batch_metrics_np[0]
+            }
+
+            train_loss = epoch_metrics_np["loss"]
+            train_acc = epoch_metrics_np["accuracy"]
+            print(f"train epoch: {epoch}, loss: {train_loss:.4f}, accuracy: {train_acc:.4f}")
+
+            return state
+
+        def eval_model(state, test_ds):
+            metrics = eval_step(state, test_ds)
+            metrics = jax.device_get(metrics)
+            summary = jax.tree_map(lambda x: x.item(), metrics)
+            return summary["loss"], summary["accuracy"]
+
+        state = TrainState.create(
+            apply_fn=self.dnn.apply,
+            tx=optax.adam(learning_rate=0.001),
+            params=self.variables["params"],
+            batch_stats=self.variables.get("batch_stats", {}),
         )
-        data = data.with_options(options)
 
-        return self.nn.predict(data)[:, 0]
+        key = jax.random.PRNGKey(rng.integers(2 ** 63))
+
+        train_ds = dict(image=train_x, label=train_y)
+        test_ds = dict(image=val_x, label=val_y)
+
+        for epoch in range(1, epochs + 1):
+            # Use a separate PRNG key to permute image data during shuffling
+            key, input_key = jax.random.split(key)
+            # Run an optimization step over a training batch
+            state = train_epoch(state, train_ds, batch_size, epoch, input_key)
+            # Evaluate on the test set after each training epoch
+            test_loss, test_acc = eval_model(state, test_ds)
+            print(f"test epoch: {epoch}, loss: {test_loss:.4f}, accuracy: {test_acc:.4f}")
+
+        self.variables = dict(params=state.params, batch_stats=state.batch_stats)

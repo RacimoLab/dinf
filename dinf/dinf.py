@@ -125,9 +125,10 @@ def train(
         logger.info("saving training data to {train_zarr_cache}")
         train_cache.save((train_x, train_y, val_x, val_y))
 
-    discr = discriminator.Discriminator.from_input_shape(train_x.shape[1:])
-    discr.nn.summary()
+    discr = discriminator.Discriminator.from_input_shape(train_x.shape[1:], rng)
+    discr.summary()
     discr.fit(
+        rng,
         train_x=train_x,
         train_y=train_y,
         val_x=val_x,
@@ -309,10 +310,10 @@ def mcmc(
         walkers,
         ndim,
         _mcmc_log_prob,
-        #_mcmc_log_prob_vector,
+        # _mcmc_log_prob_vector,
         kwargs=kwargs,
         verbose=False,
-        #vectorize=True,
+        # vectorize=True,
     )
     sampler.run_mcmc(start, nsteps=steps)
     chain = sampler.get_chain()
@@ -323,5 +324,5 @@ def mcmc(
 
     datadict = {p.name: chain[..., j] for j, p in enumerate(generator.params)}
     datadict["D"] = D
-    #dataset = az.convert_to_inference_data(datadict)
-    #az.to_netcdf(dataset, working_directory / "mcmc.ncf")
+    # dataset = az.convert_to_inference_data(datadict)
+    # az.to_netcdf(dataset, working_directory / "mcmc.ncf")
