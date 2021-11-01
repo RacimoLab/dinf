@@ -20,7 +20,10 @@ PyTree = Any
 class TrainState(flax.training.train_state.TrainState):
     batch_stats: Any
 
+
 def batchify(dataset, batch_size):
+    """Generate batch_size chunks of the dataset."""
+    assert batch_size >= 1
     k0 = tuple(dataset.keys())[0]
     size = len(dataset[k0])
     i, j = 0, batch_size
@@ -30,58 +33,51 @@ def batchify(dataset, batch_size):
         i = j
         j += batch_size
 
-def nop(*args, **kwargs):
-    """No-op. Do nothing."""
-    pass
+
+class Symmetric(nn.Module):
+    """
+    Layer that summarises over a given axis in a way that
+    is invariant to perumtations of data along that axis.
+    """
+
+    axis: int
+
+    @nn.compact
+    def __call__(self, x):
+        return jnp.sum(x, axis=self.axis, keepdims=True)
+
 
 class CNN1(nn.Module):
     @nn.compact
-    def __call__(self, x, *, train: bool, print=nop):
+    def __call__(self, x, *, train: bool):
         # flax uses channels-last (NHWC) convention
         conv = functools.partial(nn.Conv, kernel_size=(1, 5), use_bias=False)
         # https://flax.readthedocs.io/en/latest/howtos/state_params.html
-        norm = functools.partial(
-            nn.BatchNorm,
-            use_running_average=not train,
-        )
-        # permutation invariant layer
-        symmetric = lambda axis: functools.partial(jnp.sum, axis=axis, keepdims=True)
+        norm = functools.partial(nn.BatchNorm, use_running_average=not train)
 
-        print("Input", x.shape, x.dtype, sep="\t")
         x = norm()(x)
-        print("BNorm", x.shape, x.dtype, sep="\t")
 
         x = conv(features=32, strides=(1, 2))(x)
         x = nn.elu(x)
-        print("Conv", x.shape, x.dtype, sep="\t")
         x = norm()(x)
-        print("BNorm", x.shape, x.dtype, sep="\t")
 
         x = conv(features=64, strides=(1, 2))(x)
         x = nn.elu(x)
-        print("Conv", x.shape, x.dtype, sep="\t")
         x = norm()(x)
-        print("BNorm", x.shape, x.dtype, sep="\t")
 
         # collapse haplotypes
-        x = symmetric(axis=1)(x)
-        print("Symm", x.shape, x.dtype, sep="\t")
+        x = Symmetric(axis=1)(x)
 
         x = conv(features=64)(x)
         x = nn.elu(x)
-        print("Conv", x.shape, x.dtype, sep="\t")
         x = norm()(x)
-        print("BNorm", x.shape, x.dtype, sep="\t")
 
         # collapse genomic bins
-        x = symmetric(axis=2)(x)
-        print("Symm", x.shape, x.dtype, sep="\t")
+        x = Symmetric(axis=2)(x)
 
         x = nn.Dense(features=1)(x)
-        print("Dense", x.shape, x.dtype, sep="\t")
 
         x = x.reshape((x.shape[0],))  # flatten
-        print("Flatten", x.shape, x.dtype, sep="\t")
 
         # x = nn.sigmoid(x)
 
@@ -94,7 +90,7 @@ def binary_accuracy(*, logits, labels):
 
 
 class Discriminator:
-    def __init__(self, dnn: nn.Module, variables: PyTree):
+    def __init__(self, dnn: nn.Module, variables: PyTree, input_shape: tuple):
         """
         Instantiate a discriminator.
 
@@ -106,6 +102,7 @@ class Discriminator:
         """
         self.dnn = dnn
         self.variables = variables
+        self.input_shape = input_shape
 
     @classmethod
     def from_file(cls, filename) -> Discriminator:
@@ -132,20 +129,27 @@ class Discriminator:
         """
         dnn = CNN1()
         key = jax.random.PRNGKey(rng.integers(2 ** 63))
-        shape = (1,) + input_shape  # add leading batch dimension
-        dummy_input = jnp.zeros(shape, dtype=np.int8)
+        input_shape = (1,) + input_shape  # add leading batch dimension
+        dummy_input = jnp.zeros(input_shape, dtype=np.int8)
 
         @jax.jit
         def init(*args):
-            return dnn.init(*args, train=True, print=print)
+            return dnn.init(*args, train=False)
 
         variables = init(key, dummy_input)
-        return cls(dnn, variables)
+        return cls(dnn, variables, input_shape)
 
     def summary(self):
-        print(
-            jax.tree_map(lambda x: (x.shape, x.device_buffer.device()), self.variables)
+        x = jnp.zeros(self.input_shape, dtype=np.int8)
+        _, state = self.dnn.apply(
+            self.variables,
+            x,
+            train=False,
+            capture_intermediates=True,
+            mutable=["intermediates"],
         )
+        print(jax.tree_map(lambda x: (x.shape, x.dtype), state["intermediates"]))
+        print(jax.tree_map(lambda x: (x.shape, x.dtype), self.variables))
 
     def fit(
         self,
@@ -271,4 +275,7 @@ class Discriminator:
                 f"test epoch: {epoch}, loss: {test_loss:.4f}, accuracy: {test_acc:.4f}"
             )
 
-        self.variables = dict(params=state.params, batch_stats=state.batch_stats)
+        self.variables = dict(
+            params=jax.device_get(state.params),
+            batch_stats=jax.device_get(state.batch_stats),
+        )
