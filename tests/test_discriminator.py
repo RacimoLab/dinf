@@ -1,3 +1,6 @@
+import tempfile
+import pathlib
+
 import numpy as np
 import jax
 import chex
@@ -51,6 +54,15 @@ class TestDiscriminator:
         captured = capsys.readouterr()
         assert "params" in captured.out
         assert "batch_stats" in captured.out
+
+    def test_load_save_roundtrip(self):
+        rng = np.random.default_rng(1234)
+        d1 = discriminator.Discriminator.from_input_shape((30, 40, 1), rng)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filename = pathlib.Path(tmpdir) / "model.json"
+            d1.to_file(filename)
+            d2 = discriminator.Discriminator.from_file(filename)
+        chex.assert_trees_all_close(d1.variables, d2.variables)
 
 
 class TestBatchify:

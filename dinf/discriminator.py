@@ -1,6 +1,7 @@
 from __future__ import annotations
 import functools
 from typing import Any
+import json
 
 import numpy as np
 import jax
@@ -108,15 +109,6 @@ class Discriminator:
         self.input_shape = input_shape
 
     @classmethod
-    def from_file(cls, filename) -> Discriminator:
-        """
-        Load neural network from the given file.
-
-        :param filename: The filename of the saved flax model.
-        """
-        raise RuntimeError("TODO")
-
-    @classmethod
     def from_input_shape(
         cls, input_shape: tuple[int, int, int], rng: np.random.Generator
     ) -> Discriminator:
@@ -141,6 +133,37 @@ class Discriminator:
 
         variables = init(key, dummy_input)
         return cls(dnn, variables, input_shape)
+
+    @classmethod
+    def from_file(cls, filename) -> Discriminator:
+        """
+        Load neural network from the given file.
+
+        :param filename: The filename of the saved model.
+        """
+        with open(filename) as f:
+            data = json.load(f)
+
+        input_shape =  data.get("input_shape")
+        variables = data.get("variables")
+        assert input_shape is not None
+        assert variables is not None
+
+        # XXX: assumes CNN1
+        dnn = CNN1()
+        return cls(dnn, variables, input_shape)
+
+    def to_file(self, filename) -> None:
+        """
+        Save a neural network to the given file.
+
+        :param filename: The filename to save the model.
+        """
+        variables = jax.tree_util.tree_map(list, self.variables)
+        variables = flax.core.frozen_dict.unfreeze(variables)
+        data = dict(input_shape=self.input_shape, variables=variables)
+        with open(filename, "w") as f:
+            json.dump(data, f)
 
     def summary(self):
         x = jnp.zeros(self.input_shape, dtype=np.int8)
@@ -280,7 +303,10 @@ class Discriminator:
             state = train_epoch(state, train_ds, batch_size, epoch, input_key)
             eval_model(state, test_ds, batch_size)
 
-        self.variables = dict(
-            params=jax.device_get(state.params),
-            batch_stats=jax.device_get(state.batch_stats),
+        self.variables = jax.tree_util.tree_map(
+            np.array,
+            dict(
+                params=jax.device_get(state.params),
+                batch_stats=jax.device_get(state.batch_stats),
+            )
         )
