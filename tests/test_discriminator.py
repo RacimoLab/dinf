@@ -64,6 +64,21 @@ class TestDiscriminator:
             d2 = discriminator.Discriminator.from_file(filename)
         chex.assert_trees_all_close(d1.variables, d2.variables)
 
+    def test_predict(self):
+        train_x, train_y = random_dataset(50)
+        val_x, val_y = random_dataset(50)
+        input_shape = train_x.shape[1:]
+
+        rng = np.random.default_rng(1234)
+        d = discriminator.Discriminator.from_input_shape(input_shape, rng)
+        d.fit(rng, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y)
+
+        y = d.predict(val_x)
+        chex.assert_rank(y, 1)
+        chex.assert_shape(y, (val_x.shape[0],))
+        assert all(y >= 0)
+        assert all(y <= 1)
+
 
 class TestBatchify:
     def test_batchify(self):

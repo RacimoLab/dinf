@@ -1,7 +1,7 @@
 from __future__ import annotations
 import functools
 from typing import Any
-import json
+import pickle
 
 import numpy as np
 import jax
@@ -103,6 +103,7 @@ class Discriminator:
 
         :param dnn: The neural network. This has an apply() method.
         :param variables: A PyTree of the network parameters.
+        :param input_shape: The shape of the input to the neural network.
         """
         self.dnn = dnn
         self.variables = variables
@@ -137,35 +138,29 @@ class Discriminator:
     @classmethod
     def from_file(cls, filename) -> Discriminator:
         """
-        Load neural network from the given file.
+        Load discriminator neural network from the given file.
 
         :param filename: The filename of the saved model.
+        :return: The discriminator object.
         """
-        with open(filename) as f:
-            data = json.load(f)
-
-        input_shape =  data.get("input_shape")
-        variables = data.get("variables")
-        assert input_shape is not None
-        assert variables is not None
-
-        # XXX: assumes CNN1
-        dnn = CNN1()
-        return cls(dnn, variables, input_shape)
+        with open(filename, "rb") as f:
+            data = pickle.load(f)
+        assert data.keys() == set(["dnn", "variables", "input_shape"])
+        return cls(**data)
 
     def to_file(self, filename) -> None:
         """
-        Save a neural network to the given file.
+        Save discriminator neural network to the given file.
 
-        :param filename: The filename to save the model.
+        :param filename: The filename to which the model will be saved.
         """
-        variables = jax.tree_util.tree_map(list, self.variables)
-        variables = flax.core.frozen_dict.unfreeze(variables)
-        data = dict(input_shape=self.input_shape, variables=variables)
-        with open(filename, "w") as f:
-            json.dump(data, f)
+        variables = jax.tree_map(np.array, self.variables)
+        data = dict(dnn=self.dnn, variables=variables, input_shape=self.input_shape)
+        with open(filename, "wb") as f:
+            pickle.dump(data, f)
 
     def summary(self):
+        """Print a summary of the neural network."""
         x = jnp.zeros(self.input_shape, dtype=np.int8)
         _, state = self.dnn.apply(
             self.variables,
@@ -174,6 +169,8 @@ class Discriminator:
             capture_intermediates=True,
             mutable=["intermediates"],
         )
+        # TODO: this sucks. The order of layers in the CNN are lost, because of
+        # https://github.com/google/jax/issues/4085
         print(jax.tree_map(lambda x: (x.shape, x.dtype), state["intermediates"]))
         print(jax.tree_map(lambda x: (x.shape, x.dtype), self.variables))
 
@@ -187,13 +184,28 @@ class Discriminator:
         val_y,
         batch_size: int = 64,
         epochs: int = 1,
+        # TODO: tensorboard output
         tensorboard_log_dir=None,
     ):
         """
         Fit discriminator to training data.
 
         :param rng: Numpy random number generator.
+        :param train_x: Training data.
+        :param train_y: Labels for training data.
+        :param val_x: Validation data.
+        :param val_y: Labels for validation data.
+        :param batch_size: Size of minibatch for gradient update step.
+        :param epochs: The number of full passes over the training data.
+        :param tensorboard_log_dir:
+            Directory for tensorboard logs. If None, no logs will be recorded.
         """
+        assert len(train_y.shape) == len(val_y.shape) == 1
+        assert len(train_x.shape) == len(val_x.shape) == 4
+        assert train_x.shape[1:] == val_x.shape[1:]
+        assert train_x.shape[1] > 1
+        assert train_x.shape[2] > 1
+        assert train_x.shape[3] == 1
 
         @jax.jit
         def train_step(state, batch):
@@ -226,6 +238,7 @@ class Discriminator:
 
         @jax.jit
         def eval_step(state, batch):
+            """Evaluate for a single step."""
             logits = state.apply_fn(
                 dict(params=state.params, batch_stats=state.batch_stats),
                 batch["image"],
@@ -239,7 +252,7 @@ class Discriminator:
             return metrics
 
         def running_metrics(n, batch_size, current_metrics, metrics):
-            new_metrics = jax.tree_util.tree_map(
+            new_metrics = jax.tree_map(
                 lambda a, b: a + batch_size * b, current_metrics, metrics
             )
             return n + batch_size, new_metrics
@@ -291,22 +304,54 @@ class Discriminator:
             batch_stats=self.variables.get("batch_stats", {}),
         )
 
-        key = jax.random.PRNGKey(rng.integers(2 ** 63))
-
         train_ds = dict(image=train_x, label=train_y)
-        # train_ds = jax.device_put(train_ds)
         test_ds = dict(image=val_x, label=val_y)
-        # test_ds = jax.device_put(test_ds)
 
-        for epoch in range(1, epochs + 1):
-            key, input_key = jax.random.split(key)
-            state = train_epoch(state, train_ds, batch_size, epoch, input_key)
+        seed = rng.integers(1 ** 63)
+        keys = jax.random.split(jax.random.PRNGKey(seed), epochs)
+        for epoch, key in enumerate(keys, 1):
+            state = train_epoch(state, train_ds, batch_size, epoch, key)
             eval_model(state, test_ds, batch_size)
 
-        self.variables = jax.tree_util.tree_map(
+        self.variables = jax.tree_map(
             np.array,
             dict(
                 params=jax.device_get(state.params),
                 batch_stats=jax.device_get(state.batch_stats),
-            )
+            ),
         )
+
+    def predict(self, x, *, batch_size: int = 1024) -> np.ndarray:
+        """
+        Make predictions about data using a pre-fitted neural network.
+
+        :param x: The data instances about which to make predictions.
+        :param batch_size: Size of data batches for prediction.
+        :return: A vector of predictions, one for each input instance.
+        """
+        if len(x.shape) != 4 or x.shape[1:] != self.input_shape[1:]:
+            raise ValueError(
+                f"Input data has shape {x.shape} but discriminator network "
+                f"expects shape {self.nn.input_shape}."
+            )
+
+        if "batch_stats" not in self.variables:
+            raise ValueError(
+                "Cannot make predications as the discriminator has not been trained."
+            )
+
+        @jax.jit
+        def predict_step(batch):
+            """Evaluate for a single step."""
+            logits = self.dnn.apply(
+                self.variables,
+                batch["image"],
+                train=False,
+            )
+            return jax.nn.sigmoid(logits)
+
+        dataset = dict(image=x)
+        y = []
+        for batch in batchify(dataset, batch_size):
+            y.append(predict_step(batch))
+        return np.concatenate(y)
