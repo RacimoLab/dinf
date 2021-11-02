@@ -1,7 +1,5 @@
 from __future__ import annotations
-import pathlib
 import functools
-import itertools
 from typing import Any
 
 import numpy as np
@@ -15,7 +13,7 @@ import optax
 # https://github.com/google/jax/issues/3340
 PyTree = Any
 
-# Because we use batch normalistion, the training state needs to also record
+# Because we use batch normalisation, the training state needs to also record
 # batch_stats to maintain the running mean and variance.
 class TrainState(flax.training.train_state.TrainState):
     batch_stats: Any
@@ -77,14 +75,19 @@ class CNN1(nn.Module):
 
         x = nn.Dense(features=1)(x)
 
-        x = x.reshape((x.shape[0],))  # flatten
+        # flatten
+        x = x.reshape((-1,))
 
-        # x = nn.sigmoid(x)
-
+        # We output logits on (-inf, inf), rather than a probability on [0, 1],
+        # because the jax ecosystem provides better API support for working
+        # with logits, e.g. loss functions in optax.
+        # So remember to call jax.nn.sigmoid(x) on the output when
+        # probabilities are needed.
         return x
 
 
 def binary_accuracy(*, logits, labels):
+    """Accuracy of binary classifier, from logits."""
     p = jax.nn.sigmoid(logits)
     return jnp.mean(labels == (p > 0.5))
 
@@ -212,42 +215,51 @@ class Discriminator:
             metrics = dict(loss=loss, accuracy=accuracy)
             return metrics
 
+        def running_metrics(n, batch_size, current_metrics, metrics):
+            new_metrics = jax.tree_util.tree_map(
+                lambda a, b: a + batch_size * b, current_metrics, metrics
+            )
+            return n + batch_size, new_metrics
+
         def train_epoch(state, train_ds, batch_size, epoch, key):
             """Train for a single epoch."""
-            batch_metrics = []
+            dataset_size = len(train_ds["image"])
+
+            def print_metrics(n, metrics_sum, end):
+                loss = metrics_sum["loss"] / n
+                accuracy = metrics_sum["accuracy"] / n
+                print(
+                    f"[epoch {epoch}: {n}/{dataset_size}] "
+                    f"train loss: {loss:.4f}, train accuracy: {accuracy:.4f}",
+                    end=end,
+                )
+
+            metrics_sum = dict(loss=0, accuracy=0)
+            n = 0
             for i, batch in enumerate(batchify(train_ds, batch_size)):
-                state, metrics = train_step(state, batch)
-                batch_metrics.append(metrics)
+                state, batch_metrics = train_step(state, batch)
+                actual_batch_size = len(batch["image"])
+                n, metrics_sum = running_metrics(
+                    n, actual_batch_size, metrics_sum, batch_metrics
+                )
                 if i % 20 == 0:
-                    line = [f"{k}: {jax.device_get(v):.4f}" for k, v in metrics.items()]
-                    print(*line, sep=", ", end="\r")
+                    print_metrics(n, metrics_sum, end="\r")
 
-            # compute mean of metrics across each batch in epoch.
-            batch_metrics_np = jax.device_get(batch_metrics)
-            epoch_metrics_np = {
-                k: np.mean([metrics[k] for metrics in batch_metrics_np])
-                for k in batch_metrics_np[0]
-            }
-
-            train_loss = epoch_metrics_np["loss"]
-            train_acc = epoch_metrics_np["accuracy"]
-            print(
-                f"train epoch: {epoch}, loss: {train_loss:.4f}, accuracy: {train_acc:.4f}"
-            )
-
+            print_metrics(n, metrics_sum, end="")
             return state
 
         def eval_model(state, test_ds, batch_size):
-            batch_metrics = []
+            metrics_sum = dict(loss=0, accuracy=0)
+            n = 0
             for batch in batchify(test_ds, batch_size):
-                metrics = eval_step(state, batch)
-                batch_metrics.append(metrics)
-            batch_metrics = jax.device_get(batch_metrics)
-            summary = {
-                k: np.mean([metrics[k] for metrics in batch_metrics])
-                for k in batch_metrics[0]
-            }
-            return summary["loss"], summary["accuracy"]
+                batch_metrics = eval_step(state, batch)
+                actual_batch_size = len(batch["image"])
+                n, metrics_sum = running_metrics(
+                    n, actual_batch_size, metrics_sum, batch_metrics
+                )
+            loss = metrics_sum["loss"] / n
+            accuracy = metrics_sum["accuracy"] / n
+            print(f"; test loss: {loss:.4f}, test accuracy: {accuracy:.4f}")
 
         state = TrainState.create(
             apply_fn=self.dnn.apply,
@@ -264,16 +276,9 @@ class Discriminator:
         # test_ds = jax.device_put(test_ds)
 
         for epoch in range(1, epochs + 1):
-            # Use a separate PRNG key to permute image data during shuffling
             key, input_key = jax.random.split(key)
-            # Run an optimization step over a training batch
             state = train_epoch(state, train_ds, batch_size, epoch, input_key)
-            # print("state", jax.tree_map(jnp.shape, state))
-            # Evaluate on the test set after each training epoch
-            test_loss, test_acc = eval_model(state, test_ds, batch_size)
-            print(
-                f"test epoch: {epoch}, loss: {test_loss:.4f}, accuracy: {test_acc:.4f}"
-            )
+            eval_model(state, test_ds, batch_size)
 
         self.variables = dict(
             params=jax.device_get(state.params),

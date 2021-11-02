@@ -1,26 +1,32 @@
 import numpy as np
-import jax.tree_util
+import jax
+import chex
+import pytest
 
 from dinf import discriminator
 
 
-def pytree_assert_equal(xs, ys):
-    """assert xs == ys, where xs and ys are pytrees"""
-    jax.tree_util.tree_all(
-        jax.tree_util.tree_map(np.testing.assert_array_equal, xs, ys)
-    )
-
-
-def random_dataset(size):
+def random_dataset(size, seed=1234):
     """Make up a test dataset."""
-    rng = np.random.default_rng(1234)
+    key1, key2 = jax.random.split(jax.random.PRNGKey(seed))
     input_shape = (size, 32, 32, 1)
-    x = rng.integers(low=0, high=128, size=input_shape, dtype=np.int8)
-    y = rng.integers(low=0, high=1, size=size, dtype=np.int8, endpoint=True)
+    x = jax.random.randint(key1, shape=input_shape, minval=0, maxval=128, dtype=np.int8)
+    y = jax.random.randint(key2, shape=(size,), minval=0, maxval=2, dtype=np.int8)
     return x, y
 
 
 class TestDiscriminator:
+    @pytest.mark.parametrize("train", [True, False])
+    def test_CNN1(self, train: bool):
+        cnn = discriminator.CNN1()
+        x, _ = random_dataset(50)
+        variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
+        y, new_variables = cnn.apply(
+            variables, x, train=train, mutable=["batch_stats"] if train else []
+        )
+        chex.assert_rank(y, 1)
+        chex.assert_shape(y, (x.shape[0],))
+
     def test_fit(self):
         train_x, train_y = random_dataset(50)
         val_x, val_y = random_dataset(50)
@@ -34,7 +40,17 @@ class TestDiscriminator:
         d2 = discriminator.Discriminator.from_input_shape(input_shape, rng)
         d2.fit(rng, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y)
 
-        pytree_assert_equal(d1.variables, d2.variables)
+        chex.assert_tree_all_finite(d1.variables)
+        chex.assert_trees_all_close(d1.variables, d2.variables)
+
+    @pytest.mark.usefixtures("capsys")
+    def test_summary(self, capsys):
+        rng = np.random.default_rng(1234)
+        d = discriminator.Discriminator.from_input_shape((30, 40, 1), rng)
+        d.summary()
+        captured = capsys.readouterr()
+        assert "params" in captured.out
+        assert "batch_stats" in captured.out
 
 
 class TestBatchify:
