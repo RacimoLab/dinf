@@ -332,7 +332,7 @@ class Discriminator:
         if len(x.shape) != 4 or x.shape[1:] != self.input_shape[1:]:
             raise ValueError(
                 f"Input data has shape {x.shape} but discriminator network "
-                f"expects shape {self.nn.input_shape}."
+                f"expects shape {self.input_shape}."
             )
 
         if "batch_stats" not in self.variables:

@@ -19,7 +19,19 @@ class TestLogProb:
             sequence_length=1_000_000,
             feature_extractor=bh_matrix,
         )
-        cls.discriminator = discriminator.Discriminator.from_file("x/D6.hdf5")
+
+        rng = np.random.default_rng(111)
+        train_x, train_y, val_x, val_y = dinf._generate_training_data(
+            generator=cls.generator,
+            num_replicates=100,
+            validation_ratio=0.1,
+            parallelism=1,
+            rng=rng,
+        )
+        cls.discriminator = discriminator.Discriminator.from_input_shape(train_x.shape[1:], rng)
+        cls.discriminator.fit(
+            rng, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y
+        )
 
     def test_log_prob(self):
         rng = np.random.default_rng(1)
@@ -34,6 +46,8 @@ class TestLogProb:
 
         true_params = [p.value for p in self.generator.params]
         D = np.exp(log_prob(true_params))
+        # The model should learn *something* about the true data even with
+        # negligible training.
         assert D > 0
 
         for params in [
