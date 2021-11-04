@@ -1,4 +1,5 @@
 import abc
+from typing import Tuple
 
 import numpy as np
 import tskit
@@ -11,7 +12,7 @@ class FeatureExtractor(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def shape(self) -> tuple[int, int]:
+    def shape(self) -> Tuple[int, int]:
         """Shape of the feature matrix."""
         raise NotImplementedError
 
@@ -92,7 +93,7 @@ class BinnedHaplotypeMatrix(FeatureExtractor):
         self.dtype = dtype
 
     @property
-    def shape(self) -> tuple[int, int]:
+    def shape(self) -> Tuple[int, int]:
         """Shape of the feature matrix."""
         return self._shape
 

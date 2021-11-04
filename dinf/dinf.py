@@ -309,11 +309,11 @@ def mcmc(
     sampler = zeus.EnsembleSampler(
         walkers,
         ndim,
-        _mcmc_log_prob,
-        # _mcmc_log_prob_vector,
+        #_mcmc_log_prob,
+        _mcmc_log_prob_vector,
         kwargs=kwargs,
         verbose=False,
-        # vectorize=True,
+        vectorize=True,
     )
     sampler.run_mcmc(start, nsteps=steps)
     chain = sampler.get_chain()

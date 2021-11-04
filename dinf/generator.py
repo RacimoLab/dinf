@@ -1,5 +1,6 @@
 import abc
 from dataclasses import dataclass
+from typing import Sequence, Tuple
 
 import numpy as np
 import demes
@@ -13,7 +14,7 @@ from . import feature_extractor
 class Parameter:
     name: str
     value: float
-    bounds: tuple[float, float]
+    bounds: Tuple[float, float]
 
 
 class Generator(abc.ABC):
@@ -40,7 +41,7 @@ class Generator(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def params(self) -> list[Parameter]:
+    def params(self) -> Sequence[Parameter]:
         """The list of model parameters."""
         raise NotImplementedError
 
@@ -63,7 +64,7 @@ class Generator(abc.ABC):
         """
         raise NotImplementedError
 
-    def sim(self, args: tuple[int, tuple[float]]) -> np.ndarray:
+    def sim(self, args: Tuple[int, Sequence[float]]) -> np.ndarray:
         """
         Simulates the model, returning a genotype matrix.
 

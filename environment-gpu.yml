@@ -17,6 +17,7 @@ dependencies:
   - optax
   # The rest.
   - arviz
+  - demes
   - msprime
   - zarr
   - zeus-mcmc

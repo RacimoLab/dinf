@@ -3,7 +3,7 @@ import dataclasses
 import functools
 import pickle
 import sys
-from typing import Any
+from typing import Any, Tuple
 
 import numpy as np
 import jax
@@ -118,7 +118,7 @@ class Discriminator:
     """
 
     dnn: nn.Module
-    input_shape: tuple[int, int, int]
+    input_shape: Tuple[int, int, int]
     variables: PyTree
     train_metrics: PyTree = None
     # Bump this after making internal changes.
@@ -126,7 +126,7 @@ class Discriminator:
 
     @classmethod
     def from_input_shape(
-        cls, input_shape: tuple[int, int, int], rng: np.random.Generator
+        cls, input_shape: Tuple[int, int, int], rng: np.random.Generator
     ) -> Discriminator:
         """
         Build a neural network with the given input shape.

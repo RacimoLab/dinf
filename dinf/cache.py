@@ -1,5 +1,6 @@
 import logging
 import pathlib
+from typing import Tuple
 
 import zarr
 
@@ -11,7 +12,7 @@ class Cache:
     Wrapper around zarr for managing cached data.
     """
 
-    def __init__(self, path, keys: tuple[str]):
+    def __init__(self, path, keys: Tuple[str]):
         self.path = pathlib.Path(path)
         self.keys = keys
 
@@ -19,7 +20,7 @@ class Cache:
         """Returns True if the cache exists, False otherwise."""
         return self.path.exists()
 
-    def load(self) -> tuple:
+    def load(self) -> Tuple:
         """Load data from the cache."""
         if not self.exists():
             raise RuntimeError(f"{self.path} doesn't exist")
