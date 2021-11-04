@@ -28,7 +28,9 @@ class TestLogProb:
             parallelism=1,
             rng=rng,
         )
-        cls.discriminator = discriminator.Discriminator.from_input_shape(train_x.shape[1:], rng)
+        cls.discriminator = discriminator.Discriminator.from_input_shape(
+            train_x.shape[1:], rng
+        )
         cls.discriminator.fit(
             rng, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y
         )

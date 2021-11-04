@@ -172,11 +172,11 @@ def abc(
     az.to_netcdf(dataset, working_directory / "abc.ncf")
 
 
-def _opt_func(gfo_params, *, discr, generator, rng, num_replicates, parallelism):
+def _opt_func(opt_params, *, discr, generator, rng, num_replicates, parallelism):
     """
     Function to be maximised by gfo.
     """
-    param_values = tuple(gfo_params.values())
+    param_values = tuple(opt_params.values())
     if not all(
         p.bounds[0] <= x <= p.bounds[1] for x, p in zip(param_values, generator.params)
     ):
@@ -224,7 +224,7 @@ def opt(
 
     datadict = {p.name: opt.results[p.name] for j, p in enumerate(generator.params)}
     dataset = az.convert_to_inference_data(datadict)
-    az.to_netcdf(dataset, working_directory / "gfo.ncf")
+    az.to_netcdf(dataset, working_directory / "opt.ncf")
 
 
 def _mcmc_log_prob(mcmc_params, *, discr, generator, rng, num_replicates, parallelism):
@@ -324,5 +324,5 @@ def mcmc(
 
     datadict = {p.name: chain[..., j] for j, p in enumerate(generator.params)}
     datadict["D"] = D
-    # dataset = az.convert_to_inference_data(datadict)
-    # az.to_netcdf(dataset, working_directory / "mcmc.ncf")
+    dataset = az.convert_to_inference_data(datadict)
+    az.to_netcdf(dataset, working_directory / "mcmc.ncf")

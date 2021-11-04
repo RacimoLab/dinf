@@ -1,7 +1,9 @@
 from __future__ import annotations
+import dataclasses
 import functools
-from typing import Any
 import pickle
+import sys
+from typing import Any
 
 import numpy as np
 import jax
@@ -35,18 +37,24 @@ def batchify(dataset, batch_size):
 
 class Symmetric(nn.Module):
     """
-    Layer that summarises over a given axis in a way that
-    is invariant to perumtations of data along that axis.
+    Network layer that summarises over a given axis in a way that is invariant
+    to permutations of the input along that axis.
     """
 
     axis: int
 
     @nn.compact
     def __call__(self, x):
-        return jnp.sum(x, axis=self.axis, keepdims=True)
+        # Assess several functions more formally. One-shot tests indicated that
+        # sum and variance work well very well; mean and median less well.
+        return jnp.var(x, axis=self.axis, keepdims=True)
 
 
 class CNN1(nn.Module):
+    """
+    A permutation-invariant CNN for the discriminator.
+    """
+
     @nn.compact
     def __call__(self, x, *, train: bool):
         # flax uses channels-last (NHWC) convention
@@ -93,21 +101,28 @@ def binary_accuracy(*, logits, labels):
     return jnp.mean(labels == (p > 0.5))
 
 
+@dataclasses.dataclass
 class Discriminator:
-    def __init__(self, dnn: nn.Module, variables: PyTree, input_shape: tuple):
-        """
-        Instantiate a discriminator.
+    """
+    A discriminator neural network.
 
-        Not intended to be used directly. Use from_file() or from_input_shape()
-        class methods instead.
+    Not intended to be instantiated directly. Use either the from_file() or
+    from_input_shape() class methods instead.
 
-        :param dnn: The neural network. This has an apply() method.
-        :param variables: A PyTree of the network parameters.
-        :param input_shape: The shape of the input to the neural network.
-        """
-        self.dnn = dnn
-        self.variables = variables
-        self.input_shape = input_shape
+    :ivar dnn: The neural network. This has an apply() method.
+    :ivar input_shape: The shape of the input to the neural network.
+    :ivar variables: A PyTree of the network parameters.
+    :ivar train_metrics:
+        A PyTree containing the loss/accuracy metrics obtained when training
+        the network.
+    """
+
+    dnn: nn.Module
+    input_shape: tuple[int, int, int]
+    variables: PyTree
+    train_metrics: PyTree = None
+    # Bump this after making internal changes.
+    discriminator_format: str = "0.0.1"
 
     @classmethod
     def from_input_shape(
@@ -133,7 +148,7 @@ class Discriminator:
             return dnn.init(*args, train=False)
 
         variables = init(key, dummy_input)
-        return cls(dnn, variables, input_shape)
+        return cls(dnn=dnn, variables=variables, input_shape=input_shape)
 
     @classmethod
     def from_file(cls, filename) -> Discriminator:
@@ -145,7 +160,15 @@ class Discriminator:
         """
         with open(filename, "rb") as f:
             data = pickle.load(f)
-        assert data.keys() == set(["dnn", "variables", "input_shape"])
+        if data.pop("discriminator_format") != cls.discriminator_format:
+            raise ValueError(
+                f"{filename}: saved discriminator is not compatible with this "
+                "version of dinf. Either train a new discriminator or use an "
+                "older version of dinf."
+            )
+        expected_fields = set(map(lambda f: f.name, dataclasses.fields(cls)))
+        expected_fields.remove("discriminator_format")
+        assert data.keys() == expected_fields
         return cls(**data)
 
     def to_file(self, filename) -> None:
@@ -155,7 +178,8 @@ class Discriminator:
         :param filename: The filename to which the model will be saved.
         """
         variables = jax.tree_map(np.array, self.variables)
-        data = dict(dnn=self.dnn, variables=variables, input_shape=self.input_shape)
+        data = dataclasses.asdict(self)
+        data["dnn"] = self.dnn  # asdict converts this to a dict
         with open(filename, "wb") as f:
             pickle.dump(data, f)
 
@@ -265,10 +289,11 @@ class Discriminator:
                 loss = metrics_sum["loss"] / n
                 accuracy = metrics_sum["accuracy"] / n
                 print(
-                    f"[epoch {epoch}: {n}/{dataset_size}] "
-                    f"train loss: {loss:.4f}, train accuracy: {accuracy:.4f}",
+                    f"[epoch {epoch}|{n}] "
+                    f"train loss {loss:.4f}, accuracy {accuracy:.4f}",
                     end=end,
                 )
+                return loss, accuracy
 
             metrics_sum = dict(loss=0, accuracy=0)
             n = 0
@@ -281,8 +306,9 @@ class Discriminator:
                 if i % 20 == 0:
                     print_metrics(n, metrics_sum, end="\r")
 
-            print_metrics(n, metrics_sum, end="")
-            return state
+            loss, accuracy = print_metrics(n, metrics_sum, end="")
+            sys.stdout.flush()
+            return loss, accuracy, state
 
         def eval_model(state, test_ds, batch_size):
             metrics_sum = dict(loss=0, accuracy=0)
@@ -295,7 +321,8 @@ class Discriminator:
                 )
             loss = metrics_sum["loss"] / n
             accuracy = metrics_sum["accuracy"] / n
-            print(f"; test loss: {loss:.4f}, test accuracy: {accuracy:.4f}")
+            print(f"; test loss {loss:.4f}, accuracy {accuracy:.4f}")
+            return loss, accuracy
 
         state = TrainState.create(
             apply_fn=self.dnn.apply,
@@ -307,11 +334,29 @@ class Discriminator:
         train_ds = dict(image=train_x, label=train_y)
         test_ds = dict(image=val_x, label=val_y)
 
+        if self.train_metrics is None:
+            self.train_metrics = dict(
+                train_loss=[],
+                train_accuracy=[],
+                test_loss=[],
+                test_accuracy=[],
+            )
+
         seed = rng.integers(1 ** 63)
         keys = jax.random.split(jax.random.PRNGKey(seed), epochs)
         for epoch, key in enumerate(keys, 1):
-            state = train_epoch(state, train_ds, batch_size, epoch, key)
-            eval_model(state, test_ds, batch_size)
+            train_loss, train_accuracy, state = train_epoch(
+                state, train_ds, batch_size, epoch, key
+            )
+            test_loss, test_accuracy = eval_model(state, test_ds, batch_size)
+
+            for k, v in dict(
+                train_loss=train_loss,
+                train_accuracy=train_accuracy,
+                test_loss=test_loss,
+                test_accuracy=test_accuracy,
+            ).items():
+                self.train_metrics[k].append(v)
 
         self.variables = jax.tree_map(
             np.array,
