@@ -9,22 +9,15 @@ except ImportError:
 import os
 
 if "TF_CPP_MIN_LOG_LEVEL" not in os.environ:
-    # Mute tensorflow.
+    # Mute tensorflow/xla.
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 if "KMP_AFFINITY" not in os.environ:
-    # See also https://github.com/tensorflow/tensorflow/issues/29354
+    # Pin threads to cpus. This can improve blas performance.
     os.environ["KMP_AFFINITY"] = "granularity=fine,noverbose,compact,1,0"
 
-"""
-from .feature_extractor import (
-    FeatureExtractor,
-    BinnedHaplotypeMatrix,
-)
-from .generator import (
-    Generator,
-    Parameter,
-    MsprimeHudsonSimulator,
-)
-from .dinf import train, abc, opt, mcmc
-"""
+# https://jax.readthedocs.io/en/latest/gpu_memory_allocation.html
+# if "XLA_PYTHON_CLIENT_PREALLOCATE" not in os.environ:
+#    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+# if "XLA_PYTHON_CLIENT_ALLOCATOR" not in os.environ:
+#    os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"

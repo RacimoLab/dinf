@@ -18,10 +18,10 @@ def random_dataset(size, seed=1234):
     return x, y
 
 
-class TestDiscriminator:
+class TestExchangeableCNN:
     @pytest.mark.parametrize("train", [True, False])
-    def test_CNN1(self, train: bool):
-        cnn = discriminator.CNN1()
+    def test_cnn(self, train: bool):
+        cnn = discriminator.ExchangeableCNN()
         x, _ = random_dataset(50)
         variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
         y, new_variables = cnn.apply(
@@ -30,6 +30,8 @@ class TestDiscriminator:
         chex.assert_rank(y, 1)
         chex.assert_shape(y, (x.shape[0],))
 
+
+class TestDiscriminator:
     def test_fit(self):
         train_x, train_y = random_dataset(50)
         val_x, val_y = random_dataset(50)

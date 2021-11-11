@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import arviz as az
 
+from autocorr import AutoCorrTime
+
 
 def _subset_quantile(dataset: az.InferenceData, q) -> az.InferenceData:
     """Get q'th quantile of the dataset by discriminator probability."""
@@ -25,10 +27,22 @@ def _subset_threshold(dataset: az.InferenceData, x: float) -> az.InferenceData:
     return az.convert_to_inference_data(datadict)
 
 
-def _subset_dropburnin(dataset: az.InferenceData, n: int) -> az.InferenceData:
-    """Drop the first n data points in each chain."""
-    datadict = {p: dataset.posterior[p].values[:, n:] for p in dataset.posterior.keys()}
+def _subset_slice(dataset: az.InferenceData, slice_: slice) -> az.InferenceData:
+    """Select a slice of the data points in each chain."""
+    datadict = {
+        p: dataset.posterior[p].values[:, slice_] for p in dataset.posterior.keys()
+    }
     return az.convert_to_inference_data(datadict)
+
+
+def _fig_from_arviz_axes(axes):
+    if hasattr(axes, "flat"):
+        # axes is an ndarray of matplotlib.axes.Axes
+        fig = axes.flat[0].figure
+    else:
+        # axes is a matplotlib.axes.Axes
+        fig = axes.figure
+    return fig
 
 
 def iter_chains(dataset: az.InferenceData):
@@ -39,7 +53,7 @@ def iter_chains(dataset: az.InferenceData):
 
 
 def plot_pair(dataset, aspect=9 / 16, scale=1):
-    var_names = [p for p in dataset.posterior.keys() if p != "D"]
+    var_names = [k for k in dataset.posterior.data_vars.keys() if k != "D"]
     fig, ax = plt.subplots(
         len(var_names),
         len(var_names),
@@ -97,13 +111,15 @@ def plot_mcmc_trace(dataset, kind, aspect=9 / 16, scale=1):
     figsize = scale * plt.figaspect(aspect)
     axes = az.plot_trace(
         dataset,
+        var_names=("[^D]"),
+        filter_vars="regex",
         figsize=figsize,
         kind=kind,
         combined=False,
         compact=False,
         trace_kwargs=dict(rasterized=True),
     )
-    fig = axes.reshape(-1)[0].figure
+    fig = _fig_from_arviz_axes(axes)
     fig.set_constrained_layout(False)
     fig.set_tight_layout(True)
     return fig
@@ -111,8 +127,14 @@ def plot_mcmc_trace(dataset, kind, aspect=9 / 16, scale=1):
 
 def plot_mcmc_autocorr(dataset, aspect=9 / 16, scale=1):
     figsize = scale * plt.figaspect(aspect)
-    axes = az.plot_autocorr(dataset, figsize=figsize, combined=False)
-    fig = axes.reshape(-1)[0].figure
+    axes = az.plot_autocorr(
+        dataset,
+        figsize=figsize,
+        combined=False,
+        var_names=("[^D]"),
+        filter_vars="regex",
+    )
+    fig = _fig_from_arviz_axes(axes)
     fig.set_constrained_layout(False)
     fig.set_tight_layout(True)
     return fig
@@ -120,11 +142,80 @@ def plot_mcmc_autocorr(dataset, aspect=9 / 16, scale=1):
 
 def plot_mcmc_ess(dataset, kind, aspect=9 / 16, scale=1):
     figsize = scale * plt.figaspect(aspect)
-    axes = az.plot_ess(dataset, kind=kind, figsize=figsize)
-    fig = axes.reshape(-1)[0].figure
+    axes = az.plot_ess(
+        dataset,
+        kind=kind,
+        figsize=figsize,
+        var_names=("[^D]"),
+        filter_vars="regex",
+    )
+    fig = _fig_from_arviz_axes(axes)
     fig.set_constrained_layout(False)
     fig.set_tight_layout(True)
     return fig
+
+
+def plot_mcmc_iat(dataset, aspect=9 / 16, scale=1):
+    var_names = [k for k in dataset.posterior.data_vars.keys() if k != "D"]
+    samples = np.array([dataset.posterior[k] for k in var_names])
+    samples = samples.swapaxes(0, 2)
+    nsteps, nwalkers, nvars = samples.shape
+    # assert nsteps >= 100
+
+    var_names = [k for k in dataset.posterior.data_vars.keys() if k != "D"]
+    fig, axes = plt.subplots(
+        nrows=1,
+        ncols=len(var_names),
+        figsize=scale * plt.figaspect(aspect),
+        tight_layout=True,
+        squeeze=False,
+    )
+
+    N = np.arange(100, nsteps, 100, dtype=int)
+    dfm = np.empty((len(N), len(var_names)))
+    gw = np.empty((len(N), len(var_names)))
+    mk = np.empty((len(N), len(var_names)))
+    for k, n in enumerate(N):
+        dfm[k] = AutoCorrTime(samples[:n], method="dfm")
+        gw[k] = AutoCorrTime(samples[:n], method="gw")
+        mk[k] = AutoCorrTime(samples[:n], method="mk")
+
+    for j, var_name in enumerate(var_names):
+        ax = axes.flat[j]
+        ax.plot(N, dfm[:, j], label="dfm")
+        ax.plot(N, gw[:, j], label="gw")
+        ax.plot(N, mk[:, j], label="mk")
+        ax.plot(N, N / 50.0, "--k", label=r"$\tau = N/50$")
+        ax.legend()
+        ax.set_title(f"Integrated autocorrelation time ({var_name})")
+        ax.set_xlabel("N")
+        ax.set_ylabel(r"IAT")
+
+    dfm_max = np.max(dfm[-1])
+    print("IAT", dfm_max)
+
+    return fig
+
+
+def iat_max(dataset):
+    """
+    Max integrated autocorrelation time, over all variables.
+    """
+    var_names = [k for k in dataset.posterior.data_vars.keys() if k != "D"]
+    samples = np.array([dataset.posterior[k] for k in var_names])
+    samples = samples.swapaxes(0, 2)
+    # nsteps, nwalkers, nvars = samples.shape
+    dfm = AutoCorrTime(samples, method="dfm")
+    # max over all vars
+    dfm_max = np.max(dfm)
+    return int(np.ceil(dfm_max))
+
+
+def partial(f, *args, **kwargs):
+    """
+    Apply functools.update_wrapper to the functools.partial.
+    """
+    return functools.update_wrapper(functools.partial(f, *args, **kwargs), f)
 
 
 if __name__ == "__main__":
@@ -148,15 +239,18 @@ if __name__ == "__main__":
             funcs = [plot_abc_D, plot_abc_threshold, plot_abc_quantile]
         elif subcommand == "mcmc":
             funcs = [
-                functools.partial(plot_mcmc_ess, kind="quantile"),
-                functools.partial(plot_mcmc_ess, kind="evolution"),
+                # partial(plot_mcmc_ess, kind="quantile"),
+                # partial(plot_mcmc_ess, kind="evolution"),
+                plot_mcmc_iat,
                 plot_mcmc_autocorr,
                 plot_pair,
-                functools.partial(plot_mcmc_trace, kind="trace"),
-                # functools.partial(plot_mcmc_trace, kind="rank_bars"),
+                partial(plot_mcmc_trace, kind="trace"),
+                # partial(plot_mcmc_trace, kind="rank_bars"),
             ]
         for func in funcs:
+            # print("pre", func.__name__)
             fig = func(dataset)
+            # print("post", func.__name__)
             pdf.savefig(figure=fig, dpi=200)
             plt.close(fig)
         if subcommand == "mcmc":

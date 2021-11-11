@@ -45,14 +45,21 @@ class Symmetric(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        # Assess several functions more formally. One-shot tests indicated that
-        # sum and variance work well very well; mean and median less well.
+        # TODO: Assess choice of symmetric function more formally.
+        # One-shot tests indicated that sum and variance work well very well,
+        # but variance trains quicker; mean and median work less well.
+        # Chan et al. suggest some alternatives which I haven't tried:
+        #  - max
+        #  - mean of the top decile
+        #  - higher moments
         return jnp.var(x, axis=self.axis, keepdims=True)
 
 
-class CNN1(nn.Module):
+class ExchangeableCNN(nn.Module):
     """
-    A permutation-invariant CNN for the discriminator.
+    An exchangeable CNN for the discriminator.
+
+    Chan et al. 2018, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/
     """
 
     @nn.compact
@@ -95,12 +102,6 @@ class CNN1(nn.Module):
         return x
 
 
-def binary_accuracy(*, logits, labels):
-    """Accuracy of binary classifier, from logits."""
-    p = jax.nn.sigmoid(logits)
-    return jnp.mean(labels == (p > 0.5))
-
-
 @dataclasses.dataclass
 class Discriminator:
     """
@@ -123,6 +124,7 @@ class Discriminator:
     train_metrics: PyTree = None
     # Bump this after making internal changes.
     discriminator_format: str = "0.0.1"
+    state = None
 
     @classmethod
     def from_input_shape(
@@ -138,7 +140,7 @@ class Discriminator:
             along the sequence length, and c is the number of colour channels
             (which should be equal to 1).
         """
-        dnn = CNN1()
+        dnn = ExchangeableCNN()
         key = jax.random.PRNGKey(rng.integers(2 ** 63))
         input_shape = (1,) + input_shape  # add leading batch dimension
         dummy_input = jnp.zeros(input_shape, dtype=np.int8)
@@ -210,6 +212,7 @@ class Discriminator:
         epochs: int = 1,
         # TODO: tensorboard output
         tensorboard_log_dir=None,
+        reset_metrics: bool = False,
     ):
         """
         Fit discriminator to training data.
@@ -223,6 +226,10 @@ class Discriminator:
         :param epochs: The number of full passes over the training data.
         :param tensorboard_log_dir:
             Directory for tensorboard logs. If None, no logs will be recorded.
+        :param reset_metrics:
+            If true, remove loss/accuracy metrics from previous calls to
+            fit() (if any). If false, loss/accuracy metrics will be appended
+            to the existing metrics.
         """
         assert len(train_y.shape) == len(val_y.shape) == 1
         assert len(train_x.shape) == len(val_x.shape) == 4
@@ -230,50 +237,6 @@ class Discriminator:
         assert train_x.shape[1] > 1
         assert train_x.shape[2] > 1
         assert train_x.shape[3] == 1
-
-        @jax.jit
-        def train_step(state, batch):
-            """Train for a single step."""
-
-            def loss_fn(params):
-                logits, new_model_state = state.apply_fn(
-                    dict(params=params, batch_stats=state.batch_stats),
-                    batch["image"],
-                    mutable=["batch_stats"],
-                    train=True,
-                )
-                loss = jnp.mean(
-                    optax.sigmoid_binary_cross_entropy(
-                        logits=logits, labels=batch["label"]
-                    )
-                )
-                return loss, (logits, new_model_state)
-
-            grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
-            (loss, (logits, new_model_state)), grads = grad_fn(state.params)
-            state = state.apply_gradients(
-                grads=grads, batch_stats=new_model_state["batch_stats"]
-            )
-            metrics = dict(
-                loss=loss,
-                accuracy=binary_accuracy(logits=logits, labels=batch["label"]),
-            )
-            return state, metrics
-
-        @jax.jit
-        def eval_step(state, batch):
-            """Evaluate for a single step."""
-            logits = state.apply_fn(
-                dict(params=state.params, batch_stats=state.batch_stats),
-                batch["image"],
-                train=False,
-            )
-            loss = jnp.mean(
-                optax.sigmoid_binary_cross_entropy(logits=logits, labels=batch["label"])
-            )
-            accuracy = binary_accuracy(logits=logits, labels=batch["label"])
-            metrics = dict(loss=loss, accuracy=accuracy)
-            return metrics
 
         def running_metrics(n, batch_size, current_metrics, metrics):
             new_metrics = jax.tree_map(
@@ -298,7 +261,7 @@ class Discriminator:
             metrics_sum = dict(loss=0, accuracy=0)
             n = 0
             for i, batch in enumerate(batchify(train_ds, batch_size)):
-                state, batch_metrics = train_step(state, batch)
+                state, batch_metrics = _train_step(state, batch)
                 actual_batch_size = len(batch["image"])
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
@@ -314,7 +277,7 @@ class Discriminator:
             metrics_sum = dict(loss=0, accuracy=0)
             n = 0
             for batch in batchify(test_ds, batch_size):
-                batch_metrics = eval_step(state, batch)
+                batch_metrics = _eval_step(state, batch)
                 actual_batch_size = len(batch["image"])
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
@@ -324,23 +287,29 @@ class Discriminator:
             print(f"; test loss {loss:.4f}, accuracy {accuracy:.4f}")
             return loss, accuracy
 
-        state = TrainState.create(
-            apply_fn=self.dnn.apply,
-            tx=optax.adam(learning_rate=0.001),
-            params=self.variables["params"],
-            batch_stats=self.variables.get("batch_stats", {}),
-        )
+        state = self.state
+        if state is None:
+            state = TrainState.create(
+                apply_fn=self.dnn.apply,
+                tx=optax.adam(learning_rate=0.001),
+                params=self.variables["params"],
+                batch_stats=self.variables.get("batch_stats", {}),
+            )
 
         train_ds = dict(image=train_x, label=train_y)
         test_ds = dict(image=val_x, label=val_y)
+        do_eval = len(val_x) > 0
 
-        if self.train_metrics is None:
+        if reset_metrics or self.train_metrics is None:
             self.train_metrics = dict(
                 train_loss=[],
                 train_accuracy=[],
-                test_loss=[],
-                test_accuracy=[],
             )
+            if do_eval:
+                self.train_metrics.update(
+                    test_loss=[],
+                    test_accuracy=[],
+                )
 
         seed = rng.integers(1 ** 63)
         keys = jax.random.split(jax.random.PRNGKey(seed), epochs)
@@ -348,16 +317,17 @@ class Discriminator:
             train_loss, train_accuracy, state = train_epoch(
                 state, train_ds, batch_size, epoch, key
             )
-            test_loss, test_accuracy = eval_model(state, test_ds, batch_size)
+            self.train_metrics["train_loss"].append(train_loss)
+            self.train_metrics["train_accuracy"].append(train_accuracy)
 
-            for k, v in dict(
-                train_loss=train_loss,
-                train_accuracy=train_accuracy,
-                test_loss=test_loss,
-                test_accuracy=test_accuracy,
-            ).items():
-                self.train_metrics[k].append(v)
+            if do_eval:
+                test_loss, test_accuracy = eval_model(state, test_ds, batch_size)
+                self.train_metrics["test_loss"].append(test_loss)
+                self.train_metrics["test_accuracy"].append(test_accuracy)
+            else:
+                print()
 
+        self.state = state
         self.variables = jax.tree_map(
             np.array,
             dict(
@@ -375,6 +345,7 @@ class Discriminator:
         :return: A vector of predictions, one for each input instance.
         """
         if len(x.shape) != 4 or x.shape[1:] != self.input_shape[1:]:
+            # TODO: relax this, because the network is exchangeable.
             raise ValueError(
                 f"Input data has shape {x.shape} but discriminator network "
                 f"expects shape {self.input_shape}."
@@ -385,18 +356,75 @@ class Discriminator:
                 "Cannot make predications as the discriminator has not been trained."
             )
 
-        @jax.jit
-        def predict_step(batch):
-            """Evaluate for a single step."""
-            logits = self.dnn.apply(
-                self.variables,
-                batch["image"],
-                train=False,
-            )
-            return jax.nn.sigmoid(logits)
-
         dataset = dict(image=x)
         y = []
         for batch in batchify(dataset, batch_size):
-            y.append(predict_step(batch))
+            y.append(_predict_batch(batch, self.variables, self.dnn.apply))
         return np.concatenate(y)
+
+
+##
+# Jitted functions below are at the top level so they only get jitted once.
+
+
+def binary_accuracy(*, logits, labels):
+    """Accuracy of binary classifier, from logits."""
+    p = jax.nn.sigmoid(logits)
+    return jnp.mean(labels == (p > 0.5))
+
+
+@jax.jit
+def _train_step(state, batch):
+    """Train for a single step."""
+
+    def loss_fn(params):
+        logits, new_model_state = state.apply_fn(
+            dict(params=params, batch_stats=state.batch_stats),
+            batch["image"],
+            mutable=["batch_stats"],
+            train=True,
+        )
+        loss = jnp.mean(
+            optax.sigmoid_binary_cross_entropy(logits=logits, labels=batch["label"])
+        )
+        return loss, (logits, new_model_state)
+
+    grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
+    (loss, (logits, new_model_state)), grads = grad_fn(state.params)
+    state = state.apply_gradients(
+        grads=grads, batch_stats=new_model_state["batch_stats"]
+    )
+    metrics = dict(
+        loss=loss,
+        accuracy=binary_accuracy(logits=logits, labels=batch["label"]),
+    )
+    return state, metrics
+
+
+@jax.jit
+def _eval_step(state, batch):
+    """Evaluate for a single step."""
+
+    logits = state.apply_fn(
+        dict(params=state.params, batch_stats=state.batch_stats),
+        batch["image"],
+        train=False,
+    )
+    loss = jnp.mean(
+        optax.sigmoid_binary_cross_entropy(logits=logits, labels=batch["label"])
+    )
+    accuracy = binary_accuracy(logits=logits, labels=batch["label"])
+    metrics = dict(loss=loss, accuracy=accuracy)
+    return metrics
+
+
+@functools.partial(jax.jit, static_argnums=(2,))
+def _predict_batch(batch, variables, apply_func):
+    """Make predictions on a batch."""
+
+    logits = apply_func(
+        variables,
+        batch["image"],
+        train=False,
+    )
+    return jax.nn.sigmoid(logits)

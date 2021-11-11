@@ -38,6 +38,7 @@ class Generator(abc.ABC):
         self.num_samples = num_samples
         self.sequence_length = sequence_length
         self.feature_extractor = feature_extractor
+        self.posterior = None
 
     @property
     @abc.abstractmethod
@@ -45,13 +46,24 @@ class Generator(abc.ABC):
         """The list of model parameters."""
         raise NotImplementedError
 
+    def update_posterior(self, sample):
+        assert len(sample.shape) == 2
+        assert sample.shape[-1] == len(self.params)
+        self.posterior = sample
+
     def draw_params(
         self, *, num_replicates: int, random: bool, rng: np.random.Generator
     ):
         if random:
-            args = np.transpose(
-                [rng.uniform(*p.bounds, size=num_replicates) for p in self.params]
-            )
+            if self.posterior is None:
+                # sample from the prior
+                args = np.transpose(
+                    [rng.uniform(*p.bounds, size=num_replicates) for p in self.params]
+                )
+            else:
+                # sample from the posterior
+                idx = rng.integers(low=0, high=len(self.posterior), size=num_replicates)
+                args = self.posterior[idx]
         else:
             # fixed value
             args = np.tile([p.value for p in self.params], (num_replicates, 1))
@@ -118,6 +130,11 @@ class MsprimeHudsonSimulator(abc.ABC):
             sequence_length=self.sequence_length,
             recombination_rate=self.recombination_rate,
             random_seed=seed1,
+            # Disabled to avoid nasty memory growth due to circular refs.
+            # https://github.com/tskit-dev/msprime/issues/1899
+            # We're not saving the tree sequences, so we don't really need
+            # provenance anyhow.
+            record_provenance=False,
         )
         ts = msprime.sim_mutations(
             ts,

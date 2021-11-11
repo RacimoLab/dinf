@@ -1,5 +1,6 @@
 import argparse
 import pathlib
+import os
 
 import numpy as np
 
@@ -29,8 +30,11 @@ def parse_args():
     mcmc_parser = subparsers.add_parser(
         "mcmc", help="MCMC", formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
+    gan_parser = subparsers.add_parser(
+        "gan", help="GAN", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
 
-    for p in (train_parser, abc_parser, opt_parser, mcmc_parser):
+    for p in (train_parser, abc_parser, opt_parser, mcmc_parser, gan_parser):
         p.add_argument(
             "-s",
             "--seed",
@@ -79,6 +83,8 @@ def parse_args():
             type=pathlib.Path,
             help="Directory for output (cache, results and reports)",
         )
+
+    for p in (train_parser, abc_parser, opt_parser, mcmc_parser):
         p.add_argument(
             "discriminator_filename",
             type=str,
@@ -95,7 +101,7 @@ def parse_args():
     )
     train_parser.add_argument(
         "-r",
-        "--num-replicates",
+        "--num-training-replicates",
         type=int,
         default=10_000,
         help=(
@@ -106,10 +112,10 @@ def parse_args():
     )
     train_parser.add_argument(
         "-V",
-        "--validation-ratio",
-        type=float,
-        default=0.1,
-        help="Proportion of replicates used for training validation.",
+        "--num-validation-replicates",
+        type=int,
+        default=1000,
+        help="Number of replicates used for training validation (for each training class).",
     )
 
     # abc
@@ -158,6 +164,60 @@ def parse_args():
         help="Number of simulation replicates to approximate E[D(x)|θ]",
     )
 
+    # gan
+    gan_parser.add_argument(
+        "-w",
+        "--walkers",
+        type=int,
+        default=16,
+        help="Number of walkers. See zeus-mcmc documentation.",
+    )
+    gan_parser.add_argument(
+        "-S",
+        "--mcmc-steps-per-iteration",
+        type=int,
+        default=10,
+        help="Number of steps for each walker, per GAN iteration. See zeus-mcmc documentation.",
+    )
+    gan_parser.add_argument(
+        "--num-Dx-replicates",
+        type=int,
+        default=64,
+        help="Number of simulation replicates to approximate E[D(x)|θ]",
+    )
+    gan_parser.add_argument(
+        "-e",
+        "--training-epochs",
+        default=5,
+        type=int,
+        help="Number of epochs to train the discriminator",
+    )
+    gan_parser.add_argument(
+        "-i",
+        "--gan-iterations",
+        default=100,
+        type=int,
+        help="Number of GAN iterations",
+    )
+    gan_parser.add_argument(
+        "-r",
+        "--num-training-replicates",
+        type=int,
+        default=8096,
+        help=(
+            "Number of sample replicates for each training class."
+            "One class is produced by the generator, "
+            "the other class is drawn from observed data."
+        ),
+    )
+    gan_parser.add_argument(
+        "-V",
+        "--num-validation-replicates",
+        type=int,
+        default=1024,
+        help="Number of replicates used for training validation.",
+    )
+
     return parser.parse_args()
 
 
@@ -180,15 +240,18 @@ def cli():
         feature_extractor=bh_matrix,
     )
 
+    if args.parallelism is None:
+        args.parallelism = os.cpu_count()
+
     if args.subcommand == "train":
         dinf.train(
             generator=generator,
             discriminator_filename=args.discriminator_filename,
-            num_replicates=args.num_replicates,
-            parallelism=args.parallelism,
-            validation_ratio=args.validation_ratio,
+            num_training_replicates=args.num_training_replicates,
+            num_validation_replicates=args.num_validation_replicates,
             training_epochs=args.training_epochs,
             working_directory=args.output_directory,
+            parallelism=args.parallelism,
             rng=rng,
         )
     elif args.subcommand == "abc":
@@ -219,6 +282,20 @@ def cli():
             walkers=args.walkers,
             steps=args.steps,
             num_Dx_replicates=args.num_Dx_replicates,
+            rng=rng,
+        )
+    elif args.subcommand == "gan":
+        dinf.mcmc_gan(
+            generator=generator,
+            parallelism=args.parallelism,
+            working_directory=args.output_directory,
+            walkers=args.walkers,
+            steps_per_iteration=args.mcmc_steps_per_iteration,
+            num_Dx_replicates=args.num_Dx_replicates,
+            num_training_replicates=args.num_training_replicates,
+            training_epochs=args.training_epochs,
+            gan_iterations=args.gan_iterations,
+            num_validation_replicates=args.num_validation_replicates,
             rng=rng,
         )
     else:

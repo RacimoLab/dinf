@@ -21,10 +21,15 @@ class TestLogProb:
         )
 
         rng = np.random.default_rng(111)
-        train_x, train_y, val_x, val_y = dinf._generate_training_data(
+        train_x, train_y = dinf._generate_training_data(
             generator=cls.generator,
-            num_replicates=100,
-            validation_ratio=0.1,
+            num_replicates=90,
+            parallelism=1,
+            rng=rng,
+        )
+        val_x, val_y = dinf._generate_training_data(
+            generator=cls.generator,
+            num_replicates=10,
             parallelism=1,
             rng=rng,
         )
