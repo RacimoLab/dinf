@@ -21,3 +21,9 @@ if "KMP_AFFINITY" not in os.environ:
 #    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 # if "XLA_PYTHON_CLIENT_ALLOCATOR" not in os.environ:
 #    os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
+
+
+from .parameters import Param, Parameters
+from .feature_extractor import BinnedHaplotypeMatrix
+from .generator import msprime_hudson_simulator
+from .dinf import save_genobuilder, load_genobuilder

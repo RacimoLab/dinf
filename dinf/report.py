@@ -1,9 +1,12 @@
 import functools
 
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib import cm
 import arviz as az
+import natsort
 
 from autocorr import AutoCorrTime
 
@@ -211,6 +214,52 @@ def iat_max(dataset):
     return int(np.ceil(dfm_max))
 
 
+def ecdf(x):
+    xs = np.sort(x)
+    ys = np.arange(1, len(xs) + 1) / float(len(xs))
+    return xs, ys
+
+
+def plot_gan_ecdf(datasets, aspect=9 / 16, scale=1):
+    var_names = [k for k in datasets[0].posterior.data_vars.keys()]
+    fig, axes = plt.subplots(
+        nrows=1,
+        ncols=len(var_names) + 1,
+        gridspec_kw=dict(width_ratios=[1] * len(var_names) + [0.02 * len(var_names)]),
+        figsize=scale * plt.figaspect(aspect),
+        tight_layout=True,
+        squeeze=False,
+    )
+    cmap = matplotlib.cm.get_cmap("coolwarm")
+    kx = 0  # len(datasets) // 2
+    norm = matplotlib.colors.Normalize(vmin=kx, vmax=len(datasets) - 1)
+
+    posteriors = {var: list() for var in var_names}
+    for j, dataset in enumerate(datasets[kx:], kx):
+        for var, ax in zip(var_names, axes.flat):
+            posterior = dataset.posterior[var].values.reshape(-1)
+            posteriors[var].append(posterior)
+            xs, ys = ecdf(posterior)
+            ax.plot(xs, ys, alpha=0.5, c=cmap(norm(j)))
+
+    for var, ax in zip(var_names, axes.flat):
+        posterior = np.array(posteriors[var]).reshape(-1)
+        xs, ys = ecdf(posterior)
+        ax.plot(xs, ys, "k")
+
+        ax.set_title(var)
+        ax.set_xlabel(var)
+        ax.set_ylabel(r"Pr($x<X$)")
+
+    fig.colorbar(
+        matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap),
+        cax=axes.flat[-1],
+        label="iteration",
+    )
+
+    return fig
+
+
 def partial(f, *args, **kwargs):
     """
     Apply functools.update_wrapper to the functools.partial.
@@ -218,21 +267,31 @@ def partial(f, *args, **kwargs):
     return functools.update_wrapper(functools.partial(f, *args, **kwargs), f)
 
 
+def load_ncf_multi(filenames):
+    filenames = natsort.natsorted(filenames)
+    return [az.from_netcdf(filename) for filename in filenames]
+
+
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) != 4:
-        print(f"usage: {sys.argv[0]} {{abc|mcmc}} data.ncf report.pdf")
+    if len(sys.argv) < 4:
+        print(
+            f"usage: {sys.argv[0]} {{abc|mcmc|gan}} report.pdf data.ncf [... dataN.ncf]"
+        )
         exit(1)
 
     subcommand = sys.argv[1]
-    input_filename = sys.argv[2]
-    output_filename = sys.argv[3]
-
-    if subcommand not in ("abc", "mcmc"):
+    if subcommand not in ("abc", "mcmc", "gan"):
         raise RuntimeError(f"Not a valid subcommand: '{subcommand}'")
 
-    dataset = az.from_netcdf(input_filename)
+    output_filename = sys.argv[2]
+    if subcommand == "gan":
+        input_filenames = sys.argv[3:]
+        dataset = load_ncf_multi(input_filenames)
+    else:
+        input_filename = sys.argv[3]
+        dataset = az.from_netcdf(input_filename)
 
     with PdfPages(output_filename) as pdf:
         if subcommand == "abc":
@@ -247,12 +306,19 @@ if __name__ == "__main__":
                 partial(plot_mcmc_trace, kind="trace"),
                 # partial(plot_mcmc_trace, kind="rank_bars"),
             ]
+        elif subcommand == "gan":
+            funcs = [
+                plot_gan_ecdf,
+            ]
+            pass
+
         for func in funcs:
             # print("pre", func.__name__)
             fig = func(dataset)
             # print("post", func.__name__)
             pdf.savefig(figure=fig, dpi=200)
             plt.close(fig)
+
         if subcommand == "mcmc":
             for chaindataset in iter_chains(dataset):
                 fig = plot_mcmc_trace(chaindataset, kind="trace")

@@ -78,7 +78,6 @@ class BinnedHaplotypeMatrix(FeatureExtractor):
             However, this may not be true for very large values of
                 num_samples * mu * Ne * sequence_length / fixed_dimension,
             in which case np.int16 might be preferred.
-
         """
         if maf_thresh < 0 or maf_thresh > 1:
             raise ValueError("must have 0 <= maf_thresh <= 1")
@@ -88,7 +87,7 @@ class BinnedHaplotypeMatrix(FeatureExtractor):
             raise ValueError("must have fixed_dimension >= 1")
         if dtype not in (np.int8, np.int16, np.int32):
             raise ValueError("dtype must be np.int8, np.int16, or np.in32")
-        self._shape = (num_samples, fixed_dimension)
+        self._shape = (num_samples, fixed_dimension, 1)
         self.allele_count_threshold = maf_thresh * num_samples
         self.dtype = dtype
 

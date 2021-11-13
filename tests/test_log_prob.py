@@ -10,9 +10,7 @@ class TestLogProb:
     def setup_class(cls):
         num_samples = 128
         bh_matrix = feature_extractor.BinnedHaplotypeMatrix(
-            num_samples=num_samples,
-            fixed_dimension=128,
-            maf_thresh=0.05,
+            num_samples=num_samples, fixed_dimension=128, maf_thresh=0.05
         )
         cls.generator = models.Bottleneck(
             num_samples=num_samples,
@@ -22,16 +20,10 @@ class TestLogProb:
 
         rng = np.random.default_rng(111)
         train_x, train_y = dinf._generate_training_data(
-            generator=cls.generator,
-            num_replicates=90,
-            parallelism=1,
-            rng=rng,
+            generator=cls.generator, num_replicates=90, parallelism=1, rng=rng
         )
         val_x, val_y = dinf._generate_training_data(
-            generator=cls.generator,
-            num_replicates=10,
-            parallelism=1,
-            rng=rng,
+            generator=cls.generator, num_replicates=10, parallelism=1, rng=rng
         )
         cls.discriminator = discriminator.Discriminator.from_input_shape(
             train_x.shape[1:], rng
