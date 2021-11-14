@@ -6,3 +6,5 @@ __pycache__
 build/
 dinf.egg-info/
 dinf/_version.py
+dist/
+.coverage

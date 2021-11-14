@@ -1,14 +1,16 @@
-import functools
+from __future__ import annotations
 import logging
 import multiprocessing
-import pickle
+import os
+import pathlib
+from typing import cast, Callable
 import warnings
 
 import numpy as np
 import zeus
 import arviz as az
 
-from . import discriminator
+import dinf
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,7 @@ def _sim_replicates(*, sim_func, args, num_replicates, parallelism):
     else:
         global _pool
         if _pool is None:
-            _process_pool_init()
+            _process_pool_init(parallelism)
         map_f = _pool.imap
 
     result = None
@@ -75,21 +77,23 @@ def _observe_data(*, empirical, num_replicates, parallelism, rng):
 def _generate_training_data(
     *, empirical, generator, parameters, num_replicates, parallelism, rng
 ):
-    _, random_data = _generate_data(
+    nreps_generator = num_replicates // 2
+    nreps_empirical = num_replicates - num_replicates // 2
+    _, x_generator = _generate_data(
         generator=generator,
         parameters=parameters,
-        num_replicates=num_replicates,
+        num_replicates=nreps_generator,
         parallelism=parallelism,
         rng=rng,
     )
-    fixed_data = _observe_data(
+    x_empirical = _observe_data(
         empirical=empirical,
-        num_replicates=num_replicates,
+        num_replicates=nreps_empirical,
         parallelism=parallelism,
         rng=rng,
     )
-    x = np.concatenate((random_data, fixed_data))
-    y = np.concatenate((np.zeros(num_replicates), np.ones(num_replicates)))
+    x = np.concatenate((x_generator, x_empirical))
+    y = np.concatenate((np.zeros(nreps_generator), np.ones(nreps_empirical)))
     # shuffle
     indexes = rng.permutation(len(x))
     x = x[indexes]
@@ -98,7 +102,14 @@ def _generate_training_data(
 
 
 def _mcmc_log_prob(
-    theta, *, discr, generator, parameters, rng, num_replicates, parallelism
+    theta: np.ndarray,
+    *,
+    discriminator: dinf.Discriminator,
+    generator: Callable,
+    parameters: dinf.Parameters,
+    rng: np.random.Generator,
+    num_replicates: int,
+    parallelism: int,
 ) -> float:
     """
     Function to be maximised by mcmc. For testing the vector version (below).
@@ -111,18 +122,25 @@ def _mcmc_log_prob(
     seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates)
     params = np.tile(theta, (num_replicates, 1))
     M = _sim_replicates(
-        generator=generator,
+        sim_func=generator,
         args=zip(seeds, params),
         num_replicates=num_replicates,
         parallelism=parallelism,
     )
-    D = np.mean(discr.predict(M))
+    D = np.mean(discriminator.predict(M))
     with np.errstate(divide="ignore"):
         return np.log(D)
 
 
 def _mcmc_log_prob_vector(
-    theta, *, discr, generator, parameters, rng, num_replicates, parallelism
+    theta: np.ndarray,
+    *,
+    discriminator: dinf.Discriminator,
+    generator: Callable,
+    parameters: dinf.Parameters,
+    rng: np.random.Generator,
+    num_replicates: int,
+    parallelism: int,
 ) -> np.ndarray:
     """
     Function to be maximised by mcmc. Vectorised version.
@@ -132,7 +150,7 @@ def _mcmc_log_prob_vector(
     log_D = np.full(num_walkers, -np.inf)
 
     # Identify workers with one or more out-of-bounds parameters.
-    in_bounds = parameters.bounds_contain_vec(theta)
+    in_bounds = parameters.bounds_contain(theta)
     num_in_bounds = np.sum(in_bounds)
     if num_in_bounds == 0:
         return log_D
@@ -141,12 +159,12 @@ def _mcmc_log_prob_vector(
     params = np.repeat(theta[in_bounds], num_replicates, axis=0)
     assert len(seeds) == len(params)
     M = _sim_replicates(
-        generator=generator,
+        sim_func=generator,
         args=zip(seeds, params),
         num_replicates=len(seeds),
         parallelism=parallelism,
     )
-    Dreps = discr.predict(M).reshape(num_in_bounds, num_replicates)
+    Dreps = discriminator.predict(M).reshape(num_in_bounds, num_replicates)
     D = np.mean(Dreps, axis=1)
     assert len(D) == num_in_bounds
     with np.errstate(divide="ignore"):
@@ -171,140 +189,200 @@ def _arviz_dataset_from_zeus_chain(chain, parameters):
         return az.convert_to_inference_data(datadict)
 
 
-def _sim_shim(args, *, func, keys):
-    """
-    Wrapper that takes an argument list, and calls func with keyword args.
-    """
-    seed, *func_args = args
-    kwargs = dict(zip(keys, func_args))
-    return func(seed=seed, **kwargs)
+def _run_mcmc(
+    start: np.ndarray,
+    discriminator: dinf.Discriminator,
+    genobuilder: dinf.Genobuilder,
+    walkers: int,
+    steps: int,
+    Dx_replicates: int,
+    parallelism: int,
+    rng: np.random.Generator,
+):
+    sampler = zeus.EnsembleSampler(
+        walkers,
+        len(genobuilder.parameters),
+        _mcmc_log_prob_vector,
+        verbose=False,
+        vectorize=True,
+        # kwargs passed to _mcmc_log_prob_vector
+        kwargs=dict(
+            discriminator=discriminator,
+            generator=genobuilder.generator_func,
+            parameters=genobuilder.parameters,
+            parallelism=parallelism,
+            num_replicates=Dx_replicates,
+            rng=rng,
+        ),
+    )
+
+    sampler.run_mcmc(start, nsteps=steps)
+    chain = sampler.get_chain()
+    # This is an overestimate, because the generator won't get called when
+    # the proposed parameters are out of bounds.
+    num_generator_calls = sampler.ncall * Dx_replicates
+    return chain, num_generator_calls
+
+
+def _train_discriminator(
+    *,
+    discriminator: dinf.Discriminator,
+    genobuilder: dinf.Genobuilder,
+    training_replicates: int,
+    test_replicates: int,
+    epochs: int,
+    parallelism: int,
+    rng: np.random.Generator,
+):
+    train_x, train_y = _generate_training_data(
+        empirical=genobuilder.empirical_func,
+        generator=genobuilder.generator_func,
+        parameters=genobuilder.parameters,
+        num_replicates=training_replicates,
+        parallelism=parallelism,
+        rng=rng,
+    )
+    if test_replicates > 0:
+        val_x, val_y = _generate_training_data(
+            empirical=genobuilder.empirical_func,
+            generator=genobuilder.generator_func,
+            parameters=genobuilder.parameters,
+            num_replicates=test_replicates,
+            parallelism=parallelism,
+            rng=rng,
+        )
+    else:
+        val_x = np.empty((0, *train_x.shape[1:]), dtype=train_x.dtype)
+        val_y = np.empty((0, *train_y.shape[1:]), dtype=train_y.dtype)
+
+    discriminator.fit(
+        rng,
+        train_x=train_x,
+        train_y=train_y,
+        val_x=val_x,
+        val_y=val_y,
+        epochs=epochs,
+        # Clear the training loss/accuracy metrics from last iteration.
+        reset_metrics=True,
+        # TODO
+        # tensorboard_log_dir=working_directory / "tensorboard" / "fit",
+    )
 
 
 def mcmc_gan(
     *,
-    empirical_func,
-    generator_func,
-    parameters,
-    feature_shape,
-    walkers,
-    steps_per_iteration,
-    parallelism,
-    working_directory,
-    num_Dx_replicates,
-    gan_iterations,
-    training_epochs,
-    num_training_replicates,
-    num_validation_replicates,
-    rng,
+    genobuilder: dinf.Genobuilder,
+    iterations: int,
+    training_replicates: int,
+    test_replicates: int,
+    epochs: int,
+    walkers: int,
+    steps: int,
+    Dx_replicates: int,
+    working_directory: None | str | pathlib.Path = None,
+    parallelism: None | int = None,
+    rng: np.random.Generator,
 ):
+    """
+    Run the MCMC GAN.
+
+    Each iteration of the GAN can be conceptually divided into parts:
+    - construct train/test datasets for the discriminator,
+    - train the discriminator for a certain number of epochs,
+    - run the MCMC.
+
+    In the first iteration, the parameter values given to the generator
+    to produce the test/train datasets are drawn from the parameters' prior
+    distribution. In subsequent iterations, the parameter values are drawn
+    by sampling with replacement from the previous iteration's MCMC chains.
+
+    :param genobuilder:
+        Genobuilder object that describes the GAN.
+    :param iterations:
+        Number of GAN iterations.
+    :param training_replicates:
+        Size of the dataset used to train the discriminator.
+        This dataset is constructed once each GAN iteration.
+    :param test_replicates:
+        Size of the test dataset used to evalutate the discriminator after
+        each training epoch.
+    :param epochs:
+        Number of full passes over the training dataset when training
+        the discriminator.
+    :param walkers:
+        Number of independent MCMC chains.
+    :param steps:
+        The chain length for each MCMC walker.
+    :param Dx_replicates:
+        Number of generator replicates for approximating E[D(x)|θ].
+    :param working_directory:
+        Folder to output results. If not specified, the current
+        directory will be used.
+    :param parallelism:
+        Number of processes to use for parallelising calls to the
+        :meth:`Genobuilder.generator_func` and
+        :meth:`Genobuilder.empirical_func`.
+    :param rng:
+        Numpy random number generator.
+    """
+
+    if working_directory is None:
+        working_directory = "."
+    working_directory = pathlib.Path(working_directory)
+    working_directory.mkdir(parents=True, exist_ok=True)
+
+    if parallelism is None:
+        parallelism = cast(int, os.cpu_count())
+
     _process_pool_init(parallelism)
 
-    # discr = discriminator.Discriminator.from_file(discriminator_filename)
-    discr = discriminator.Discriminator.from_input_shape(feature_shape, rng)
-
-    generator = functools.partial(
-        _sim_shim, func=generator_func, keys=tuple(parameters)
-    )
-    zeus_kwargs = dict(
-        discr=discr,
-        generator=generator,
-        parameters=parameters,
-        parallelism=parallelism,
-        num_replicates=num_Dx_replicates,
-        rng=rng,
-    )
-    num_params = len(parameters)
+    discriminator = dinf.Discriminator.from_input_shape(genobuilder.feature_shape, rng)
 
     n_observed_calls = 0
     n_generator_calls = 0
 
     # Starting point for the mcmc chain.
-    start = parameters.draw(num_replicates=walkers, rng=rng)
+    start = genobuilder.parameters.draw(num_replicates=walkers, rng=rng)
 
-    for i in range(gan_iterations):
+    for i in range(iterations):
         print(f"GAN iteration {i}")
 
-        train_x, train_y = _generate_training_data(
-            empirical=empirical_func,
-            generator=generator,
-            parameters=parameters,
-            num_replicates=num_training_replicates,
+        _train_discriminator(
+            discriminator=discriminator,
+            genobuilder=genobuilder,
+            training_replicates=training_replicates,
+            test_replicates=test_replicates,
+            epochs=epochs,
             parallelism=parallelism,
             rng=rng,
         )
-        val_x, val_y = _generate_training_data(
-            empirical=empirical_func,
-            generator=generator,
-            parameters=parameters,
-            num_replicates=num_validation_replicates,
+        discriminator.to_file(working_directory / f"discriminator_{i}.pkl")
+
+        chain, mcmc_generator_calls = _run_mcmc(
+            start=start,
+            discriminator=discriminator,
+            genobuilder=genobuilder,
+            walkers=walkers,
+            steps=steps,
+            Dx_replicates=Dx_replicates,
             parallelism=parallelism,
             rng=rng,
         )
 
-        discr.fit(
-            rng,
-            train_x=train_x,
-            train_y=train_y,
-            val_x=val_x,
-            val_y=val_y,
-            epochs=training_epochs,
-            tensorboard_log_dir=working_directory / "tensorboard" / "fit",
-            # Clear the training loss/accuracy metrics from last iteration.
-            reset_metrics=True,
-        )
-        discr.to_file(working_directory / f"discriminator_{i}.pkl")
-
-        sampler = zeus.EnsembleSampler(
-            walkers,
-            num_params,
-            _mcmc_log_prob_vector,
-            kwargs=zeus_kwargs,
-            verbose=False,
-            vectorize=True,
-        )
-
-        sampler.run_mcmc(start, nsteps=steps_per_iteration)
         # The chain for next iteration starts at the end of this chain.
-        start = sampler.get_last_sample()
+        start = chain[-1]
 
-        chain = sampler.get_chain()
-        dataset = _arviz_dataset_from_zeus_chain(chain, parameters)
+        dataset = _arviz_dataset_from_zeus_chain(chain, genobuilder.parameters)
         az.to_netcdf(dataset, working_directory / f"mcmc_samples_{i}.ncf")
 
         # Update the parameters to draw from the posterior sample
         # (the merged chains from the mcmc).
         posterior_sample = chain.reshape(-1, chain.shape[-1])
-        parameters.update_posterior(posterior_sample)
+        genobuilder.parameters.update_posterior(posterior_sample)
 
-        # training
-        n_observed_calls += num_training_replicates + num_validation_replicates
-        n_generator_calls += num_training_replicates + num_validation_replicates
-        # mcmc sampler
-        n_generator_calls += sampler.ncall * num_Dx_replicates
-
+        n_observed_calls += training_replicates + test_replicates
+        n_generator_calls += (
+            training_replicates + test_replicates + mcmc_generator_calls
+        )
         print(f"Observed data extracted {n_observed_calls} times.")
         print(f"Generator called {n_generator_calls} times.")
-
-
-def save_genobuilder(
-    filename, *, empirical_func, generator_func, parameters, feature_shape
-) -> None:
-    data = dict(
-        empirical_func=empirical_func,
-        generator_func=generator_func,
-        parameters=parameters,
-        feature_shape=feature_shape,
-    )
-    with open(filename, "wb") as f:
-        pickle.dump(data, f)
-
-
-def load_genobuilder(filename) -> tuple:
-    with open(filename, "rb") as f:
-        data = pickle.load(f)
-    keys = ("empirical_func", "generator_func", "parameters", "feature_shape")
-    values = tuple(data.get(k) for k in keys)
-    for k, v in zip(keys, values):
-        if v is None:
-            raise ValueError(f"{k} not found in genobuilder {filename}")
-    return values

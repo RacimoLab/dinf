@@ -2,7 +2,7 @@ import numpy as np
 import msprime
 import pytest
 
-from dinf import feature_extractor
+import dinf
 
 
 def do_sim(
@@ -42,20 +42,20 @@ def do_sim(
 class TestBinnedHaplotypeMatrix:
     @pytest.mark.parametrize("num_samples", [8, 16])
     @pytest.mark.parametrize("sequence_length", [100_000, 1_000_000])
-    @pytest.mark.parametrize("fixed_dimension", [32, 64])
-    def test_from_ts_feature_shape(self, num_samples, sequence_length, fixed_dimension):
+    @pytest.mark.parametrize("num_bins", [32, 64])
+    def test_from_ts_feature_shape(self, num_samples, sequence_length, num_bins):
         ts = do_sim(num_samples=num_samples, sequence_length=sequence_length)
-        bhm = feature_extractor.BinnedHaplotypeMatrix(
+        bhm = dinf.BinnedHaplotypeMatrix(
             num_samples=num_samples,
-            fixed_dimension=fixed_dimension,
+            num_bins=num_bins,
             maf_thresh=0,
         )
-        assert bhm.shape == (num_samples, fixed_dimension)
+        assert bhm.shape == (num_samples, num_bins, 1)
         rng = np.random.default_rng(1234)
         M = bhm.from_ts(ts, rng=rng)
-        assert M.shape == (num_samples, fixed_dimension)
+        assert M.shape == (num_samples, num_bins, 1)
 
-    def test_from_ts_fixed_dimension_extrema(self):
+    def test_from_ts_num_bins_extrema(self):
         # from_ts() encodes the minor allele as 1, where the minor allele is
         # the allele with frequency < 0.5. When the frequency is exactly 0.5,
         # the minor allele is chosen with a random number. This is awkward
@@ -71,27 +71,27 @@ class TestBinnedHaplotypeMatrix:
         G[:, invert] ^= 1
 
         # 1 bin per haplotype
-        bhm = feature_extractor.BinnedHaplotypeMatrix(
+        bhm = dinf.BinnedHaplotypeMatrix(
             num_samples=num_samples,
-            fixed_dimension=1,
+            num_bins=1,
             maf_thresh=0,
         )
         rng = np.random.default_rng(1234)
         M = bhm.from_ts(ts, rng=rng)
-        assert M.shape == (num_samples, 1)
-        np.testing.assert_array_equal(M, np.sum(G, axis=1, keepdims=True))
+        assert M.shape == (num_samples, 1, 1)
+        np.testing.assert_array_equal(M[..., 0], np.sum(G, axis=1, keepdims=True))
 
         # Feature matrix is the genotype matrix, including invariant sites.
-        bhm = feature_extractor.BinnedHaplotypeMatrix(
+        bhm = dinf.BinnedHaplotypeMatrix(
             num_samples=num_samples,
-            fixed_dimension=sequence_length,
+            num_bins=sequence_length,
             maf_thresh=0,
         )
         rng = np.random.default_rng(1234)
         M = bhm.from_ts(ts, rng=rng)
         has_variant = np.where(np.sum(M, axis=0) > 0)[0]
         assert len(has_variant) == ts.num_sites
-        np.testing.assert_array_equal(M[:, has_variant], G)
+        np.testing.assert_array_equal(M[:, has_variant, 0], G)
 
     def test_from_ts_maf_thresh(self):
         num_samples = 128
@@ -100,9 +100,9 @@ class TestBinnedHaplotypeMatrix:
         rng = np.random.default_rng(1234)
         M_list = []
         for maf_thresh in thresholds:
-            bhm = feature_extractor.BinnedHaplotypeMatrix(
+            bhm = dinf.BinnedHaplotypeMatrix(
                 num_samples=num_samples,
-                fixed_dimension=64,
+                num_bins=64,
                 maf_thresh=maf_thresh,
             )
             M = bhm.from_ts(ts, rng=rng)
@@ -115,9 +115,9 @@ class TestBinnedHaplotypeMatrix:
         assert all(np.diff(counts) <= 0)
 
     def test_from_ts_mismatched_ts(self):
-        bhm = feature_extractor.BinnedHaplotypeMatrix(
+        bhm = dinf.BinnedHaplotypeMatrix(
             num_samples=64,
-            fixed_dimension=1024,
+            num_bins=1024,
             maf_thresh=0,
         )
         rng = np.random.default_rng(1234)
@@ -148,33 +148,33 @@ class TestBinnedHaplotypeMatrix:
     def test_bad_maf_thresh(self):
         for maf_thresh in [-5, 10, np.inf]:
             with pytest.raises(ValueError):
-                feature_extractor.BinnedHaplotypeMatrix(
+                dinf.BinnedHaplotypeMatrix(
                     num_samples=128,
-                    fixed_dimension=128,
+                    num_bins=128,
                     maf_thresh=maf_thresh,
                 )
 
     def test_bad_num_samples(self):
         for num_samples in [-5]:
             with pytest.raises(ValueError, match="num_samples"):
-                feature_extractor.BinnedHaplotypeMatrix(
+                dinf.BinnedHaplotypeMatrix(
                     num_samples=num_samples,
-                    fixed_dimension=128,
+                    num_bins=128,
                     maf_thresh=0,
                 )
 
-    def test_bad_fixed_dimension(self):
-        for fixed_dimension in [-5]:
-            with pytest.raises(ValueError, match="fixed_dimension"):
-                feature_extractor.BinnedHaplotypeMatrix(
+    def test_bad_num_bins(self):
+        for num_bins in [-5]:
+            with pytest.raises(ValueError, match="num_bins"):
+                dinf.BinnedHaplotypeMatrix(
                     num_samples=128,
-                    fixed_dimension=fixed_dimension,
+                    num_bins=num_bins,
                     maf_thresh=0,
                 )
 
     def test_bad_dtype(self):
         for dtype in [float, np.char]:
             with pytest.raises(ValueError, match="dtype"):
-                feature_extractor.BinnedHaplotypeMatrix(
-                    num_samples=128, fixed_dimension=128, maf_thresh=0, dtype=dtype
+                dinf.BinnedHaplotypeMatrix(
+                    num_samples=128, num_bins=128, maf_thresh=0, dtype=dtype
                 )

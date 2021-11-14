@@ -31,7 +31,7 @@ def demography(*, N0, N1) -> demes.Graph:
     return graph
 
 
-def generator(*, seed, N0, N1):
+def generator(seed, *, N0, N1):
     """Simulate with the parameters provided to us."""
     rng = np.random.default_rng(seed)
     graph = demography(N0=N0, N1=N1)
@@ -40,7 +40,7 @@ def generator(*, seed, N0, N1):
         num_samples=num_samples,
         sequence_length=sequence_length,
         recombination_rate=recombination_rate,
-        mutatation_rate=mutation_rate,
+        mutation_rate=mutation_rate,
         rng=rng,
     )
     feature_matrix = bh_matrix.from_ts(ts, rng=rng)
@@ -49,14 +49,27 @@ def generator(*, seed, N0, N1):
 
 def empirical(seed):
     """Simulate with fixed values. I.e. the "true" parameter values."""
-    sim_args = {k: v.truth for k, v in parameters.items()}
-    return generator(seed=seed, **sim_kwargs)
+    assert all(p.truth is not None for p in parameters.values())
+    sim_kwargs = {k: v.truth for k, v in parameters.items()}
+    return generator(seed, **sim_kwargs)
 
 
-dinf.save_genobuilder(
-    filename="bottleneck.gnb",
+genobuilder = dinf.Genobuilder(
     empirical_func=empirical,
     generator_func=generator,
     parameters=parameters,
     feature_shape=bh_matrix.shape,
+)
+rng = np.random.default_rng(123)
+dinf.mcmc_gan(
+    genobuilder=genobuilder,
+    iterations=2,
+    training_replicates=16,
+    test_replicates=0,
+    epochs=1,
+    walkers=16,
+    steps=1,
+    Dx_replicates=2,
+    working_directory="b",
+    rng=rng,
 )

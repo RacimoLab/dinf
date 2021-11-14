@@ -3,7 +3,7 @@ import dataclasses
 import functools
 import pickle
 import sys
-from typing import Any, Tuple
+from typing import Any, Sequence
 
 import numpy as np
 import jax
@@ -15,6 +15,7 @@ import optax
 # A type for jax PyTrees.
 # https://github.com/google/jax/issues/3340
 PyTree = Any
+
 
 # Because we use batch normalisation, the training state needs to also record
 # batch_stats to maintain the running mean and variance.
@@ -63,7 +64,7 @@ class ExchangeableCNN(nn.Module):
     """
 
     @nn.compact
-    def __call__(self, x, *, train: bool):
+    def __call__(self, x: PyTree, *, train: bool) -> PyTree:
         # flax uses channels-last (NHWC) convention
         conv = functools.partial(nn.Conv, kernel_size=(1, 5), use_bias=False)
         # https://flax.readthedocs.io/en/latest/howtos/state_params.html
@@ -119,7 +120,7 @@ class Discriminator:
     """
 
     dnn: nn.Module
-    input_shape: Tuple[int, int, int]
+    input_shape: Sequence[int]
     variables: PyTree
     train_metrics: PyTree = None
     # Bump this after making internal changes.
@@ -128,7 +129,7 @@ class Discriminator:
 
     @classmethod
     def from_input_shape(
-        cls, input_shape: Tuple[int, int, int], rng: np.random.Generator
+        cls, input_shape: Sequence[int], rng: np.random.Generator
     ) -> Discriminator:
         """
         Build a neural network with the given input shape.
@@ -142,7 +143,7 @@ class Discriminator:
         """
         dnn = ExchangeableCNN()
         key = jax.random.PRNGKey(rng.integers(2 ** 63))
-        input_shape = (1,) + input_shape  # add leading batch dimension
+        input_shape = (1,) + tuple(input_shape)  # add leading batch dimension
         dummy_input = jnp.zeros(input_shape, dtype=np.int8)
 
         @jax.jit
@@ -179,7 +180,6 @@ class Discriminator:
 
         :param filename: The filename to which the model will be saved.
         """
-        variables = jax.tree_map(np.array, self.variables)
         data = dataclasses.asdict(self)
         data["dnn"] = self.dnn  # asdict converts this to a dict
         with open(filename, "wb") as f:
@@ -246,7 +246,6 @@ class Discriminator:
 
         def train_epoch(state, train_ds, batch_size, epoch, key):
             """Train for a single epoch."""
-            dataset_size = len(train_ds["image"])
 
             def print_metrics(n, metrics_sum, end):
                 loss = metrics_sum["loss"] / n
