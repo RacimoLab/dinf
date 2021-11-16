@@ -29,6 +29,7 @@ from .feature_extractor import BinnedHaplotypeMatrix
 from .generator import msprime_hudson_simulator
 from .genobuilder import Genobuilder
 from .parameters import Param, Parameters
+from .store import Store
 
 __all__ = [
     "BinnedHaplotypeMatrix",
@@ -38,4 +39,5 @@ __all__ = [
     "msprime_hudson_simulator",
     "Param",
     "Parameters",
+    "Store",
 ]

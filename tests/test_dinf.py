@@ -27,10 +27,27 @@ def test_mcmc_gan():
             rng=rng,
         )
         assert working_directory.exists()
-        assert (working_directory / "discriminator_0.pkl").exists()
-        assert (working_directory / "discriminator_1.pkl").exists()
-        assert (working_directory / "mcmc_samples_0.ncf").exists()
-        assert (working_directory / "mcmc_samples_1.ncf").exists()
+        for i in range(2):
+            assert (working_directory / f"{i}" / "discriminator.pkl").exists()
+            assert (working_directory / f"{i}" / "mcmc.ncf").exists()
+
+        # resume
+        dinf.mcmc_gan(
+            genobuilder=genobuilder,
+            iterations=1,
+            training_replicates=16,
+            test_replicates=0,
+            epochs=1,
+            walkers=6,
+            steps=1,
+            Dx_replicates=2,
+            working_directory=working_directory,
+            parallelism=2,
+            rng=rng,
+        )
+        for i in range(3):
+            assert (working_directory / f"{i}" / "discriminator.pkl").exists()
+            assert (working_directory / f"{i}" / "mcmc.ncf").exists()
 
 
 class TestLogProb:

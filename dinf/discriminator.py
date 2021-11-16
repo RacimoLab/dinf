@@ -154,7 +154,7 @@ class Discriminator:
         return cls(dnn=dnn, variables=variables, input_shape=input_shape)
 
     @classmethod
-    def from_file(cls, filename) -> Discriminator:
+    def from_file(cls, filename: str | pathlib.Path) -> Discriminator:
         """
         Load discriminator neural network from the given file.
 

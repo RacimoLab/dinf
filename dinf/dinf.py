@@ -173,7 +173,7 @@ def _mcmc_log_prob_vector(
     return log_D
 
 
-def _arviz_dataset_from_zeus_chain(chain, parameters):
+def _chain_to_netcdf(chain, parameters, filename):
     # Zeus chain has shape (steps, walkers, params)
     # arviz InferenceData needs walkers first
     chain = chain.swapaxes(0, 1)
@@ -186,8 +186,17 @@ def _arviz_dataset_from_zeus_chain(chain, parameters):
             message="More chains.*than draws",
             module="arviz",
         )
-        return az.convert_to_inference_data(datadict)
+        dataset = az.convert_to_inference_data(datadict)
 
+    az.to_netcdf(dataset, filename)
+
+def _chain_from_netcdf(filename):
+    dataset = az.from_netcdf(filename)
+    chain = np.array(dataset.posterior.to_array())
+    # Chain has shape (params, walkers, steps)
+    chain = chain.swapaxes(0, 2)
+    # now has shape (steps, walkers, params)
+    return chain
 
 def _run_mcmc(
     start: np.ndarray,
@@ -328,24 +337,43 @@ def mcmc_gan(
 
     if working_directory is None:
         working_directory = "."
-    working_directory = pathlib.Path(working_directory)
-    working_directory.mkdir(parents=True, exist_ok=True)
+    store = dinf.Store(working_directory)
 
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
     _process_pool_init(parallelism)
 
-    discriminator = dinf.Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+    resume = False
+    if len(store) > 0:
+        files_exist = [(store[-1] / fn).exists() for fn in ("discriminator.pkl", "mcmc.ncf")]
+        if files_exist == 1:
+            raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
+        resume = all(files_exist)
+
+    if resume:
+        discriminator = dinf.Discriminator.from_file(store[-1] / "discriminator.pkl")
+        chain = _chain_from_netcdf(store[-1] / "mcmc.ncf")
+        start = chain[-1]
+        if len(start) != walkers:
+            # TODO: allow this by sampling start points for the walkers?
+            raise ValueError(
+                f"request for {walkers} walkers, but resuming from "
+                f"{store[-1] / 'mcmc.ncf'} which used {len(start)} walkers."
+            )
+        posterior_sample = chain.reshape(-1, chain.shape[-1])
+        genobuilder.parameters.update_posterior(posterior_sample)
+    else:
+        discriminator = dinf.Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+        # Starting point for the mcmc chain.
+        start = genobuilder.parameters.draw(num_replicates=walkers, rng=rng)
 
     n_observed_calls = 0
     n_generator_calls = 0
 
-    # Starting point for the mcmc chain.
-    start = genobuilder.parameters.draw(num_replicates=walkers, rng=rng)
-
     for i in range(iterations):
         print(f"GAN iteration {i}")
+        store.increment()
 
         _train_discriminator(
             discriminator=discriminator,
@@ -356,7 +384,7 @@ def mcmc_gan(
             parallelism=parallelism,
             rng=rng,
         )
-        discriminator.to_file(working_directory / f"discriminator_{i}.pkl")
+        discriminator.to_file(store[-1] / f"discriminator.pkl")
 
         chain, mcmc_generator_calls = _run_mcmc(
             start=start,
@@ -368,12 +396,10 @@ def mcmc_gan(
             parallelism=parallelism,
             rng=rng,
         )
+        _chain_to_netcdf(chain, genobuilder.parameters, store[-1] / f"mcmc.ncf")
 
         # The chain for next iteration starts at the end of this chain.
         start = chain[-1]
-
-        dataset = _arviz_dataset_from_zeus_chain(chain, genobuilder.parameters)
-        az.to_netcdf(dataset, working_directory / f"mcmc_samples_{i}.ncf")
 
         # Update the parameters to draw from the posterior sample
         # (the merged chains from the mcmc).

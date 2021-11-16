@@ -14,7 +14,7 @@ parameters = dinf.Parameters(
 )
 
 bh_matrix = dinf.BinnedHaplotypeMatrix(
-    num_samples=num_samples, fixed_dimension=128, maf_thresh=0.05
+    num_samples=num_samples, num_bins=128, maf_thresh=0.05
 )
 
 
@@ -63,13 +63,13 @@ genobuilder = dinf.Genobuilder(
 rng = np.random.default_rng(123)
 dinf.mcmc_gan(
     genobuilder=genobuilder,
-    iterations=2,
-    training_replicates=16,
-    test_replicates=0,
+    iterations=3,
+    training_replicates=1_000_000,
+    test_replicates=10_000,
     epochs=1,
-    walkers=16,
-    steps=1,
-    Dx_replicates=2,
-    working_directory="b",
+    walkers=64,
+    steps=1000,
+    Dx_replicates=64,
+    working_directory="out",
     rng=rng,
 )
