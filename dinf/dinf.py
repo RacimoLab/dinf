@@ -190,6 +190,7 @@ def _chain_to_netcdf(chain, parameters, filename):
 
     az.to_netcdf(dataset, filename)
 
+
 def _chain_from_netcdf(filename):
     dataset = az.from_netcdf(filename)
     chain = np.array(dataset.posterior.to_array())
@@ -197,6 +198,7 @@ def _chain_from_netcdf(filename):
     chain = chain.swapaxes(0, 2)
     # now has shape (steps, walkers, params)
     return chain
+
 
 def _run_mcmc(
     start: np.ndarray,
@@ -346,8 +348,10 @@ def mcmc_gan(
 
     resume = False
     if len(store) > 0:
-        files_exist = [(store[-1] / fn).exists() for fn in ("discriminator.pkl", "mcmc.ncf")]
-        if files_exist == 1:
+        files_exist = [
+            (store[-1] / fn).exists() for fn in ("discriminator.pkl", "mcmc.ncf")
+        ]
+        if len(files_exist) == 1:
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
         resume = all(files_exist)
 
@@ -364,7 +368,9 @@ def mcmc_gan(
         posterior_sample = chain.reshape(-1, chain.shape[-1])
         genobuilder.parameters.update_posterior(posterior_sample)
     else:
-        discriminator = dinf.Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+        discriminator = dinf.Discriminator.from_input_shape(
+            genobuilder.feature_shape, rng
+        )
         # Starting point for the mcmc chain.
         start = genobuilder.parameters.draw(num_replicates=walkers, rng=rng)
 

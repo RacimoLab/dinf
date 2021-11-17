@@ -79,16 +79,60 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
             raise ValueError("must have num_bins >= 1")
         if dtype not in (np.int8, np.int16, np.int32):
             raise ValueError("dtype must be np.int8, np.int16, or np.in32")
-        self._shape = (num_samples, num_bins, 1)
         self._num_samples = num_samples
         self._num_bins = num_bins
-        self._allele_count_threshold = maf_thresh * num_samples
+        # We use a minimum threshold of 1 to exclude invariant sites.
+        self._allele_count_threshold = max(1, maf_thresh * num_samples)
         self._dtype = dtype
 
     @property
     def shape(self) -> Sequence[int]:
         """Shape of the feature matrix."""
-        return self._shape
+        return (self._num_samples, self._num_bins, 1)
+
+    def _from_genotype_matrix(
+        self,
+        G: np.ndarray,
+        *,
+        positions: np.ndarray,
+        sequence_length: int,
+        rng: np.random.Generator,
+    ) -> np.ndarray:
+        """
+        Create a pseudo-genotype matrix from a regular genotype matrix.
+
+        :param G: Genotype matrix with shape (num_sites, num_samples).
+        :param positions: Vector of variant positions.
+        :param sequence_length:
+            The length of the sequence from which the matrix is derived.
+        :param rng:
+            Numpy random number generator. Used to randomly polarise alleles
+            when there are multiple alleles with the same frequency.
+        :return:
+            The genotype matrix with shape (n, m, 1). For a matrix M,
+            the M[i][j][0]'th entry is the count of minor alleles in the
+            j'th bin of haplotype i.
+        """
+        assert len(G) == len(positions)
+        bins = np.floor_divide(positions * self._num_bins, sequence_length).astype(
+            np.int32
+        )
+
+        ac1 = np.sum(G, axis=1)
+        ac0 = self._num_samples - ac1
+        keep = np.minimum(ac0, ac1) >= self._allele_count_threshold
+        # Polarise 0 and 1 in genotype matrix by major allele frequency.
+        flip = np.logical_or(
+            ac1 > ac0,
+            # If allele counts are the same, randomly assign major allele.
+            np.logical_and(ac1 == ac0, rng.random(len(positions)) > 0.5),
+        )
+        G ^= np.expand_dims(flip, -1)
+
+        M = np.zeros(self.shape, dtype=self._dtype)
+        for j, genotypes in zip(bins[keep], G[keep]):
+            M[:, j, 0] += genotypes
+        return M
 
     def from_ts(
         self, ts: tskit.TreeSequence, *, rng: np.random.Generator
@@ -99,9 +143,9 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         :param ts: The tree sequence.
         :param rng: Random number generator.
         :return:
-            The genotype matrix with shape (n, m). For a matrix M,
-            the M[i][j]'th entry is the count of minor alleles in the j'th bin
-            of haplotype i.
+            The genotype matrix with shape (n, m, 1). For a matrix M,
+            the M[i][j][0]'th entry is the count of minor alleles in the
+            j'th bin of haplotype i.
         """
         if ts.num_samples != self._num_samples:
             raise ValueError("Number of samples doesn't match feature matrix shape")
@@ -110,31 +154,11 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         if ts.num_populations != 1:
             raise ValueError("Multi-population tree sequences not yet supported")
 
-        M = np.zeros((self._num_samples, self._num_bins), dtype=self._dtype)
-
-        for variant in ts.variants():
-            if len(variant.alleles) > 2:
-                # TODO: figure out a strategy for multi-allelic simulations
-                raise ValueError("Must use a binary mutation model")
-
-            # Filter by MAF
-            genotypes = variant.genotypes
-            ac1 = np.sum(genotypes)
-            ac0 = len(genotypes) - ac1
-            if min(ac0, ac1) < self._allele_count_threshold:
-                continue
-
-            # Polarise 0 and 1 in genotype matrix by major allele frequency.
-            # If allele counts are the same, randomly choose a major allele.
-            if ac1 > ac0 or (ac1 == ac0 and rng.random() > 0.5):
-                genotypes ^= 1
-
-            j = int(variant.site.position * self.shape[1] / ts.sequence_length)
-            M[:, j] += genotypes
-
-        # Add "channels" dimension.
-        M = np.expand_dims(M, -1)
-        return M
+        G = ts.genotype_matrix()  # shape is (sites, samples)
+        positions = np.array(ts.tables.sites.position)
+        return self._from_genotype_matrix(
+            G, positions=positions, sequence_length=ts.sequence_length, rng=rng
+        )
 
     def from_vcf(self, rng: np.random.Generator) -> np.ndarray:
         # TODO

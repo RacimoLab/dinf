@@ -2,6 +2,7 @@ import pytest
 
 import dinf
 
+
 class TestStore:
     @pytest.mark.usefixtures("tmp_path")
     def test_empty(self, tmp_path):

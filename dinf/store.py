@@ -2,6 +2,7 @@ import collections.abc
 import dataclasses
 import pathlib
 
+
 class Store(collections.abc.Sequence):
     base: pathlib.Path
 

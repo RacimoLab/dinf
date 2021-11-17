@@ -1,6 +1,7 @@
 import numpy as np
 import msprime
 import pytest
+import tskit
 
 import dinf
 
@@ -39,6 +40,47 @@ def do_sim(
     return ts
 
 
+def _feature_matrix_from_ts(
+    ts: tskit.TreeSequence,
+    *,
+    num_samples: int,
+    num_bins: int,
+    maf_thresh: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Non-vector implementation of BinnedHaplotypeMatrix.from_ts()."""
+    assert ts.num_samples == num_samples
+    assert ts.sequence_length >= num_bins
+    assert ts.num_populations == 1
+
+    # We use a minimum threshold of 1 to exclude invariant sites.
+    allele_count_threshold = max(1, maf_thresh * num_samples)
+
+    M = np.zeros((num_samples, num_bins, 1), dtype=np.int32)
+    randbits = rng.random(ts.num_sites)
+
+    for k, variant in enumerate(ts.variants()):
+        if len(variant.alleles) > 2:
+            raise ValueError("Must use a binary mutation model")
+
+        # Filter by MAF
+        genotypes = variant.genotypes
+        ac1 = np.sum(genotypes)
+        ac0 = len(genotypes) - ac1
+        if min(ac0, ac1) < allele_count_threshold:
+            continue
+
+        # Polarise 0 and 1 in genotype matrix by major allele frequency.
+        # If allele counts are the same, randomly choose a major allele.
+        if ac1 > ac0 or (ac1 == ac0 and randbits[k] > 0.5):
+            genotypes ^= 1
+
+        j = int(variant.site.position * num_bins / ts.sequence_length)
+        M[:, j, 0] += genotypes
+
+    return M
+
+
 class TestBinnedHaplotypeMatrix:
     @pytest.mark.parametrize("num_samples", [8, 16])
     @pytest.mark.parametrize("sequence_length", [100_000, 1_000_000])
@@ -54,6 +96,12 @@ class TestBinnedHaplotypeMatrix:
         rng = np.random.default_rng(1234)
         M = bhm.from_ts(ts, rng=rng)
         assert M.shape == (num_samples, num_bins, 1)
+        # ref implementation
+        rng = np.random.default_rng(1234)
+        M_ref = _feature_matrix_from_ts(
+            ts, num_samples=num_samples, num_bins=num_bins, maf_thresh=0, rng=rng
+        )
+        np.testing.assert_array_equal(M, M_ref)
 
     def test_from_ts_num_bins_extrema(self):
         # from_ts() encodes the minor allele as 1, where the minor allele is
@@ -80,6 +128,12 @@ class TestBinnedHaplotypeMatrix:
         M = bhm.from_ts(ts, rng=rng)
         assert M.shape == (num_samples, 1, 1)
         np.testing.assert_array_equal(M[..., 0], np.sum(G, axis=1, keepdims=True))
+        # ref implementation
+        rng = np.random.default_rng(1234)
+        M_ref = _feature_matrix_from_ts(
+            ts, num_samples=num_samples, num_bins=1, maf_thresh=0, rng=rng
+        )
+        np.testing.assert_array_equal(M, M_ref)
 
         # Feature matrix is the genotype matrix, including invariant sites.
         bhm = dinf.BinnedHaplotypeMatrix(
@@ -92,14 +146,20 @@ class TestBinnedHaplotypeMatrix:
         has_variant = np.where(np.sum(M, axis=0) > 0)[0]
         assert len(has_variant) == ts.num_sites
         np.testing.assert_array_equal(M[:, has_variant, 0], G)
+        # ref implementation
+        rng = np.random.default_rng(1234)
+        M_ref = _feature_matrix_from_ts(
+            ts, num_samples=num_samples, num_bins=sequence_length, maf_thresh=0, rng=rng
+        )
+        np.testing.assert_array_equal(M, M_ref)
 
     def test_from_ts_maf_thresh(self):
         num_samples = 128
         ts = do_sim(num_samples=num_samples, sequence_length=100_000)
         thresholds = [0, 0.01, 0.05, 0.1, 1]
-        rng = np.random.default_rng(1234)
         M_list = []
         for maf_thresh in thresholds:
+            rng = np.random.default_rng(1234)
             bhm = dinf.BinnedHaplotypeMatrix(
                 num_samples=num_samples,
                 num_bins=64,
@@ -107,6 +167,12 @@ class TestBinnedHaplotypeMatrix:
             )
             M = bhm.from_ts(ts, rng=rng)
             M_list.append(M)
+            # ref implementation
+            rng = np.random.default_rng(1234)
+            M_ref = _feature_matrix_from_ts(
+                ts, num_samples=num_samples, num_bins=64, maf_thresh=maf_thresh, rng=rng
+            )
+            np.testing.assert_array_equal(M, M_ref)
 
         counts = [np.sum(M) for M in M_list]
         assert counts[0] > 0
