@@ -13,11 +13,6 @@ dependencies:
   - optax
   # The rest.
   - arviz
+  - emcee
   - demes
   - msprime
-  - zarr
-  - zeus-mcmc
-  - pip
-  - pip:
-    # No conda packages available.
-    - gradient-free-optimizers

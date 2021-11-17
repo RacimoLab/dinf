@@ -6,9 +6,9 @@ import pathlib
 from typing import cast, Callable
 import warnings
 
-import numpy as np
-import zeus
 import arviz as az
+import emcee
+import numpy as np
 
 import dinf
 
@@ -174,7 +174,7 @@ def _mcmc_log_prob_vector(
 
 
 def _chain_to_netcdf(chain, parameters, filename):
-    # Zeus chain has shape (steps, walkers, params)
+    # Chain has shape (steps, walkers, params)
     # arviz InferenceData needs walkers first
     chain = chain.swapaxes(0, 1)
 
@@ -200,7 +200,7 @@ def _chain_from_netcdf(filename):
     return chain
 
 
-def _run_mcmc(
+def _run_mcmc_emcee(
     start: np.ndarray,
     discriminator: dinf.Discriminator,
     genobuilder: dinf.Genobuilder,
@@ -210,11 +210,10 @@ def _run_mcmc(
     parallelism: int,
     rng: np.random.Generator,
 ):
-    sampler = zeus.EnsembleSampler(
+    sampler = emcee.EnsembleSampler(
         walkers,
         len(genobuilder.parameters),
         _mcmc_log_prob_vector,
-        verbose=False,
         vectorize=True,
         # kwargs passed to _mcmc_log_prob_vector
         kwargs=dict(
@@ -229,10 +228,9 @@ def _run_mcmc(
 
     sampler.run_mcmc(start, nsteps=steps)
     chain = sampler.get_chain()
-    # This is an overestimate, because the generator won't get called when
-    # the proposed parameters are out of bounds.
-    num_generator_calls = sampler.ncall * Dx_replicates
-    return chain, num_generator_calls
+    num_generator_calls = Dx_replicates * steps * walkers
+    acceptance_rate = np.mean(sampler.acceptance_fraction)
+    return chain, num_generator_calls, acceptance_rate
 
 
 def _train_discriminator(
@@ -390,9 +388,9 @@ def mcmc_gan(
             parallelism=parallelism,
             rng=rng,
         )
-        discriminator.to_file(store[-1] / f"discriminator.pkl")
+        discriminator.to_file(store[-1] / "discriminator.pkl")
 
-        chain, mcmc_generator_calls = _run_mcmc(
+        chain, mcmc_generator_calls, acceptance_rate = _run_mcmc_emcee(
             start=start,
             discriminator=discriminator,
             genobuilder=genobuilder,
@@ -402,7 +400,7 @@ def mcmc_gan(
             parallelism=parallelism,
             rng=rng,
         )
-        _chain_to_netcdf(chain, genobuilder.parameters, store[-1] / f"mcmc.ncf")
+        _chain_to_netcdf(chain, genobuilder.parameters, store[-1] / "mcmc.ncf")
 
         # The chain for next iteration starts at the end of this chain.
         start = chain[-1]
@@ -416,5 +414,6 @@ def mcmc_gan(
         n_generator_calls += (
             training_replicates + test_replicates + mcmc_generator_calls
         )
+        print(f"MCMC acceptance rate: {acceptance_rate}")
         print(f"Observed data extracted {n_observed_calls} times.")
         print(f"Generator called {n_generator_calls} times.")
