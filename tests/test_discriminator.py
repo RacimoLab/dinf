@@ -1,6 +1,3 @@
-import tempfile
-import pathlib
-
 import numpy as np
 import jax
 import chex
@@ -57,13 +54,13 @@ class TestDiscriminator:
         assert "params" in captured.out
         assert "batch_stats" in captured.out
 
-    def test_load_save_roundtrip(self):
+    @pytest.mark.usefixtures("tmp_path")
+    def test_load_save_roundtrip(self, tmp_path):
         rng = np.random.default_rng(1234)
         d1 = discriminator.Discriminator.from_input_shape((30, 40, 1), rng)
-        with tempfile.TemporaryDirectory() as tmpdir:
-            filename = pathlib.Path(tmpdir) / "model.json"
-            d1.to_file(filename)
-            d2 = discriminator.Discriminator.from_file(filename)
+        filename = tmp_path / "discriminator.pkl"
+        d1.to_file(filename)
+        d2 = discriminator.Discriminator.from_file(filename)
         chex.assert_trees_all_close(d1.variables, d2.variables)
 
     def test_predict(self):

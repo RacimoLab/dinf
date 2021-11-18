@@ -60,32 +60,3 @@ genobuilder = dinf.Genobuilder(
     parameters=parameters,
     feature_shape=bh_matrix.shape,
 )
-
-
-if __name__ == "__main__":
-    rng = np.random.default_rng(123)
-    """
-    dinf.mcmc_gan(
-        genobuilder=genobuilder,
-        iterations=3,
-        training_replicates=1_000_000,
-        test_replicates=10_000,
-        epochs=1,
-        walkers=64,
-        steps=1000,
-        Dx_replicates=64,
-        working_directory="out",
-        rng=rng,
-    )
-    """
-    dataset = dinf.abc_gan(
-        genobuilder=genobuilder,
-        iterations=3,
-        training_replicates=1_000_000,
-        test_replicates=10_000,
-        epochs=1,
-        proposals=1_000_000,
-        posteriors=1000,
-        working_directory="abc_out",
-        rng=rng,
-    )

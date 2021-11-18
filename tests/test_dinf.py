@@ -1,7 +1,6 @@
 from __future__ import annotations
 import functools
 import pathlib
-import tempfile
 
 import arviz as az
 import numpy as np

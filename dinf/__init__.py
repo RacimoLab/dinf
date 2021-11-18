@@ -35,6 +35,7 @@ __all__ = [
     "BinnedHaplotypeMatrix",
     "Discriminator",
     "Genobuilder",
+    "abc_gan",
     "mcmc_gan",
     "msprime_hudson_simulator",
     "Param",
