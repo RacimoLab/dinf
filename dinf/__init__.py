@@ -23,7 +23,7 @@ if "KMP_AFFINITY" not in os.environ:
 #    os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
 
 
-from .dinf import mcmc_gan
+from .dinf import abc_gan, mcmc_gan
 from .discriminator import Discriminator
 from .feature_extractor import BinnedHaplotypeMatrix
 from .generator import msprime_hudson_simulator

@@ -173,24 +173,6 @@ def _mcmc_log_prob_vector(
     return log_D
 
 
-def _chain_to_netcdf(chain, parameters, filename):
-    # Chain has shape (steps, walkers, params)
-    # arviz InferenceData needs walkers first
-    chain = chain.swapaxes(0, 1)
-
-    datadict = {p: chain[..., j] for j, p in enumerate(parameters)}
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            category=UserWarning,
-            message="More chains.*than draws",
-            module="arviz",
-        )
-        dataset = az.convert_to_inference_data(datadict)
-
-    az.to_netcdf(dataset, filename)
-
-
 def _chain_from_netcdf(filename):
     dataset = az.from_netcdf(filename)
     chain = np.array(dataset.posterior.to_array())
@@ -226,11 +208,31 @@ def _run_mcmc_emcee(
         ),
     )
 
-    sampler.run_mcmc(start, nsteps=steps)
+    mt_initial_state = np.random.mtrand.RandomState(rng.integers(2 ** 31)).get_state()
+    state = emcee.State(start, random_state=mt_initial_state)
+    sampler.run_mcmc(state, nsteps=steps)
     chain = sampler.get_chain()
-    num_generator_calls = Dx_replicates * steps * walkers
-    acceptance_rate = np.mean(sampler.acceptance_fraction)
-    return chain, num_generator_calls, acceptance_rate
+
+    datadict = {
+        "posterior": {
+            p: chain[..., j].swapaxes(0, 1)
+            for j, p in enumerate(genobuilder.parameters)
+        },
+        "sample_stats": {
+            "lp": sampler.get_log_prob().swapaxes(0, 1),
+            "acceptance_rate": np.mean(sampler.acceptance_fraction),
+        },
+    }
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=UserWarning,
+            message="More chains.*than draws",
+            module="arviz",
+        )
+        dataset = az.from_dict(**datadict)
+
+    return dataset
 
 
 def _train_discriminator(
@@ -349,13 +351,14 @@ def mcmc_gan(
         files_exist = [
             (store[-1] / fn).exists() for fn in ("discriminator.pkl", "mcmc.ncf")
         ]
-        if len(files_exist) == 1:
+        if sum(files_exist) == 1:
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
         resume = all(files_exist)
 
     if resume:
         discriminator = dinf.Discriminator.from_file(store[-1] / "discriminator.pkl")
-        chain = _chain_from_netcdf(store[-1] / "mcmc.ncf")
+        dataset = az.from_netcdf(store[-1] / "mcmc.ncf")
+        chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
         start = chain[-1]
         if len(start) != walkers:
             # TODO: allow this by sampling start points for the walkers?
@@ -376,7 +379,7 @@ def mcmc_gan(
     n_generator_calls = 0
 
     for i in range(iterations):
-        print(f"GAN iteration {i}")
+        print(f"MCMC GAN iteration {i}")
         store.increment()
 
         _train_discriminator(
@@ -390,7 +393,8 @@ def mcmc_gan(
         )
         discriminator.to_file(store[-1] / "discriminator.pkl")
 
-        chain, mcmc_generator_calls, acceptance_rate = _run_mcmc_emcee(
+        # chain, mcmc_generator_calls, acceptance_rate = _run_mcmc_emcee(
+        dataset = _run_mcmc_emcee(
             start=start,
             discriminator=discriminator,
             genobuilder=genobuilder,
@@ -400,20 +404,178 @@ def mcmc_gan(
             parallelism=parallelism,
             rng=rng,
         )
-        _chain_to_netcdf(chain, genobuilder.parameters, store[-1] / "mcmc.ncf")
+        az.to_netcdf(dataset, store[-1] / "mcmc.ncf")
+
+        chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
 
         # The chain for next iteration starts at the end of this chain.
         start = chain[-1]
 
         # Update the parameters to draw from the posterior sample
         # (the merged chains from the mcmc).
-        posterior_sample = chain.reshape(-1, chain.shape[-1])
-        genobuilder.parameters.update_posterior(posterior_sample)
-
-        n_observed_calls += training_replicates + test_replicates
-        n_generator_calls += (
-            training_replicates + test_replicates + mcmc_generator_calls
+        genobuilder.parameters.update_posterior(
+            chain.reshape(-1, chain.shape[-1])
+            # np.array(dataset.posterior.to_array()).swapaxes(0, 2)
         )
-        print(f"MCMC acceptance rate: {acceptance_rate}")
+
+        n_observed_calls += (training_replicates + test_replicates) // 2
+        n_generator_calls += (
+            training_replicates + test_replicates
+        ) // 2 + walkers * steps * Dx_replicates
+        print(f"Observed data extracted {n_observed_calls} times.")
+        print(f"Generator called {n_generator_calls} times.")
+
+
+def _run_abc(
+    *,
+    discriminator: dinf.Discriminator,
+    genobuilder: dinf.Genobuilder,
+    proposals: int,
+    posteriors: int,
+    parallelism: int,
+    rng: np.random.Generator,
+):
+    if posteriors > proposals:
+        raise ValueError(
+            f"Cannot subsample {posteriors} posteriors from {proposals} proposals"
+        )
+
+    params, x = _generate_data(
+        generator=genobuilder.generator_func,
+        parameters=genobuilder.parameters,
+        num_replicates=proposals,
+        parallelism=parallelism,
+        rng=rng,
+    )
+    y = discriminator.predict(x)
+    top = np.argsort(y)[::-1][:posteriors]
+    top_params = params[top]
+    with np.errstate(divide="ignore"):
+        log_top_y = np.log(y[top])
+
+    dataset = az.from_dict(
+        posterior={p: top_params[..., j] for j, p in enumerate(genobuilder.parameters)},
+        sample_stats={"lp": log_top_y},
+    )
+    return dataset
+
+
+def abc_gan(
+    *,
+    genobuilder: dinf.Genobuilder,
+    iterations: int,
+    training_replicates: int,
+    test_replicates: int,
+    epochs: int,
+    proposals: int,
+    posteriors: int,
+    working_directory: None | str | pathlib.Path = None,
+    parallelism: None | int = None,
+    rng: np.random.Generator,
+):
+    """
+    Run the ABC GAN.
+
+    Each iteration of the GAN can be conceptually divided into:
+    - constructing train/test datasets for the discriminator,
+    - trainin the discriminator for a certain number of epochs,
+    - running the ABC.
+
+    In the first iteration, the parameter values given to the generator
+    to produce the test/train datasets are drawn from the parameters' prior
+    distribution. In subsequent iterations, the parameter values are drawn
+    by sampling with replacement from the previous iteration's ABC posterior.
+
+    :param genobuilder:
+        Genobuilder object that describes the GAN.
+    :param iterations:
+        Number of GAN iterations.
+    :param training_replicates:
+        Size of the dataset used to train the discriminator.
+        This dataset is constructed once each GAN iteration.
+    :param test_replicates:
+        Size of the test dataset used to evalutate the discriminator after
+        each training epoch.
+    :param epochs:
+        Number of full passes over the training dataset when training
+        the discriminator.
+    :param proposals:
+        Number of ABC sample draws.
+    :param posteriors:
+        Number of top-ranked ABC sample draws to keep.
+    :param working_directory:
+        Folder to output results. If not specified, the current
+        directory will be used.
+    :param parallelism:
+        Number of processes to use for parallelising calls to the
+        :meth:`Genobuilder.generator_func` and
+        :meth:`Genobuilder.empirical_func`.
+    :param rng:
+        Numpy random number generator.
+    """
+    if working_directory is None:
+        working_directory = "."
+    store = dinf.Store(working_directory)
+
+    if parallelism is None:
+        parallelism = cast(int, os.cpu_count())
+
+    _process_pool_init(parallelism)
+
+    resume = False
+    if len(store) > 0:
+        files_exist = [
+            (store[-1] / fn).exists() for fn in ("discriminator.pkl", "abc.ncf")
+        ]
+        if sum(files_exist) == 1:
+            raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
+        resume = all(files_exist)
+
+    if resume:
+        discriminator = dinf.Discriminator.from_file(store[-1] / "discriminator.pkl")
+        dataset = az.from_netcdf(store[-1] / "abc.ncf")
+        genobuilder.parameters.update_posterior(
+            np.array(dataset.posterior.to_array()).swapaxes(0, 2).squeeze()
+        )
+    else:
+        discriminator = dinf.Discriminator.from_input_shape(
+            genobuilder.feature_shape, rng
+        )
+
+    n_observed_calls = 0
+    n_generator_calls = 0
+
+    for i in range(iterations):
+        print(f"ABC GAN iteration {i}")
+        store.increment()
+
+        _train_discriminator(
+            discriminator=discriminator,
+            genobuilder=genobuilder,
+            training_replicates=training_replicates,
+            test_replicates=test_replicates,
+            epochs=epochs,
+            parallelism=parallelism,
+            rng=rng,
+        )
+        discriminator.to_file(store[-1] / "discriminator.pkl")
+
+        dataset = _run_abc(
+            discriminator=discriminator,
+            genobuilder=genobuilder,
+            proposals=proposals,
+            posteriors=posteriors,
+            parallelism=parallelism,
+            rng=rng,
+        )
+        az.to_netcdf(dataset, store[-1] / "abc.ncf")
+
+        # Update to draw from the posterior sample in the next iteration.
+        genobuilder.parameters.update_posterior(
+            np.array(dataset.posterior.to_array()).swapaxes(0, 2).squeeze()
+        )
+
+        n_observed_calls += (training_replicates + test_replicates) // 2
+        n_generator_calls += (training_replicates + test_replicates) // 2 + proposals
         print(f"Observed data extracted {n_observed_calls} times.")
         print(f"Generator called {n_generator_calls} times.")

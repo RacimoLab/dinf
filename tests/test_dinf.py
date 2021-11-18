@@ -1,53 +1,143 @@
+from __future__ import annotations
 import functools
 import pathlib
 import tempfile
 
+import arviz as az
 import numpy as np
+import pytest
+
 
 import dinf
 import tests
 
 
-def test_mcmc_gan():
+def check_discriminator(filename: str | pathlib.Path):
+    dinf.Discriminator.from_file(filename)
+
+
+def check_ncf(
+    filename: str | pathlib.Path,
+    *,
+    chains: int,
+    draws: int,
+    var_names: int,
+    check_acceptance_rate: bool,
+):
+    ds = az.from_netcdf(filename)
+    assert len(ds.posterior.chain) == chains
+    assert len(ds.posterior.draw) == draws
+    np.testing.assert_array_equal(list(ds.posterior.data_vars.keys()), list(var_names))
+    assert len(ds.sample_stats.lp.chain) == chains
+    assert len(ds.sample_stats.lp.draw) == draws
+    if check_acceptance_rate:
+        assert "acceptance_rate" in ds.sample_stats
+
+
+@pytest.mark.usefixtures("tmp_path")
+def test_abc_gan(tmp_path):
     rng = np.random.default_rng(123)
     genobuilder = tests.get_genobuilder()
-    with tempfile.TemporaryDirectory() as tmpdir:
-        working_directory = pathlib.Path(tmpdir) / "workdir"
-        dinf.mcmc_gan(
-            genobuilder=genobuilder,
-            iterations=2,
-            training_replicates=16,
-            test_replicates=0,
-            epochs=1,
-            walkers=6,
-            steps=1,
-            Dx_replicates=2,
-            working_directory=working_directory,
-            parallelism=2,
-            rng=rng,
+    working_directory = tmp_path / "work_dir"
+    dinf.abc_gan(
+        genobuilder=genobuilder,
+        iterations=2,
+        training_replicates=16,
+        test_replicates=0,
+        epochs=1,
+        proposals=20,
+        posteriors=7,
+        working_directory=working_directory,
+        parallelism=2,
+        rng=rng,
+    )
+    assert working_directory.exists()
+    for i in range(2):
+        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_ncf(
+            working_directory / f"{i}" / "abc.ncf",
+            chains=1,
+            draws=7,
+            var_names=genobuilder.parameters,
+            check_acceptance_rate=False,
         )
-        assert working_directory.exists()
-        for i in range(2):
-            assert (working_directory / f"{i}" / "discriminator.pkl").exists()
-            assert (working_directory / f"{i}" / "mcmc.ncf").exists()
 
-        # resume
-        dinf.mcmc_gan(
-            genobuilder=genobuilder,
-            iterations=1,
-            training_replicates=16,
-            test_replicates=0,
-            epochs=1,
-            walkers=6,
-            steps=1,
-            Dx_replicates=2,
-            working_directory=working_directory,
-            parallelism=2,
-            rng=rng,
+    # resume
+    dinf.abc_gan(
+        genobuilder=genobuilder,
+        iterations=1,
+        training_replicates=16,
+        test_replicates=0,
+        epochs=1,
+        proposals=20,
+        posteriors=7,
+        working_directory=working_directory,
+        parallelism=2,
+        rng=rng,
+    )
+    for i in range(3):
+        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_ncf(
+            working_directory / f"{i}" / "abc.ncf",
+            chains=1,
+            draws=7,
+            var_names=genobuilder.parameters,
+            check_acceptance_rate=False,
         )
-        for i in range(3):
-            assert (working_directory / f"{i}" / "discriminator.pkl").exists()
-            assert (working_directory / f"{i}" / "mcmc.ncf").exists()
+
+
+@pytest.mark.usefixtures("tmp_path")
+def test_mcmc_gan(tmp_path):
+    rng = np.random.default_rng(1234)
+    genobuilder = tests.get_genobuilder()
+    working_directory = tmp_path / "workdir"
+    dinf.mcmc_gan(
+        genobuilder=genobuilder,
+        iterations=2,
+        training_replicates=16,
+        test_replicates=0,
+        epochs=1,
+        walkers=6,
+        steps=1,
+        Dx_replicates=2,
+        working_directory=working_directory,
+        parallelism=2,
+        rng=rng,
+    )
+    assert working_directory.exists()
+    for i in range(2):
+        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_ncf(
+            working_directory / f"{i}" / "mcmc.ncf",
+            chains=6,
+            draws=1,
+            var_names=genobuilder.parameters,
+            check_acceptance_rate=True,
+        )
+
+    # resume
+    dinf.mcmc_gan(
+        genobuilder=genobuilder,
+        iterations=1,
+        training_replicates=16,
+        test_replicates=0,
+        epochs=1,
+        walkers=6,
+        steps=1,
+        Dx_replicates=2,
+        working_directory=working_directory,
+        parallelism=2,
+        rng=rng,
+    )
+    for i in range(3):
+        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_ncf(
+            working_directory / f"{i}" / "mcmc.ncf",
+            chains=6,
+            draws=1,
+            var_names=genobuilder.parameters,
+            check_acceptance_rate=True,
+        )
 
 
 class TestLogProb:

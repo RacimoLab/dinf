@@ -44,7 +44,6 @@ def _truth_generator(f, parameters):
     return functools.update_wrapper(functools.partial(f, **kwargs), f)
 
 
-@functools.lru_cache(maxsize=None)
 def get_genobuilder() -> dinf.Genobuilder:
     """Create a genobuilder for tests."""
     num_samples = 128
