@@ -17,6 +17,7 @@ dependencies:
   - optax
   # The rest.
   - arviz
+  - cyvcf2
   - emcee
   - demes
   - msprime

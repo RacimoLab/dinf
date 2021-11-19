@@ -30,6 +30,7 @@ from .generator import msprime_hudson_simulator
 from .genobuilder import Genobuilder
 from .parameters import Param, Parameters
 from .store import Store
+from .vcf import VcfSampler
 
 __all__ = [
     "BinnedHaplotypeMatrix",
@@ -41,4 +42,5 @@ __all__ = [
     "Param",
     "Parameters",
     "Store",
+    "VcfSampler",
 ]
