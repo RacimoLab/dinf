@@ -13,8 +13,14 @@ import dinf
 def _get_user_genobuilder(filename: str | pathlib.Path) -> dinf.Genobuilder:
     """
     Load the symbol "genobuilder" from a file.
+
+    https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
     """
     spec = importlib.util.spec_from_file_location("user_module", filename)
+    # Pacify mypy. These assertions hold even when the file doesn't exist.
+    assert spec is not None
+    assert isinstance(spec.loader, importlib.abc.Loader)
+
     user_module = importlib.util.module_from_spec(spec)
     sys.modules["user_module"] = user_module
     spec.loader.exec_module(user_module)

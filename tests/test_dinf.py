@@ -1,6 +1,7 @@
 from __future__ import annotations
 import functools
 import pathlib
+from typing import Iterable
 
 import arviz as az
 import numpy as np
@@ -8,7 +9,7 @@ import pytest
 
 
 import dinf
-import tests
+import examples.bottleneck.model
 
 
 def check_discriminator(filename: str | pathlib.Path):
@@ -20,7 +21,7 @@ def check_ncf(
     *,
     chains: int,
     draws: int,
-    var_names: int,
+    var_names: Iterable[str],
     check_acceptance_rate: bool,
 ):
     ds = az.from_netcdf(filename)
@@ -36,7 +37,7 @@ def check_ncf(
 @pytest.mark.usefixtures("tmp_path")
 def test_abc_gan(tmp_path):
     rng = np.random.default_rng(123)
-    genobuilder = tests.get_genobuilder()
+    genobuilder = examples.bottleneck.model.genobuilder
     working_directory = tmp_path / "work_dir"
     dinf.abc_gan(
         genobuilder=genobuilder,
@@ -88,7 +89,7 @@ def test_abc_gan(tmp_path):
 @pytest.mark.usefixtures("tmp_path")
 def test_mcmc_gan(tmp_path):
     rng = np.random.default_rng(1234)
-    genobuilder = tests.get_genobuilder()
+    genobuilder = examples.bottleneck.model.genobuilder
     working_directory = tmp_path / "workdir"
     dinf.mcmc_gan(
         genobuilder=genobuilder,
@@ -142,7 +143,7 @@ def test_mcmc_gan(tmp_path):
 class TestLogProb:
     @classmethod
     def setup_class(cls):
-        cls.genobuilder = tests.get_genobuilder()
+        cls.genobuilder = examples.bottleneck.model.genobuilder
         rng = np.random.default_rng(111)
         cls.discriminator = dinf.Discriminator.from_input_shape(
             cls.genobuilder.feature_shape, rng

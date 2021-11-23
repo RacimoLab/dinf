@@ -26,21 +26,20 @@ if "KMP_AFFINITY" not in os.environ:
 from .dinf import abc_gan, mcmc_gan
 from .discriminator import Discriminator
 from .feature_extractor import BinnedHaplotypeMatrix
-from .generator import msprime_hudson_simulator
 from .genobuilder import Genobuilder
 from .parameters import Param, Parameters
 from .store import Store
-from .vcf import VcfSampler
+from .vcf import BagOfVcf
 
 __all__ = [
+    "__version__",
+    "BagOfVcf",
     "BinnedHaplotypeMatrix",
     "Discriminator",
     "Genobuilder",
-    "abc_gan",
-    "mcmc_gan",
-    "msprime_hudson_simulator",
     "Param",
     "Parameters",
     "Store",
-    "VcfSampler",
+    "abc_gan",
+    "mcmc_gan",
 ]
