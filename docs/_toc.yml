@@ -1,0 +1,7 @@
+format: jb-article
+root: introduction
+sections:
+- file: api
+- file: cli
+#- file: examples
+#- file: CHANGELOG

@@ -2,3 +2,4 @@
 -r requirements/minimal.txt
 -r requirements/test.txt
 -r requirements/lint.txt
+-r requirements/docs.txt
