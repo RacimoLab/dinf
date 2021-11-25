@@ -65,6 +65,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
     .. note::
 
         For multiallelic sites, only the first two alleles are used.
+
     """
 
     def __init__(
@@ -97,7 +98,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
             The numpy data type of the feature matrix. To save memory, we use
             an np.int8 by default, which assumes that counts are small.
             However, this may not be true for very large values of
-                num_individuals * mu * Ne * sequence_length / num_bins,
+            num_individuals * mu * Ne * sequence_length / num_bins,
             in which case np.int16 might be preferred.
         """
         if num_individuals < 1:
