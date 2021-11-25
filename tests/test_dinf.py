@@ -9,7 +9,7 @@ import pytest
 
 
 import dinf
-import examples.bottleneck.model
+import examples.bottleneck.model  # type: ignore[import]
 
 
 def check_discriminator(filename: str | pathlib.Path):

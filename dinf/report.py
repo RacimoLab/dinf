@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib import cm
 import arviz as az
 import natsort
 
