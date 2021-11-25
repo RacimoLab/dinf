@@ -43,9 +43,20 @@ jobs:
           python -m pip install -r requirements/minimal.txt
           python -m pip install -r requirements/test.txt
 
-      - name: install non-python dependencies
+      - name: install bcftools
         run: |
-          sudo apt install bcftools
+          # The tests call "bgzip" and "bcftools index".
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            # Ubuntu keeps bgzip in the tabix package.
+            sudo apt-get update
+            sudo apt-get install bcftools tabix
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            brew update
+            brew install bcftools
+          else
+            echo "Don't know how to install bcftools on $RUNNER_OS"
+            exit 1
+          fi
 
       - name: run pytest
         run: |
