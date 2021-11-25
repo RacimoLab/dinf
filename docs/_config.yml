@@ -1,0 +1,42 @@
+# Book settings
+# Learn more at https://jupyterbook.org/customize/config.html
+
+title: Dinf
+author: Graham Gower
+copyright: "2021"
+only_build_toc_files: true
+
+execute:
+  execute_notebooks: cache
+  timeout: 100
+
+repository:
+  url: https://github.com/RacimoLab/dinf
+  path_to_book: docs
+  branch: main
+
+html:
+  use_issues_button: true
+  use_repository_button: true
+  use_edit_page_button: true
+
+sphinx:
+  extra_extensions:
+  - sphinx.ext.autodoc
+  - sphinx.ext.todo
+  - sphinx.ext.viewcode
+  - sphinx.ext.intersphinx
+  - sphinxcontrib.programoutput
+  #- sphinx_issues
+
+  config:
+    autodoc_typehints: "description"
+    todo_include_todos: true
+    intersphinx_mapping:
+      python: ["https://docs.python.org/3/", null]
+      numpy: ["https://numpy.org/doc/stable/", null]
+      tskit: ["https://tskit.dev/tskit/docs/stable", null]
+    #issues_github_path: RacimoLab/dinf
+
+    # TODO: enable this and fix a bunch of problems.
+    nitpicky: false
