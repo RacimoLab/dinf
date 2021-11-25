@@ -65,7 +65,7 @@ class ExchangeableCNN(nn.Module):
     """
 
     @nn.compact
-    def __call__(self, x: PyTree, *, train: bool) -> PyTree:
+    def __call__(self, x: PyTree, *, train: bool) -> PyTree:  # type: ignore[override]
         # flax uses channels-last (NHWC) convention
         conv = functools.partial(nn.Conv, kernel_size=(1, 5), use_bias=False)
         # https://flax.readthedocs.io/en/latest/howtos/state_params.html
