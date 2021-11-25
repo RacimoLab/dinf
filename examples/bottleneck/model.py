@@ -57,7 +57,7 @@ def generator(seed, *, N0, N1):
     return feature_matrix
 
 
-def empirical(seed):
+def target(seed):
     """Simulate with fixed values. I.e. the "true" parameter values."""
     assert all(p.truth is not None for p in parameters.values())
     sim_kwargs = {k: v.truth for k, v in parameters.items()}
@@ -65,7 +65,7 @@ def empirical(seed):
 
 
 genobuilder = dinf.Genobuilder(
-    empirical_func=empirical,
+    target_func=target,
     generator_func=generator,
     parameters=parameters,
     feature_shape=bh_matrix.shape,

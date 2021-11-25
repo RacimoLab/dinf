@@ -60,13 +60,13 @@ def _generate_data(*, generator, parameters, num_replicates, parallelism, rng):
     return params, data
 
 
-def _observe_data(*, empirical, num_replicates, parallelism, rng):
+def _observe_data(*, target, num_replicates, parallelism, rng):
     """
-    Return observations from the empirical dataset.
+    Return observations from the target dataset.
     """
     seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates)
     data = _sim_replicates(
-        sim_func=empirical,
+        sim_func=target,
         args=seeds,
         num_replicates=num_replicates,
         parallelism=parallelism,
@@ -75,10 +75,10 @@ def _observe_data(*, empirical, num_replicates, parallelism, rng):
 
 
 def _generate_training_data(
-    *, empirical, generator, parameters, num_replicates, parallelism, rng
+    *, target, generator, parameters, num_replicates, parallelism, rng
 ):
     nreps_generator = num_replicates // 2
-    nreps_empirical = num_replicates - num_replicates // 2
+    nreps_target = num_replicates - num_replicates // 2
     _, x_generator = _generate_data(
         generator=generator,
         parameters=parameters,
@@ -86,14 +86,14 @@ def _generate_training_data(
         parallelism=parallelism,
         rng=rng,
     )
-    x_empirical = _observe_data(
-        empirical=empirical,
-        num_replicates=nreps_empirical,
+    x_target = _observe_data(
+        target=target,
+        num_replicates=nreps_target,
         parallelism=parallelism,
         rng=rng,
     )
-    x = np.concatenate((x_generator, x_empirical))
-    y = np.concatenate((np.zeros(nreps_generator), np.ones(nreps_empirical)))
+    x = np.concatenate((x_generator, x_target))
+    y = np.concatenate((np.zeros(nreps_generator), np.ones(nreps_target)))
     # shuffle
     indexes = rng.permutation(len(x))
     x = x[indexes]
@@ -246,7 +246,7 @@ def _train_discriminator(
     rng: np.random.Generator,
 ):
     train_x, train_y = _generate_training_data(
-        empirical=genobuilder.empirical_func,
+        target=genobuilder.target_func,
         generator=genobuilder.generator_func,
         parameters=genobuilder.parameters,
         num_replicates=training_replicates,
@@ -255,7 +255,7 @@ def _train_discriminator(
     )
     if test_replicates > 0:
         val_x, val_y = _generate_training_data(
-            empirical=genobuilder.empirical_func,
+            target=genobuilder.target_func,
             generator=genobuilder.generator_func,
             parameters=genobuilder.parameters,
             num_replicates=test_replicates,
@@ -332,7 +332,7 @@ def mcmc_gan(
     :param parallelism:
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
-        :meth:`Genobuilder.empirical_func`.
+        :meth:`Genobuilder.target_func`.
     :param rng:
         Numpy random number generator.
     """
@@ -509,7 +509,7 @@ def abc_gan(
     :param parallelism:
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
-        :meth:`Genobuilder.empirical_func`.
+        :meth:`Genobuilder.target_func`.
     :param rng:
         Numpy random number generator.
     """

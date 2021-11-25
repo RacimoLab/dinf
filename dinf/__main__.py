@@ -43,7 +43,7 @@ def _add_common_parser_group(parser):
         type=int,
         help=(
             "Number of processes to use for parallelising calls to the "
-            "Genobuilder's generator_func and empirical_func."
+            "Genobuilder's generator_func and target_func."
         ),
     )
 
