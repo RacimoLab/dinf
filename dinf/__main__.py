@@ -82,6 +82,13 @@ def _add_train_parser_group(parser):
     )
 
 
+_GENOB_MODEL_HELP = (
+    'Python script from which to import the variable "genobuilder". '
+    "This is a dinf.Genobuilder object that describes the GAN. "
+    "See the examples/ folder for example models."
+)
+
+
 def _add_gan_parser_group(parser):
     group = parser.add_argument_group(title="GAN arguments")
     group.add_argument(
@@ -100,11 +107,7 @@ def _add_gan_parser_group(parser):
         "genob_model",
         metavar="user_model.py",
         type=pathlib.Path,
-        help=(
-            'Python script from which to import the variable "genobuilder". '
-            "This is a dinf.Genobuilder object that describes the GAN. "
-            "See the examples/ folder for example models."
-        ),
+        help=_GENOB_MODEL_HELP,
     )
 
 
@@ -246,6 +249,32 @@ class McmcGan:
         )
 
 
+class Check:
+    """
+    Check a genobuilder object by calling the target and generator functions.
+    """
+
+    def __init__(self, subparsers):
+        parser = subparsers.add_parser(
+            "check",
+            help="Basic genobuilder health checks",
+            description=textwrap.dedent(self.__doc__),
+            formatter_class=ADRDFormatter,
+        )
+        parser.set_defaults(func=self)
+
+        parser.add_argument(
+            "genob_model",
+            metavar="user_model.py",
+            type=pathlib.Path,
+            help=_GENOB_MODEL_HELP,
+        )
+
+    def __call__(self, args: argparse.Namespace):
+        genobuilder = _get_user_genobuilder(args.genob_model)
+        genobuilder.check()
+
+
 def main(args_list=None):
     top_parser = argparse.ArgumentParser(
         prog="dinf",
@@ -256,6 +285,7 @@ def main(args_list=None):
     subparsers = top_parser.add_subparsers(dest="subcommand")
     AbcGan(subparsers)
     McmcGan(subparsers)
+    Check(subparsers)
 
     args = top_parser.parse_args(args_list)
     if args.subcommand is None:
