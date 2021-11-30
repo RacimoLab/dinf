@@ -32,6 +32,7 @@ sphinx:
   config:
     autodoc_typehints: description
     autodoc_member_order: bysource
+    autoclass_content: both
     todo_include_todos: true
     intersphinx_mapping:
       python: ["https://docs.python.org/3/", null]

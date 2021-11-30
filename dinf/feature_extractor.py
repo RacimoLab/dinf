@@ -47,25 +47,24 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
     """
     A factory for feature matrices of pseudo-haplotypes.
 
-    Each matrix has dimension (n, m), where n is the number of pseudo-haplotypes
-    (the "samples" dimension) and m is the number of bins into which the
-    haplotypes are partitioned (the "sites" dimension).
-    If the sequence length is L, then each bin spans L / m nucleotides.
-    For a matrix M, the M[i][j]'th entry is the count of minor alleles in
-    the j'th bin of haplotype i.
+    The binned haplotype matrix is an :math:`n \\times m` matrix,
+    where :math:`n` corresponds to the number of haplotypes
+    (or polyploid genotypes, for unphased data) and :math:`m` corresponds to
+    a set of equally sized bins along the sequence length. Each matrix entry
+    contains the count of minor alleles in an individual's haplotype
+    (or polyploid genotype) in a given bin.
 
-    For phased data, the pseudo-haplotypes are equivalent to haplotypes.
-    For unphased data, minor allele counts are summed across chromosome copies
-    within each individual.
-
+    Only polymorphic SNPs are considered, and for multiallelic sites,
+    only the first two alleles are used.
     Alleles are polarised by choosing the most frequent allele to be encoded
     as 0, and the other allele as 1. In the event that both alleles are equally
     frequent, the polarisation is chosen at random.
 
-    .. note::
+    As the features are intended to be passed to a covolutional neural network,
+    the output dimensions are actually :math:`n \\times m \\times 1`, where the
+    final dimension is the (unused) "channels" dimension for the convolution.
 
-        For multiallelic sites, only the first two alleles are used.
-
+    Gower et al. 2021, https://doi.org/10.7554/eLife.64669
     """
 
     def __init__(
@@ -82,24 +81,28 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         :param num_individuals:
             The number of individuals to include in the feature matrix.
         :param num_bins:
-            The number of bins, m, into which the sequence is partitioned.
-            If the sequence length is l, then each bin spans l/m base pairs.
+            The number of bins into which the sequence is partitioned.
+            Each bin spans ``sequence_length / num_bins`` base pairs.
         :param ploidy:
             Ploidy of the individuals.
         :param phased:
             If True, the individuals' haplotypes will each be included as
-            independent rows in the feature matrix. If False, the haplotypes
-            of each individual will be summed together and only one row of
-            the feature matrix will be used for each individual.
+            independent rows in the feature matrix and the shape of the
+            feature matrix will be ``(ploidy * num_individuals, num_bins, 1)``.
+            If False, the allele counts for each individual will be summed
+            across their chromosome copies and the shape of the feature matrix
+            will be ``(num_individuals, num_bins, 1)``.
         :param maf_thresh:
             Minor allele frequency (MAF) threshold. Sites with MAF lower than
             this value are ignored.
         :param dtype:
             The numpy data type of the feature matrix. To save memory, we use
             an np.int8 by default, which assumes that counts are small.
-            However, this may not be true for very large values of
-            num_individuals * mu * Ne * sequence_length / num_bins,
-            in which case np.int16 might be preferred.
+            However, counts may overflow int8 for very large values of
+            ``mu * Ne * num_individuals * sequence_length / num_bins``,
+            in which case np.int16 might be preferred. Such cases have
+            not been tested, but it's likely that increasing ``num_bins``
+            is a better solution.
         """
         if num_individuals < 1:
             raise ValueError("must have num_individuals >= 1")
@@ -163,9 +166,10 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
             Numpy random number generator. Used to randomly polarise alleles
             when there are multiple alleles with the same frequency.
         :return:
-            Genotype matrix with shape (num_pseudo_haplotypes, num_bins, 1).
-            For a matrix M, the M[i][j][0]'th entry is the count of minor
-            alleles in the j'th bin of psdeudo-haplotype i.
+            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
+            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
+            count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
+            :math:`i`.
         """
         assert len(G) == len(positions)
         bins = np.floor_divide(positions * self._num_bins, sequence_length).astype(
@@ -214,9 +218,10 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         :param ts: The tree sequence.
         :param rng: Numpy random number generator.
         :return:
-            Genotype matrix with shape (num_pseudo_haplotypes, num_bins, 1).
-            For a matrix M, the M[i][j][0]'th entry is the count of minor
-            alleles in the j'th bin of psdeudo-haplotype i.
+            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
+            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
+            count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
+            :math:`i`.
         """
         if ts.num_samples != self._num_haplotypes:
             raise ValueError(
@@ -259,9 +264,10 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         :param rng:
             Numpy random number generator.
         :return:
-            Genotype matrix with shape (num_pseudo_haplotypes, num_bins, 1).
-            For a matrix M, the M[i][j][0]'th entry is the count of minor
-            alleles in the j'th bin of psdeudo-haplotype i.
+            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
+            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
+            count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
+            :math:`i`.
         """
         G, positions = vb.sample_genotype_matrix(
             max_missing_genotypes=max_missing_genotypes,
