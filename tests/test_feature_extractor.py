@@ -4,6 +4,7 @@ import pytest
 import tskit
 
 import dinf
+from .test_vcf import bcftools_index
 
 
 def do_sim(
@@ -295,3 +296,70 @@ class TestBinnedHaplotypeMatrix:
                     phased=True,
                     dtype=dtype,
                 )
+
+    @pytest.mark.parametrize("phased", [True, False])
+    @pytest.mark.parametrize("ploidy", [1, 3])
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_vcf(self, tmp_path, ploidy, phased):
+        # Use an odd number of haplotypes to get deterministic behaviour.
+        num_individuals = 31
+        assert (num_individuals * ploidy) % 2 != 0
+        num_bins = 8
+        sequence_length = 100_000
+        bhm = dinf.BinnedHaplotypeMatrix(
+            num_individuals=num_individuals,
+            num_bins=num_bins,
+            maf_thresh=0,
+            ploidy=ploidy,
+            phased=phased,
+        )
+        ts = do_sim(
+            num_individuals=num_individuals,
+            ploidy=ploidy,
+            sequence_length=sequence_length,
+        )
+        Mts = bhm.from_ts(ts, rng=np.random.default_rng(1234))
+
+        Gts = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
+        ac0 = np.sum(Gts == 0, axis=1)
+        ac1 = np.sum(Gts == 1, axis=1)
+        # Get positions of variable sites.
+        segregating = np.minimum(ac0, ac1) >= 1
+        ts_positions = ts.tables.sites.position[segregating]
+
+        vcf_path = tmp_path / "1.vcf"
+        with open(vcf_path, "w") as f:
+            ts.write_vcf(f, contig_id="1", position_transform=lambda x: np.floor(x) + 1)
+        bcftools_index(vcf_path)
+        vb = dinf.BagOfVcf([f"{vcf_path}.gz"])
+
+        _, positions = vb.sample_genotype_matrix(
+            sequence_length=sequence_length,
+            max_missing_genotypes=0,
+            min_seg_sites=1,
+            require_phased=phased,
+            rng=np.random.default_rng(1234),
+        )
+        np.testing.assert_array_equal(ts_positions, positions)
+
+        Mvcf = bhm.from_vcf(
+            vb,
+            sequence_length=sequence_length,
+            max_missing_genotypes=0,
+            min_seg_sites=1,
+            rng=np.random.default_rng(1234),
+        )
+
+        def row_sorted(A):
+            """Sort the rows of A."""
+            return np.array(sorted(A, key=tuple))
+
+        # Sort haplotypes because from_vcf() shuffles them.
+        Mts = row_sorted(Mts)
+        Mvcf = row_sorted(Mvcf)
+
+        # print((positions * num_bins / sequence_length).astype(int))
+        print(np.squeeze(Mts))
+        print(np.squeeze(Mvcf))
+        np.testing.assert_array_equal(Mts.shape, Mvcf.shape)
+        np.testing.assert_array_equal(Mts, Mvcf)

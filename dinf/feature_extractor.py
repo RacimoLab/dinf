@@ -35,6 +35,8 @@ class _FeatureExtractor(abc.ABC):
     def from_vcf(
         self,
         vb: BagOfVcf,
+        *,
+        sequence_length: int,
         max_missing_genotypes: int,
         min_seg_sites: int,
         rng: np.random.Generator,
@@ -243,6 +245,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
     def from_vcf(
         self,
         vb: BagOfVcf,
+        sequence_length: int,
         max_missing_genotypes: int,
         min_seg_sites: int,
         rng: np.random.Generator,
@@ -253,8 +256,15 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         The genomic window is drawn uniformly at random from the sequences
         defined in the given :class:`BagOfVcf`.
 
+        Individuals in the VCFs are sampled (without replacement) for
+        inclusion in the output matrix. The size of the feature space
+        can therefore be vastly increased by having more individuals
+        in the VCFs than are needed for the feature dimensions.
+
         :param vb:
             The BagOfVcf object that describes the VCF/BCF files.
+        :param sequence_length:
+            Length of the genomic window to be sampled.
         :param max_missing_genotypes:
             Consider only sites with fewer missing genotype calls than
             this number.
@@ -270,6 +280,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
             :math:`i`.
         """
         G, positions = vb.sample_genotype_matrix(
+            sequence_length=sequence_length,
             max_missing_genotypes=max_missing_genotypes,
             min_seg_sites=min_seg_sites,
             require_phased=self._phased,
@@ -284,9 +295,9 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
             )
 
         # Subsample individuals.
-        idx = rng.integers(low=0, high=G_individuals, size=self._num_individuals)
+        idx = rng.choice(G_individuals, size=self._num_individuals, replace=False)
         G = G[:, idx, :]
 
         return self._from_genotype_matrix(
-            G, positions=positions, sequence_length=vb.length, rng=rng
+            G, positions=positions, sequence_length=sequence_length, rng=rng
         )
