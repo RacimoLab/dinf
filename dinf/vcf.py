@@ -1,8 +1,11 @@
 from __future__ import annotations
 from typing import Dict, Iterable, List, Tuple
 import collections
+import contextlib
 import logging
+import os
 import pathlib
+import sys
 
 import numpy as np
 import cyvcf2
@@ -10,12 +13,15 @@ import cyvcf2
 logger = logging.getLogger(__name__)
 
 
-def _load_bed(filename):
-    return np.loadtxt(
-        filename,
-        dtype=[("chrom", object), ("start", int), ("end", int)],
-        usecols=(0, 1, 2),
-    )
+@contextlib.contextmanager
+def redirect_stderr(fp):
+    """Redirect stderr to fp."""
+    olderr = sys.stderr
+    try:
+        sys.stderr = fp
+        yield
+    finally:
+        sys.stderr = olderr
 
 
 def get_genotype_matrix(
@@ -62,17 +68,17 @@ def get_genotype_matrix(
         if not variant.is_snp:
             continue
 
-        a = np.array(variant.genotypes)
+        a = variant.genotype.array()
         gt = a[:, :-1]
         if np.sum(gt == -1) > max_missing_genotypes:
             continue
         if len(np.unique(gt[gt >= 0])) == 1:
-            # not segregating
+            # Invariant site.
             continue
 
         # Check phasing. For ploidy == 1, genotypes are reported as unphased.
         if require_phased and gt.shape[1] > 1 and not np.all(a[:, -1]):
-            raise ValueError(f"unphased genotypes at {chrom}:{variant.POS}.\n{variant}")
+            raise ValueError(f"Unphased genotypes at {chrom}:{variant.POS}.\n{variant}")
 
         G.append(gt)
         positions.append(variant.POS)
@@ -127,7 +133,8 @@ class BagOfVcf(collections.abc.Mapping):
             An iterable of individual names corresponding to the VCF columns
             for which genotypes will be sampled.
         """
-        self._fill_bag(files=files, individuals=individuals)
+        with open(os.devnull, "w") as dev_null:
+            self._fill_bag(files=files, individuals=individuals, dev_null=dev_null)
         self._regions: List[Tuple[str, int, int]] = []
 
     def _fill_bag(
@@ -135,6 +142,7 @@ class BagOfVcf(collections.abc.Mapping):
         *,
         files: Iterable[str | pathlib.Path],
         individuals: List[str] | None = None,
+        dev_null,
     ) -> None:
         """
         Construct a mapping from contig id to cyvcf2.VCF object.
@@ -158,10 +166,14 @@ class BagOfVcf(collections.abc.Mapping):
             ):
                 raise ValueError(f"No index found for {file}.")
             for contig_id, contig_length in zip(vcf.seqnames, vcf.seqlens):
-                try:
-                    next(vcf(contig_id))
-                except StopIteration:
-                    continue
+                # Check there's at least one variant. If present, we assume
+                # there exist usable variants (i.e. SNPs) for the contig.
+                # We redirect stderr to silence cyvcf2 "no intervals" warnings.
+                with redirect_stderr(dev_null):
+                    try:
+                        next(vcf(contig_id))
+                    except StopIteration:
+                        continue
                 if contig_id in contig2file:
                     first_file = contig2file[contig_id]
                     raise ValueError(

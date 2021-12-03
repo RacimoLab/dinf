@@ -16,7 +16,6 @@ class _FeatureExtractor(abc.ABC):
     @abc.abstractmethod
     def shape(self) -> Sequence[int]:
         """Shape of the features."""
-        pass
 
     @abc.abstractmethod
     def from_ts(
@@ -29,7 +28,6 @@ class _FeatureExtractor(abc.ABC):
         :param rng: Random number generator.
         :return: An n-dimensional feature array.
         """
-        pass
 
     @abc.abstractmethod
     def from_vcf(
@@ -42,7 +40,6 @@ class _FeatureExtractor(abc.ABC):
         rng: np.random.Generator,
     ) -> np.ndarray:
         """Create a feature array by sampling from a collection of VCFs."""
-        pass
 
 
 class BinnedHaplotypeMatrix(_FeatureExtractor):
@@ -290,8 +287,8 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         G_individuals = G.shape[1]
         if G_individuals < self._num_individuals:
             raise ValueError(
-                f"Expected at least {self._num_individuals} in the vcf bag, "
-                f"but only found {G_individuals}."
+                f"Expected at least {self._num_individuals} individuals in "
+                f"the vcf bag, but only found {G_individuals}."
             )
 
         # Subsample individuals.

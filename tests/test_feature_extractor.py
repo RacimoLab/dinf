@@ -4,7 +4,7 @@ import pytest
 import tskit
 
 import dinf
-from .test_vcf import bcftools_index
+from .test_vcf import bcftools_index, create_vcf_dataset
 
 
 def do_sim(
@@ -252,50 +252,68 @@ class TestBinnedHaplotypeMatrix:
         with pytest.raises(ValueError, match="Multi-population"):
             bhm.from_ts(ts, rng=rng)
 
-    def test_bad_maf_thresh(self):
-        for maf_thresh in [-5, 10, np.inf]:
-            with pytest.raises(ValueError):
-                dinf.BinnedHaplotypeMatrix(
-                    num_individuals=128,
-                    num_bins=128,
-                    maf_thresh=maf_thresh,
-                    ploidy=2,
-                    phased=True,
-                )
+    @pytest.mark.parametrize("maf_thresh", [-5, 10, np.inf])
+    def test_bad_maf_thresh(self, maf_thresh):
+        with pytest.raises(ValueError):
+            dinf.BinnedHaplotypeMatrix(
+                num_individuals=128,
+                num_bins=128,
+                maf_thresh=maf_thresh,
+                ploidy=2,
+                phased=True,
+            )
 
-    def test_bad_num_individuals(self):
-        for num_individuals in [-5]:
-            with pytest.raises(ValueError, match="num_individuals"):
-                dinf.BinnedHaplotypeMatrix(
-                    num_individuals=num_individuals,
-                    num_bins=128,
-                    maf_thresh=0,
-                    ploidy=2,
-                    phased=True,
-                )
+    @pytest.mark.parametrize("num_individuals", [0, -5])
+    def test_bad_num_individuals(self, num_individuals):
+        with pytest.raises(ValueError, match="num_individuals"):
+            dinf.BinnedHaplotypeMatrix(
+                num_individuals=num_individuals,
+                num_bins=128,
+                maf_thresh=0,
+                ploidy=2,
+                phased=True,
+            )
 
-    def test_bad_num_bins(self):
-        for num_bins in [-5]:
-            with pytest.raises(ValueError, match="num_bins"):
-                dinf.BinnedHaplotypeMatrix(
-                    num_individuals=128,
-                    num_bins=num_bins,
-                    maf_thresh=0,
-                    ploidy=2,
-                    phased=True,
-                )
+    def test_bad_num_pseudo_haplotypes(self):
+        with pytest.raises(ValueError, match="at least two pseudo-haplotypes"):
+            dinf.BinnedHaplotypeMatrix(
+                num_individuals=1,
+                num_bins=128,
+                maf_thresh=0,
+                ploidy=1,
+                phased=True,
+            )
+        with pytest.raises(ValueError, match="at least two pseudo-haplotypes"):
+            dinf.BinnedHaplotypeMatrix(
+                num_individuals=1,
+                num_bins=128,
+                maf_thresh=0,
+                ploidy=2,
+                phased=False,
+            )
 
-    def test_bad_dtype(self):
-        for dtype in [float, np.char]:
-            with pytest.raises(ValueError, match="dtype"):
-                dinf.BinnedHaplotypeMatrix(
-                    num_individuals=128,
-                    num_bins=128,
-                    maf_thresh=0,
-                    ploidy=2,
-                    phased=True,
-                    dtype=dtype,
-                )
+    @pytest.mark.parametrize("num_bins", [0, -5])
+    def test_bad_num_bins(self, num_bins):
+        with pytest.raises(ValueError, match="num_bins"):
+            dinf.BinnedHaplotypeMatrix(
+                num_individuals=128,
+                num_bins=num_bins,
+                maf_thresh=0,
+                ploidy=2,
+                phased=True,
+            )
+
+    @pytest.mark.parametrize("dtype", [float, np.char])
+    def test_bad_dtype(self, dtype):
+        with pytest.raises(ValueError, match="dtype"):
+            dinf.BinnedHaplotypeMatrix(
+                num_individuals=128,
+                num_bins=128,
+                maf_thresh=0,
+                ploidy=2,
+                phased=True,
+                dtype=dtype,
+            )
 
     @pytest.mark.parametrize("phased", [True, False])
     @pytest.mark.parametrize("ploidy", [1, 3])
@@ -363,3 +381,26 @@ class TestBinnedHaplotypeMatrix:
         print(np.squeeze(Mvcf))
         np.testing.assert_array_equal(Mts.shape, Mvcf.shape)
         np.testing.assert_array_equal(Mts, Mvcf)
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_vcf_insufficient_individuals(self, tmp_path):
+        ploidy = 2
+        create_vcf_dataset(tmp_path, contig_lengths=[100_000], ploidy=ploidy)
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
+        num_samples = len(vb["1"].samples)
+
+        bhm = dinf.BinnedHaplotypeMatrix(
+            num_individuals=num_samples + 1,
+            num_bins=128,
+            maf_thresh=0,
+            ploidy=ploidy,
+            phased=True,
+        )
+        with pytest.raises(ValueError, match="at least .* individuals in the vcf"):
+            bhm.from_vcf(
+                vb,
+                sequence_length=10_000,
+                max_missing_genotypes=0,
+                min_seg_sites=20,
+                rng=np.random.default_rng(123),
+            )

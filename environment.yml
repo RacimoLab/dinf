@@ -1,7 +1,7 @@
 name: dinf
 channels:
-  # prioritise conda-forge over defaults channel
   - conda-forge
+  - bioconda
   - defaults
 dependencies:
   # https://docs.anaconda.com/mkl-optimizations/index.html
