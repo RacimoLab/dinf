@@ -2,6 +2,8 @@ import dataclasses
 import functools
 from typing import Callable, Tuple
 
+import numpy as np
+
 from .parameters import Parameters
 
 
@@ -94,6 +96,8 @@ class Genobuilder:
     """
 
     def __post_init__(self):
+        if len(self.parameters) == 0:
+            raise ValueError("Must define one or more parameters")
         # Transform generator_func from a function accepting arbitrary kwargs
         # (which limits user error) into a function accepting a sequence of
         # args (which is easier to pass to the mcmc).
@@ -102,3 +106,23 @@ class Genobuilder:
             functools.partial(_sim_shim, func=f, keys=tuple(self.parameters)), f
         )
         self._orig_generator_func = f
+
+    def check(self, seed=1234):
+        """
+        Basic health checks: draw parameters and call the functions.
+        """
+        rng = np.random.default_rng(seed)
+        thetas = self.parameters.draw(num_replicates=5, rng=rng)
+        assert thetas.shape == (5, len(self.parameters))
+        x_g = self.generator_func((rng.integers(low=0, high=2 ** 31), thetas[0]))
+        if not np.array_equal(x_g.shape, self.feature_shape):
+            raise ValueError(
+                f"Output of generator_func has shape {x_g.shape}, "
+                f"but feature_shape is {self.feature_shape}."
+            )
+        x_t = self.target_func(rng.integers(low=0, high=2 ** 31))
+        if not np.array_equal(x_t.shape, self.feature_shape):
+            raise ValueError(
+                f"Output of target_func has shape {x_t.shape}, "
+                f"but feature_shape is {self.feature_shape}."
+            )

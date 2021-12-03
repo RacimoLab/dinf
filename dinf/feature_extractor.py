@@ -16,7 +16,6 @@ class _FeatureExtractor(abc.ABC):
     @abc.abstractmethod
     def shape(self) -> Sequence[int]:
         """Shape of the features."""
-        pass
 
     @abc.abstractmethod
     def from_ts(
@@ -29,18 +28,18 @@ class _FeatureExtractor(abc.ABC):
         :param rng: Random number generator.
         :return: An n-dimensional feature array.
         """
-        pass
 
     @abc.abstractmethod
     def from_vcf(
         self,
         vb: BagOfVcf,
+        *,
+        sequence_length: int,
         max_missing_genotypes: int,
         min_seg_sites: int,
         rng: np.random.Generator,
     ) -> np.ndarray:
         """Create a feature array by sampling from a collection of VCFs."""
-        pass
 
 
 class BinnedHaplotypeMatrix(_FeatureExtractor):
@@ -243,6 +242,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
     def from_vcf(
         self,
         vb: BagOfVcf,
+        sequence_length: int,
         max_missing_genotypes: int,
         min_seg_sites: int,
         rng: np.random.Generator,
@@ -253,8 +253,15 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         The genomic window is drawn uniformly at random from the sequences
         defined in the given :class:`BagOfVcf`.
 
+        Individuals in the VCFs are sampled (without replacement) for
+        inclusion in the output matrix. The size of the feature space
+        can therefore be vastly increased by having more individuals
+        in the VCFs than are needed for the feature dimensions.
+
         :param vb:
             The BagOfVcf object that describes the VCF/BCF files.
+        :param sequence_length:
+            Length of the genomic window to be sampled.
         :param max_missing_genotypes:
             Consider only sites with fewer missing genotype calls than
             this number.
@@ -270,6 +277,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
             :math:`i`.
         """
         G, positions = vb.sample_genotype_matrix(
+            sequence_length=sequence_length,
             max_missing_genotypes=max_missing_genotypes,
             min_seg_sites=min_seg_sites,
             require_phased=self._phased,
@@ -279,14 +287,14 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         G_individuals = G.shape[1]
         if G_individuals < self._num_individuals:
             raise ValueError(
-                f"Expected at least {self._num_individuals} in the vcf bag, "
-                f"but only found {G_individuals}."
+                f"Expected at least {self._num_individuals} individuals in "
+                f"the vcf bag, but only found {G_individuals}."
             )
 
         # Subsample individuals.
-        idx = rng.integers(low=0, high=G_individuals, size=self._num_individuals)
+        idx = rng.choice(G_individuals, size=self._num_individuals, replace=False)
         G = G[:, idx, :]
 
         return self._from_genotype_matrix(
-            G, positions=positions, sequence_length=vb.length, rng=rng
+            G, positions=positions, sequence_length=sequence_length, rng=rng
         )

@@ -1,7 +1,7 @@
 name: dinf-jax
 channels:
-  # prioritise conda-forge over defaults channel
   - conda-forge
+  - bioconda
   - defaults
 dependencies:
   - python=3.9

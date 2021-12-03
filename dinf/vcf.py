@@ -1,8 +1,11 @@
 from __future__ import annotations
 from typing import Dict, Iterable, List, Tuple
 import collections
+import contextlib
 import logging
+import os
 import pathlib
+import sys
 
 import numpy as np
 import cyvcf2
@@ -10,12 +13,15 @@ import cyvcf2
 logger = logging.getLogger(__name__)
 
 
-def _load_bed(filename):
-    return np.loadtxt(
-        filename,
-        dtype=[("chrom", object), ("start", int), ("end", int)],
-        usecols=(0, 1, 2),
-    )
+@contextlib.contextmanager
+def redirect_stderr(fp):
+    """Redirect stderr to fp."""
+    olderr = sys.stderr
+    try:
+        sys.stderr = fp
+        yield
+    finally:
+        sys.stderr = olderr
 
 
 def get_genotype_matrix(
@@ -50,24 +56,30 @@ def get_genotype_matrix(
     :return:
         A 2-tuple of (G, positions) where
          - ``G`` is a (num_sites, num_individuals, ploidy) genotype matrix,
-         - ``positions`` are the site coordinates, as an offset from the
+         - ``positions`` are the site coordinates, as a zero-based offset from
            the ``start`` coordinate.
     """
     G = []
     positions = []
     for variant in vcf(f"{chrom}:{start}-{end}"):
+        # XXX: Many variant fields are broken for ploidy > 2.
+        # https://github.com/brentp/cyvcf2/issues/227
+
         if not variant.is_snp:
             continue
-        if variant.num_unknown > max_missing_genotypes:
-            continue
-        if variant.aaf == 0 or variant.aaf == 1:
-            # not segregating
-            continue
+
         a = variant.genotype.array()
         gt = a[:, :-1]
+        if np.sum(gt == -1) > max_missing_genotypes:
+            continue
+        if len(np.unique(gt[gt >= 0])) == 1:
+            # Invariant site.
+            continue
+
         # Check phasing. For ploidy == 1, genotypes are reported as unphased.
-        if require_phased and gt.shape[1] > 1 and not all(a[:, -1]):
-            raise ValueError(f"unphased genotypes at {chrom}:{variant.POS}.")
+        if require_phased and gt.shape[1] > 1 and not np.all(a[:, -1]):
+            raise ValueError(f"Unphased genotypes at {chrom}:{variant.POS}.\n{variant}")
+
         G.append(gt)
         positions.append(variant.POS)
 
@@ -91,17 +103,14 @@ def get_genotype_matrix(
 
 class BagOfVcf(collections.abc.Mapping):
     """
-    A collection of VCF and/or BCF files.
+    A collection of indexed VCF or BCF files.
 
-    In many cases VCF data are split by chromosome. This class abstracts that
-    away by providing a mapping from a contig id to the underlying cyvcf2
-    object that contains data for that contig. This class implements Python's
-    mapping protocol.
-    """
-
-    length: int
-    """
-    Sequence length of the genomic windows.
+    VCF data are sometimes contained in a single file, and sometimes split into
+    multiple files by chromosome. To remove the burden of dealing with both
+    of these common cases, this class maps a contig id to a :class:`cyvcf2.VCF`
+    object for that contig. The interface is provided via Python's
+    :class:`collections.abc.Mapping` protocol. In addition, the class provides
+    methods for sampling regions of the genome at random.
     """
 
     contig_lengths: np.ndarray
@@ -114,21 +123,18 @@ class BagOfVcf(collections.abc.Mapping):
         self,
         files: Iterable[str | pathlib.Path],
         *,
-        length: int,
         individuals: List[str] | None = None,
     ):
         """
         :param files:
             An iterable of filenames. Each file must be an indexed VCF or BCF,
             and contain the FORMAT/GT field.
-        :param length:
-            Size of the genomic region to sample.
         :param individuals:
             An iterable of individual names corresponding to the VCF columns
             for which genotypes will be sampled.
         """
-        self.length = length
-        self._fill_bag(files=files, individuals=individuals, min_contig_length=length)
+        with open(os.devnull, "w") as dev_null:
+            self._fill_bag(files=files, individuals=individuals, dev_null=dev_null)
         self._regions: List[Tuple[str, int, int]] = []
 
     def _fill_bag(
@@ -136,7 +142,7 @@ class BagOfVcf(collections.abc.Mapping):
         *,
         files: Iterable[str | pathlib.Path],
         individuals: List[str] | None = None,
-        min_contig_length: int,
+        dev_null,
     ) -> None:
         """
         Construct a mapping from contig id to cyvcf2.VCF object.
@@ -154,16 +160,20 @@ class BagOfVcf(collections.abc.Mapping):
             vcf = cyvcf2.VCF(file, samples=individuals, lazy=True, threads=1)
             if "GT" not in vcf:
                 raise ValueError(f"{file} doesn't contain GT field.")
+            if not (
+                pathlib.Path(f"{file}.tbi").exists()
+                or pathlib.Path(f"{file}.csi").exists()
+            ):
+                raise ValueError(f"No index found for {file}.")
             for contig_id, contig_length in zip(vcf.seqnames, vcf.seqlens):
-                if contig_length < min_contig_length:
-                    logger.info(
-                        f"{contig_id} is shorter than {min_contig_length}, ignoring"
-                    )
-                    continue
-                try:
-                    next(vcf(contig_id))
-                except StopIteration:
-                    continue
+                # Check there's at least one variant. If present, we assume
+                # there exist usable variants (i.e. SNPs) for the contig.
+                # We redirect stderr to silence cyvcf2 "no intervals" warnings.
+                with redirect_stderr(dev_null):
+                    try:
+                        next(vcf(contig_id))
+                    except StopIteration:
+                        continue
                 if contig_id in contig2file:
                     first_file = contig2file[contig_id]
                     raise ValueError(
@@ -192,30 +202,39 @@ class BagOfVcf(collections.abc.Mapping):
         return len(self._contig2vcf)
 
     def sample_regions(
-        self, size: int, rng: np.random.Generator
+        self, size: int, sequence_length: int, rng: np.random.Generator
     ) -> List[Tuple[str, int, int]]:
         """
         Sample a list of (chrom, start, end) triplets.
 
         :param size: Number of genomic windows to sample.
+        :param sequence_length: Length of the sequence to sample.
         :param rng: The numpy random number generator.
         :return:
             List of 3-tuples: (chrom, start, end).
             The start and end coordinates are 1-based and inclusive, to match
             the usual convention for 'chrom:start-end', e.g. in bcftools.
         """
-        p = self.contig_lengths / np.sum(self.contig_lengths)
-        idx = rng.choice(len(self), size=size, replace=True, p=p)
-        upper_limit = (self.contig_lengths - self.length)[idx]
-        start = 1 + rng.integers(low=0, high=upper_limit, size=size)
-        end = start + self.length
-        chrom = np.array(self, dtype=object)[idx]
+
+        long_enough = self.contig_lengths >= sequence_length
+        if sum(long_enough) == 0:
+            raise ValueError(f"No contigs with length >= {sequence_length}.")
+        contig_ids = np.array(self, dtype=object)[long_enough]
+        contig_lengths = self.contig_lengths[long_enough]
+
+        p = contig_lengths / np.sum(contig_lengths)
+        idx = rng.choice(len(contig_ids), size=size, replace=True, p=p)
+        upper_limit = (contig_lengths - sequence_length)[idx]
+        start = 1 + rng.integers(low=0, high=upper_limit, size=size, endpoint=True)
+        end = start + sequence_length - 1
+        chrom = contig_ids[idx]
         regions = list(zip(chrom, start, end))
         return regions
 
     def sample_genotype_matrix(
         self,
         *,
+        sequence_length: int,
         min_seg_sites: int,
         max_missing_genotypes: int,
         require_phased: bool,
@@ -225,6 +244,8 @@ class BagOfVcf(collections.abc.Mapping):
         """
         Sample a genotype matrix uniformly at random from the genome.
 
+        :param sequence_length:
+            Length of the sequence to sample.
         :param max_missing_genotypes:
             Consider only sites with fewer missing genotype calls than
             this number.
@@ -246,7 +267,7 @@ class BagOfVcf(collections.abc.Mapping):
         """
         for _ in range(retries):
             if len(self._regions) == 0:
-                self._regions = self.sample_regions(1000, rng)
+                self._regions = self.sample_regions(1000, sequence_length, rng)
             chrom, start, end = self._regions.pop()
             G, positions = get_genotype_matrix(
                 self[chrom],
