@@ -13,7 +13,7 @@ class Store(collections.abc.Sequence):
         if not self.base.exists():
             self.base.mkdir(parents=True)
         if not self.base.is_dir():
-            raise ValueError("{self.base} is not a directory")
+            raise ValueError(f"{self.base} is not a directory")
 
         # Find the length.
         self._length = 0
@@ -21,7 +21,7 @@ class Store(collections.abc.Sequence):
             while True:
                 path = self[self._length]
                 if not path.is_dir():
-                    raise ValueError("{path} is not a directory")
+                    raise ValueError(f"{path} is not a directory")
                 self._length += 1
         except IndexError:
             pass

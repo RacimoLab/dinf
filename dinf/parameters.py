@@ -69,7 +69,7 @@ class Parameters(collections.abc.Mapping):
         self._params = copy.deepcopy(kwargs)
         for k, v in self._params.items():
             if not isinstance(v, Param):
-                raise TypeError("{k} must be a (sub)class of Param")
+                raise TypeError(f"{k} must be a (sub)class of Param")
 
     def __getitem__(self, key):
         return self._params[key]
