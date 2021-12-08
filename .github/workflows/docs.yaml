@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [ main ]
+    tags:
+      - '*'
 
 jobs:
   build-docs:
@@ -31,12 +33,22 @@ jobs:
           python -m pip install build
           python -m build
 
-      - name: build Docs
+      - name: build docs
         run: make -C docs
+
+      - name: move docs
+        if: (!github.event.pull_request)
+        run: |
+          mkdir publish
+          cd publish
+          mv ../docs/_build/html ${GITHUB_REF_NAME}
+          ln -sfT ${GITHUB_REF_NAME} latest
 
       - name: push to GitHub Pages
         if: (!github.event.pull_request)
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/_build/html
+          publish_dir: ./publish
+          keep_files: true
+          full_commit_message: deploy ${{ github.ref }}
