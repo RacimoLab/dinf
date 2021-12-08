@@ -27,11 +27,10 @@ jobs:
         run: |
           python -m pip install -r requirements/minimal.txt
           python -m pip install -r requirements/docs.txt
+          python -m pip install build packaging
 
       - name: generate version string
-        run: |
-          python -m pip install build
-          python -m build
+        run: python -m build --sdist
 
       - name: build docs
         run: make -C docs
@@ -51,7 +50,6 @@ jobs:
       - name: check if tag is new stable
         if: github.event_name == 'push' && github.ref_type == 'tag'
         run: |
-          python -m pip install packaging
           if [ -f stable ]; then
             export STABLE=$(readlink stable)
           else
