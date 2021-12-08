@@ -1,27 +1,14 @@
 from __future__ import annotations
 from typing import Dict, Iterable, List, Tuple
 import collections
-import contextlib
 import logging
-import os
 import pathlib
-import sys
+import warnings
 
 import numpy as np
 import cyvcf2
 
 logger = logging.getLogger(__name__)
-
-
-@contextlib.contextmanager
-def redirect_stderr(fp):
-    """Redirect stderr to fp."""
-    olderr = sys.stderr
-    try:
-        sys.stderr = fp
-        yield
-    finally:
-        sys.stderr = olderr
 
 
 def get_genotype_matrix(
@@ -133,8 +120,16 @@ class BagOfVcf(collections.abc.Mapping):
             An iterable of individual names corresponding to the VCF columns
             for which genotypes will be sampled.
         """
-        with open(os.devnull, "w") as dev_null:
-            self._fill_bag(files=files, individuals=individuals, dev_null=dev_null)
+        with warnings.catch_warnings():
+            # Silence cyvcf2 "no intervals" warnings.
+            # We check if a contig is usable for a given vcf by querying
+            # that contig for variants. If there are no variants (e.g. vcfs are
+            # split by chromosome so each vcf has data for only one contig),
+            # then cyvcf2 warns us.
+            warnings.filterwarnings(
+                "ignore", message="no intervals found", category=UserWarning
+            )
+            self._fill_bag(files=files, individuals=individuals)
         self._regions: List[Tuple[str, int, int]] = []
 
     def _fill_bag(
@@ -142,7 +137,6 @@ class BagOfVcf(collections.abc.Mapping):
         *,
         files: Iterable[str | pathlib.Path],
         individuals: List[str] | None = None,
-        dev_null,
     ) -> None:
         """
         Construct a mapping from contig id to cyvcf2.VCF object.
@@ -168,12 +162,10 @@ class BagOfVcf(collections.abc.Mapping):
             for contig_id, contig_length in zip(vcf.seqnames, vcf.seqlens):
                 # Check there's at least one variant. If present, we assume
                 # there exist usable variants (i.e. SNPs) for the contig.
-                # We redirect stderr to silence cyvcf2 "no intervals" warnings.
-                with redirect_stderr(dev_null):
-                    try:
-                        next(vcf(contig_id))
-                    except StopIteration:
-                        continue
+                try:
+                    next(vcf(contig_id))
+                except StopIteration:
+                    continue
                 if contig_id in contig2file:
                     first_file = contig2file[contig_id]
                     raise ValueError(
