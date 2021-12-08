@@ -170,27 +170,14 @@
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
 <span class="kn">import</span> <span class="nn">collections</span>
-<span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
-<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">cyvcf2</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-
-
-<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
-<span class="k">def</span> <span class="nf">redirect_stderr</span><span class="p">(</span><span class="n">fp</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Redirect stderr to fp.&quot;&quot;&quot;</span>
-    <span class="n">olderr</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">fp</span>
-        <span class="k">yield</span>
-    <span class="k">finally</span><span class="p">:</span>
-        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">olderr</span>
 
 
 <span class="k">def</span> <span class="nf">get_genotype_matrix</span><span class="p">(</span>
@@ -292,7 +279,8 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">files</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">individuals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">individuals</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">contigs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param files:</span>
@@ -301,17 +289,34 @@
 <span class="sd">        :param individuals:</span>
 <span class="sd">            An iterable of individual names corresponding to the VCF columns</span>
 <span class="sd">            for which genotypes will be sampled.</span>
+<span class="sd">        :param contigs:</span>
+<span class="sd">            An iterable of contig names to use. If not specified, all contigs</span>
+<span class="sd">            identified in the VCFs/BCFs will be used.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">devnull</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">dev_null</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fill_bag</span><span class="p">(</span><span class="n">files</span><span class="o">=</span><span class="n">files</span><span class="p">,</span> <span class="n">individuals</span><span class="o">=</span><span class="n">individuals</span><span class="p">,</span> <span class="n">dev_null</span><span class="o">=</span><span class="n">dev_null</span><span class="p">)</span>
+        <span class="c1"># Silence some warnings from cyvcf2.</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+            <span class="c1"># We check if a contig is usable for a given vcf by querying</span>
+            <span class="c1"># that contig for variants. If there are no variants (e.g. vcfs are</span>
+            <span class="c1"># split by chromosome so each vcf has data for only one contig),</span>
+            <span class="c1"># then cyvcf2 warns us.</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span>
+                <span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;no intervals found&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span>
+            <span class="p">)</span>
+            <span class="c1"># We detect this condition and explicitly raise an error.</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span>
+                <span class="s2">&quot;ignore&quot;</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="s2">&quot;not all requested samples found&quot;</span><span class="p">,</span>
+                <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fill_bag</span><span class="p">(</span><span class="n">files</span><span class="o">=</span><span class="n">files</span><span class="p">,</span> <span class="n">individuals</span><span class="o">=</span><span class="n">individuals</span><span class="p">,</span> <span class="n">contigs</span><span class="o">=</span><span class="n">contigs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_regions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">def</span> <span class="nf">_fill_bag</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">files</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">],</span>
-        <span class="n">individuals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">dev_null</span><span class="p">,</span>
+        <span class="n">individuals</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">contigs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Construct a mapping from contig id to cyvcf2.VCF object.</span>
@@ -325,6 +330,19 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">files</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;File list contains duplicates.&quot;</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">individuals</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">individuals</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">individuals</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">individuals</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">individuals</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Individuals list contains duplicates.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">contigs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">contigs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">contigs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">contigs</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">contigs</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Contigs list contains duplicates.&quot;</span><span class="p">)</span>
+            <span class="n">contigs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">contigs</span><span class="p">)</span>
+
+        <span class="n">contigs_seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
         <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
             <span class="n">vcf</span> <span class="o">=</span> <span class="n">cyvcf2</span><span class="o">.</span><span class="n">VCF</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="n">individuals</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">threads</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="k">if</span> <span class="s2">&quot;GT&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">vcf</span><span class="p">:</span>
@@ -334,15 +352,23 @@
                 <span class="ow">or</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">.csi&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
             <span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No index found for </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">individuals</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">individuals_not_found</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">individuals</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">vcf</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">individuals_not_found</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Requested individuals not found in </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">: &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">individuals_not_found</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
             <span class="k">for</span> <span class="n">contig_id</span><span class="p">,</span> <span class="n">contig_length</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vcf</span><span class="o">.</span><span class="n">seqnames</span><span class="p">,</span> <span class="n">vcf</span><span class="o">.</span><span class="n">seqlens</span><span class="p">):</span>
+                <span class="n">contigs_seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">contig_id</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">contigs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">contig_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">contigs</span><span class="p">:</span>
+                    <span class="k">continue</span>
                 <span class="c1"># Check there&#39;s at least one variant. If present, we assume</span>
                 <span class="c1"># there exist usable variants (i.e. SNPs) for the contig.</span>
-                <span class="c1"># We redirect stderr to silence cyvcf2 &quot;no intervals&quot; warnings.</span>
-                <span class="k">with</span> <span class="n">redirect_stderr</span><span class="p">(</span><span class="n">dev_null</span><span class="p">):</span>
-                    <span class="k">try</span><span class="p">:</span>
-                        <span class="nb">next</span><span class="p">(</span><span class="n">vcf</span><span class="p">(</span><span class="n">contig_id</span><span class="p">))</span>
-                    <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
-                        <span class="k">continue</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="nb">next</span><span class="p">(</span><span class="n">vcf</span><span class="p">(</span><span class="n">contig_id</span><span class="p">))</span>
+                <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                    <span class="k">continue</span>
                 <span class="k">if</span> <span class="n">contig_id</span> <span class="ow">in</span> <span class="n">contig2file</span><span class="p">:</span>
                     <span class="n">first_file</span> <span class="o">=</span> <span class="n">contig2file</span><span class="p">[</span><span class="n">contig_id</span><span class="p">]</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -352,6 +378,13 @@
                 <span class="n">contig2file</span><span class="p">[</span><span class="n">contig_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">file</span>
                 <span class="n">contig_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">contig_length</span><span class="p">)</span>
                 <span class="n">contig2vcf</span><span class="p">[</span><span class="n">contig_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">vcf</span>
+
+        <span class="k">if</span> <span class="n">contigs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">contigs_not_found</span> <span class="o">=</span> <span class="n">contigs</span> <span class="o">-</span> <span class="n">contigs_seen</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">contigs_not_found</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Requested contigs not found: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">contigs_not_found</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">contig2file</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No usable vcf/bcf files in the list.&quot;</span><span class="p">)</span>
