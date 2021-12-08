@@ -1,5 +1,0 @@
-# Dinf
-
-```{todo}
-Write docs.
-```
