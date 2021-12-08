@@ -45,7 +45,7 @@ jobs:
 
       - name: install bcftools
         run: |
-          # The tests call "bgzip" and "bcftools index".
+          # The tests call "bgzip" and "bcftools".
           if [ "$RUNNER_OS" == "Linux" ]; then
             # Ubuntu keeps bgzip in the tabix package.
             sudo apt-get update
