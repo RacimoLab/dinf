@@ -1,27 +1,14 @@
 from __future__ import annotations
 from typing import Dict, Iterable, List, Tuple
 import collections
-import contextlib
 import logging
-import os
 import pathlib
-import sys
+import warnings
 
 import numpy as np
 import cyvcf2
 
 logger = logging.getLogger(__name__)
-
-
-@contextlib.contextmanager
-def redirect_stderr(fp):
-    """Redirect stderr to fp."""
-    olderr = sys.stderr
-    try:
-        sys.stderr = fp
-        yield
-    finally:
-        sys.stderr = olderr
 
 
 def get_genotype_matrix(
@@ -123,7 +110,8 @@ class BagOfVcf(collections.abc.Mapping):
         self,
         files: Iterable[str | pathlib.Path],
         *,
-        individuals: List[str] | None = None,
+        individuals: Iterable[str] | None = None,
+        contigs: Iterable[str] | None = None,
     ):
         """
         :param files:
@@ -132,17 +120,34 @@ class BagOfVcf(collections.abc.Mapping):
         :param individuals:
             An iterable of individual names corresponding to the VCF columns
             for which genotypes will be sampled.
+        :param contigs:
+            An iterable of contig names to use. If not specified, all contigs
+            identified in the VCFs/BCFs will be used.
         """
-        with open(os.devnull, "w") as dev_null:
-            self._fill_bag(files=files, individuals=individuals, dev_null=dev_null)
+        # Silence some warnings from cyvcf2.
+        with warnings.catch_warnings():
+            # We check if a contig is usable for a given vcf by querying
+            # that contig for variants. If there are no variants (e.g. vcfs are
+            # split by chromosome so each vcf has data for only one contig),
+            # then cyvcf2 warns us.
+            warnings.filterwarnings(
+                "ignore", message="no intervals found", category=UserWarning
+            )
+            # We detect this condition and explicitly raise an error.
+            warnings.filterwarnings(
+                "ignore",
+                message="not all requested samples found",
+                category=UserWarning,
+            )
+            self._fill_bag(files=files, individuals=individuals, contigs=contigs)
         self._regions: List[Tuple[str, int, int]] = []
 
     def _fill_bag(
         self,
         *,
         files: Iterable[str | pathlib.Path],
-        individuals: List[str] | None = None,
-        dev_null,
+        individuals: Iterable[str] | None = None,
+        contigs: Iterable[str] | None = None,
     ) -> None:
         """
         Construct a mapping from contig id to cyvcf2.VCF object.
@@ -156,6 +161,19 @@ class BagOfVcf(collections.abc.Mapping):
         if len(set(files)) != len(files):
             raise ValueError("File list contains duplicates.")
 
+        if individuals is not None:
+            individuals = list(individuals)
+            if len(set(individuals)) != len(individuals):
+                raise ValueError("Individuals list contains duplicates.")
+
+        if contigs is not None:
+            contigs = list(contigs)
+            if len(set(contigs)) != len(contigs):
+                raise ValueError("Contigs list contains duplicates.")
+            contigs = set(contigs)
+
+        contigs_seen = set()
+
         for file in files:
             vcf = cyvcf2.VCF(file, samples=individuals, lazy=True, threads=1)
             if "GT" not in vcf:
@@ -165,15 +183,23 @@ class BagOfVcf(collections.abc.Mapping):
                 or pathlib.Path(f"{file}.csi").exists()
             ):
                 raise ValueError(f"No index found for {file}.")
+            if individuals is not None:
+                individuals_not_found = set(individuals) - set(vcf.samples)
+                if len(individuals_not_found) > 0:
+                    raise ValueError(
+                        f"Requested individuals not found in {file}: "
+                        f"{', '.join(individuals_not_found)}"
+                    )
             for contig_id, contig_length in zip(vcf.seqnames, vcf.seqlens):
+                contigs_seen.add(contig_id)
+                if contigs is not None and contig_id not in contigs:
+                    continue
                 # Check there's at least one variant. If present, we assume
                 # there exist usable variants (i.e. SNPs) for the contig.
-                # We redirect stderr to silence cyvcf2 "no intervals" warnings.
-                with redirect_stderr(dev_null):
-                    try:
-                        next(vcf(contig_id))
-                    except StopIteration:
-                        continue
+                try:
+                    next(vcf(contig_id))
+                except StopIteration:
+                    continue
                 if contig_id in contig2file:
                     first_file = contig2file[contig_id]
                     raise ValueError(
@@ -183,6 +209,13 @@ class BagOfVcf(collections.abc.Mapping):
                 contig2file[contig_id] = file
                 contig_lengths.append(contig_length)
                 contig2vcf[contig_id] = vcf
+
+        if contigs is not None:
+            contigs_not_found = contigs - contigs_seen
+            if len(contigs_not_found) > 0:
+                raise ValueError(
+                    f"Requested contigs not found: {', '.join(contigs_not_found)}"
+                )
 
         if len(contig2file) == 0:
             raise ValueError("No usable vcf/bcf files in the list.")

@@ -487,8 +487,17 @@ class TestBagOfVcf:
         with pytest.raises(ValueError, match="No index"):
             dinf.BagOfVcf(tmp_path.glob("*.bcf"))
 
+    def test_missing_file(self):
+        missing_file = "nonexistent.vcf.gz"
+        with pytest.raises(OSError, match=missing_file):
+            dinf.BagOfVcf([missing_file])
+
+    def test_no_files(self):
+        with pytest.raises(ValueError, match="No usable vcf/bcf files"):
+            dinf.BagOfVcf([])
+
     @pytest.mark.usefixtures("tmp_path")
-    def test_file_list_duplicates(self, tmp_path):
+    def test_duplicate_files(self, tmp_path):
         create_vcf_dataset(tmp_path, contig_lengths=[100_000])
         files = 2 * list(tmp_path.glob("*.vcf.gz"))
         with pytest.raises(ValueError, match="File list contains duplicates"):
@@ -504,10 +513,6 @@ class TestBagOfVcf:
         with pytest.raises(ValueError, match="Both .* contain records for sequence"):
             dinf.BagOfVcf(files)
 
-    def test_no_files(self):
-        with pytest.raises(ValueError, match="No usable vcf/bcf files"):
-            dinf.BagOfVcf([])
-
     @pytest.mark.usefixtures("tmp_path")
     def test_no_GT_field(self, tmp_path):
         def remove_GT_header(filename):
@@ -522,6 +527,57 @@ class TestBagOfVcf:
         )
         with pytest.raises(ValueError, match="doesn't contain GT field"):
             dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
+
+    @pytest.mark.parametrize("num_individuals", [20, 97])
+    @pytest.mark.usefixtures("tmp_path")
+    def test_individuals(self, tmp_path, num_individuals):
+        samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        individuals = samples["A"][:num_individuals]
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), individuals=individuals)
+        assert vb["1"].samples == individuals
+
+    @pytest.mark.filterwarnings("ignore:not all requested samples found:UserWarning")
+    @pytest.mark.usefixtures("tmp_path")
+    def test_missing_individuals(self, tmp_path):
+        samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        individuals = ["nonexistent_1"] + samples["A"] + ["nonexistent_2"]
+        with pytest.raises(ValueError, match="individuals not found") as err:
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), individuals=individuals)
+        assert "nonexistent_1" in err.value.args[0]
+        assert "nonexistent_2" in err.value.args[0]
+        for ind in samples["A"]:
+            assert ind not in err.value.args[0]
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_duplicate_individuals(self, tmp_path):
+        samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        individuals = samples["A"] + [samples["A"][0]]
+        with pytest.raises(ValueError, match="Individuals list contains duplicates"):
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), individuals=individuals)
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_contigs(self, tmp_path):
+        create_vcf_dataset(tmp_path, contig_lengths=[100_000, 200_000, 300_000])
+        contigs = ["1", "3"]
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contigs=contigs)
+        assert set(vb) == set(contigs)
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_missing_contigs(self, tmp_path):
+        create_vcf_dataset(tmp_path, contig_lengths=[100_000, 200_000])
+        contigs = ["nonexistent_a", "1", "2", "nonexistent_b"]
+        with pytest.raises(ValueError, match="contigs not found") as err:
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contigs=contigs)
+        assert "nonexistent_a" in err.value.args[0]
+        assert "nonexistent_b" in err.value.args[0]
+        assert "1" not in err.value.args[0]
+        assert "2" not in err.value.args[0]
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_duplicate_contigs(self, tmp_path):
+        create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        with pytest.raises(ValueError, match="Contigs list contains duplicates"):
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contigs=["1", "1"])
 
     @pytest.mark.usefixtures("tmp_path")
     def test_unused_contigs(self, tmp_path):
