@@ -523,6 +523,26 @@ class TestBagOfVcf:
         with pytest.raises(ValueError, match="doesn't contain GT field"):
             dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
 
+    @pytest.mark.parametrize("num_individuals", [20, 97])
+    @pytest.mark.usefixtures("tmp_path")
+    def test_individuals(self, tmp_path, num_individuals):
+        samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        individuals = samples["A"][:num_individuals]
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), individuals=individuals)
+        assert vb["1"].samples == individuals
+
+    @pytest.mark.filterwarnings("ignore:not all requested samples found:UserWarning")
+    @pytest.mark.usefixtures("tmp_path")
+    def test_bad_individuals(self, tmp_path):
+        samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        individuals = ["nonexistent_1"] + samples["A"] + ["nonexistent_2"]
+        with pytest.raises(ValueError, match="individuals not found") as err:
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), individuals=individuals)
+        assert "nonexistent_1" in err.value.args[0]
+        assert "nonexistent_2" in err.value.args[0]
+        for ind in samples["A"]:
+            assert ind not in err.value.args[0]
+
     @pytest.mark.usefixtures("tmp_path")
     def test_unused_contigs(self, tmp_path):
         # Contigs in the header should be ignored if they have no variants.

@@ -110,7 +110,7 @@ class BagOfVcf(collections.abc.Mapping):
         self,
         files: Iterable[str | pathlib.Path],
         *,
-        individuals: List[str] | None = None,
+        individuals: Iterable[str] | None = None,
     ):
         """
         :param files:
@@ -120,14 +120,20 @@ class BagOfVcf(collections.abc.Mapping):
             An iterable of individual names corresponding to the VCF columns
             for which genotypes will be sampled.
         """
+        # Silence some warnings from cyvcf2.
         with warnings.catch_warnings():
-            # Silence cyvcf2 "no intervals" warnings.
             # We check if a contig is usable for a given vcf by querying
             # that contig for variants. If there are no variants (e.g. vcfs are
             # split by chromosome so each vcf has data for only one contig),
             # then cyvcf2 warns us.
             warnings.filterwarnings(
                 "ignore", message="no intervals found", category=UserWarning
+            )
+            # We detect this condition and explicitly raise an error.
+            warnings.filterwarnings(
+                "ignore",
+                message="not all requested samples found",
+                category=UserWarning,
             )
             self._fill_bag(files=files, individuals=individuals)
         self._regions: List[Tuple[str, int, int]] = []
@@ -136,7 +142,7 @@ class BagOfVcf(collections.abc.Mapping):
         self,
         *,
         files: Iterable[str | pathlib.Path],
-        individuals: List[str] | None = None,
+        individuals: Iterable[str] | None = None,
     ) -> None:
         """
         Construct a mapping from contig id to cyvcf2.VCF object.
@@ -149,6 +155,8 @@ class BagOfVcf(collections.abc.Mapping):
         files = list(files)
         if len(set(files)) != len(files):
             raise ValueError("File list contains duplicates.")
+        if individuals is not None:
+            individuals = list(individuals)
 
         for file in files:
             vcf = cyvcf2.VCF(file, samples=individuals, lazy=True, threads=1)
@@ -159,6 +167,13 @@ class BagOfVcf(collections.abc.Mapping):
                 or pathlib.Path(f"{file}.csi").exists()
             ):
                 raise ValueError(f"No index found for {file}.")
+            if individuals is not None:
+                not_found = set(individuals) - set(vcf.samples)
+                if len(not_found) > 0:
+                    raise ValueError(
+                        f"Requested individuals not found in {file}: "
+                        f"{', '.join(not_found)}"
+                    )
             for contig_id, contig_length in zip(vcf.seqnames, vcf.seqlens):
                 # Check there's at least one variant. If present, we assume
                 # there exist usable variants (i.e. SNPs) for the contig.
