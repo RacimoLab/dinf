@@ -32,11 +32,17 @@ jobs:
           python -m build
 
       - name: build Docs
-        run: make -C docs
+        run: |
+          make -C docs
+          mkdir publish
+          cd publish
+          mv ../docs/_build/html ${GITHUB_REF_NAME}
+          ln -sfT ${GITHUB_REF_NAME} latest
 
       - name: push to GitHub Pages
         if: (!github.event.pull_request)
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/_build/html
+          publish_dir: ./publish
+          keep_files: true
