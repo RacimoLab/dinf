@@ -216,6 +216,57 @@ class TestBinnedHaplotypeMatrix:
         # We should get fewer and fewer counts for increasing maf_thresh.
         assert all(np.diff(counts) <= 0)
 
+    @pytest.mark.parametrize("population", [1, 2, "b", "c"])
+    @pytest.mark.parametrize("ploidy", [1, 2, 3])
+    @pytest.mark.parametrize("phased", [True, False])
+    def test_from_ts_population(self, phased, ploidy, population):
+        num_individuals = 32
+        demography = msprime.Demography()
+        demography.add_population(name="a", initial_size=10_000)
+        demography.add_population(name="b", initial_size=10_000)
+        demography.add_population(name="c", initial_size=10_000)
+        demography.add_population_split(time=1000, derived=["b", "c"], ancestral="a")
+        ts = do_sim(
+            num_individuals=num_individuals,
+            ploidy=ploidy,
+            sequence_length=100_000,
+            demography=demography,
+            samples=[
+                msprime.SampleSet(num_individuals, ploidy=ploidy, population=pop)
+                for pop in ["b", "c"]
+            ],
+        )
+
+        bhm = dinf.BinnedHaplotypeMatrix(
+            num_individuals=num_individuals,
+            num_bins=24,
+            maf_thresh=0,
+            ploidy=ploidy,
+            phased=phased,
+        )
+
+        rng = np.random.default_rng(1234)
+        M = bhm.from_ts(ts, rng=rng, population=population)
+        assert M.shape == bhm.shape
+
+    @pytest.mark.parametrize("population", [1, "notapopulation"])
+    def test_from_ts_population_not_found(self, population):
+        ploidy = 2
+        bhm = dinf.BinnedHaplotypeMatrix(
+            num_individuals=32,
+            num_bins=24,
+            maf_thresh=0,
+            ploidy=ploidy,
+            phased=True,
+        )
+        rng = np.random.default_rng(1234)
+        ts = do_sim(num_individuals=32, ploidy=ploidy, sequence_length=100_000)
+        with pytest.raises(
+            ValueError,
+            match="(not found in the population table)|(found 0 in population)",
+        ):
+            bhm.from_ts(ts, rng=rng, population=population)
+
     @pytest.mark.parametrize("ploidy", [1, 2, 3])
     def test_from_ts_mismatched_ts(self, ploidy):
         bhm = dinf.BinnedHaplotypeMatrix(
@@ -231,25 +282,6 @@ class TestBinnedHaplotypeMatrix:
             bhm.from_ts(ts, rng=rng)
         ts = do_sim(num_individuals=64, ploidy=ploidy, sequence_length=100)
         with pytest.raises(ValueError, match="Sequence length"):
-            bhm.from_ts(ts, rng=rng)
-
-        # multi-population demography not supported
-        demography = msprime.Demography()
-        demography.add_population(name="a", initial_size=10_000)
-        demography.add_population(name="b", initial_size=10_000)
-        demography.add_population(name="c", initial_size=10_000)
-        demography.add_population_split(time=1000, derived=["b", "c"], ancestral="a")
-        ts = do_sim(
-            num_individuals=32,
-            ploidy=ploidy,
-            sequence_length=100_000,
-            demography=demography,
-            samples=[
-                msprime.SampleSet(32, ploidy=ploidy, population=pop)
-                for pop in ["b", "c"]
-            ],
-        )
-        with pytest.raises(ValueError, match="Multi-population"):
             bhm.from_ts(ts, rng=rng)
 
     @pytest.mark.parametrize("maf_thresh", [-5, 10, np.inf])

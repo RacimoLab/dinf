@@ -1,3 +1,4 @@
+from __future__ import annotations
 import abc
 from typing import Sequence
 
@@ -209,30 +210,59 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         return M
 
     def from_ts(
-        self, ts: tskit.TreeSequence, *, rng: np.random.Generator
+        self,
+        ts: tskit.TreeSequence,
+        *,
+        rng: np.random.Generator,
+        population: int | str | None = None,
     ) -> np.ndarray:
         """
         Create a pseudo-genotype matrix from a tree sequence.
 
         :param ts: The tree sequence.
         :param rng: Numpy random number generator.
+        :param population:
+            Only use individuals from this population. The population may be
+            a string identifier (which will be matched against the 'name'
+            metadata field in the population table of the tree sequence),
+            or an integer population id.
+            If not specified, all individuals will be used.
         :return:
             Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
             For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
             count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
             :math:`i`.
         """
-        if ts.num_samples != self._num_haplotypes:
-            raise ValueError(
-                f"Expected {self._num_haplotypes} haplotypes, "
-                f"but ts.num_samples == {ts.num_samples}."
-            )
         if ts.sequence_length < self._num_bins:
             raise ValueError("Sequence length is shorter than the number of bins")
-        if ts.num_populations != 1:
-            raise ValueError("Multi-population tree sequences not yet supported")
+
+        if isinstance(population, str):
+            pop2idx = {p.metadata.get("name"): p.id for p in ts.populations()}
+            if population not in pop2idx:
+                raise ValueError(f"'{population}' not found in the population table")
+            population = pop2idx[population]
+        nodes = ts.samples(population)
+
+        if len(nodes) != self._num_haplotypes:
+            raise ValueError(
+                f"Expected {self._num_haplotypes} haplotypes, but found {len(nodes)}"
+                + ("." if population is None else f" in population {population}.")
+            )
 
         G = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
+
+        if not self._phased and self._ploidy >= 2:
+            # Check each individual's nodes are adjacent in the node table.
+            # This is usually true but not guaranteed (e.g. after simplification).
+            individual = np.reshape(
+                ts.tables.nodes.individual[nodes], (-1, self._ploidy)
+            )
+            assert np.all(individual[:, [0]] == individual[:, 1:]), (
+                "Individuals' nodes are not all adjacent in the node table. "
+                "Please open a issue at https://github.com/RacimoLab/dinf"
+            )
+
+        G = G[:, nodes]
         G = np.reshape(G, (-1, self._num_individuals, self._ploidy))
         positions = np.array(ts.tables.sites.position)
         return self._from_genotype_matrix(
