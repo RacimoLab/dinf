@@ -52,6 +52,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: install gsl
+        if: runner.os == 'macOS' && matrix.python-version == '3.10'
+        run: |
+          # Needed to build msprime from sdist; no wheel yet.
+          brew install gsl
+
       - name: install
         run: pip install dist/*.whl
 
