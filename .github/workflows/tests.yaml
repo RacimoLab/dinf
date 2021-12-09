@@ -73,7 +73,7 @@ jobs:
             tests
 
       - name: upload coverage report to codecov
-        if: !(github.actor == 'dependabot[bot]')
+        if: github.actor != 'dependabot[bot]'
         uses: codecov/codecov-action@v2
         with:
           fail_ci_if_error: true
