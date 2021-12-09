@@ -39,6 +39,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         python-version: [3.7, 3.8, 3.9, "3.10"]
+        exclude:
+          - os: macos-latest
+            python-version: "3.10"
 
     steps:
       - name: download wheel
@@ -51,12 +54,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: install gsl
-        if: runner.os == 'macOS' && matrix.python-version == '3.10'
-        run: |
-          # Needed to build msprime from sdist; no wheel yet.
-          brew install gsl
 
       - name: install
         run: pip install dist/*.whl
