@@ -34,5 +34,5 @@ pull_request_rules:
       - check-success=tests (ubuntu-18.04, 3.7)
       - check-success=tests (ubuntu-18.04, 3.10)
     actions:
-      merge:
-        method: merge
+      queue:
+        name: default
