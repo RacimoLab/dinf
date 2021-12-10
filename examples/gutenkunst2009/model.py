@@ -1,12 +1,34 @@
+from __future__ import annotations
+import itertools
+import pathlib
+
 import demes
 import msprime
 import numpy as np
 
 import dinf
 
+
+def load_samples_from_g1k_metadata(filename: str, populations: list) -> dict:
+    """Return a dictionary mapping population name to a list of sample IDs."""
+    data = np.recfromtxt(filename, names=True, encoding="ascii")
+    # Remove related individuals.
+    data = data[data.FatherID == "0"]
+    data = data[data.MotherID == "0"]
+    return {pop: data.SampleID[data.Population == pop].tolist() for pop in populations}
+
+
+contig_lengths = dinf.get_contig_lengths(
+    "GRCh38_full_analysis_set_plus_decoy_hla.fa.fai",
+    keep_contigs={f"chr{c + 1}" for c in range(3)},  # Exclude chrX, etc.
+)
+
+samples = load_samples_from_g1k_metadata(
+    "20130606_g1k_3202_samples_ped_population.txt", ["YRI", "CEU", "CHB"]
+)
+num_individuals = 64
 recombination_rate = 1.25e-8
 mutation_rate = 1.25e-8
-num_individuals = 128
 sequence_length = 1_000_000
 
 parameters = dinf.Parameters(
@@ -19,7 +41,7 @@ parameters = dinf.Parameters(
     N_CEU_end=dinf.Param(low=1000, high=100_000),
     N_CHB_start=dinf.Param(low=100, high=10_000),
     N_CHB_end=dinf.Param(low=1000, high=100_000),
-    # Time units match the demography, which are in "years".
+    # Time units match the demography, which we specified in "years".
     # To avoid explicitly defining constraints such as
     #   "CEU/CHB split more recently than the OOA event",
     # we parameterise times as time spans, rather than absolute times.
@@ -96,9 +118,6 @@ def demography(**params) -> demes.Graph:
     return b.resolve()
 
 
-ts = None
-
-
 def generator(seed, **params):
     """Simulate with the parameters provided to us."""
     rng = np.random.default_rng(seed)
@@ -106,10 +125,10 @@ def generator(seed, **params):
     demog = msprime.Demography.from_demes(graph)
     seed1, seed2 = rng.integers(low=1, high=2 ** 31, size=2)
 
-    samples = {"CHB": 10, "CEU": num_individuals, "YRI": 20}
-    global ts
+    populations = list(samples)
+
     ts = msprime.sim_ancestry(
-        samples=samples,
+        samples={pop: num_individuals for pop in populations},
         demography=demog,
         sequence_length=sequence_length,
         recombination_rate=recombination_rate,
@@ -120,6 +139,13 @@ def generator(seed, **params):
 
     feature_matrix = bh_matrix.from_ts(ts, rng=rng, population="CEU")
     return feature_matrix
+
+
+dinf.BagOfVcf(
+    pathlib.Path("bcf/").glob("*.bcf"),
+    individuals=itertools.chain(*samples.values()),
+    contig_lengths=contig_lengths,
+)
 
 
 def target(seed):
@@ -133,6 +159,7 @@ genobuilder = dinf.Genobuilder(
     feature_shape=bh_matrix.shape,
 )
 
+"""
 rng = np.random.default_rng(123)
 sim_kwargs = {k: v.draw_prior(1, rng)[0] for k, v in genobuilder.parameters.items()}
 generator(123, **sim_kwargs)
@@ -141,3 +168,4 @@ population = pop2idx["CEU"]
 nodes = ts.samples(population)
 ploidy = 2
 individual = np.reshape(ts.tables.nodes.individual[nodes], (-1, 2))
+"""

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import collections
 import pathlib
+import re
 import subprocess
 from typing import Callable, List, Tuple
 
@@ -10,6 +11,54 @@ import numpy as np
 import pytest
 
 import dinf
+
+
+class TestGetContigLengths:
+    @pytest.mark.usefixtures("tmp_path")
+    def test_simple(self, tmp_path):
+        contigs = {"a": 100, "b": 200, "c": 400}
+        with open(tmp_path / "contigs.txt", "w") as f:
+            for c_id, c_len in contigs.items():
+                print(c_id, c_len, file=f)
+        loaded_contigs = dinf.get_contig_lengths(tmp_path / "contigs.txt")
+        assert loaded_contigs == contigs
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_extra_columns(self, tmp_path):
+        contigs = {"a": 100, "b": 200, "c": 400}
+        with open(tmp_path / "contigs.txt", "w") as f:
+            for j, (c_id, c_len) in enumerate(contigs.items()):
+                print(c_id, c_len, j, j * j + 10, file=f)
+        loaded_contigs = dinf.get_contig_lengths(tmp_path / "contigs.txt")
+        assert loaded_contigs == contigs
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_keep_contigs(self, tmp_path):
+        contigs = {"a": 100, "b": 200, "c": 400}
+        with open(tmp_path / "contigs.txt", "w") as f:
+            for c_id, c_len in contigs.items():
+                print(c_id, c_len, file=f)
+        keep_contigs = ["a", "c"]
+        loaded_contigs = dinf.get_contig_lengths(
+            tmp_path / "contigs.txt", keep_contigs=keep_contigs
+        )
+        assert loaded_contigs == {k: contigs[k] for k in keep_contigs}
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_missing_contigs(self, tmp_path):
+        contigs = {"1": 100, "2": 200, "3": 400}
+        with open(tmp_path / "contigs.txt", "w") as f:
+            for c_id, c_len in contigs.items():
+                print(c_id, c_len, file=f)
+        with pytest.raises(ValueError, match="contigs not found") as err:
+            dinf.get_contig_lengths(
+                tmp_path / "contigs.txt",
+                keep_contigs=["nonexistent_a", "1", "2", "nonexistent_b"],
+            )
+        assert "nonexistent_a" in err.value.args[0]
+        assert "nonexistent_b" in err.value.args[0]
+        assert "1" not in err.value.args[0]
+        assert "2" not in err.value.args[0]
 
 
 def create_ts(*, length: int, ploidy: int, seeds: Tuple[int, int]):
@@ -442,7 +491,7 @@ class TestBagOfVcf:
         # tskit outputs vcf with wrong contig lengths.
         # https://github.com/tskit-dev/tskit/discussions/1993
         c2len = dict(zip(["1", "2"], contig_lengths))
-        for c_id, c_len in zip(vb, vb.contig_lengths):
+        for c_id, c_len in zip(vb, vb.lengths):
             assert c_len - 1 == c2len[c_id]
 
     @pytest.mark.usefixtures("tmp_path")
@@ -459,7 +508,7 @@ class TestBagOfVcf:
         # tskit outputs vcf with wrong contig lengths.
         # https://github.com/tskit-dev/tskit/discussions/1993
         c2len = dict(zip(["1", "2"], contig_lengths))
-        for c_id, c_len in zip(vb, vb.contig_lengths):
+        for c_id, c_len in zip(vb, vb.lengths):
             assert c_len - 1 == c2len[c_id]
 
     @pytest.mark.usefixtures("tmp_path")
@@ -558,26 +607,25 @@ class TestBagOfVcf:
     @pytest.mark.usefixtures("tmp_path")
     def test_contigs(self, tmp_path):
         create_vcf_dataset(tmp_path, contig_lengths=[100_000, 200_000, 300_000])
-        contigs = ["1", "3"]
-        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contigs=contigs)
+        contigs = {"1": 100_000, "3": 300_000}
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contig_lengths=contigs)
         assert set(vb) == set(contigs)
 
     @pytest.mark.usefixtures("tmp_path")
     def test_missing_contigs(self, tmp_path):
         create_vcf_dataset(tmp_path, contig_lengths=[100_000, 200_000])
-        contigs = ["nonexistent_a", "1", "2", "nonexistent_b"]
+        contigs = {
+            "nonexistent_a": 1000,
+            "1": 100_000,
+            "2": 200_000,
+            "nonexistent_b": 1000,
+        }
         with pytest.raises(ValueError, match="contigs not found") as err:
-            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contigs=contigs)
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contig_lengths=contigs)
         assert "nonexistent_a" in err.value.args[0]
         assert "nonexistent_b" in err.value.args[0]
         assert "1" not in err.value.args[0]
         assert "2" not in err.value.args[0]
-
-    @pytest.mark.usefixtures("tmp_path")
-    def test_duplicate_contigs(self, tmp_path):
-        create_vcf_dataset(tmp_path, contig_lengths=[100_000])
-        with pytest.raises(ValueError, match="Contigs list contains duplicates"):
-            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contigs=["1", "1"])
 
     @pytest.mark.usefixtures("tmp_path")
     def test_unused_contigs(self, tmp_path):
@@ -603,6 +651,28 @@ class TestBagOfVcf:
         vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
         assert "c" not in vb
 
+    @pytest.mark.usefixtures("tmp_path")
+    def test_no_contig_lengths_in_vcf(self, tmp_path):
+        def rm_contig_lengths(filename):
+            with open(filename) as f:
+                lines = f.readlines()
+
+            new_lines = [
+                re.sub(r",length=[0-9]+", "", line)
+                if line.startswith("##contig")
+                else line
+                for line in lines
+            ]
+
+            with open(filename, "w") as f:
+                f.write("".join(new_lines))
+
+        create_vcf_dataset(
+            tmp_path, contig_lengths=[100_000], transform_func=rm_contig_lengths
+        )
+        with pytest.raises(ValueError, match="provide a contig_lengths argument"):
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
+
     @pytest.mark.parametrize("sequence_length", [50, 2027, 10_000])
     @pytest.mark.usefixtures("tmp_path")
     def test_sample_regions(self, tmp_path, sequence_length):
@@ -615,7 +685,7 @@ class TestBagOfVcf:
             rng=np.random.default_rng(1234),
         )
         contig2length = {
-            contig_id: vb.contig_lengths[j] for j, contig_id in enumerate(vb.keys())
+            contig_id: vb.lengths[j] for j, contig_id in enumerate(vb.keys())
         }
         assert len(regions) == num_regions
         assert all(chrom in vb for chrom, _, _ in regions)
