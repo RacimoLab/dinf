@@ -1,5 +1,4 @@
 from __future__ import annotations
-import itertools
 import pathlib
 
 import demes
@@ -7,6 +6,7 @@ import msprime
 import numpy as np
 
 import dinf
+import dinf.misc
 
 
 def load_samples_from_g1k_metadata(filename: str, populations: list) -> dict:
@@ -20,11 +20,12 @@ def load_samples_from_g1k_metadata(filename: str, populations: list) -> dict:
 
 contig_lengths = dinf.get_contig_lengths(
     "GRCh38_full_analysis_set_plus_decoy_hla.fa.fai",
-    keep_contigs={f"chr{c + 1}" for c in range(3)},  # Exclude chrX, etc.
+    keep_contigs={f"chr{c + 1}" for c in range(21)},  # Exclude chrX, etc.
 )
 
+populations = ["YRI", "CEU", "CHB"]
 samples = load_samples_from_g1k_metadata(
-    "20130606_g1k_3202_samples_ped_population.txt", ["YRI", "CEU", "CHB"]
+    "20130606_g1k_3202_samples_ped_population.txt", populations
 )
 num_individuals = 64
 recombination_rate = 1.25e-8
@@ -56,14 +57,6 @@ parameters = dinf.Parameters(
     m_YRI_CEU=dinf.Param(low=1e-6, high=1e-2),
     m_YRI_CHB=dinf.Param(low=1e-6, high=1e-2),
     m_CEU_CHB=dinf.Param(low=1e-6, high=1e-2),
-)
-
-bh_matrix = dinf.BinnedHaplotypeMatrix(
-    num_individuals=num_individuals,
-    num_bins=128,
-    maf_thresh=0.05,
-    ploidy=2,
-    phased=False,
 )
 
 
@@ -118,6 +111,15 @@ def demography(**params) -> demes.Graph:
     return b.resolve()
 
 
+features = dinf.MultipleBinnedHaplotypeMatrices(
+    num_individuals={pop: num_individuals for pop in populations},
+    num_bins={pop: 128 for pop in populations},
+    ploidy={pop: 2 for pop in populations},
+    phased={pop: True for pop in populations},
+    global_maf_thresh=0.05,
+)
+
+
 def generator(seed, **params):
     """Simulate with the parameters provided to us."""
     rng = np.random.default_rng(seed)
@@ -136,36 +138,33 @@ def generator(seed, **params):
         record_provenance=False,
     )
     ts = msprime.sim_mutations(ts, rate=mutation_rate, random_seed=seed2)
+    individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+    labelled_matrices = features.from_ts(ts, rng=rng, individuals=individuals)
+    return labelled_matrices
 
-    feature_matrix = bh_matrix.from_ts(ts, rng=rng, population="CEU")
-    return feature_matrix
 
-
-dinf.BagOfVcf(
+vb = dinf.BagOfVcf(
     pathlib.Path("bcf/").glob("*.bcf"),
-    individuals=itertools.chain(*samples.values()),
+    samples=samples,
     contig_lengths=contig_lengths,
 )
 
 
 def target(seed):
-    pass
+    rng = np.random.default_rng(seed)
+    labelled_matrices = features.from_vcf(
+        vb,
+        sequence_length=sequence_length,
+        min_seg_sites=20,
+        max_missing_genotypes=0,
+        rng=rng,
+    )
+    return labelled_matrices
 
 
 genobuilder = dinf.Genobuilder(
     target_func=target,
     generator_func=generator,
     parameters=parameters,
-    feature_shape=bh_matrix.shape,
+    feature_shape=features.shape,
 )
-
-"""
-rng = np.random.default_rng(123)
-sim_kwargs = {k: v.draw_prior(1, rng)[0] for k, v in genobuilder.parameters.items()}
-generator(123, **sim_kwargs)
-pop2idx = {p.metadata.get("name"): p.id for p in ts.populations()}
-population = pop2idx["CEU"]
-nodes = ts.samples(population)
-ploidy = 2
-individual = np.reshape(ts.tables.nodes.individual[nodes], (-1, 2))
-"""

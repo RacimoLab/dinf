@@ -1,11 +1,13 @@
 from __future__ import annotations
 import abc
-from typing import Sequence
+import collections
+from typing import Dict, List, Sequence
 
 import numpy as np
 import tskit
 
 from .vcf import BagOfVcf
+from .misc import ts_ploidy_of_individuals, ts_nodes_of_individuals
 
 
 class _FeatureExtractor(abc.ABC):
@@ -214,19 +216,12 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         ts: tskit.TreeSequence,
         *,
         rng: np.random.Generator,
-        population: int | str | None = None,
     ) -> np.ndarray:
         """
         Create a pseudo-genotype matrix from a tree sequence.
 
         :param ts: The tree sequence.
         :param rng: Numpy random number generator.
-        :param population:
-            Only use individuals from this population. The population may be
-            a string identifier (which will be matched against the 'name'
-            metadata field in the population table of the tree sequence),
-            or an integer population id.
-            If not specified, all individuals will be used.
         :return:
             Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
             For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
@@ -236,33 +231,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         if ts.sequence_length < self._num_bins:
             raise ValueError("Sequence length is shorter than the number of bins")
 
-        if isinstance(population, str):
-            pop2idx = {p.metadata.get("name"): p.id for p in ts.populations()}
-            if population not in pop2idx:
-                raise ValueError(f"'{population}' not found in the population table")
-            population = pop2idx[population]
-        nodes = ts.samples(population)
-
-        if len(nodes) != self._num_haplotypes:
-            raise ValueError(
-                f"Expected {self._num_haplotypes} haplotypes, but found {len(nodes)}"
-                + ("." if population is None else f" in population {population}.")
-            )
-
         G = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
-
-        if not self._phased and self._ploidy >= 2:
-            # Check each individual's nodes are adjacent in the node table.
-            # This is usually true but not guaranteed (e.g. after simplification).
-            individual = np.reshape(
-                ts.tables.nodes.individual[nodes], (-1, self._ploidy)
-            )
-            assert np.all(individual[:, [0]] == individual[:, 1:]), (
-                "Individuals' nodes are not all adjacent in the node table. "
-                "Please open a issue at https://github.com/RacimoLab/dinf"
-            )
-
-        G = G[:, nodes]
         G = np.reshape(G, (-1, self._num_individuals, self._ploidy))
         positions = np.array(ts.tables.sites.position)
         return self._from_genotype_matrix(
@@ -272,6 +241,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
     def from_vcf(
         self,
         vb: BagOfVcf,
+        *,
         sequence_length: int,
         max_missing_genotypes: int,
         min_seg_sites: int,
@@ -328,3 +298,176 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         return self._from_genotype_matrix(
             G, positions=positions, sequence_length=sequence_length, rng=rng
         )
+
+
+class MultipleBinnedHaplotypeMatrices(_FeatureExtractor):
+    """
+    A labelled collection of :class:`BinnedHaplotypeMatrices`.
+
+    One feature matrix is produced for each label. Labels typically
+    correspond to populations, but this need not be the case.
+    """
+
+    bh_matrices: collections.abc.Mapping[str, BinnedHaplotypeMatrix]
+    """
+    A dict that maps a label to a :class:`BinnedHaplotypeMatrix`.
+    """
+
+    def __init__(
+        self,
+        *,
+        num_individuals: dict,
+        num_bins: int,
+        ploidy: dict,
+        phased: dict,
+        # maf_thresh: dict,
+        global_maf_thresh: float,
+    ):
+        assert num_individuals.keys() == num_bins.keys()
+        assert num_individuals.keys() == ploidy.keys()
+        assert num_individuals.keys() == phased.keys()
+        self.bh_matrices = {
+            label: BinnedHaplotypeMatrix(
+                num_individuals=num_individuals[label],
+                num_bins=num_bins[label],
+                ploidy=ploidy[label],
+                phased=phased[label],
+                maf_thresh=0,
+            )
+            for label in num_individuals.keys()
+        }
+        self._num_individuals = num_individuals
+        self._num_bins = num_bins
+        self._ploidy = ploidy
+        self._phased = phased
+        self._global_maf_thresh = global_maf_thresh
+
+    @property
+    def shape(self):
+        return {label: bhm.shape for label, bhm in self.bh_matrices.items()}
+
+    def from_ts(
+        self,
+        ts: tskit.TreeSequence,
+        *,
+        rng: np.random.Generator,
+        individuals: collections.abc.Mapping[str, List[int]],
+    ) -> Dict[str, np.ndarray]:
+        """
+        Create a pseudo-genotype matrix from a tree sequence.
+
+        :param ts: The tree sequence.
+        :param rng: Numpy random number generator.
+        :param individuals:
+            A mapping from label to an array of individuals.
+        :return:
+            A dictionary mapping a label to a feature array.
+            Each array has shape ``(num_pseudo_haplotypes, num_bins, 1)``.
+            For an array :math:`M`, the :math:`M[i][j][0]`'th entry is the
+            count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
+            :math:`i`.
+        """
+
+        if individuals.keys() != self.bh_matrices.keys():
+            raise ValueError(
+                f"Labels of individuals {list(individuals)} don't match "
+                f"feature labels {list(self.bh_matrices)}."
+            )
+        G = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
+        positions = np.array(ts.tables.sites.position)
+        M = {}
+        for label, l_individuals in individuals.items():
+            if ts.sequence_length < self._num_bins[label]:
+                raise ValueError(
+                    f"{label}: sequence length ({ts.sequence_length}) is "
+                    f"shorter than the number of bins ({self._num_bins[label]})."
+                )
+            if len(l_individuals) != self._num_individuals[label]:
+                raise ValueError(
+                    f"{label}: expected {self._num_individuals[label]} "
+                    f"individuals, but got {len(l_individuals)}."
+                )
+            ploidy = ts_ploidy_of_individuals(ts, l_individuals)
+            if not np.all(ploidy == self._ploidy[label]):
+                raise ValueError(
+                    f"{label}: not all individuals have ploidy == {ploidy}."
+                )
+            nodes = ts_nodes_of_individuals(ts, l_individuals)
+            H = G[:, nodes]
+            H = np.reshape(H, (-1, self._num_individuals[label], self._ploidy[label]))
+            M[label] = self.bh_matrices[label]._from_genotype_matrix(
+                H, positions=positions, sequence_length=ts.sequence_length, rng=rng
+            )
+
+        return M
+
+    def from_vcf(
+        self,
+        vb: BagOfVcf,
+        *,
+        sequence_length: int,
+        max_missing_genotypes: int,
+        min_seg_sites: int,
+        rng: np.random.Generator,
+    ) -> Dict[str, np.ndarray]:
+        """
+        Create a pseudo-genotype matrix from a region of a VCF/BCF.
+
+        The genomic window is drawn uniformly at random from the sequences
+        defined in the given :class:`BagOfVcf`.
+
+        Individuals in the VCFs are sampled (without replacement) for
+        inclusion in the output matrix. The size of the feature space
+        can therefore be vastly increased by having more individuals
+        in the VCFs than are needed for the feature dimensions.
+
+        :param vb:
+            The BagOfVcf object that describes the VCF/BCF files.
+        :param sequence_length:
+            Length of the genomic window to be sampled.
+        :param max_missing_genotypes:
+            Consider only sites with fewer missing genotype calls than
+            this number.
+        :param min_seg_sites:
+            Sampled genotype matrix must have at least this many variable
+            sites (after filtering sites for missingness).
+        :param rng:
+            Numpy random number generator.
+        :return:
+            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
+            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
+            count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
+            :math:`i`.
+        """
+        if self.bh_matrices.keys() != vb._samples.keys():
+            raise ValueError(
+                f"Feature labels {list(self.bh_matrices)} don't match the "
+                f"vcf bag's sample labels {list(vb._samples)}."
+            )
+        G, positions = vb.sample_genotype_matrix(
+            sequence_length=sequence_length,
+            max_missing_genotypes=max_missing_genotypes,
+            min_seg_sites=min_seg_sites,
+            require_phased=self._phased,
+            rng=rng,
+        )
+        num_samples = [len(v) for v in vb._samples.values()]
+        offsets = np.concatenate(([0], np.cumsum(num_samples[:-1])))
+
+        labelled_features = {}
+        for j, (label, bh_matrix) in enumerate(self.bh_matrices.items()):
+            if num_samples[j] < self._num_individuals[label]:
+                raise ValueError(
+                    f"{label}: Expected at least {self._num_individuals[label]} "
+                    f"individuals in the vcf bag, but only found {num_samples[j]}."
+                )
+
+            # Subsample individuals.
+            idx = offsets[j] + rng.choice(
+                num_samples[j], size=self._num_individuals[label], replace=False
+            )
+            H = G[:, idx, :]
+            labelled_features[label] = bh_matrix._from_genotype_matrix(
+                H, positions=positions, sequence_length=sequence_length, rng=rng
+            )
+        return labelled_features

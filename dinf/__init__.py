@@ -25,7 +25,7 @@ if "KMP_AFFINITY" not in os.environ:
 
 from .dinf import abc_gan, mcmc_gan
 from .discriminator import Discriminator
-from .feature_extractor import BinnedHaplotypeMatrix
+from .feature_extractor import BinnedHaplotypeMatrix, MultipleBinnedHaplotypeMatrices
 from .genobuilder import Genobuilder
 from .parameters import Param, Parameters
 from .store import Store
@@ -35,6 +35,7 @@ __all__ = [
     "__version__",
     "BagOfVcf",
     "BinnedHaplotypeMatrix",
+    "MultipleBinnedHaplotypeMatrices",
     "Discriminator",
     "Genobuilder",
     "Param",

@@ -1,3 +1,5 @@
+from __future__ import annotations
+import collections
 import dataclasses
 import functools
 from typing import Callable, Tuple
@@ -89,7 +91,7 @@ class Genobuilder:
     The inferrable parameters.
     """
 
-    feature_shape: Tuple
+    feature_shape: collections.abc.Mapping[str, Tuple]
     """
     Shape of the n-dimensional arrays produced by :attr:`.target_func`
     and :attr:`.generator_func`.
@@ -114,15 +116,29 @@ class Genobuilder:
         rng = np.random.default_rng(seed)
         thetas = self.parameters.draw(num_replicates=5, rng=rng)
         assert thetas.shape == (5, len(self.parameters))
+
         x_g = self.generator_func((rng.integers(low=0, high=2 ** 31), thetas[0]))
-        if not np.array_equal(x_g.shape, self.feature_shape):
+        if x_g.keys() != self.feature_shape.keys():
             raise ValueError(
-                f"Output of generator_func has shape {x_g.shape}, "
-                f"but feature_shape is {self.feature_shape}."
+                f"generator_func features have labels {list(x_g)}, "
+                f"but feature_shape has labels {list(self.feature_shape)}"
             )
+        for label in x_g:
+            if not np.array_equal(x_g[label].shape, self.feature_shape[label]):
+                raise ValueError(
+                    f"Output of generator_func has {label} shape {x_g.shape}, "
+                    f"but feature_shape[{label}] is {self.feature_shape[label]}."
+                )
+
         x_t = self.target_func(rng.integers(low=0, high=2 ** 31))
-        if not np.array_equal(x_t.shape, self.feature_shape):
+        if x_t.keys() != self.feature_shape.keys():
             raise ValueError(
-                f"Output of target_func has shape {x_t.shape}, "
-                f"but feature_shape is {self.feature_shape}."
+                f"target_func features have labels {list(x_t)}, "
+                f"but feature_shape has labels {list(self.feature_shape)}"
             )
+        for label in x_t:
+            if not np.array_equal(x_t[label].shape, self.feature_shape[label]):
+                raise ValueError(
+                    f"Output of target_func has {label} shape {x_t.shape}, "
+                    f"but feature_shape[{label}] is {self.feature_shape[label]}."
+                )

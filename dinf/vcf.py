@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Dict, Iterable, List, Tuple
 import collections
+import itertools
 import logging
 import pathlib
 import warnings
@@ -147,8 +148,8 @@ class BagOfVcf(collections.abc.Mapping):
         self,
         files: Iterable[str | pathlib.Path],
         *,
+        samples: collections.abc.Mapping[str, List[str]],
         contig_lengths: collections.abc.Mapping[str, int] | None = None,
-        individuals: Iterable[str] | None = None,
     ):
         """
         :param files:
@@ -157,10 +158,12 @@ class BagOfVcf(collections.abc.Mapping):
         :param contig_lengths:
             A dict mapping a contig name to contig length. Only the contigs in
             this dict will be used.
-        :param individuals:
-            An iterable of individual names corresponding to the VCF columns
+        :param samples:
+            A dictionary that maps a label to a list of individual names,
+            where the individual names correspond to the VCF columns
             for which genotypes will be sampled.
         """
+        individuals = itertools.chain(*samples.values())
         # Silence some warnings from cyvcf2.
         with warnings.catch_warnings():
             # We check if a contig is usable for a given vcf by querying
@@ -180,6 +183,7 @@ class BagOfVcf(collections.abc.Mapping):
                 files=files, contig_lengths=contig_lengths, individuals=individuals
             )
 
+        self._samples = samples
         self._regions: List[Tuple[str, int, int]] = []
 
     def _fill_bag(
