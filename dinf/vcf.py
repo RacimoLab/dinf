@@ -31,7 +31,7 @@ def get_contig_lengths(
         seen_contigs = set()
     with open(filename) as f:
         for line in f:
-            fields = line.split()
+            fields = line.split(maxsplit=2)
             assert len(fields) >= 2
             contig = fields[0]
             if keep_contigs is not None:

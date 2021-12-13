@@ -393,7 +393,6 @@ def mcmc_gan(
         )
         discriminator.to_file(store[-1] / "discriminator.pkl")
 
-        # chain, mcmc_generator_calls, acceptance_rate = _run_mcmc_emcee(
         dataset = _run_mcmc_emcee(
             start=start,
             discriminator=discriminator,

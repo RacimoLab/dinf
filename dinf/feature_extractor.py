@@ -1,13 +1,14 @@
 from __future__ import annotations
 import abc
 import collections
-from typing import Dict, List, Sequence
+from typing import Dict, List, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import tskit
 
 from .vcf import BagOfVcf
-from .misc import ts_ploidy_of_individuals, ts_nodes_of_individuals
+from .misc import Pytree, ts_ploidy_of_individuals, ts_nodes_of_individuals
 
 
 class _FeatureExtractor(abc.ABC):
@@ -17,7 +18,7 @@ class _FeatureExtractor(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def shape(self) -> Sequence[int]:
+    def shape(self) -> Pytree:
         """Shape of the features."""
 
     @abc.abstractmethod
@@ -137,7 +138,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
             raise ValueError("must have at least two pseudo-haplotypes")
 
     @property
-    def shape(self) -> Sequence[int]:
+    def shape(self) -> Tuple[int, int, int]:
         """Shape of the feature matrix."""
         return (self._num_pseudo_haplotypes, self._num_bins, 1)
 
@@ -317,7 +318,7 @@ class MultipleBinnedHaplotypeMatrices(_FeatureExtractor):
         self,
         *,
         num_individuals: dict,
-        num_bins: int,
+        num_bins: dict,
         ploidy: dict,
         phased: dict,
         # maf_thresh: dict,
@@ -343,7 +344,7 @@ class MultipleBinnedHaplotypeMatrices(_FeatureExtractor):
         self._global_maf_thresh = global_maf_thresh
 
     @property
-    def shape(self):
+    def shape(self) -> Dict[str, Tuple[int, int, int]]:
         return {label: bhm.shape for label, bhm in self.bh_matrices.items()}
 
     def from_ts(
@@ -351,7 +352,7 @@ class MultipleBinnedHaplotypeMatrices(_FeatureExtractor):
         ts: tskit.TreeSequence,
         *,
         rng: np.random.Generator,
-        individuals: collections.abc.Mapping[str, List[int]],
+        individuals: collections.abc.Mapping[str, npt.NDArray[np.integer]],
     ) -> Dict[str, np.ndarray]:
         """
         Create a pseudo-genotype matrix from a tree sequence.
