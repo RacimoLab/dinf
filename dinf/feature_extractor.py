@@ -145,7 +145,7 @@ class BinnedHaplotypeMatrix:
 
         G_sites, G_individuals, G_ploidy = G.shape
         assert G_individuals == self._num_individuals
-        assert G_ploidy == self._ploidy
+        assert G_ploidy == self._ploidy, (G_ploidy, self._ploidy)
         G = np.reshape(G, (G_sites, -1))
 
         # Identify genotypes that aren't 0 or 1. These will be ignored later.
@@ -264,6 +264,8 @@ class BinnedHaplotypeMatrix:
         # Subsample individuals.
         idx = rng.choice(G_individuals, size=self._num_individuals, replace=False)
         G = G[:, idx, :]
+        if np.any(G == -2):
+            raise ValueError("Mismatched ploidy among individuals.")
 
         return self._from_genotype_matrix(
             G, positions=positions, sequence_length=sequence_length, rng=rng
@@ -354,7 +356,7 @@ class MultipleBinnedHaplotypeMatrices:
             )
         G = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
         positions = np.array(ts.tables.sites.position)
-        M = {}
+        labelled_features = {}
         for label, l_individuals in individuals.items():
             if ts.sequence_length < self._num_bins[label]:
                 raise ValueError(
@@ -374,11 +376,11 @@ class MultipleBinnedHaplotypeMatrices:
             nodes = ts_nodes_of_individuals(ts, l_individuals)
             H = G[:, nodes]
             H = np.reshape(H, (-1, self._num_individuals[label], self._ploidy[label]))
-            M[label] = self.bh_matrices[label]._from_genotype_matrix(
+            labelled_features[label] = self.bh_matrices[label]._from_genotype_matrix(
                 H, positions=positions, sequence_length=ts.sequence_length, rng=rng
             )
 
-        return M
+        return labelled_features
 
     def from_vcf(
         self,
@@ -446,7 +448,10 @@ class MultipleBinnedHaplotypeMatrices:
             idx = offsets[j] + rng.choice(
                 num_samples[j], size=self._num_individuals[label], replace=False
             )
-            H = G[:, idx, :]
+            H = G[:, idx, : self._ploidy[label]]
+            ploidy_pad = H[:, :, self._ploidy[label] :]
+            if np.any(H == -2) or np.any(ploidy_pad != -2):
+                raise ValueError(f"{label}: mismatched ploidy among individuals.")
             labelled_features[label] = bh_matrix._from_genotype_matrix(
                 H, positions=positions, sequence_length=sequence_length, rng=rng
             )

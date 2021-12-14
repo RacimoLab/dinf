@@ -440,6 +440,7 @@ class TestGetGenotypeMatrix:
                 require_phased=True,
             )
 
+    @pytest.mark.skip(reason="make this a from_vcf() test instead")
     @pytest.mark.usefixtures("tmp_path")
     def test_mismatched_ploidy_among_individuals(self, tmp_path):
         num_individuals = 3

@@ -117,10 +117,6 @@ def get_genotype_matrix(
         raise ValueError(
             f"Mismatched ploidy among sites in {chrom}:{start}-{end}."
         ) from e
-    if np.any(np_G == -2):
-        raise ValueError(
-            f"Mismatched ploidy among individuals in {chrom}:{start}-{end}."
-        )
 
     np_positions = np.array(positions, dtype=int) - start
     return np_G, np_positions

@@ -9,7 +9,7 @@ from .test_vcf import bcftools_index, create_vcf_dataset
 
 def do_sim(
     *,
-    num_individuals,
+    num_individuals=None,
     ploidy,
     sequence_length,
     recombination_rate=1e-9,
@@ -24,7 +24,10 @@ def do_sim(
         demography = msprime.Demography()
         demography.add_population(name="a", initial_size=10_000)
     if samples is None:
+        assert num_individuals is not None
         samples = num_individuals
+    else:
+        assert num_individuals is None
     ts = msprime.sim_ancestry(
         samples=samples,
         ploidy=ploidy,
@@ -296,10 +299,11 @@ class TestBinnedHaplotypeMatrix:
                 dtype=dtype,
             )
 
+    @pytest.mark.parametrize("maf_thresh", [0, 0.05])
     @pytest.mark.parametrize("phased", [True, False])
     @pytest.mark.parametrize("ploidy", [1, 3])
     @pytest.mark.usefixtures("tmp_path")
-    def test_from_vcf(self, tmp_path, ploidy, phased):
+    def test_from_vcf(self, tmp_path, ploidy, phased, maf_thresh):
         # Use an odd number of haplotypes to get deterministic behaviour.
         num_individuals = 31
         assert (num_individuals * ploidy) % 2 != 0
@@ -385,21 +389,23 @@ class TestBinnedHaplotypeMatrix:
 
 
 class TestMultipleBinnedHaplotypeMatrices:
-    @pytest.mark.parametrize("ploidy", [1, 2, 3])
-    @pytest.mark.parametrize("phased", [True, False])
-    def test_from_ts_population(self, phased, ploidy):
-        num_individuals = 32
+    def setup_class(cls):
         demography = msprime.Demography()
         demography.add_population(name="a", initial_size=10_000)
         demography.add_population(name="b", initial_size=10_000)
         demography.add_population(name="c", initial_size=10_000)
         demography.add_population_split(time=1000, derived=["b", "c"], ancestral="a")
+        cls.demography = demography
+
+    @pytest.mark.parametrize("ploidy", [1, 2, 3])
+    @pytest.mark.parametrize("phased", [True, False])
+    def test_from_ts(self, phased, ploidy):
+        num_individuals = 32
         populations = ["b", "c"]  # sampled populations
         ts = do_sim(
-            num_individuals=num_individuals,
             ploidy=ploidy,
             sequence_length=100_000,
-            demography=demography,
+            demography=self.demography,
             samples=[
                 msprime.SampleSet(num_individuals, ploidy=ploidy, population=pop)
                 for pop in populations
@@ -420,3 +426,85 @@ class TestMultipleBinnedHaplotypeMatrices:
         assert dinf.misc.tree_equal(
             feature_extractor.shape, dinf.misc.tree_shape(features)
         )
+
+    @pytest.mark.parametrize("global_maf_thresh", [0, 0.05])
+    @pytest.mark.parametrize("global_phased", [True, False])
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_vcf(self, tmp_path, global_phased, global_maf_thresh):
+        # Use an odd number of haplotypes to get deterministic behaviour.
+        num_individuals = {"b": 31, "c": 9}
+        ploidy = {"b": 1, "c": 3}
+        assert all(
+            (j * k) % 2 != 0 for j, k in zip(num_individuals.values(), ploidy.values())
+        )
+        populations = list(num_individuals)  # sampled populations
+        num_bins = 8
+        sequence_length = 100_000
+        ts = do_sim(
+            ploidy=None,  # per-sample values are provided
+            sequence_length=sequence_length,
+            demography=self.demography,
+            samples=[
+                msprime.SampleSet(num_inds, ploidy=k, population=pop)
+                for (pop, num_inds), k in zip(num_individuals.items(), ploidy.values())
+            ],
+        )
+        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+
+        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+            num_individuals=num_individuals,
+            num_bins={pop: num_bins for pop in populations},
+            ploidy=ploidy,
+            global_phased=global_phased,
+            global_maf_thresh=global_maf_thresh,
+        )
+        ts_features = feature_extractor.from_ts(
+            ts, rng=np.random.default_rng(1234), individuals=individuals
+        )
+        assert dinf.misc.tree_equal(
+            feature_extractor.shape, dinf.misc.tree_shape(ts_features)
+        )
+
+        vcf_path = tmp_path / "1.vcf"
+        individual_names = [f"ind{j:03d}" for j in range(sum(num_individuals.values()))]
+        with open(vcf_path, "w") as f:
+            ts.write_vcf(
+                f,
+                contig_id="1",
+                position_transform=lambda x: np.floor(x) + 1,
+                individual_names=individual_names,
+            )
+        bcftools_index(vcf_path)
+        vb = dinf.BagOfVcf(
+            [f"{vcf_path}.gz"],
+            samples={
+                "b": individual_names[: num_individuals["b"]],
+                "c": individual_names[num_individuals["b"] :],
+            },
+        )
+
+        vcf_features = feature_extractor.from_vcf(
+            vb,
+            sequence_length=sequence_length,
+            max_missing_genotypes=0,
+            min_seg_sites=1,
+            rng=np.random.default_rng(1234),
+        )
+        assert dinf.misc.tree_equal(
+            feature_extractor.shape, dinf.misc.tree_shape(vcf_features)
+        )
+
+        def row_sorted(A):
+            """Sort the rows of A."""
+            return np.array(sorted(A, key=tuple))
+
+        for pop in populations:
+            Mts = ts_features[pop]
+            Mvcf = vcf_features[pop]
+
+            # Sort haplotypes because from_vcf() shuffles them.
+            Mts = row_sorted(Mts)
+            Mvcf = row_sorted(Mvcf)
+
+            np.testing.assert_array_equal(Mts.shape, Mvcf.shape)
+            np.testing.assert_array_equal(Mts, Mvcf)
