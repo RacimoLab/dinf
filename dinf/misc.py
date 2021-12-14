@@ -72,22 +72,33 @@ def ts_ploidy_of_individuals(
 Pytree = Any
 
 
+def _dtree_map(func, *trees: Pytree) -> Pytree:
+    return jax.tree_map(
+        func, *trees, is_leaf=lambda x: not isinstance(x, collections.abc.Mapping)
+    )
+
+
+def _dtree_structure(tree: Pytree) -> Pytree:
+    return jax.tree_structure(_dtree_map(lambda _: (), tree))
+
+
 def tree_equal(tree: Pytree, *others: Pytree) -> bool:
     """
     Return True if tree is the same as all the others, False otherwise.
     """
-    tree_structure = jax.tree_structure(tree)
+    structure = _dtree_structure(tree)
     return all(
-        tree_structure == jax.tree_structure(other)
-        and jax.tree_util.tree_all(jax.tree_map(np.array_equal, tree, other))
+        structure == _dtree_structure(other)
+        and jax.tree_util.tree_all(_dtree_map(np.array_equal, tree, other))
         for other in others
     )
 
 
 class _OpaqueSequence(collections.abc.Sequence):
     """
-    A wrapper for tuples so they're treated leaves in a pytree.
+    A wrapper for tuples so they're treated as leaves in a pytree.
     """
+
     def __init__(self, t):
         self._t = t
 
@@ -143,3 +154,11 @@ def tree_cdr(tree: Pytree) -> Pytree:
     Return a tree of the trailing values of all tuples in the given tree.
     """
     return jax.tree_map(lambda x: x[1:], tree, is_leaf=lambda x: isinstance(x, tuple))
+
+
+def leading_dim_size(tree: Pytree) -> int:
+    """Size of the leading dimension (e.g. batch dimension) of each feature."""
+    sizes = np.array(jax.tree_flatten(tree_car(tree_shape(tree)))[0])
+    # All features should have the same size for the leading dimension.
+    assert np.all(sizes[0] == sizes[1:])
+    return sizes[0]

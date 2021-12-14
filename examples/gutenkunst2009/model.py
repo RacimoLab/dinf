@@ -115,7 +115,7 @@ features = dinf.MultipleBinnedHaplotypeMatrices(
     num_individuals={pop: num_individuals for pop in populations},
     num_bins={pop: 128 for pop in populations},
     ploidy={pop: 2 for pop in populations},
-    phased={pop: True for pop in populations},
+    global_phased=True,
     global_maf_thresh=0.05,
 )
 

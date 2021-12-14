@@ -144,11 +144,22 @@ class BagOfVcf(collections.abc.Mapping):
     obtained by iterating over the bag.
     """
 
+    # TODO: samples should be a Pytree
+    samples: collections.abc.Mapping[str, List[str]] | None
+    """
+    A dictionary that maps a label to a list of individual names,
+    where the individual names correspond to the VCF columns
+    for which genotypes will be sampled.
+    This is a bookkeeping device that records which genotypes belong
+    to which label (e.g. which population). If None, it is assumed
+    that all individuals in the VCF will be treated as exchangeable.
+    """
+
     def __init__(
         self,
         files: Iterable[str | pathlib.Path],
         *,
-        samples: collections.abc.Mapping[str, List[str]],
+        samples: collections.abc.Mapping[str, List[str]] | None = None,
         contig_lengths: collections.abc.Mapping[str, int] | None = None,
     ):
         """
@@ -163,7 +174,9 @@ class BagOfVcf(collections.abc.Mapping):
             where the individual names correspond to the VCF columns
             for which genotypes will be sampled.
         """
-        individuals = itertools.chain(*samples.values())
+        individuals = None
+        if samples is not None:
+            individuals = itertools.chain(*samples.values())
         # Silence some warnings from cyvcf2.
         with warnings.catch_warnings():
             # We check if a contig is usable for a given vcf by querying
@@ -183,7 +196,7 @@ class BagOfVcf(collections.abc.Mapping):
                 files=files, contig_lengths=contig_lengths, individuals=individuals
             )
 
-        self._samples = samples
+        self.samples = samples
         self._regions: List[Tuple[str, int, int]] = []
 
     def _fill_bag(
@@ -209,6 +222,9 @@ class BagOfVcf(collections.abc.Mapping):
             if len(set(individuals)) != len(individuals):
                 raise ValueError("Individuals list contains duplicates.")
 
+        all_samples = None
+        all_samples_file = None
+
         if contig_lengths is None:
             contig_lengths = {}
             contigs = None
@@ -225,12 +241,20 @@ class BagOfVcf(collections.abc.Mapping):
                 or pathlib.Path(f"{file}.csi").exists()
             ):
                 raise ValueError(f"No index found for {file}.")
-            if individuals is not None:
+            if individuals is None:
+                if all_samples is None:
+                    all_samples = set(vcf.samples)
+                    all_samples_file = file
+                elif all_samples != set(vcf.samples):
+                    raise ValueError(
+                        f"{file} has different samples than {all_samples_file}."
+                    )
+            else:
                 individuals_not_found = set(individuals) - set(vcf.samples)
                 if len(individuals_not_found) > 0:
                     raise ValueError(
                         f"Requested individuals not found in {file}: "
-                        f"{', '.join(individuals_not_found)}"
+                        f"{', '.join(individuals_not_found)}."
                     )
             if contigs is None:
                 try:
@@ -265,7 +289,7 @@ class BagOfVcf(collections.abc.Mapping):
             contigs_not_found = contigs - contigs_seen
             if len(contigs_not_found) > 0:
                 raise ValueError(
-                    f"Requested contigs not found: {', '.join(contigs_not_found)}"
+                    f"Requested contigs not found: {', '.join(contigs_not_found)}."
                 )
 
         if len(contig2file) == 0:

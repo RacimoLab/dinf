@@ -1,52 +1,16 @@
 from __future__ import annotations
-import abc
 import collections
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import numpy as np
 import numpy.typing as npt
 import tskit
 
 from .vcf import BagOfVcf
-from .misc import Pytree, ts_ploidy_of_individuals, ts_nodes_of_individuals
+from .misc import ts_ploidy_of_individuals, ts_nodes_of_individuals
 
 
-class _FeatureExtractor(abc.ABC):
-    """
-    Abstract base class for feature extractors.
-    """
-
-    @property
-    @abc.abstractmethod
-    def shape(self) -> Pytree:
-        """Shape of the features."""
-
-    @abc.abstractmethod
-    def from_ts(
-        self, ts: tskit.TreeSequence, *, rng: np.random.Generator
-    ) -> np.ndarray:
-        """
-        Create a feature array from a tskit tree sequence.
-
-        :param ts: The tree sequence.
-        :param rng: Random number generator.
-        :return: An n-dimensional feature array.
-        """
-
-    @abc.abstractmethod
-    def from_vcf(
-        self,
-        vb: BagOfVcf,
-        *,
-        sequence_length: int,
-        max_missing_genotypes: int,
-        min_seg_sites: int,
-        rng: np.random.Generator,
-    ) -> np.ndarray:
-        """Create a feature array by sampling from a collection of VCFs."""
-
-
-class BinnedHaplotypeMatrix(_FeatureExtractor):
+class BinnedHaplotypeMatrix:
     """
     A factory for feature matrices of pseudo-haplotypes.
 
@@ -229,6 +193,11 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
             count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
             :math:`i`.
         """
+        if ts.num_samples != self._num_haplotypes:
+            raise ValueError(
+                f"Expected {self._num_haplotypes} haplotypes, "
+                f"but ts.num_samples == {ts.num_samples}."
+            )
         if ts.sequence_length < self._num_bins:
             raise ValueError("Sequence length is shorter than the number of bins")
 
@@ -301,7 +270,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         )
 
 
-class MultipleBinnedHaplotypeMatrices(_FeatureExtractor):
+class MultipleBinnedHaplotypeMatrices:
     """
     A labelled collection of :class:`BinnedHaplotypeMatrices`.
 
@@ -320,27 +289,36 @@ class MultipleBinnedHaplotypeMatrices(_FeatureExtractor):
         num_individuals: dict,
         num_bins: dict,
         ploidy: dict,
-        phased: dict,
+        # TODO: label-specific options for phased and maf_thresh.
+        # phased: dict,
         # maf_thresh: dict,
+        global_phased: bool,
         global_maf_thresh: float,
     ):
-        assert num_individuals.keys() == num_bins.keys()
-        assert num_individuals.keys() == ploidy.keys()
-        assert num_individuals.keys() == phased.keys()
+        dict_args = [num_individuals, num_bins, ploidy]
+        dict_strs = "num_individuals, num_bins, ploidy"
+        for d in dict_args:
+            if not isinstance(d, collections.abc.Mapping):
+                raise TypeError(f"Expected dict for each of: {dict_strs}.")
+        keys_list = [d.keys() for d in dict_args]
+        keys = keys_list[0]
+        if any(keys != other for other in keys_list[1:]):
+            raise ValueError(f"Must use the same dict keys for each of: {dict_strs}.")
+
         self.bh_matrices = {
             label: BinnedHaplotypeMatrix(
                 num_individuals=num_individuals[label],
                 num_bins=num_bins[label],
                 ploidy=ploidy[label],
-                phased=phased[label],
-                maf_thresh=0,
+                phased=global_phased,
+                maf_thresh=global_maf_thresh,
             )
-            for label in num_individuals.keys()
+            for label in keys
         }
         self._num_individuals = num_individuals
         self._num_bins = num_bins
         self._ploidy = ploidy
-        self._phased = phased
+        self._global_phased = global_phased
         self._global_maf_thresh = global_maf_thresh
 
     @property
@@ -440,19 +418,20 @@ class MultipleBinnedHaplotypeMatrices(_FeatureExtractor):
             count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
             :math:`i`.
         """
-        if self.bh_matrices.keys() != vb._samples.keys():
+        if vb.samples is None or self.bh_matrices.keys() != vb.samples.keys():
+            sample_labels = None if vb.samples is None else list(vb.samples)
             raise ValueError(
                 f"Feature labels {list(self.bh_matrices)} don't match the "
-                f"vcf bag's sample labels {list(vb._samples)}."
+                f"vcf bag's sample labels: {sample_labels}."
             )
         G, positions = vb.sample_genotype_matrix(
             sequence_length=sequence_length,
             max_missing_genotypes=max_missing_genotypes,
             min_seg_sites=min_seg_sites,
-            require_phased=self._phased,
+            require_phased=self._global_phased,
             rng=rng,
         )
-        num_samples = [len(v) for v in vb._samples.values()]
+        num_samples = [len(v) for v in vb.samples.values()]
         offsets = np.concatenate(([0], np.cumsum(num_samples[:-1])))
 
         labelled_features = {}

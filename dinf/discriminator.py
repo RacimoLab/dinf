@@ -4,7 +4,6 @@ import functools
 import pathlib
 import pickle
 import sys
-from typing import Any, Sequence
 
 import numpy as np
 import jax
@@ -13,22 +12,27 @@ from flax import linen as nn
 import flax.training.train_state
 import optax
 
-from .misc import Pytree, tree_equal, tree_shape, tree_cons, tree_car, tree_cdr
+from .misc import (
+    Pytree,
+    tree_equal,
+    tree_shape,
+    tree_cons,
+    tree_cdr,
+    leading_dim_size,
+)
 
 
 # Because we use batch normalisation, the training state needs to also record
 # batch_stats to maintain the running mean and variance.
 class TrainState(flax.training.train_state.TrainState):
-    batch_stats: Any
+    batch_stats: Pytree
 
 
 def batchify(dataset, batch_size):
     """Generate batch_size chunks of the dataset."""
     assert batch_size >= 1
-
-    sizes = np.array(jax.tree_flatten(tree_car(tree_shape(dataset)))[0])
-    assert np.all(sizes[0] == sizes[1:])
-    size = sizes[0]
+    size = leading_dim_size(dataset)
+    assert size >= 1
 
     i, j = 0, batch_size
     while i < size:
@@ -127,7 +131,8 @@ class Discriminator:
     """
 
     dnn: nn.Module
-    input_shape: Sequence[int]
+    input_shape: Pytree
+    input_dtype: np.dtype
     variables: Pytree
     train_metrics: Pytree = None
     # Bump this after making internal changes.
@@ -136,7 +141,7 @@ class Discriminator:
 
     @classmethod
     def from_input_shape(
-        cls, input_shape: Pytree, rng: np.random.Generator
+        cls, input_shape: Pytree, rng: np.random.Generator, input_dtype=np.int8
     ) -> Discriminator:
         """
         Build a neural network with the given input shape.
@@ -168,10 +173,11 @@ class Discriminator:
                 f"input_shape={input_shape}"
             )
 
-        # add leading batch dimension
+        # Add leading batch dimension.
         input_shape = tree_cons(1, input_shape)
+        input_dtype = np.dtype(input_dtype)
         dummy_input = jax.tree_map(
-            lambda x: jnp.zeros(x, dtype=np.int8),
+            lambda x: jnp.zeros(x, dtype=input_dtype),
             input_shape,
             is_leaf=lambda x: isinstance(x, tuple),
         )
@@ -181,7 +187,12 @@ class Discriminator:
             return dnn.init(*args, train=False)
 
         variables = init(key, dummy_input)
-        return cls(dnn=dnn, variables=variables, input_shape=input_shape)
+        return cls(
+            dnn=dnn,
+            variables=variables,
+            input_shape=input_shape,
+            input_dtype=input_dtype,
+        )
 
     @classmethod
     def from_file(cls, filename: str | pathlib.Path) -> Discriminator:
@@ -263,21 +274,14 @@ class Discriminator:
             fit() (if any). If false, loss/accuracy metrics will be appended
             to the existing metrics.
         """
-        train_x_sizes, train_y_sizes, val_x_sizes, val_y_sizes = map(
-            lambda tree: np.array(jax.tree_flatten(tree_car(tree_shape(train_x)))[0]),
-            [train_x, train_y, val_x, val_y],
-        )
-        train_size = train_x_sizes[0]
-        if not np.all(train_size == train_x_sizes) or not np.all(
-            train_size == train_y_sizes
-        ):
+        if not leading_dim_size(train_x) == leading_dim_size(train_y):
             raise ValueError(
                 "Leading dimensions of train_x and train_y must be the same.\n"
                 f"train_x={tree_shape(train_x)}\n"
                 f"train_y={tree_shape(train_y)}"
             )
-        val_size = val_x_sizes[0]
-        if not np.all(val_size == val_x_sizes) or not np.all(val_size == val_y_sizes):
+        val_x_size = leading_dim_size(val_x)
+        if not val_x_size == leading_dim_size(val_y):
             raise ValueError(
                 "Leading dimensions of val_x and val_y must be the same.\n"
                 f"val_x={tree_shape(val_x)}\n"
@@ -290,10 +294,7 @@ class Discriminator:
                 "Trailing dimensions of train_x and val_x must match input_shape.\n"
                 f"input_shape={self.input_shape}\n"
                 f"train_x={tree_shape(train_x)}\n"
-                f"val_x={tree_shape(val_x)}\n"
-                f"input_shape={tree_cdr(self.input_shape)}\n"
-                f"train_x={tree_cdr(tree_shape(train_x))}\n"
-                f"val_x={tree_cdr(tree_shape(val_x))}"
+                f"val_x={tree_shape(val_x)}"
             )
         if not tree_equal(*map(tree_cdr, map(tree_shape, [train_y, val_y]))):
             raise ValueError(
@@ -361,7 +362,7 @@ class Discriminator:
 
         train_ds = dict(input=train_x, output=train_y)
         test_ds = dict(input=val_x, output=val_y)
-        do_eval = len(val_x) > 0
+        do_eval = val_x_size > 0
 
         if reset_metrics or self.train_metrics is None:
             self.train_metrics = dict(
@@ -408,17 +409,12 @@ class Discriminator:
         :return: A vector of predictions, one for each input instance.
         """
 
-        shape_x = tree_shape(x)
-        sizes_x = np.array(jax.tree_flatten(tree_car(shape_x))[0])
-        if not np.all(sizes_x[0] == sizes_x[1:]):
-            raise ValueError(
-                f"Leading dimensions of input features must match.\nx={shape_x}"
-            )
-        if not tree_equal(*map(tree_cdr, [self.input_shape, shape_x])):
+        assert leading_dim_size(x) > 0
+        if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(x)])):
             raise ValueError(
                 "Trailing dimensions of x must match input_shape.\n"
                 f"input_shape={self.input_shape}\n"
-                f"x={shape_x}"
+                f"x={tree_shape(x)}"
             )
 
         if "batch_stats" not in self.variables:

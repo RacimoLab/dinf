@@ -3,8 +3,7 @@ import jax
 import chex
 import pytest
 
-from dinf import discriminator
-from dinf.misc import tree_car, tree_shape
+from dinf import discriminator, misc
 
 
 def random_dataset(size, seed=1234):
@@ -97,19 +96,12 @@ class TestBatchify:
         n = 128
         dataset = {"a": np.zeros(n), "b": {"c": np.ones(n)}}
 
-        def size(a):
-            """Size of the leading dimension of a feature."""
-            sz = np.array(jax.tree_flatten(tree_car(tree_shape(a)))[0])
-            # All features should have the same size for the leading dimension.
-            assert np.all(sz[0] == sz[1:])
-            return sz[0]
-
         # batch_size = 1
         batches = list(discriminator.batchify(dataset, 1))
         assert len(batches) == n
         for batch in batches:
             chex.assert_trees_all_equal_structs(dataset, batch)
-            assert size(batch) == 1
+            assert misc.leading_dim_size(batch) == 1
 
         # batch_size divides n
         batch_size = n // 4
@@ -117,14 +109,14 @@ class TestBatchify:
         assert len(batches) == n // batch_size
         for batch in batches:
             chex.assert_trees_all_equal_structs(dataset, batch)
-            assert size(batch) == batch_size
+            assert misc.leading_dim_size(batch) == batch_size
 
         # batch_size > n
         batches = list(discriminator.batchify(dataset, n + 5))
         assert len(batches) == 1
         for batch in batches:
             chex.assert_trees_all_equal_structs(dataset, batch)
-            assert size(batch) == n
+            assert misc.leading_dim_size(batch) == n
 
         # batch_size doesn't divide n evenly
         batch_size = 13
@@ -134,7 +126,7 @@ class TestBatchify:
         assert len(batches) == n // batch_size + 1
         for batch in batches[:-1]:
             chex.assert_trees_all_equal_structs(dataset, batch)
-            assert size(batch) == batch_size
+            assert misc.leading_dim_size(batch) == batch_size
         last_batch = batches[-1]
         chex.assert_trees_all_equal_structs(dataset, last_batch)
-        assert size(last_batch) == remainder
+        assert misc.leading_dim_size(last_batch) == remainder

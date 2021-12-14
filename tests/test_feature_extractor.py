@@ -216,57 +216,6 @@ class TestBinnedHaplotypeMatrix:
         # We should get fewer and fewer counts for increasing maf_thresh.
         assert all(np.diff(counts) <= 0)
 
-    @pytest.mark.parametrize("population", [1, 2, "b", "c"])
-    @pytest.mark.parametrize("ploidy", [1, 2, 3])
-    @pytest.mark.parametrize("phased", [True, False])
-    def test_from_ts_population(self, phased, ploidy, population):
-        num_individuals = 32
-        demography = msprime.Demography()
-        demography.add_population(name="a", initial_size=10_000)
-        demography.add_population(name="b", initial_size=10_000)
-        demography.add_population(name="c", initial_size=10_000)
-        demography.add_population_split(time=1000, derived=["b", "c"], ancestral="a")
-        ts = do_sim(
-            num_individuals=num_individuals,
-            ploidy=ploidy,
-            sequence_length=100_000,
-            demography=demography,
-            samples=[
-                msprime.SampleSet(num_individuals, ploidy=ploidy, population=pop)
-                for pop in ["b", "c"]
-            ],
-        )
-
-        bhm = dinf.BinnedHaplotypeMatrix(
-            num_individuals=num_individuals,
-            num_bins=24,
-            maf_thresh=0,
-            ploidy=ploidy,
-            phased=phased,
-        )
-
-        rng = np.random.default_rng(1234)
-        M = bhm.from_ts(ts, rng=rng, population=population)
-        assert M.shape == bhm.shape
-
-    @pytest.mark.parametrize("population", [1, "notapopulation"])
-    def test_from_ts_population_not_found(self, population):
-        ploidy = 2
-        bhm = dinf.BinnedHaplotypeMatrix(
-            num_individuals=32,
-            num_bins=24,
-            maf_thresh=0,
-            ploidy=ploidy,
-            phased=True,
-        )
-        rng = np.random.default_rng(1234)
-        ts = do_sim(num_individuals=32, ploidy=ploidy, sequence_length=100_000)
-        with pytest.raises(
-            ValueError,
-            match="(not found in the population table)|(found 0 in population)",
-        ):
-            bhm.from_ts(ts, rng=rng, population=population)
-
     @pytest.mark.parametrize("ploidy", [1, 2, 3])
     def test_from_ts_mismatched_ts(self, ploidy):
         bhm = dinf.BinnedHaplotypeMatrix(
@@ -408,9 +357,6 @@ class TestBinnedHaplotypeMatrix:
         Mts = row_sorted(Mts)
         Mvcf = row_sorted(Mvcf)
 
-        # print((positions * num_bins / sequence_length).astype(int))
-        print(np.squeeze(Mts))
-        print(np.squeeze(Mvcf))
         np.testing.assert_array_equal(Mts.shape, Mvcf.shape)
         np.testing.assert_array_equal(Mts, Mvcf)
 
@@ -436,3 +382,41 @@ class TestBinnedHaplotypeMatrix:
                 min_seg_sites=20,
                 rng=np.random.default_rng(123),
             )
+
+
+class TestMultipleBinnedHaplotypeMatrices:
+    @pytest.mark.parametrize("ploidy", [1, 2, 3])
+    @pytest.mark.parametrize("phased", [True, False])
+    def test_from_ts_population(self, phased, ploidy):
+        num_individuals = 32
+        demography = msprime.Demography()
+        demography.add_population(name="a", initial_size=10_000)
+        demography.add_population(name="b", initial_size=10_000)
+        demography.add_population(name="c", initial_size=10_000)
+        demography.add_population_split(time=1000, derived=["b", "c"], ancestral="a")
+        populations = ["b", "c"]  # sampled populations
+        ts = do_sim(
+            num_individuals=num_individuals,
+            ploidy=ploidy,
+            sequence_length=100_000,
+            demography=demography,
+            samples=[
+                msprime.SampleSet(num_individuals, ploidy=ploidy, population=pop)
+                for pop in populations
+            ],
+        )
+        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+
+        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+            num_individuals={pop: num_individuals for pop in populations},
+            num_bins={pop: 24 for pop in populations},
+            ploidy={pop: ploidy for pop in populations},
+            global_phased=phased,
+            global_maf_thresh=0,
+        )
+
+        rng = np.random.default_rng(1234)
+        features = feature_extractor.from_ts(ts, rng=rng, individuals=individuals)
+        assert dinf.misc.tree_equal(
+            feature_extractor.shape, dinf.misc.tree_shape(features)
+        )

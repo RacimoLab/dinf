@@ -577,32 +577,46 @@ class TestBagOfVcf:
         with pytest.raises(ValueError, match="doesn't contain GT field"):
             dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
 
+    @pytest.mark.usefixtures("tmp_path")
+    def test_samples(self, tmp_path):
+        all_samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000, 200_000])
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=None)
+        assert vb["1"].samples == all_samples["A"] + all_samples["B"]
+
     @pytest.mark.parametrize("num_individuals", [20, 97])
     @pytest.mark.usefixtures("tmp_path")
-    def test_individuals(self, tmp_path, num_individuals):
-        samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
-        individuals = samples["A"][:num_individuals]
-        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), individuals=individuals)
-        assert vb["1"].samples == individuals
+    def test_samples_one_population(self, tmp_path, num_individuals):
+        all_samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        samples = {"A": all_samples["A"][:num_individuals]}
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=samples)
+        assert vb["1"].samples == samples["A"]
+
+    @pytest.mark.parametrize("num_individuals", [20, 97])
+    @pytest.mark.usefixtures("tmp_path")
+    def test_samples_two_populations(self, tmp_path, num_individuals):
+        all_samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        samples = {pop: all_samples[pop][:num_individuals] for pop in ("A", "B")}
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=samples)
+        assert vb["1"].samples == samples["A"] + samples["B"]
 
     @pytest.mark.filterwarnings("ignore:not all requested samples found:UserWarning")
     @pytest.mark.usefixtures("tmp_path")
-    def test_missing_individuals(self, tmp_path):
-        samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
-        individuals = ["nonexistent_1"] + samples["A"] + ["nonexistent_2"]
+    def test_missing_samples(self, tmp_path):
+        all_samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        samples = {"A": ["nonexistent_1"] + all_samples["A"] + ["nonexistent_2"]}
         with pytest.raises(ValueError, match="individuals not found") as err:
-            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), individuals=individuals)
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=samples)
         assert "nonexistent_1" in err.value.args[0]
         assert "nonexistent_2" in err.value.args[0]
-        for ind in samples["A"]:
+        for ind in all_samples["A"]:
             assert ind not in err.value.args[0]
 
     @pytest.mark.usefixtures("tmp_path")
-    def test_duplicate_individuals(self, tmp_path):
-        samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
-        individuals = samples["A"] + [samples["A"][0]]
+    def test_duplicate_samples(self, tmp_path):
+        all_samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        samples = {"A": all_samples["A"] + [all_samples["A"][0]]}
         with pytest.raises(ValueError, match="Individuals list contains duplicates"):
-            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), individuals=individuals)
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=samples)
 
     @pytest.mark.usefixtures("tmp_path")
     def test_contigs(self, tmp_path):
@@ -705,7 +719,7 @@ class TestBagOfVcf:
             tmp_path, contig_lengths=[200_000, 100_000], ploidy=ploidy
         )
         vb = dinf.BagOfVcf(
-            tmp_path.glob("*.vcf.gz"), individuals=vcf_samples["A"][:num_individuals]
+            tmp_path.glob("*.vcf.gz"), samples={"A": vcf_samples["A"][:num_individuals]}
         )
         G, positions = vb.sample_genotype_matrix(
             sequence_length=sequence_length,

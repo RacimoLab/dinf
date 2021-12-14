@@ -8,9 +8,11 @@ import warnings
 
 import arviz as az
 import emcee
+import jax
 import numpy as np
 
 import dinf
+from .misc import tree_cons, tree_cdr, tree_shape
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +40,16 @@ def _sim_replicates(*, sim_func, args, num_replicates, parallelism):
         map_f = _pool.imap
 
     result = None
-    for j, m in enumerate(map_f(sim_func, args)):
+    treedef = None
+    for j, M in enumerate(map_f(sim_func, args)):
         if result is None:
-            result = np.empty((num_replicates, *m.shape), dtype=m.dtype)
-        result[j] = m
-    return result
+            treedef = jax.tree_structure(M)
+            result = []
+            for m in jax.tree_leaves(M):
+                result.append(np.empty((num_replicates, *m.shape), dtype=m.dtype))
+        for res, m in zip(result, jax.tree_leaves(M)):
+            res[j] = m
+    return jax.tree_unflatten(treedef, result)
 
 
 def _generate_data(*, generator, parameters, num_replicates, parallelism, rng):
@@ -92,11 +99,18 @@ def _generate_training_data(
         parallelism=parallelism,
         rng=rng,
     )
-    x = np.concatenate((x_generator, x_target))
+    # XXX: Large copy doubles peak memory.
+    # Preallocate somehow?
+    x = jax.tree_map(lambda *l: np.concatenate(l), x_generator, x_target)
+    del x_generator
+    del x_target
     y = np.concatenate((np.zeros(nreps_generator), np.ones(nreps_target)))
     # shuffle
-    indexes = rng.permutation(len(x))
-    x = x[indexes]
+    indexes = rng.permutation(num_replicates)
+    # XXX: Large copy doubles peak memory.
+    # Do this in-place?
+    # https://stackoverflow.com/a/60902210/9500949
+    x = jax.tree_map(lambda l: l[indexes], x)
     y = y[indexes]
     return x, y
 
@@ -263,8 +277,19 @@ def _train_discriminator(
             rng=rng,
         )
     else:
-        val_x = np.empty((0, *train_x.shape[1:]), dtype=train_x.dtype)
-        val_y = np.empty((0, *train_y.shape[1:]), dtype=train_y.dtype)
+        x_dtype = jax.tree_leaves(train_x)[0].dtype
+        val_x = jax.tree_map(
+            lambda x: np.empty(x, dtype=x_dtype),
+            tree_cons(0, tree_cdr(tree_shape(train_x))),
+            is_leaf=lambda x: isinstance(x, tuple),
+        )
+        # This is a pretty horrible way to write: val_y = ()
+        y_dtype = jax.tree_leaves(train_y)[0].dtype
+        val_y = jax.tree_map(
+            lambda x: np.empty(x, dtype=y_dtype),
+            tree_cons(0, tree_cdr(tree_shape(train_y))),
+            is_leaf=lambda x: isinstance(x, tuple),
+        )
 
     discriminator.fit(
         rng,
