@@ -3,7 +3,6 @@
 ## Inference
 
 ```{eval-rst}
-.. autofunction:: dinf.abc_gan
 .. autofunction:: dinf.mcmc_gan
 ```
 
