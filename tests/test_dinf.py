@@ -40,7 +40,7 @@ def test_abc_gan(tmp_path):
     rng = np.random.default_rng(123)
     genobuilder = examples.bottleneck.model.genobuilder
     working_directory = tmp_path / "work_dir"
-    dinf.abc_gan(
+    dinf.dinf.abc_gan(
         genobuilder=genobuilder,
         iterations=2,
         training_replicates=16,
@@ -65,7 +65,7 @@ def test_abc_gan(tmp_path):
 
     # resume
     os.chdir(working_directory)
-    dinf.abc_gan(
+    dinf.dinf.abc_gan(
         genobuilder=genobuilder,
         iterations=1,
         training_replicates=16,
@@ -88,7 +88,7 @@ def test_abc_gan(tmp_path):
     with pytest.raises(
         ValueError, match="Cannot subsample .* posteriors from .* proposals"
     ):
-        dinf.abc_gan(
+        dinf.dinf.abc_gan(
             genobuilder=genobuilder,
             iterations=2,
             training_replicates=16,
@@ -108,7 +108,7 @@ def test_abc_gan(tmp_path):
     ]:
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
-            dinf.abc_gan(
+            dinf.dinf.abc_gan(
                 genobuilder=genobuilder,
                 iterations=2,
                 training_replicates=16,
