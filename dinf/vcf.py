@@ -132,23 +132,18 @@ class BagOfVcf(collections.abc.Mapping):
     object for that contig. The interface is provided via Python's
     :class:`collections.abc.Mapping` protocol. In addition, the class provides
     methods for sampling regions of the genome at random.
-    """
 
-    lengths: np.ndarray
-    """
-    Lengths of the contigs in the bag. The order matches the contig order
-    obtained by iterating over the bag.
-    """
-
-    # TODO: samples should be a Pytree
-    samples: collections.abc.Mapping[str, List[str]] | None
-    """
-    A dictionary that maps a label to a list of individual names,
-    where the individual names correspond to the VCF columns
-    for which genotypes will be sampled.
-    This is a bookkeeping device that records which genotypes belong
-    to which label (e.g. which population). If None, it is assumed
-    that all individuals in the VCF will be treated as exchangeable.
+    :ivar lengths:
+        Lengths of the contigs in the bag. The order matches the contig order
+        obtained by iterating over the bag.
+    :vartype lengths: np.ndarray
+    :ivar samples:
+        A dictionary that maps a label to a list of individual names,
+        where the individual names correspond to the VCF columns
+        for which genotypes will be sampled.
+        This is a bookkeeping device that records which genotypes belong
+        to which label (e.g. which population). If None, it is assumed
+        that all individuals in the VCF will be treated as exchangeable.
     """
 
     def __init__(

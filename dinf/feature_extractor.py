@@ -280,11 +280,6 @@ class MultipleBinnedHaplotypeMatrices:
     correspond to populations, but this need not be the case.
     """
 
-    bh_matrices: collections.abc.Mapping[str, BinnedHaplotypeMatrix]
-    """
-    A dict that maps a label to a :class:`BinnedHaplotypeMatrix`.
-    """
-
     def __init__(
         self,
         *,
