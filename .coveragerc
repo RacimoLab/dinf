@@ -1,0 +1,4 @@
+[run]
+omit =
+    # This file isn't used.
+    dinf/report.py
