@@ -61,14 +61,14 @@ class TestGetContigLengths:
         assert "2" not in err.value.args[0]
 
 
-def create_ts(*, length: int, ploidy: int, seeds: Tuple[int, int]):
+def create_ts(*, length: int, ploidy: int, seeds: Tuple[int, int], num_samples: int):
     demography = msprime.Demography()
     demography.add_population(name="A", initial_size=10_000)
     demography.add_population(name="B", initial_size=5_000)
     demography.add_population(name="C", initial_size=1_000)
     demography.add_population_split(time=1000, derived=["A", "B"], ancestral="C")
     ts = msprime.sim_ancestry(
-        samples={"A": 128, "B": 128},
+        samples={"A": num_samples, "B": num_samples},
         demography=demography,
         sequence_length=length,
         recombination_rate=1.25e-8,
@@ -91,10 +91,13 @@ def create_vcf_dataset(
     contig_lengths: List[int],
     ploidy: int = 2,
     transform_func: Callable | None = None,
+    num_samples: int = 128,
 ):
     for contig_id, contig_length in enumerate(contig_lengths, 1):
         seeds = (contig_id + 1, contig_id + 2)
-        ts = create_ts(length=contig_length, ploidy=ploidy, seeds=seeds)
+        ts = create_ts(
+            length=contig_length, ploidy=ploidy, seeds=seeds, num_samples=num_samples
+        )
         for ind in ts.individuals():
             assert len(ind.nodes) == ploidy
             assert len(set(ts.node(n).population for n in ind.nodes)) == 1
@@ -440,42 +443,6 @@ class TestGetGenotypeMatrix:
                 require_phased=True,
             )
 
-    @pytest.mark.skip(reason="make this a from_vcf() test instead")
-    @pytest.mark.usefixtures("tmp_path")
-    def test_mismatched_ploidy_among_individuals(self, tmp_path):
-        num_individuals = 3
-        contig_length = 100_000
-        header = get_vcf_header(
-            num_individuals=num_individuals, contig_length=contig_length
-        )
-
-        vline1 = "1\t1234\t.\tA\tC\t.\tPASS\t.\tGT\t"
-        vline1 += "\t".join(["0|1"] * num_individuals)
-        vline1 += "\n"
-
-        vline2 = "1\t4321\t.\tA\tG\t.\tPASS\t.\tGT\t"
-        vline2 += "\t".join(["1|0"] + ["1"] * (num_individuals - 1))
-        vline2 += "\n"
-
-        vcf_path = tmp_path / "1.vcf"
-        with open(vcf_path, "w") as f:
-            f.write(header + vline1 + vline2)
-        vcf_path = bcftools_index(vcf_path)
-
-        vcf = cyvcf2.VCF(vcf_path)
-        start = 1
-        end = contig_length
-
-        with pytest.raises(ValueError, match="Mismatched ploidy among individuals"):
-            dinf.vcf.get_genotype_matrix(
-                vcf,
-                chrom="1",
-                start=start,
-                end=end,
-                max_missing_genotypes=0,
-                require_phased=True,
-            )
-
 
 class TestBagOfVcf:
     @pytest.mark.usefixtures("tmp_path")
@@ -687,6 +654,21 @@ class TestBagOfVcf:
         )
         with pytest.raises(ValueError, match="provide a contig_lengths argument"):
             dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_different_samples_in_different_files(self, tmp_path):
+        (tmp_path / "a").mkdir()
+        (tmp_path / "b").mkdir()
+        create_vcf_dataset(
+            tmp_path / "a", contig_lengths=[100_000, 200_000], num_samples=20
+        )
+        create_vcf_dataset(
+            tmp_path / "b", contig_lengths=[100_000, 200_000], num_samples=40
+        )
+        with pytest.raises(ValueError, match="different samples"):
+            dinf.BagOfVcf(
+                [(tmp_path / "a" / "1.vcf.gz"), (tmp_path / "b" / "2.vcf.gz")]
+            )
 
     @pytest.mark.parametrize("sequence_length", [50, 2027, 10_000])
     @pytest.mark.usefixtures("tmp_path")

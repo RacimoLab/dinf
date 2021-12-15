@@ -12,7 +12,6 @@ import jax
 import numpy as np
 
 import dinf
-from .misc import tree_cons, tree_cdr, tree_shape
 
 logger = logging.getLogger(__name__)
 
@@ -267,6 +266,7 @@ def _train_discriminator(
         parallelism=parallelism,
         rng=rng,
     )
+    val_x, val_y = None, None
     if test_replicates > 0:
         val_x, val_y = _generate_training_data(
             target=genobuilder.target_func,
@@ -275,20 +275,6 @@ def _train_discriminator(
             num_replicates=test_replicates,
             parallelism=parallelism,
             rng=rng,
-        )
-    else:
-        x_dtype = jax.tree_leaves(train_x)[0].dtype
-        val_x = jax.tree_map(
-            lambda x: np.empty(x, dtype=x_dtype),
-            tree_cons(0, tree_cdr(tree_shape(train_x))),
-            is_leaf=lambda x: isinstance(x, tuple),
-        )
-        # This is a pretty horrible way to write: val_y = ()
-        y_dtype = jax.tree_leaves(train_y)[0].dtype
-        val_y = jax.tree_map(
-            lambda x: np.empty(x, dtype=y_dtype),
-            tree_cons(0, tree_cdr(tree_shape(train_y))),
-            is_leaf=lambda x: isinstance(x, tuple),
         )
 
     discriminator.fit(

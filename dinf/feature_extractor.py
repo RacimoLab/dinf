@@ -449,7 +449,7 @@ class MultipleBinnedHaplotypeMatrices:
                 num_samples[j], size=self._num_individuals[label], replace=False
             )
             H = G[:, idx, : self._ploidy[label]]
-            ploidy_pad = H[:, :, self._ploidy[label] :]
+            ploidy_pad = G[:, idx, self._ploidy[label] :]
             if np.any(H == -2) or np.any(ploidy_pad != -2):
                 raise ValueError(f"{label}: mismatched ploidy among individuals.")
             labelled_features[label] = bh_matrix._from_genotype_matrix(

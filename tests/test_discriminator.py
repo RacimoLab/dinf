@@ -3,21 +3,27 @@ import jax
 import chex
 import pytest
 
-from dinf import discriminator, misc
+from dinf import discriminator
+from dinf.misc import leading_dim_size, tree_car, tree_cdr
 
 
-def random_dataset(size, seed=1234):
+def random_dataset(size=None, shape=None, seed=1234):
     """Make up a test dataset."""
-    key1, key2 = jax.random.split(jax.random.PRNGKey(seed))
-    input_shape = (size, 32, 32, 1)
-    x = {
-        "x": jax.random.randint(
-            key1, shape=input_shape, minval=0, maxval=128, dtype=np.int8
-        )
-    }
-    y = jax.random.randint(key2, shape=(size,), minval=0, maxval=2, dtype=np.int8)
-    x_shape = {"x": np.array(input_shape[1:])}
-    return x, y, x_shape
+    rng = np.random.default_rng(seed)
+    if shape is None:
+        assert size is not None
+        shape = {"x": (size, 32, 32, 1)}
+    else:
+        assert size is None
+        size = jax.tree_flatten(tree_car(shape))[0][0]
+    x = jax.tree_map(
+        lambda s: rng.integers(low=0, high=128, size=s, dtype=np.int8),
+        shape,
+        is_leaf=lambda x: isinstance(x, tuple),
+    )
+    y = rng.integers(low=0, high=2, size=(size,), dtype=np.int8)
+    input_shape = tree_cdr(shape)
+    return x, y, input_shape
 
 
 class TestExchangeableCNN:
@@ -33,10 +39,40 @@ class TestExchangeableCNN:
 
 
 class TestDiscriminator:
-    def test_from_input_shape(self):
+    @pytest.mark.parametrize(
+        "input_shape",
+        [
+            (32, 64, 1),
+            (32, 64, 4),
+            {"x": np.array((64, 32, 1))},
+            {"x": (64, 32, 1), "y": {"z": (16, 8, 4)}},
+        ],
+    )
+    def test_from_input_shape(self, input_shape):
         rng = np.random.default_rng(1234)
-        input_shape = {"x": np.array((64, 64, 1))}
         discriminator.Discriminator.from_input_shape(input_shape, rng)
+
+    @pytest.mark.parametrize(
+        "input_shape",
+        [
+            16,
+            (16,),
+            (16, 16),
+            (32, 64, 10),
+            (1, 64, 10),
+            (64, 1, 10),
+            {"x": np.array((64, 32, 10))},
+            {"x": np.array((1, 32, 10))},
+            {"x": np.array((64, 1, 10))},
+            {"x": (64, 32, 1), "y": {"z": (16, 8, 10)}},
+            {"x": (64, 32, 1), "y": {"z": (16, 1, 4)}},
+            {"x": (64, 32, 1), "y": {"z": (1, 8, 4)}},
+        ],
+    )
+    def test_bad_shape(self, input_shape):
+        rng = np.random.default_rng(1234)
+        with pytest.raises(ValueError, match="features must each have shape"):
+            discriminator.Discriminator.from_input_shape(input_shape, rng)
 
     def test_fit(self):
         train_x, train_y, input_shape = random_dataset(50)
@@ -47,11 +83,45 @@ class TestDiscriminator:
         d1.fit(rng, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y)
         chex.assert_tree_all_finite(d1.variables)
 
-        # Should be deterministic.
+        # Results should be deterministic and not depend on validation.
         rng = np.random.default_rng(1234)
         d2 = discriminator.Discriminator.from_input_shape(input_shape, rng)
-        d2.fit(rng, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y)
+        d2.fit(rng, train_x=train_x, train_y=train_y)
         chex.assert_trees_all_close(d1.variables, d2.variables)
+
+    def test_fit_bad_shapes(self):
+        rng = np.random.default_rng(1234)
+
+        x, y, input_shape = random_dataset(shape=(30, 12, 34, 2))
+        d = discriminator.Discriminator.from_input_shape(input_shape, rng)
+        d.fit(rng, train_x=x, train_y=y)
+
+        with pytest.raises(ValueError, match="Must specify both"):
+            d.fit(rng, train_x=x, train_y=y, val_x=x)
+        with pytest.raises(ValueError, match="Must specify both"):
+            d.fit(rng, train_x=x, train_y=y, val_y=y)
+
+        with pytest.raises(ValueError, match="Leading dimensions"):
+            d.fit(rng, train_x=x[:20, ...], train_y=y)
+        with pytest.raises(ValueError, match="Leading dimensions"):
+            d.fit(rng, train_x=x, train_y=y[:20])
+        with pytest.raises(ValueError, match="Leading dimensions"):
+            d.fit(rng, train_x=x, train_y=y, val_x=x[:20, ...], val_y=y)
+        with pytest.raises(ValueError, match="Leading dimensions"):
+            d.fit(rng, train_x=x, train_y=y, val_x=x, val_y=y[:20])
+
+        with pytest.raises(ValueError, match="Trailing dimensions"):
+            d.fit(rng, train_x=x[:, :8, :, :], train_y=y)
+        with pytest.raises(ValueError, match="Trailing dimensions"):
+            d.fit(rng, train_x=x[:, :, :8, :], train_y=y)
+        with pytest.raises(ValueError, match="Trailing dimensions"):
+            d.fit(rng, train_x=x[:, :, :, :1], train_y=y)
+        with pytest.raises(ValueError, match="Trailing dimensions"):
+            d.fit(rng, train_x=x, train_y=y, val_x=x[:, :8, :, :], val_y=y)
+        with pytest.raises(ValueError, match="Trailing dimensions"):
+            d.fit(rng, train_x=x, train_y=y, val_x=x[:, :, :8, :], val_y=y)
+        with pytest.raises(ValueError, match="Trailing dimensions"):
+            d.fit(rng, train_x=x, train_y=y, val_x=x[:, :, :, :1], val_y=y)
 
     @pytest.mark.usefixtures("capsys")
     def test_summary(self, capsys):
@@ -67,11 +137,25 @@ class TestDiscriminator:
     @pytest.mark.usefixtures("tmp_path")
     def test_load_save_roundtrip(self, tmp_path):
         rng = np.random.default_rng(1234)
-        d1 = discriminator.Discriminator.from_input_shape((30, 40, 1), rng)
+        x, y, input_shape = random_dataset(50)
+        d1 = discriminator.Discriminator.from_input_shape(input_shape, rng)
+        d1.fit(rng, train_x=x, train_y=y)
+        d1_y = d1.predict(x)
         filename = tmp_path / "discriminator.pkl"
         d1.to_file(filename)
         d2 = discriminator.Discriminator.from_file(filename)
-        chex.assert_trees_all_close(d1.variables, d2.variables)
+        d2_y = d2.predict(x)
+        np.testing.assert_allclose(d1_y, d2_y)
+
+    @pytest.mark.parametrize("discriminator_format", [0, "0.0.1"])
+    def test_load_old_file(self, tmp_path, discriminator_format):
+        rng = np.random.default_rng(1234)
+        d1 = discriminator.Discriminator.from_input_shape((30, 40, 1), rng)
+        d1.discriminator_format = discriminator_format
+        filename = tmp_path / "discriminator.pkl"
+        d1.to_file(filename)
+        with pytest.raises(ValueError, match="discriminator is not compatible"):
+            discriminator.Discriminator.from_file(filename)
 
     def test_predict(self):
         train_x, train_y, input_shape = random_dataset(50)
@@ -90,6 +174,26 @@ class TestDiscriminator:
         y2 = d.predict(val_x)
         chex.assert_trees_all_close(y1, y2)
 
+    def test_predict_bad_shapes(self):
+        rng = np.random.default_rng(1234)
+        x, y, input_shape = random_dataset(shape=(30, 12, 34, 2))
+        d = discriminator.Discriminator.from_input_shape(input_shape, rng)
+        d.fit(rng, train_x=x, train_y=y)
+
+        with pytest.raises(ValueError, match="Trailing dimensions"):
+            d.predict(x[:, :8, :, :])
+        with pytest.raises(ValueError, match="Trailing dimensions"):
+            d.predict(x[:, :, :16, :])
+        with pytest.raises(ValueError, match="Trailing dimensions"):
+            d.predict(x[:, :, :, :1])
+
+    def test_predict_without_fit(self):
+        rng = np.random.default_rng(1234)
+        x, _, input_shape = random_dataset(shape=(30, 12, 34, 2))
+        d = discriminator.Discriminator.from_input_shape(input_shape, rng)
+        with pytest.raises(ValueError, match="has not been trained"):
+            d.predict(x)
+
 
 class TestBatchify:
     def test_batchify(self):
@@ -101,7 +205,7 @@ class TestBatchify:
         assert len(batches) == n
         for batch in batches:
             chex.assert_trees_all_equal_structs(dataset, batch)
-            assert misc.leading_dim_size(batch) == 1
+            assert leading_dim_size(batch) == 1
 
         # batch_size divides n
         batch_size = n // 4
@@ -109,14 +213,14 @@ class TestBatchify:
         assert len(batches) == n // batch_size
         for batch in batches:
             chex.assert_trees_all_equal_structs(dataset, batch)
-            assert misc.leading_dim_size(batch) == batch_size
+            assert leading_dim_size(batch) == batch_size
 
         # batch_size > n
         batches = list(discriminator.batchify(dataset, n + 5))
         assert len(batches) == 1
         for batch in batches:
             chex.assert_trees_all_equal_structs(dataset, batch)
-            assert misc.leading_dim_size(batch) == n
+            assert leading_dim_size(batch) == n
 
         # batch_size doesn't divide n evenly
         batch_size = 13
@@ -126,7 +230,7 @@ class TestBatchify:
         assert len(batches) == n // batch_size + 1
         for batch in batches[:-1]:
             chex.assert_trees_all_equal_structs(dataset, batch)
-            assert misc.leading_dim_size(batch) == batch_size
+            assert leading_dim_size(batch) == batch_size
         last_batch = batches[-1]
         chex.assert_trees_all_equal_structs(dataset, last_batch)
-        assert misc.leading_dim_size(last_batch) == remainder
+        assert leading_dim_size(last_batch) == remainder

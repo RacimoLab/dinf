@@ -387,6 +387,47 @@ class TestBinnedHaplotypeMatrix:
                 rng=np.random.default_rng(123),
             )
 
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_vcf_mismatched_ploidy(self, tmp_path):
+        demography = msprime.Demography()
+        demography.add_population(name="a", initial_size=10_000)
+        sequence_length = 100_000
+        ts = do_sim(
+            ploidy=None,  # per-sample values are provided
+            sequence_length=sequence_length,
+            demography=demography,
+            samples=[
+                msprime.SampleSet(20, ploidy=1),
+                msprime.SampleSet(20, ploidy=2),
+            ],
+        )
+
+        vcf_path = tmp_path / "1.vcf"
+        with open(vcf_path, "w") as f:
+            ts.write_vcf(
+                f,
+                contig_id="1",
+                position_transform=lambda x: np.floor(x) + 1,
+            )
+        bcftools_index(vcf_path)
+        vb = dinf.BagOfVcf([str(vcf_path) + ".gz"])
+
+        bhm = dinf.BinnedHaplotypeMatrix(
+            num_individuals=40,
+            num_bins=128,
+            maf_thresh=0,
+            ploidy=2,
+            phased=True,
+        )
+        with pytest.raises(ValueError, match="Mismatched ploidy"):
+            bhm.from_vcf(
+                vb,
+                sequence_length=sequence_length,
+                max_missing_genotypes=0,
+                min_seg_sites=1,
+                rng=np.random.default_rng(123),
+            )
+
 
 class TestMultipleBinnedHaplotypeMatrices:
     def setup_class(cls):
@@ -397,13 +438,94 @@ class TestMultipleBinnedHaplotypeMatrices:
         demography.add_population_split(time=1000, derived=["b", "c"], ancestral="a")
         cls.demography = demography
 
+    @pytest.mark.parametrize("num_individuals", [10, 20])
+    @pytest.mark.parametrize("num_bins", [32, 64])
+    @pytest.mark.parametrize("ploidy", [1, 2, 3])
+    @pytest.mark.parametrize("global_maf_thresh", [0, 0.05])
+    @pytest.mark.parametrize("global_phased", [True, False])
+    def test_init(
+        self, global_phased, global_maf_thresh, ploidy, num_bins, num_individuals
+    ):
+        populations = ["b", "c"]
+        dinf.MultipleBinnedHaplotypeMatrices(
+            num_individuals={pop: num_individuals for pop in populations},
+            num_bins={pop: num_bins for pop in populations},
+            ploidy={pop: ploidy for pop in populations},
+            global_phased=global_phased,
+            global_maf_thresh=global_maf_thresh,
+        )
+
+    def test_init_not_a_dict(self):
+        num_individuals = 64
+        num_bins = 128
+        ploidy = 2
+        global_phased = True
+        global_maf_thresh = 0
+        populations = ["b", "c"]
+        with pytest.raises(TypeError, match="Expected dict"):
+            dinf.MultipleBinnedHaplotypeMatrices(
+                num_individuals=num_individuals,
+                num_bins={pop: num_bins for pop in populations},
+                ploidy={pop: ploidy for pop in populations},
+                global_phased=global_phased,
+                global_maf_thresh=global_maf_thresh,
+            )
+        with pytest.raises(TypeError, match="Expected dict"):
+            dinf.MultipleBinnedHaplotypeMatrices(
+                num_individuals={pop: num_individuals for pop in populations},
+                num_bins=num_bins,
+                ploidy={pop: ploidy for pop in populations},
+                global_phased=global_phased,
+                global_maf_thresh=global_maf_thresh,
+            )
+        with pytest.raises(TypeError, match="Expected dict"):
+            dinf.MultipleBinnedHaplotypeMatrices(
+                num_individuals={pop: num_individuals for pop in populations},
+                num_bins={pop: num_bins for pop in populations},
+                ploidy=ploidy,
+                global_phased=global_phased,
+                global_maf_thresh=global_maf_thresh,
+            )
+
+    def test_init_inconsistent_dict_keys(self):
+        num_individuals = 64
+        num_bins = 128
+        ploidy = 2
+        global_phased = True
+        global_maf_thresh = 0
+        populations = ["b", "c"]
+        with pytest.raises(ValueError, match="Must use the same dict keys"):
+            dinf.MultipleBinnedHaplotypeMatrices(
+                num_individuals={pop: num_individuals for pop in ["a", "c"]},
+                num_bins={pop: num_bins for pop in populations},
+                ploidy={pop: ploidy for pop in populations},
+                global_phased=global_phased,
+                global_maf_thresh=global_maf_thresh,
+            )
+        with pytest.raises(ValueError, match="Must use the same dict keys"):
+            dinf.MultipleBinnedHaplotypeMatrices(
+                num_individuals={pop: num_individuals for pop in populations},
+                num_bins={pop: num_bins for pop in ["a", "c"]},
+                ploidy={pop: ploidy for pop in populations},
+                global_phased=global_phased,
+                global_maf_thresh=global_maf_thresh,
+            )
+        with pytest.raises(ValueError, match="Must use the same dict keys"):
+            dinf.MultipleBinnedHaplotypeMatrices(
+                num_individuals={pop: num_individuals for pop in populations},
+                num_bins={pop: num_bins for pop in populations},
+                ploidy={pop: ploidy for pop in ["a", "c"]},
+                global_phased=global_phased,
+                global_maf_thresh=global_maf_thresh,
+            )
+
     @pytest.mark.parametrize("ploidy", [1, 2, 3])
     @pytest.mark.parametrize("phased", [True, False])
     def test_from_ts(self, phased, ploidy):
         num_individuals = 32
         populations = ["b", "c"]  # sampled populations
         ts = do_sim(
-            ploidy=ploidy,
+            ploidy=None,  # per-sample values are provided
             sequence_length=100_000,
             demography=self.demography,
             samples=[
@@ -426,6 +548,123 @@ class TestMultipleBinnedHaplotypeMatrices:
         assert dinf.misc.tree_equal(
             feature_extractor.shape, dinf.misc.tree_shape(features)
         )
+
+    def test_from_ts_mismatched_individuals_labels(self):
+        ploidy = 2
+        phased = True
+        num_individuals = 32
+        populations = ["b", "c"]  # sampled populations
+        ts = do_sim(
+            ploidy=None,  # per-sample values are provided
+            sequence_length=100_000,
+            demography=self.demography,
+            samples=[
+                msprime.SampleSet(num_individuals, ploidy=ploidy, population=pop)
+                for pop in populations
+            ],
+        )
+        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+
+        wrong_populations = ["a", "c"]
+        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+            num_individuals={pop: num_individuals for pop in wrong_populations},
+            num_bins={pop: 24 for pop in wrong_populations},
+            ploidy={pop: ploidy for pop in wrong_populations},
+            global_phased=phased,
+            global_maf_thresh=0,
+        )
+
+        rng = np.random.default_rng(1234)
+        with pytest.raises(
+            ValueError, match="Labels of individuals.*don't match feature labels"
+        ):
+            feature_extractor.from_ts(ts, rng=rng, individuals=individuals)
+
+    def test_from_ts_sequence_length_too_short(self):
+        ploidy = 2
+        phased = True
+        num_individuals = 32
+        populations = ["b", "c"]  # sampled populations
+        ts = do_sim(
+            ploidy=None,  # per-sample values are provided
+            sequence_length=100_000,
+            demography=self.demography,
+            samples=[
+                msprime.SampleSet(num_individuals, ploidy=ploidy, population=pop)
+                for pop in populations
+            ],
+        )
+        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+
+        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+            num_individuals={pop: num_individuals for pop in populations},
+            num_bins={"b": 24, "c": 10 ** 6},
+            ploidy={pop: ploidy for pop in populations},
+            global_phased=phased,
+            global_maf_thresh=0,
+        )
+
+        rng = np.random.default_rng(1234)
+        with pytest.raises(
+            ValueError, match="sequence length.*is shorter than the number of bins"
+        ):
+            feature_extractor.from_ts(ts, rng=rng, individuals=individuals)
+
+    def test_from_ts_bad_number_of_individuals(self):
+        ploidy = 2
+        phased = True
+        num_individuals = 32
+        populations = ["b", "c"]  # sampled populations
+        ts = do_sim(
+            ploidy=None,  # per-sample values are provided
+            sequence_length=100_000,
+            demography=self.demography,
+            samples=[
+                msprime.SampleSet(num_individuals, ploidy=ploidy, population=pop)
+                for pop in populations
+            ],
+        )
+        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+
+        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+            num_individuals={"b": num_individuals, "c": num_individuals + 1},
+            num_bins={pop: 24 for pop in populations},
+            ploidy={pop: ploidy for pop in populations},
+            global_phased=phased,
+            global_maf_thresh=0,
+        )
+
+        rng = np.random.default_rng(1234)
+        with pytest.raises(ValueError, match="expected.*individuals, but got"):
+            feature_extractor.from_ts(ts, rng=rng, individuals=individuals)
+
+    def test_from_ts_mismatched_ploidy(self):
+        ploidy = 2
+        phased = True
+        num_individuals = 32
+        populations = ["b", "c"]  # sampled populations
+        ts = do_sim(
+            ploidy=None,  # per-sample values are provided
+            sequence_length=100_000,
+            demography=self.demography,
+            samples=[
+                msprime.SampleSet(num_individuals, ploidy=ploidy, population=pop)
+                for pop in populations
+            ],
+        )
+        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+
+        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+            num_individuals={pop: num_individuals for pop in populations},
+            num_bins={pop: 24 for pop in populations},
+            ploidy={"b": ploidy, "c": ploidy + 1},
+            global_phased=phased,
+            global_maf_thresh=0,
+        )
+
+        rng = np.random.default_rng(1234)
+        with pytest.raises(ValueError, match="not all individuals have ploidy"):
+            feature_extractor.from_ts(ts, rng=rng, individuals=individuals)
 
     @pytest.mark.parametrize("global_maf_thresh", [0, 0.05])
     @pytest.mark.parametrize("global_phased", [True, False])
@@ -508,3 +747,182 @@ class TestMultipleBinnedHaplotypeMatrices:
 
             np.testing.assert_array_equal(Mts.shape, Mvcf.shape)
             np.testing.assert_array_equal(Mts, Mvcf)
+
+    @pytest.mark.parametrize("wrong_ploidy", [{"b": 1, "c": 1}, {"b": 3, "c": 3}])
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_vcf_mismatched_ploidy(self, tmp_path, wrong_ploidy):
+        num_individuals = {"b": 31, "c": 9}
+        ploidy = {"b": 1, "c": 3}
+        populations = list(num_individuals)  # sampled populations
+        num_bins = 8
+        sequence_length = 100_000
+        ts = do_sim(
+            ploidy=None,  # per-sample values are provided
+            sequence_length=sequence_length,
+            demography=self.demography,
+            samples=[
+                msprime.SampleSet(num_inds, ploidy=k, population=pop)
+                for (pop, num_inds), k in zip(num_individuals.items(), ploidy.values())
+            ],
+        )
+
+        vcf_path = tmp_path / "1.vcf"
+        individual_names = [f"ind{j:03d}" for j in range(sum(num_individuals.values()))]
+        with open(vcf_path, "w") as f:
+            ts.write_vcf(
+                f,
+                contig_id="1",
+                position_transform=lambda x: np.floor(x) + 1,
+                individual_names=individual_names,
+            )
+        bcftools_index(vcf_path)
+        vb = dinf.BagOfVcf(
+            [f"{vcf_path}.gz"],
+            samples={
+                "b": individual_names[: num_individuals["b"]],
+                "c": individual_names[num_individuals["b"] :],
+            },
+        )
+
+        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+            num_individuals=num_individuals,
+            num_bins={pop: num_bins for pop in populations},
+            ploidy=wrong_ploidy,
+            global_phased=True,
+            global_maf_thresh=0,
+        )
+
+        with pytest.raises(ValueError, match="mismatched ploidy"):
+            feature_extractor.from_vcf(
+                vb,
+                sequence_length=sequence_length,
+                max_missing_genotypes=0,
+                min_seg_sites=1,
+                rng=np.random.default_rng(1234),
+            )
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_vcf_wrong_sample_labels(self, tmp_path):
+        num_individuals = {"b": 31, "c": 9}
+        ploidy = {"b": 1, "c": 3}
+        populations = list(num_individuals)  # sampled populations
+        num_bins = 8
+        sequence_length = 100_000
+        ts = do_sim(
+            ploidy=None,  # per-sample values are provided
+            sequence_length=sequence_length,
+            demography=self.demography,
+            samples=[
+                msprime.SampleSet(num_inds, ploidy=k, population=pop)
+                for (pop, num_inds), k in zip(num_individuals.items(), ploidy.values())
+            ],
+        )
+
+        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+            num_individuals=num_individuals,
+            num_bins={pop: num_bins for pop in populations},
+            ploidy=ploidy,
+            global_phased=True,
+            global_maf_thresh=0,
+        )
+
+        vcf_path = tmp_path / "1.vcf"
+        individual_names = [f"ind{j:03d}" for j in range(sum(num_individuals.values()))]
+        with open(vcf_path, "w") as f:
+            ts.write_vcf(
+                f,
+                contig_id="1",
+                position_transform=lambda x: np.floor(x) + 1,
+                individual_names=individual_names,
+            )
+        bcftools_index(vcf_path)
+
+        # No sample labels, which is incompatible with multipop sampling.
+        vb = dinf.BagOfVcf([f"{vcf_path}.gz"])
+        with pytest.raises(
+            ValueError,
+            match="Feature labels .* don't match the vcf bag's sample labels: None",
+        ):
+            feature_extractor.from_vcf(
+                vb,
+                sequence_length=sequence_length,
+                max_missing_genotypes=0,
+                min_seg_sites=1,
+                rng=np.random.default_rng(1234),
+            )
+
+        # Wrong labels.
+        vb = dinf.BagOfVcf(
+            [f"{vcf_path}.gz"],
+            samples={
+                "a": individual_names[: num_individuals["b"]],
+                "c": individual_names[num_individuals["b"] :],
+            },
+        )
+        with pytest.raises(
+            ValueError,
+            match="Feature labels .* don't match the vcf bag's sample labels",
+        ):
+            feature_extractor.from_vcf(
+                vb,
+                sequence_length=sequence_length,
+                max_missing_genotypes=0,
+                min_seg_sites=1,
+                rng=np.random.default_rng(1234),
+            )
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_vcf_not_enough_individuals(self, tmp_path):
+        num_individuals = {"b": 31, "c": 9}
+        ploidy = {"b": 1, "c": 3}
+        populations = list(num_individuals)  # sampled populations
+        num_bins = 8
+        sequence_length = 100_000
+        ts = do_sim(
+            ploidy=None,  # per-sample values are provided
+            sequence_length=sequence_length,
+            demography=self.demography,
+            samples=[
+                msprime.SampleSet(num_inds, ploidy=k, population=pop)
+                for (pop, num_inds), k in zip(num_individuals.items(), ploidy.values())
+            ],
+        )
+
+        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+            num_individuals=num_individuals,
+            num_bins={pop: num_bins for pop in populations},
+            ploidy=ploidy,
+            global_phased=True,
+            global_maf_thresh=0,
+        )
+
+        vcf_path = tmp_path / "1.vcf"
+        individual_names = [f"ind{j:03d}" for j in range(sum(num_individuals.values()))]
+        with open(vcf_path, "w") as f:
+            ts.write_vcf(
+                f,
+                contig_id="1",
+                position_transform=lambda x: np.floor(x) + 1,
+                individual_names=individual_names,
+            )
+        bcftools_index(vcf_path)
+
+        # Fewer individuals than we're trying to sample.
+        vb = dinf.BagOfVcf(
+            [f"{vcf_path}.gz"],
+            samples={
+                "b": individual_names[: num_individuals["b"] - 1],
+                "c": individual_names[num_individuals["b"] :],
+            },
+        )
+        with pytest.raises(
+            ValueError,
+            match="Expected at least .* individuals .* but only found",
+        ):
+            feature_extractor.from_vcf(
+                vb,
+                sequence_length=sequence_length,
+                max_missing_genotypes=0,
+                min_seg_sites=1,
+                rng=np.random.default_rng(1234),
+            )

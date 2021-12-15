@@ -134,10 +134,11 @@ class Discriminator:
     input_shape: Pytree
     input_dtype: np.dtype
     variables: Pytree
-    train_metrics: Pytree = None
+    train_metrics: Pytree | None = None
+    state: TrainState | None = None
+    trained: bool = False
     # Bump this after making internal changes.
     discriminator_format: int = 1
-    state = None
 
     @classmethod
     def from_input_shape(
@@ -160,7 +161,7 @@ class Discriminator:
         # Sanity checks.
         if not jax.tree_util.tree_all(
             jax.tree_map(
-                lambda x: len(x) == 3 and x[0] >= 2 and x[1] >= 4 and x[2] <= 4,
+                lambda x: np.shape(x) == (3,) and x[0] >= 2 and x[1] >= 4 and x[2] <= 4,
                 input_shape,
                 is_leaf=lambda x: isinstance(x, tuple),
             )
@@ -222,6 +223,7 @@ class Discriminator:
         :param filename: The filename to which the model will be saved.
         """
         data = dataclasses.asdict(self)
+        data["state"] = None
         data["dnn"] = self.dnn  # asdict converts this to a dict
         with open(filename, "wb") as f:
             pickle.dump(data, f)
@@ -251,8 +253,8 @@ class Discriminator:
         *,
         train_x,
         train_y,
-        val_x,
-        val_y,
+        val_x=None,
+        val_y=None,
         batch_size: int = 64,
         epochs: int = 1,
         # TODO: tensorboard output
@@ -274,34 +276,46 @@ class Discriminator:
             fit() (if any). If false, loss/accuracy metrics will be appended
             to the existing metrics.
         """
-        if not leading_dim_size(train_x) == leading_dim_size(train_y):
+        if leading_dim_size(train_x) != leading_dim_size(train_y):
             raise ValueError(
                 "Leading dimensions of train_x and train_y must be the same.\n"
                 f"train_x={tree_shape(train_x)}\n"
                 f"train_y={tree_shape(train_y)}"
             )
-        val_x_size = leading_dim_size(val_x)
-        if not val_x_size == leading_dim_size(val_y):
+        if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(train_x)])):
             raise ValueError(
-                "Leading dimensions of val_x and val_y must be the same.\n"
-                f"val_x={tree_shape(val_x)}\n"
-                f"val_y={tree_shape(val_y)}"
-            )
-        if not tree_equal(
-            *map(tree_cdr, [self.input_shape, tree_shape(train_x), tree_shape(val_x)])
-        ):
-            raise ValueError(
-                "Trailing dimensions of train_x and val_x must match input_shape.\n"
+                "Trailing dimensions of train_x must match input_shape.\n"
                 f"input_shape={self.input_shape}\n"
-                f"train_x={tree_shape(train_x)}\n"
-                f"val_x={tree_shape(val_x)}"
+                f"train_x={tree_shape(train_x)}"
             )
-        if not tree_equal(*map(tree_cdr, map(tree_shape, [train_y, val_y]))):
-            raise ValueError(
-                "Trailing dimensions of train_y and val_y must match.\n"
-                f"train_y={tree_cdr(train_y)}\n"
-                f"val_y={tree_cdr(val_y)}"
-            )
+
+        if (val_x is None and val_y is not None) or (
+            val_x is not None and val_y is None
+        ):
+            raise ValueError("Must specify both val_x and val_y or neither.")
+
+        if val_x is not None:
+            if leading_dim_size(val_x) != leading_dim_size(val_y):
+                raise ValueError(
+                    "Leading dimensions of val_x and val_y must be the same.\n"
+                    f"val_x={tree_shape(val_x)}\n"
+                    f"val_y={tree_shape(val_y)}"
+                )
+
+            if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(val_x)])):
+                raise ValueError(
+                    "Trailing dimensions of val_x must match input_shape.\n"
+                    f"input_shape={self.input_shape}\n"
+                    f"val_x={tree_shape(val_x)}"
+                )
+
+            # For a binary classifier, y has no trialing dimensions.
+            # if not tree_equal(*map(tree_cdr, map(tree_shape, [train_y, val_y]))):
+            #    raise ValueError(
+            #        "Trailing dimensions of train_y and val_y must match.\n"
+            #        f"train_y={tree_cdr(train_y)}\n"
+            #        f"val_y={tree_cdr(val_y)}"
+            #    )
 
         def running_metrics(n, batch_size, current_metrics, metrics):
             new_metrics = jax.tree_map(
@@ -362,7 +376,7 @@ class Discriminator:
 
         train_ds = dict(input=train_x, output=train_y)
         test_ds = dict(input=val_x, output=val_y)
-        do_eval = val_x_size > 0
+        do_eval = val_x is not None
 
         if reset_metrics or self.train_metrics is None:
             self.train_metrics = dict(
@@ -391,7 +405,9 @@ class Discriminator:
             else:
                 print()
 
+        assert state is not None
         self.state = state
+        self.trained = True
         self.variables = jax.tree_map(
             np.array,
             dict(
@@ -417,7 +433,7 @@ class Discriminator:
                 f"x={tree_shape(x)}"
             )
 
-        if "batch_stats" not in self.variables:
+        if not self.trained:
             raise ValueError(
                 "Cannot make predications as the discriminator has not been trained."
             )

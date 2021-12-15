@@ -219,3 +219,20 @@ class TestParameters:
         in_bounds = params.bounds_contain(xs)
         assert len(in_bounds) == size2
         assert np.all(in_bounds)
+
+    def test_custom_param(self):
+        class UnboundedParam(Param):
+            def __post_init__(self):
+                pass
+
+            def bounds_contain(self, x):
+                return np.ones_like(x, dtype=bool)
+
+        Parameters(p=UnboundedParam(low=-np.inf, high=np.inf))
+
+    def test_bad_custom_param(self):
+        class MyParam:
+            pass
+
+        with pytest.raises(TypeError):
+            Parameters(p=MyParam())
