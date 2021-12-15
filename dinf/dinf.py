@@ -8,6 +8,7 @@ import warnings
 
 import arviz as az
 import emcee
+import jax
 import numpy as np
 
 import dinf
@@ -38,11 +39,16 @@ def _sim_replicates(*, sim_func, args, num_replicates, parallelism):
         map_f = _pool.imap
 
     result = None
-    for j, m in enumerate(map_f(sim_func, args)):
+    treedef = None
+    for j, M in enumerate(map_f(sim_func, args)):
         if result is None:
-            result = np.empty((num_replicates, *m.shape), dtype=m.dtype)
-        result[j] = m
-    return result
+            treedef = jax.tree_structure(M)
+            result = []
+            for m in jax.tree_leaves(M):
+                result.append(np.empty((num_replicates, *m.shape), dtype=m.dtype))
+        for res, m in zip(result, jax.tree_leaves(M)):
+            res[j] = m
+    return jax.tree_unflatten(treedef, result)
 
 
 def _generate_data(*, generator, parameters, num_replicates, parallelism, rng):
@@ -92,11 +98,18 @@ def _generate_training_data(
         parallelism=parallelism,
         rng=rng,
     )
-    x = np.concatenate((x_generator, x_target))
+    # XXX: Large copy doubles peak memory.
+    # Preallocate somehow?
+    x = jax.tree_map(lambda *l: np.concatenate(l), x_generator, x_target)
+    del x_generator
+    del x_target
     y = np.concatenate((np.zeros(nreps_generator), np.ones(nreps_target)))
     # shuffle
-    indexes = rng.permutation(len(x))
-    x = x[indexes]
+    indexes = rng.permutation(num_replicates)
+    # XXX: Large copy doubles peak memory.
+    # Do this in-place?
+    # https://stackoverflow.com/a/60902210/9500949
+    x = jax.tree_map(lambda l: l[indexes], x)
     y = y[indexes]
     return x, y
 
@@ -253,6 +266,7 @@ def _train_discriminator(
         parallelism=parallelism,
         rng=rng,
     )
+    val_x, val_y = None, None
     if test_replicates > 0:
         val_x, val_y = _generate_training_data(
             target=genobuilder.target_func,
@@ -262,9 +276,6 @@ def _train_discriminator(
             parallelism=parallelism,
             rng=rng,
         )
-    else:
-        val_x = np.empty((0, *train_x.shape[1:]), dtype=train_x.dtype)
-        val_y = np.empty((0, *train_y.shape[1:]), dtype=train_y.dtype)
 
     discriminator.fit(
         rng,
@@ -393,7 +404,6 @@ def mcmc_gan(
         )
         discriminator.to_file(store[-1] / "discriminator.pkl")
 
-        # chain, mcmc_generator_calls, acceptance_rate = _run_mcmc_emcee(
         dataset = _run_mcmc_emcee(
             start=start,
             discriminator=discriminator,

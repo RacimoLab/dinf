@@ -8,12 +8,14 @@ import dinf
 
 def _generator_func(seed, a):
     rng = np.random.default_rng(seed)
-    return np.array(rng.uniform(low=0, high=a))
+    return {"a": np.array(rng.uniform(size=10, low=0, high=a))}
 
 
 def _target_func(seed):
     return _generator_func(seed, 10)
 
+
+feature_shape = {"a": np.array([10])}
 
 _parameters = dinf.Parameters(a=dinf.Param(low=0, high=100))
 
@@ -24,7 +26,7 @@ class TestGenobuilder:
             target_func=_target_func,
             generator_func=_generator_func,
             parameters=_parameters,
-            feature_shape=(),
+            feature_shape=feature_shape,
         )
         g.check()
 
@@ -34,31 +36,48 @@ class TestGenobuilder:
                 target_func=_target_func,
                 generator_func=_generator_func,
                 parameters=dinf.Parameters(),
-                feature_shape=(),
+                feature_shape=feature_shape,
             )
 
     def test_wrong_generator_shape(self):
         def generator(seed, a):
-            return np.array([1.0, 2.0])
+            return {"a": np.array([1.0, 2.0])}
 
         g = dinf.Genobuilder(
             target_func=_target_func,
             generator_func=generator,
             parameters=_parameters,
-            feature_shape=(),
+            feature_shape=feature_shape,
         )
-        with pytest.raises(ValueError, match="generator_func has shape"):
+        with pytest.raises(ValueError, match="generator_func .* shape"):
             g.check()
 
     def test_wrong_target_shape(self):
         def target(seed):
-            return np.array([1.0, 2.0])
+            return {"a": np.array([1.0, 2.0])}
 
         g = dinf.Genobuilder(
             target_func=target,
             generator_func=_generator_func,
             parameters=_parameters,
-            feature_shape=(),
+            feature_shape=feature_shape,
         )
-        with pytest.raises(ValueError, match="target_func has shape"):
+        with pytest.raises(ValueError, match="target_func .* shape"):
+            g.check()
+
+    def test_bad_custom_param(self):
+        class TriangleParam(dinf.Param):
+            def draw_prior(self, size, rng):
+                mid = (self.low + self.high) / 2
+                # Accidentally forget to use 'size'.
+                return rng.triangular(left=self.low, mode=mid, right=self.high)
+
+        parameters = dinf.Parameters(a=TriangleParam(low=0, high=100))
+        g = dinf.Genobuilder(
+            target_func=_target_func,
+            generator_func=_generator_func,
+            parameters=parameters,
+            feature_shape=feature_shape,
+        )
+        with pytest.raises(ValueError, match="parameters.draw.* shape"):
             g.check()

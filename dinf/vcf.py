@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Dict, Iterable, List, Tuple
 import collections
+import itertools
 import logging
 import pathlib
 import warnings
@@ -9,6 +10,43 @@ import numpy as np
 import cyvcf2
 
 logger = logging.getLogger(__name__)
+
+
+def get_contig_lengths(
+    filename: pathlib.Path | str, keep_contigs: Iterable[str] | None = None
+) -> dict:
+    """
+    Load contig lengths from a space-separated file like an fai (fasta index).
+
+    The file must have (at least) two columns, the first specifies the
+    contig id, and the second is the contig length. Additional columns
+    are ignored.
+
+    :param filename: The path to the file.
+    :param keep_contigs: Use only the specified contigs.
+    """
+    data = {}
+    if keep_contigs is not None:
+        keep_contigs = set(keep_contigs)
+        seen_contigs = set()
+    with open(filename) as f:
+        for line in f:
+            fields = line.split(maxsplit=2)
+            assert len(fields) >= 2
+            contig = fields[0]
+            if keep_contigs is not None:
+                seen_contigs.add(contig)
+                if contig not in keep_contigs:
+                    continue
+            length = int(fields[1])
+            data[contig] = length
+    if keep_contigs is not None:
+        contigs_not_found = keep_contigs - seen_contigs
+        if len(contigs_not_found) > 0:
+            raise ValueError(
+                f"Requested contigs not found: {', '.join(contigs_not_found)}"
+            )
+    return data
 
 
 def get_genotype_matrix(
@@ -79,10 +117,6 @@ def get_genotype_matrix(
         raise ValueError(
             f"Mismatched ploidy among sites in {chrom}:{start}-{end}."
         ) from e
-    if np.any(np_G == -2):
-        raise ValueError(
-            f"Mismatched ploidy among individuals in {chrom}:{start}-{end}."
-        )
 
     np_positions = np.array(positions, dtype=int) - start
     return np_G, np_positions
@@ -100,30 +134,45 @@ class BagOfVcf(collections.abc.Mapping):
     methods for sampling regions of the genome at random.
     """
 
-    contig_lengths: np.ndarray
+    lengths: np.ndarray
     """
     Lengths of the contigs in the bag. The order matches the contig order
     obtained by iterating over the bag.
+    """
+
+    # TODO: samples should be a Pytree
+    samples: collections.abc.Mapping[str, List[str]] | None
+    """
+    A dictionary that maps a label to a list of individual names,
+    where the individual names correspond to the VCF columns
+    for which genotypes will be sampled.
+    This is a bookkeeping device that records which genotypes belong
+    to which label (e.g. which population). If None, it is assumed
+    that all individuals in the VCF will be treated as exchangeable.
     """
 
     def __init__(
         self,
         files: Iterable[str | pathlib.Path],
         *,
-        individuals: Iterable[str] | None = None,
-        contigs: Iterable[str] | None = None,
+        samples: collections.abc.Mapping[str, List[str]] | None = None,
+        contig_lengths: collections.abc.Mapping[str, int] | None = None,
     ):
         """
         :param files:
             An iterable of filenames. Each file must be an indexed VCF or BCF,
             and contain the FORMAT/GT field.
-        :param individuals:
-            An iterable of individual names corresponding to the VCF columns
+        :param contig_lengths:
+            A dict mapping a contig name to contig length. Only the contigs in
+            this dict will be used.
+        :param samples:
+            A dictionary that maps a label to a list of individual names,
+            where the individual names correspond to the VCF columns
             for which genotypes will be sampled.
-        :param contigs:
-            An iterable of contig names to use. If not specified, all contigs
-            identified in the VCFs/BCFs will be used.
         """
+        individuals = None
+        if samples is not None:
+            individuals = itertools.chain(*samples.values())
         # Silence some warnings from cyvcf2.
         with warnings.catch_warnings():
             # We check if a contig is usable for a given vcf by querying
@@ -133,21 +182,25 @@ class BagOfVcf(collections.abc.Mapping):
             warnings.filterwarnings(
                 "ignore", message="no intervals found", category=UserWarning
             )
-            # We detect this condition and explicitly raise an error.
+            # We detect this condition and raise our own error below.
             warnings.filterwarnings(
                 "ignore",
                 message="not all requested samples found",
                 category=UserWarning,
             )
-            self._fill_bag(files=files, individuals=individuals, contigs=contigs)
+            self._fill_bag(
+                files=files, contig_lengths=contig_lengths, individuals=individuals
+            )
+
+        self.samples = samples
         self._regions: List[Tuple[str, int, int]] = []
 
     def _fill_bag(
         self,
         *,
         files: Iterable[str | pathlib.Path],
+        contig_lengths: collections.abc.Mapping[str, int] | None = None,
         individuals: Iterable[str] | None = None,
-        contigs: Iterable[str] | None = None,
     ) -> None:
         """
         Construct a mapping from contig id to cyvcf2.VCF object.
@@ -155,7 +208,6 @@ class BagOfVcf(collections.abc.Mapping):
 
         contig2file: Dict[str, str | pathlib.Path] = {}
         contig2vcf: Dict[str, cyvcf2.VCF] = {}
-        contig_lengths = []
 
         files = list(files)
         if len(set(files)) != len(files):
@@ -166,12 +218,14 @@ class BagOfVcf(collections.abc.Mapping):
             if len(set(individuals)) != len(individuals):
                 raise ValueError("Individuals list contains duplicates.")
 
-        if contigs is not None:
-            contigs = list(contigs)
-            if len(set(contigs)) != len(contigs):
-                raise ValueError("Contigs list contains duplicates.")
-            contigs = set(contigs)
+        all_samples = None
+        all_samples_file = None
 
+        if contig_lengths is None:
+            contig_lengths = {}
+            contigs = None
+        else:
+            contigs = set(contig_lengths)
         contigs_seen = set()
 
         for file in files:
@@ -183,14 +237,30 @@ class BagOfVcf(collections.abc.Mapping):
                 or pathlib.Path(f"{file}.csi").exists()
             ):
                 raise ValueError(f"No index found for {file}.")
-            if individuals is not None:
+            if individuals is None:
+                if all_samples is None:
+                    all_samples = set(vcf.samples)
+                    all_samples_file = file
+                elif all_samples != set(vcf.samples):
+                    raise ValueError(
+                        f"{file} has different samples than {all_samples_file}."
+                    )
+            else:
                 individuals_not_found = set(individuals) - set(vcf.samples)
                 if len(individuals_not_found) > 0:
                     raise ValueError(
                         f"Requested individuals not found in {file}: "
-                        f"{', '.join(individuals_not_found)}"
+                        f"{', '.join(individuals_not_found)}."
                     )
-            for contig_id, contig_length in zip(vcf.seqnames, vcf.seqlens):
+            if contigs is None:
+                try:
+                    vcf.seqlens
+                except AttributeError as e:
+                    raise ValueError(
+                        f"{file} doesn't contain contig lengths. "
+                        "You must provide a contig_lengths argument."
+                    ) from e
+            for j, contig_id in enumerate(vcf.seqnames):
                 contigs_seen.add(contig_id)
                 if contigs is not None and contig_id not in contigs:
                     continue
@@ -207,21 +277,22 @@ class BagOfVcf(collections.abc.Mapping):
                         f"sequence '{contig_id}'."
                     )
                 contig2file[contig_id] = file
-                contig_lengths.append(contig_length)
                 contig2vcf[contig_id] = vcf
+                if contigs is None:
+                    contig_lengths[contig_id] = vcf.seqlens[j]  # type: ignore[index]
 
         if contigs is not None:
             contigs_not_found = contigs - contigs_seen
             if len(contigs_not_found) > 0:
                 raise ValueError(
-                    f"Requested contigs not found: {', '.join(contigs_not_found)}"
+                    f"Requested contigs not found: {', '.join(contigs_not_found)}."
                 )
 
         if len(contig2file) == 0:
             raise ValueError("No usable vcf/bcf files in the list.")
 
         self._contig2vcf = contig2vcf
-        self.contig_lengths = np.array(contig_lengths)
+        self.lengths = np.fromiter(contig_lengths.values(), dtype=int)
 
     def __iter__(self):
         yield from self._contig2vcf
@@ -249,11 +320,11 @@ class BagOfVcf(collections.abc.Mapping):
             the usual convention for 'chrom:start-end', e.g. in bcftools.
         """
 
-        long_enough = self.contig_lengths >= sequence_length
+        long_enough = self.lengths >= sequence_length
         if sum(long_enough) == 0:
             raise ValueError(f"No contigs with length >= {sequence_length}.")
         contig_ids = np.array(self, dtype=object)[long_enough]
-        contig_lengths = self.contig_lengths[long_enough]
+        contig_lengths = self.lengths[long_enough]
 
         p = contig_lengths / np.sum(contig_lengths)
         idx = rng.choice(len(contig_ids), size=size, replace=True, p=p)

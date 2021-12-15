@@ -1,6 +1,7 @@
 from __future__ import annotations
 import collections
 import pathlib
+import re
 import subprocess
 from typing import Callable, List, Tuple
 
@@ -12,14 +13,62 @@ import pytest
 import dinf
 
 
-def create_ts(*, length: int, ploidy: int, seeds: Tuple[int, int]):
+class TestGetContigLengths:
+    @pytest.mark.usefixtures("tmp_path")
+    def test_simple(self, tmp_path):
+        contigs = {"a": 100, "b": 200, "c": 400}
+        with open(tmp_path / "contigs.txt", "w") as f:
+            for c_id, c_len in contigs.items():
+                print(c_id, c_len, file=f)
+        loaded_contigs = dinf.get_contig_lengths(tmp_path / "contigs.txt")
+        assert loaded_contigs == contigs
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_extra_columns(self, tmp_path):
+        contigs = {"a": 100, "b": 200, "c": 400}
+        with open(tmp_path / "contigs.txt", "w") as f:
+            for j, (c_id, c_len) in enumerate(contigs.items()):
+                print(c_id, c_len, j, j * j + 10, file=f)
+        loaded_contigs = dinf.get_contig_lengths(tmp_path / "contigs.txt")
+        assert loaded_contigs == contigs
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_keep_contigs(self, tmp_path):
+        contigs = {"a": 100, "b": 200, "c": 400}
+        with open(tmp_path / "contigs.txt", "w") as f:
+            for c_id, c_len in contigs.items():
+                print(c_id, c_len, file=f)
+        keep_contigs = ["a", "c"]
+        loaded_contigs = dinf.get_contig_lengths(
+            tmp_path / "contigs.txt", keep_contigs=keep_contigs
+        )
+        assert loaded_contigs == {k: contigs[k] for k in keep_contigs}
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_missing_contigs(self, tmp_path):
+        contigs = {"1": 100, "2": 200, "3": 400}
+        with open(tmp_path / "contigs.txt", "w") as f:
+            for c_id, c_len in contigs.items():
+                print(c_id, c_len, file=f)
+        with pytest.raises(ValueError, match="contigs not found") as err:
+            dinf.get_contig_lengths(
+                tmp_path / "contigs.txt",
+                keep_contigs=["nonexistent_a", "1", "2", "nonexistent_b"],
+            )
+        assert "nonexistent_a" in err.value.args[0]
+        assert "nonexistent_b" in err.value.args[0]
+        assert "1" not in err.value.args[0]
+        assert "2" not in err.value.args[0]
+
+
+def create_ts(*, length: int, ploidy: int, seeds: Tuple[int, int], num_samples: int):
     demography = msprime.Demography()
     demography.add_population(name="A", initial_size=10_000)
     demography.add_population(name="B", initial_size=5_000)
     demography.add_population(name="C", initial_size=1_000)
     demography.add_population_split(time=1000, derived=["A", "B"], ancestral="C")
     ts = msprime.sim_ancestry(
-        samples={"A": 128, "B": 128},
+        samples={"A": num_samples, "B": num_samples},
         demography=demography,
         sequence_length=length,
         recombination_rate=1.25e-8,
@@ -42,10 +91,13 @@ def create_vcf_dataset(
     contig_lengths: List[int],
     ploidy: int = 2,
     transform_func: Callable | None = None,
+    num_samples: int = 128,
 ):
     for contig_id, contig_length in enumerate(contig_lengths, 1):
         seeds = (contig_id + 1, contig_id + 2)
-        ts = create_ts(length=contig_length, ploidy=ploidy, seeds=seeds)
+        ts = create_ts(
+            length=contig_length, ploidy=ploidy, seeds=seeds, num_samples=num_samples
+        )
         for ind in ts.individuals():
             assert len(ind.nodes) == ploidy
             assert len(set(ts.node(n).population for n in ind.nodes)) == 1
@@ -391,41 +443,6 @@ class TestGetGenotypeMatrix:
                 require_phased=True,
             )
 
-    @pytest.mark.usefixtures("tmp_path")
-    def test_mismatched_ploidy_among_individuals(self, tmp_path):
-        num_individuals = 3
-        contig_length = 100_000
-        header = get_vcf_header(
-            num_individuals=num_individuals, contig_length=contig_length
-        )
-
-        vline1 = "1\t1234\t.\tA\tC\t.\tPASS\t.\tGT\t"
-        vline1 += "\t".join(["0|1"] * num_individuals)
-        vline1 += "\n"
-
-        vline2 = "1\t4321\t.\tA\tG\t.\tPASS\t.\tGT\t"
-        vline2 += "\t".join(["1|0"] + ["1"] * (num_individuals - 1))
-        vline2 += "\n"
-
-        vcf_path = tmp_path / "1.vcf"
-        with open(vcf_path, "w") as f:
-            f.write(header + vline1 + vline2)
-        vcf_path = bcftools_index(vcf_path)
-
-        vcf = cyvcf2.VCF(vcf_path)
-        start = 1
-        end = contig_length
-
-        with pytest.raises(ValueError, match="Mismatched ploidy among individuals"):
-            dinf.vcf.get_genotype_matrix(
-                vcf,
-                chrom="1",
-                start=start,
-                end=end,
-                max_missing_genotypes=0,
-                require_phased=True,
-            )
-
 
 class TestBagOfVcf:
     @pytest.mark.usefixtures("tmp_path")
@@ -442,7 +459,7 @@ class TestBagOfVcf:
         # tskit outputs vcf with wrong contig lengths.
         # https://github.com/tskit-dev/tskit/discussions/1993
         c2len = dict(zip(["1", "2"], contig_lengths))
-        for c_id, c_len in zip(vb, vb.contig_lengths):
+        for c_id, c_len in zip(vb, vb.lengths):
             assert c_len - 1 == c2len[c_id]
 
     @pytest.mark.usefixtures("tmp_path")
@@ -459,7 +476,7 @@ class TestBagOfVcf:
         # tskit outputs vcf with wrong contig lengths.
         # https://github.com/tskit-dev/tskit/discussions/1993
         c2len = dict(zip(["1", "2"], contig_lengths))
-        for c_id, c_len in zip(vb, vb.contig_lengths):
+        for c_id, c_len in zip(vb, vb.lengths):
             assert c_len - 1 == c2len[c_id]
 
     @pytest.mark.usefixtures("tmp_path")
@@ -528,56 +545,69 @@ class TestBagOfVcf:
         with pytest.raises(ValueError, match="doesn't contain GT field"):
             dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
 
+    @pytest.mark.usefixtures("tmp_path")
+    def test_samples(self, tmp_path):
+        all_samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000, 200_000])
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=None)
+        assert vb["1"].samples == all_samples["A"] + all_samples["B"]
+
     @pytest.mark.parametrize("num_individuals", [20, 97])
     @pytest.mark.usefixtures("tmp_path")
-    def test_individuals(self, tmp_path, num_individuals):
-        samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
-        individuals = samples["A"][:num_individuals]
-        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), individuals=individuals)
-        assert vb["1"].samples == individuals
+    def test_samples_one_population(self, tmp_path, num_individuals):
+        all_samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        samples = {"A": all_samples["A"][:num_individuals]}
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=samples)
+        assert vb["1"].samples == samples["A"]
+
+    @pytest.mark.parametrize("num_individuals", [20, 97])
+    @pytest.mark.usefixtures("tmp_path")
+    def test_samples_two_populations(self, tmp_path, num_individuals):
+        all_samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        samples = {pop: all_samples[pop][:num_individuals] for pop in ("A", "B")}
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=samples)
+        assert vb["1"].samples == samples["A"] + samples["B"]
 
     @pytest.mark.filterwarnings("ignore:not all requested samples found:UserWarning")
     @pytest.mark.usefixtures("tmp_path")
-    def test_missing_individuals(self, tmp_path):
-        samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
-        individuals = ["nonexistent_1"] + samples["A"] + ["nonexistent_2"]
+    def test_missing_samples(self, tmp_path):
+        all_samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        samples = {"A": ["nonexistent_1"] + all_samples["A"] + ["nonexistent_2"]}
         with pytest.raises(ValueError, match="individuals not found") as err:
-            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), individuals=individuals)
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=samples)
         assert "nonexistent_1" in err.value.args[0]
         assert "nonexistent_2" in err.value.args[0]
-        for ind in samples["A"]:
+        for ind in all_samples["A"]:
             assert ind not in err.value.args[0]
 
     @pytest.mark.usefixtures("tmp_path")
-    def test_duplicate_individuals(self, tmp_path):
-        samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
-        individuals = samples["A"] + [samples["A"][0]]
+    def test_duplicate_samples(self, tmp_path):
+        all_samples = create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        samples = {"A": all_samples["A"] + [all_samples["A"][0]]}
         with pytest.raises(ValueError, match="Individuals list contains duplicates"):
-            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), individuals=individuals)
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), samples=samples)
 
     @pytest.mark.usefixtures("tmp_path")
     def test_contigs(self, tmp_path):
         create_vcf_dataset(tmp_path, contig_lengths=[100_000, 200_000, 300_000])
-        contigs = ["1", "3"]
-        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contigs=contigs)
+        contigs = {"1": 100_000, "3": 300_000}
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contig_lengths=contigs)
         assert set(vb) == set(contigs)
 
     @pytest.mark.usefixtures("tmp_path")
     def test_missing_contigs(self, tmp_path):
         create_vcf_dataset(tmp_path, contig_lengths=[100_000, 200_000])
-        contigs = ["nonexistent_a", "1", "2", "nonexistent_b"]
+        contigs = {
+            "nonexistent_a": 1000,
+            "1": 100_000,
+            "2": 200_000,
+            "nonexistent_b": 1000,
+        }
         with pytest.raises(ValueError, match="contigs not found") as err:
-            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contigs=contigs)
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contig_lengths=contigs)
         assert "nonexistent_a" in err.value.args[0]
         assert "nonexistent_b" in err.value.args[0]
         assert "1" not in err.value.args[0]
         assert "2" not in err.value.args[0]
-
-    @pytest.mark.usefixtures("tmp_path")
-    def test_duplicate_contigs(self, tmp_path):
-        create_vcf_dataset(tmp_path, contig_lengths=[100_000])
-        with pytest.raises(ValueError, match="Contigs list contains duplicates"):
-            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"), contigs=["1", "1"])
 
     @pytest.mark.usefixtures("tmp_path")
     def test_unused_contigs(self, tmp_path):
@@ -603,6 +633,43 @@ class TestBagOfVcf:
         vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
         assert "c" not in vb
 
+    @pytest.mark.usefixtures("tmp_path")
+    def test_no_contig_lengths_in_vcf(self, tmp_path):
+        def rm_contig_lengths(filename):
+            with open(filename) as f:
+                lines = f.readlines()
+
+            new_lines = [
+                re.sub(r",length=[0-9]+", "", line)
+                if line.startswith("##contig")
+                else line
+                for line in lines
+            ]
+
+            with open(filename, "w") as f:
+                f.write("".join(new_lines))
+
+        create_vcf_dataset(
+            tmp_path, contig_lengths=[100_000], transform_func=rm_contig_lengths
+        )
+        with pytest.raises(ValueError, match="provide a contig_lengths argument"):
+            dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_different_samples_in_different_files(self, tmp_path):
+        (tmp_path / "a").mkdir()
+        (tmp_path / "b").mkdir()
+        create_vcf_dataset(
+            tmp_path / "a", contig_lengths=[100_000, 200_000], num_samples=20
+        )
+        create_vcf_dataset(
+            tmp_path / "b", contig_lengths=[100_000, 200_000], num_samples=40
+        )
+        with pytest.raises(ValueError, match="different samples"):
+            dinf.BagOfVcf(
+                [(tmp_path / "a" / "1.vcf.gz"), (tmp_path / "b" / "2.vcf.gz")]
+            )
+
     @pytest.mark.parametrize("sequence_length", [50, 2027, 10_000])
     @pytest.mark.usefixtures("tmp_path")
     def test_sample_regions(self, tmp_path, sequence_length):
@@ -615,7 +682,7 @@ class TestBagOfVcf:
             rng=np.random.default_rng(1234),
         )
         contig2length = {
-            contig_id: vb.contig_lengths[j] for j, contig_id in enumerate(vb.keys())
+            contig_id: vb.lengths[j] for j, contig_id in enumerate(vb.keys())
         }
         assert len(regions) == num_regions
         assert all(chrom in vb for chrom, _, _ in regions)
@@ -635,7 +702,7 @@ class TestBagOfVcf:
             tmp_path, contig_lengths=[200_000, 100_000], ploidy=ploidy
         )
         vb = dinf.BagOfVcf(
-            tmp_path.glob("*.vcf.gz"), individuals=vcf_samples["A"][:num_individuals]
+            tmp_path.glob("*.vcf.gz"), samples={"A": vcf_samples["A"][:num_individuals]}
         )
         G, positions = vb.sample_genotype_matrix(
             sequence_length=sequence_length,

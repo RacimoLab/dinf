@@ -1,48 +1,16 @@
-import abc
-from typing import Sequence
+from __future__ import annotations
+import collections
+from typing import Dict, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import tskit
 
 from .vcf import BagOfVcf
+from .misc import ts_ploidy_of_individuals, ts_nodes_of_individuals
 
 
-class _FeatureExtractor(abc.ABC):
-    """
-    Abstract base class for feature extractors.
-    """
-
-    @property
-    @abc.abstractmethod
-    def shape(self) -> Sequence[int]:
-        """Shape of the features."""
-
-    @abc.abstractmethod
-    def from_ts(
-        self, ts: tskit.TreeSequence, *, rng: np.random.Generator
-    ) -> np.ndarray:
-        """
-        Create a feature array from a tskit tree sequence.
-
-        :param ts: The tree sequence.
-        :param rng: Random number generator.
-        :return: An n-dimensional feature array.
-        """
-
-    @abc.abstractmethod
-    def from_vcf(
-        self,
-        vb: BagOfVcf,
-        *,
-        sequence_length: int,
-        max_missing_genotypes: int,
-        min_seg_sites: int,
-        rng: np.random.Generator,
-    ) -> np.ndarray:
-        """Create a feature array by sampling from a collection of VCFs."""
-
-
-class BinnedHaplotypeMatrix(_FeatureExtractor):
+class BinnedHaplotypeMatrix:
     """
     A factory for feature matrices of pseudo-haplotypes.
 
@@ -134,7 +102,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
             raise ValueError("must have at least two pseudo-haplotypes")
 
     @property
-    def shape(self) -> Sequence[int]:
+    def shape(self) -> Tuple[int, int, int]:
         """Shape of the feature matrix."""
         return (self._num_pseudo_haplotypes, self._num_bins, 1)
 
@@ -177,7 +145,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
 
         G_sites, G_individuals, G_ploidy = G.shape
         assert G_individuals == self._num_individuals
-        assert G_ploidy == self._ploidy
+        assert G_ploidy == self._ploidy, (G_ploidy, self._ploidy)
         G = np.reshape(G, (G_sites, -1))
 
         # Identify genotypes that aren't 0 or 1. These will be ignored later.
@@ -209,7 +177,10 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         return M
 
     def from_ts(
-        self, ts: tskit.TreeSequence, *, rng: np.random.Generator
+        self,
+        ts: tskit.TreeSequence,
+        *,
+        rng: np.random.Generator,
     ) -> np.ndarray:
         """
         Create a pseudo-genotype matrix from a tree sequence.
@@ -229,8 +200,6 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
             )
         if ts.sequence_length < self._num_bins:
             raise ValueError("Sequence length is shorter than the number of bins")
-        if ts.num_populations != 1:
-            raise ValueError("Multi-population tree sequences not yet supported")
 
         G = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
         G = np.reshape(G, (-1, self._num_individuals, self._ploidy))
@@ -242,6 +211,7 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
     def from_vcf(
         self,
         vb: BagOfVcf,
+        *,
         sequence_length: int,
         max_missing_genotypes: int,
         min_seg_sites: int,
@@ -294,7 +264,195 @@ class BinnedHaplotypeMatrix(_FeatureExtractor):
         # Subsample individuals.
         idx = rng.choice(G_individuals, size=self._num_individuals, replace=False)
         G = G[:, idx, :]
+        if np.any(G == -2):
+            raise ValueError("Mismatched ploidy among individuals.")
 
         return self._from_genotype_matrix(
             G, positions=positions, sequence_length=sequence_length, rng=rng
         )
+
+
+class MultipleBinnedHaplotypeMatrices:
+    """
+    A labelled collection of :class:`BinnedHaplotypeMatrices`.
+
+    One feature matrix is produced for each label. Labels typically
+    correspond to populations, but this need not be the case.
+    """
+
+    bh_matrices: collections.abc.Mapping[str, BinnedHaplotypeMatrix]
+    """
+    A dict that maps a label to a :class:`BinnedHaplotypeMatrix`.
+    """
+
+    def __init__(
+        self,
+        *,
+        num_individuals: dict,
+        num_bins: dict,
+        ploidy: dict,
+        # TODO: label-specific options for phased and maf_thresh.
+        # phased: dict,
+        # maf_thresh: dict,
+        global_phased: bool,
+        global_maf_thresh: float,
+    ):
+        dict_args = [num_individuals, num_bins, ploidy]
+        dict_strs = "num_individuals, num_bins, ploidy"
+        for d in dict_args:
+            if not isinstance(d, collections.abc.Mapping):
+                raise TypeError(f"Expected dict for each of: {dict_strs}.")
+        keys_list = [d.keys() for d in dict_args]
+        keys = keys_list[0]
+        if any(keys != other for other in keys_list[1:]):
+            raise ValueError(f"Must use the same dict keys for each of: {dict_strs}.")
+
+        self.bh_matrices = {
+            label: BinnedHaplotypeMatrix(
+                num_individuals=num_individuals[label],
+                num_bins=num_bins[label],
+                ploidy=ploidy[label],
+                phased=global_phased,
+                maf_thresh=global_maf_thresh,
+            )
+            for label in keys
+        }
+        self._num_individuals = num_individuals
+        self._num_bins = num_bins
+        self._ploidy = ploidy
+        self._global_phased = global_phased
+        self._global_maf_thresh = global_maf_thresh
+
+    @property
+    def shape(self) -> Dict[str, Tuple[int, int, int]]:
+        return {label: bhm.shape for label, bhm in self.bh_matrices.items()}
+
+    def from_ts(
+        self,
+        ts: tskit.TreeSequence,
+        *,
+        rng: np.random.Generator,
+        individuals: collections.abc.Mapping[str, npt.NDArray[np.integer]],
+    ) -> Dict[str, np.ndarray]:
+        """
+        Create a pseudo-genotype matrix from a tree sequence.
+
+        :param ts: The tree sequence.
+        :param rng: Numpy random number generator.
+        :param individuals:
+            A mapping from label to an array of individuals.
+        :return:
+            A dictionary mapping a label to a feature array.
+            Each array has shape ``(num_pseudo_haplotypes, num_bins, 1)``.
+            For an array :math:`M`, the :math:`M[i][j][0]`'th entry is the
+            count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
+            :math:`i`.
+        """
+
+        if individuals.keys() != self.bh_matrices.keys():
+            raise ValueError(
+                f"Labels of individuals {list(individuals)} don't match "
+                f"feature labels {list(self.bh_matrices)}."
+            )
+        G = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
+        positions = np.array(ts.tables.sites.position)
+        labelled_features = {}
+        for label, l_individuals in individuals.items():
+            if ts.sequence_length < self._num_bins[label]:
+                raise ValueError(
+                    f"{label}: sequence length ({ts.sequence_length}) is "
+                    f"shorter than the number of bins ({self._num_bins[label]})."
+                )
+            if len(l_individuals) != self._num_individuals[label]:
+                raise ValueError(
+                    f"{label}: expected {self._num_individuals[label]} "
+                    f"individuals, but got {len(l_individuals)}."
+                )
+            ploidy = ts_ploidy_of_individuals(ts, l_individuals)
+            if not np.all(ploidy == self._ploidy[label]):
+                raise ValueError(
+                    f"{label}: not all individuals have ploidy == {ploidy}."
+                )
+            nodes = ts_nodes_of_individuals(ts, l_individuals)
+            H = G[:, nodes]
+            H = np.reshape(H, (-1, self._num_individuals[label], self._ploidy[label]))
+            labelled_features[label] = self.bh_matrices[label]._from_genotype_matrix(
+                H, positions=positions, sequence_length=ts.sequence_length, rng=rng
+            )
+
+        return labelled_features
+
+    def from_vcf(
+        self,
+        vb: BagOfVcf,
+        *,
+        sequence_length: int,
+        max_missing_genotypes: int,
+        min_seg_sites: int,
+        rng: np.random.Generator,
+    ) -> Dict[str, np.ndarray]:
+        """
+        Create a pseudo-genotype matrix from a region of a VCF/BCF.
+
+        The genomic window is drawn uniformly at random from the sequences
+        defined in the given :class:`BagOfVcf`.
+
+        Individuals in the VCFs are sampled (without replacement) for
+        inclusion in the output matrix. The size of the feature space
+        can therefore be vastly increased by having more individuals
+        in the VCFs than are needed for the feature dimensions.
+
+        :param vb:
+            The BagOfVcf object that describes the VCF/BCF files.
+        :param sequence_length:
+            Length of the genomic window to be sampled.
+        :param max_missing_genotypes:
+            Consider only sites with fewer missing genotype calls than
+            this number.
+        :param min_seg_sites:
+            Sampled genotype matrix must have at least this many variable
+            sites (after filtering sites for missingness).
+        :param rng:
+            Numpy random number generator.
+        :return:
+            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
+            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
+            count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
+            :math:`i`.
+        """
+        if vb.samples is None or self.bh_matrices.keys() != vb.samples.keys():
+            sample_labels = None if vb.samples is None else list(vb.samples)
+            raise ValueError(
+                f"Feature labels {list(self.bh_matrices)} don't match the "
+                f"vcf bag's sample labels: {sample_labels}."
+            )
+        G, positions = vb.sample_genotype_matrix(
+            sequence_length=sequence_length,
+            max_missing_genotypes=max_missing_genotypes,
+            min_seg_sites=min_seg_sites,
+            require_phased=self._global_phased,
+            rng=rng,
+        )
+        num_samples = [len(v) for v in vb.samples.values()]
+        offsets = np.concatenate(([0], np.cumsum(num_samples[:-1])))
+
+        labelled_features = {}
+        for j, (label, bh_matrix) in enumerate(self.bh_matrices.items()):
+            if num_samples[j] < self._num_individuals[label]:
+                raise ValueError(
+                    f"{label}: Expected at least {self._num_individuals[label]} "
+                    f"individuals in the vcf bag, but only found {num_samples[j]}."
+                )
+
+            # Subsample individuals.
+            idx = offsets[j] + rng.choice(
+                num_samples[j], size=self._num_individuals[label], replace=False
+            )
+            H = G[:, idx, : self._ploidy[label]]
+            ploidy_pad = G[:, idx, self._ploidy[label] :]
+            if np.any(H == -2) or np.any(ploidy_pad != -2):
+                raise ValueError(f"{label}: mismatched ploidy among individuals.")
+            labelled_features[label] = bh_matrix._from_genotype_matrix(
+                H, positions=positions, sequence_length=sequence_length, rng=rng
+            )
+        return labelled_features

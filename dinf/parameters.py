@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class Param:
     """
     A parameter whose value is to be inferred.

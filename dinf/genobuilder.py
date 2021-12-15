@@ -1,3 +1,5 @@
+from __future__ import annotations
+import collections
 import dataclasses
 import functools
 from typing import Callable, Tuple
@@ -5,6 +7,7 @@ from typing import Callable, Tuple
 import numpy as np
 
 from .parameters import Parameters
+from .misc import tree_equal, tree_shape
 
 
 def _sim_shim(args, *, func, keys):
@@ -89,7 +92,7 @@ class Genobuilder:
     The inferrable parameters.
     """
 
-    feature_shape: Tuple
+    feature_shape: collections.abc.Mapping[str, Tuple]
     """
     Shape of the n-dimensional arrays produced by :attr:`.target_func`
     and :attr:`.generator_func`.
@@ -110,19 +113,29 @@ class Genobuilder:
     def check(self, seed=1234):
         """
         Basic health checks: draw parameters and call the functions.
+
+        We don't do this when initialising the Genobuilder, because calling
+        :meth:`.generator_func()` is potentially time consuming, which could
+        lead to annoying delays for the command line interface.
         """
         rng = np.random.default_rng(seed)
         thetas = self.parameters.draw(num_replicates=5, rng=rng)
-        assert thetas.shape == (5, len(self.parameters))
-        x_g = self.generator_func((rng.integers(low=0, high=2 ** 31), thetas[0]))
-        if not np.array_equal(x_g.shape, self.feature_shape):
+        if thetas.shape != (5, len(self.parameters)):
             raise ValueError(
-                f"Output of generator_func has shape {x_g.shape}, "
-                f"but feature_shape is {self.feature_shape}."
+                "parameters.draw(num_replicates=5) produced output with shape "
+                f"{thetas.shape}, expected shape {(5, len(self.parameters))}."
             )
-        x_t = self.target_func(rng.integers(low=0, high=2 ** 31))
-        if not np.array_equal(x_t.shape, self.feature_shape):
+
+        x_g = self.generator_func((rng.integers(low=0, high=2 ** 31), thetas[0]))
+        if not tree_equal(tree_shape(x_g), self.feature_shape):
             raise ValueError(
-                f"Output of target_func has shape {x_t.shape}, "
-                f"but feature_shape is {self.feature_shape}."
+                f"generator_func produced feature shape {tree_shape(x_g)}, "
+                f"but feature_shape is {self.feature_shape}"
+            )
+
+        x_t = self.target_func(rng.integers(low=0, high=2 ** 31))
+        if not tree_equal(tree_shape(x_t), self.feature_shape):
+            raise ValueError(
+                f"target_func produced feature shape {tree_shape(x_t)}, "
+                f"but feature_shape is {self.feature_shape}"
             )

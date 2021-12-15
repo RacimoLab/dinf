@@ -4,7 +4,6 @@ import functools
 import pathlib
 import pickle
 import sys
-from typing import Any, Sequence
 
 import numpy as np
 import jax
@@ -13,25 +12,31 @@ from flax import linen as nn
 import flax.training.train_state
 import optax
 
-# A type for jax PyTrees.
-# https://github.com/google/jax/issues/3340
-PyTree = Any
+from .misc import (
+    Pytree,
+    tree_equal,
+    tree_shape,
+    tree_cons,
+    tree_cdr,
+    leading_dim_size,
+)
 
 
 # Because we use batch normalisation, the training state needs to also record
 # batch_stats to maintain the running mean and variance.
 class TrainState(flax.training.train_state.TrainState):
-    batch_stats: Any
+    batch_stats: Pytree
 
 
 def batchify(dataset, batch_size):
     """Generate batch_size chunks of the dataset."""
     assert batch_size >= 1
-    k0 = tuple(dataset.keys())[0]
-    size = len(dataset[k0])
+    size = leading_dim_size(dataset)
+    assert size >= 1
+
     i, j = 0, batch_size
     while i < size:
-        batch = {k: v[i:j, ...] for k, v in dataset.items()}
+        batch = jax.tree_map(lambda x: x[i:j, ...], dataset)
         yield batch
         i = j
         j += batch_size
@@ -65,43 +70,48 @@ class ExchangeableCNN(nn.Module):
     """
 
     @nn.compact
-    def __call__(self, x: PyTree, *, train: bool) -> PyTree:  # type: ignore[override]
+    def __call__(  # type: ignore[override]
+        self, inputs: Pytree, *, train: bool
+    ) -> Pytree:
         # flax uses channels-last (NHWC) convention
         conv = functools.partial(nn.Conv, kernel_size=(1, 5), use_bias=False)
         # https://flax.readthedocs.io/en/latest/howtos/state_params.html
         norm = functools.partial(nn.BatchNorm, use_running_average=not train)
 
-        x = norm()(x)
+        combined = []
+        for input_feature in jax.tree_leaves(inputs):
+            x = norm()(input_feature)
 
-        x = conv(features=32, strides=(1, 2))(x)
-        x = nn.elu(x)
-        x = norm()(x)
+            x = conv(features=32, strides=(1, 2))(x)
+            x = nn.elu(x)
+            x = norm()(x)
 
-        x = conv(features=64, strides=(1, 2))(x)
-        x = nn.elu(x)
-        x = norm()(x)
+            x = conv(features=64, strides=(1, 2))(x)
+            x = nn.elu(x)
+            x = norm()(x)
 
-        # collapse haplotypes
-        x = Symmetric(axis=1)(x)
+            # collapse haplotypes
+            x = Symmetric(axis=1)(x)
 
-        x = conv(features=64)(x)
-        x = nn.elu(x)
-        x = norm()(x)
+            x = conv(features=64)(x)
+            x = nn.elu(x)
+            x = norm()(x)
 
-        # collapse genomic bins
-        x = Symmetric(axis=2)(x)
+            # collapse genomic bins
+            x = Symmetric(axis=2)(x)
+            combined.append(x)
 
-        x = nn.Dense(features=1)(x)
+        y = nn.Dense(features=1)(combined)
 
         # flatten
-        x = x.reshape((-1,))
+        y = y.reshape((-1,))
 
         # We output logits on (-inf, inf), rather than a probability on [0, 1],
         # because the jax ecosystem provides better API support for working
         # with logits, e.g. loss functions in optax.
         # So remember to call jax.nn.sigmoid(x) on the output when
         # probabilities are needed.
-        return x
+        return y
 
 
 @dataclasses.dataclass
@@ -114,45 +124,76 @@ class Discriminator:
 
     :ivar dnn: The neural network. This has an apply() method.
     :ivar input_shape: The shape of the input to the neural network.
-    :ivar variables: A PyTree of the network parameters.
+    :ivar variables: A Pytree of the network parameters.
     :ivar train_metrics:
-        A PyTree containing the loss/accuracy metrics obtained when training
+        A Pytree containing the loss/accuracy metrics obtained when training
         the network.
     """
 
     dnn: nn.Module
-    input_shape: Sequence[int]
-    variables: PyTree
-    train_metrics: PyTree = None
+    input_shape: Pytree
+    input_dtype: np.dtype
+    variables: Pytree
+    train_metrics: Pytree | None = None
+    state: TrainState | None = None
+    trained: bool = False
     # Bump this after making internal changes.
-    discriminator_format: str = "0.0.1"
-    state = None
+    discriminator_format: int = 1
 
     @classmethod
     def from_input_shape(
-        cls, input_shape: Sequence[int], rng: np.random.Generator
+        cls, input_shape: Pytree, rng: np.random.Generator, input_dtype=np.int8
     ) -> Discriminator:
         """
         Build a neural network with the given input shape.
 
         :param input_shape:
-            The shape of the data that will be given to the network.
-            This should be a 3-tuple of (n, m, c), where n is the number of
-            hapotypes, m is the size of the "fixed dimension" after resizing
-            along the sequence length, and c is the number of colour channels
-            (which should be equal to 1).
+            The shape of the input data for the network. This is a dictionary
+            that maps a label to a feature array. Each feature array has shape
+            (n, m, c), where
+            n >= 2 is the number of (pseudo)haplotypes,
+            m >= 4 is the length of the (pseudo)haplotypes,
+            and c <= 4 is the number of channels.
         """
         dnn = ExchangeableCNN()
         key = jax.random.PRNGKey(rng.integers(2 ** 63))
-        input_shape = (1,) + tuple(input_shape)  # add leading batch dimension
-        dummy_input = jnp.zeros(input_shape, dtype=np.int8)
+
+        # Sanity checks.
+        if not jax.tree_util.tree_all(
+            jax.tree_map(
+                lambda x: np.shape(x) == (3,) and x[0] >= 2 and x[1] >= 4 and x[2] <= 4,
+                input_shape,
+                is_leaf=lambda x: isinstance(x, tuple),
+            )
+        ):
+            raise ValueError(
+                "Input features must each have shape (n, m, c), where "
+                "n >= 2 is the number of (pseudo)haplotypes, "
+                "m >= 4 is the length of the (pseudo)haplotypes, "
+                "and c <= 4 is the number of channels.\n"
+                f"input_shape={input_shape}"
+            )
+
+        # Add leading batch dimension.
+        input_shape = tree_cons(1, input_shape)
+        input_dtype = np.dtype(input_dtype)
+        dummy_input = jax.tree_map(
+            lambda x: jnp.zeros(x, dtype=input_dtype),
+            input_shape,
+            is_leaf=lambda x: isinstance(x, tuple),
+        )
 
         @jax.jit
         def init(*args):
             return dnn.init(*args, train=False)
 
         variables = init(key, dummy_input)
-        return cls(dnn=dnn, variables=variables, input_shape=input_shape)
+        return cls(
+            dnn=dnn,
+            variables=variables,
+            input_shape=input_shape,
+            input_dtype=input_dtype,
+        )
 
     @classmethod
     def from_file(cls, filename: str | pathlib.Path) -> Discriminator:
@@ -182,16 +223,21 @@ class Discriminator:
         :param filename: The filename to which the model will be saved.
         """
         data = dataclasses.asdict(self)
+        data["state"] = None
         data["dnn"] = self.dnn  # asdict converts this to a dict
         with open(filename, "wb") as f:
             pickle.dump(data, f)
 
     def summary(self):
         """Print a summary of the neural network."""
-        x = jnp.zeros(self.input_shape, dtype=np.int8)
+        a = jax.tree_map(
+            lambda x: jnp.zeros(x, dtype=np.int8),
+            self.input_shape,
+            is_leaf=lambda x: isinstance(x, tuple),
+        )
         _, state = self.dnn.apply(
             self.variables,
-            x,
+            a,
             train=False,
             capture_intermediates=True,
             mutable=["intermediates"],
@@ -207,12 +253,12 @@ class Discriminator:
         *,
         train_x,
         train_y,
-        val_x,
-        val_y,
+        val_x=None,
+        val_y=None,
         batch_size: int = 64,
         epochs: int = 1,
         # TODO: tensorboard output
-        tensorboard_log_dir=None,
+        # tensorboard_log_dir=None,
         reset_metrics: bool = False,
     ):
         """
@@ -225,19 +271,51 @@ class Discriminator:
         :param val_y: Labels for validation data.
         :param batch_size: Size of minibatch for gradient update step.
         :param epochs: The number of full passes over the training data.
-        :param tensorboard_log_dir:
-            Directory for tensorboard logs. If None, no logs will be recorded.
         :param reset_metrics:
             If true, remove loss/accuracy metrics from previous calls to
             fit() (if any). If false, loss/accuracy metrics will be appended
             to the existing metrics.
         """
-        assert len(train_y.shape) == len(val_y.shape) == 1
-        assert len(train_x.shape) == len(val_x.shape) == 4
-        assert train_x.shape[1:] == val_x.shape[1:]
-        assert train_x.shape[1] > 1
-        assert train_x.shape[2] > 1
-        assert train_x.shape[3] == 1
+        if leading_dim_size(train_x) != leading_dim_size(train_y):
+            raise ValueError(
+                "Leading dimensions of train_x and train_y must be the same.\n"
+                f"train_x={tree_shape(train_x)}\n"
+                f"train_y={tree_shape(train_y)}"
+            )
+        if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(train_x)])):
+            raise ValueError(
+                "Trailing dimensions of train_x must match input_shape.\n"
+                f"input_shape={self.input_shape}\n"
+                f"train_x={tree_shape(train_x)}"
+            )
+
+        if (val_x is None and val_y is not None) or (
+            val_x is not None and val_y is None
+        ):
+            raise ValueError("Must specify both val_x and val_y or neither.")
+
+        if val_x is not None:
+            if leading_dim_size(val_x) != leading_dim_size(val_y):
+                raise ValueError(
+                    "Leading dimensions of val_x and val_y must be the same.\n"
+                    f"val_x={tree_shape(val_x)}\n"
+                    f"val_y={tree_shape(val_y)}"
+                )
+
+            if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(val_x)])):
+                raise ValueError(
+                    "Trailing dimensions of val_x must match input_shape.\n"
+                    f"input_shape={self.input_shape}\n"
+                    f"val_x={tree_shape(val_x)}"
+                )
+
+            # For a binary classifier, y has no trialing dimensions.
+            # if not tree_equal(*map(tree_cdr, map(tree_shape, [train_y, val_y]))):
+            #    raise ValueError(
+            #        "Trailing dimensions of train_y and val_y must match.\n"
+            #        f"train_y={tree_cdr(train_y)}\n"
+            #        f"val_y={tree_cdr(val_y)}"
+            #    )
 
         def running_metrics(n, batch_size, current_metrics, metrics):
             new_metrics = jax.tree_map(
@@ -262,7 +340,7 @@ class Discriminator:
             n = 0
             for i, batch in enumerate(batchify(train_ds, batch_size)):
                 state, batch_metrics = _train_step(state, batch)
-                actual_batch_size = len(batch["image"])
+                actual_batch_size = len(batch["input"])
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
                 )
@@ -278,7 +356,7 @@ class Discriminator:
             n = 0
             for batch in batchify(test_ds, batch_size):
                 batch_metrics = _eval_step(state, batch)
-                actual_batch_size = len(batch["image"])
+                actual_batch_size = len(batch["input"])
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
                 )
@@ -296,9 +374,9 @@ class Discriminator:
                 batch_stats=self.variables.get("batch_stats", {}),
             )
 
-        train_ds = dict(image=train_x, label=train_y)
-        test_ds = dict(image=val_x, label=val_y)
-        do_eval = len(val_x) > 0
+        train_ds = dict(input=train_x, output=train_y)
+        test_ds = dict(input=val_x, output=val_y)
+        do_eval = val_x is not None
 
         if reset_metrics or self.train_metrics is None:
             self.train_metrics = dict(
@@ -327,7 +405,9 @@ class Discriminator:
             else:
                 print()
 
+        assert state is not None
         self.state = state
+        self.trained = True
         self.variables = jax.tree_map(
             np.array,
             dict(
@@ -344,19 +424,21 @@ class Discriminator:
         :param batch_size: Size of data batches for prediction.
         :return: A vector of predictions, one for each input instance.
         """
-        if len(x.shape) != 4 or x.shape[1:] != self.input_shape[1:]:
-            # TODO: relax this, because the network is exchangeable.
+
+        assert leading_dim_size(x) > 0
+        if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(x)])):
             raise ValueError(
-                f"Input data has shape {x.shape} but discriminator network "
-                f"expects shape {self.input_shape}."
+                "Trailing dimensions of x must match input_shape.\n"
+                f"input_shape={self.input_shape}\n"
+                f"x={tree_shape(x)}"
             )
 
-        if "batch_stats" not in self.variables:
+        if not self.trained:
             raise ValueError(
                 "Cannot make predications as the discriminator has not been trained."
             )
 
-        dataset = dict(image=x)
+        dataset = dict(input=x)
         y = []
         for batch in batchify(dataset, batch_size):
             y.append(_predict_batch(batch, self.variables, self.dnn.apply))
@@ -380,12 +462,12 @@ def _train_step(state, batch):
     def loss_fn(params):
         logits, new_model_state = state.apply_fn(
             dict(params=params, batch_stats=state.batch_stats),
-            batch["image"],
+            batch["input"],
             mutable=["batch_stats"],
             train=True,
         )
         loss = jnp.mean(
-            optax.sigmoid_binary_cross_entropy(logits=logits, labels=batch["label"])
+            optax.sigmoid_binary_cross_entropy(logits=logits, labels=batch["output"])
         )
         return loss, (logits, new_model_state)
 
@@ -396,7 +478,7 @@ def _train_step(state, batch):
     )
     metrics = dict(
         loss=loss,
-        accuracy=binary_accuracy(logits=logits, labels=batch["label"]),
+        accuracy=binary_accuracy(logits=logits, labels=batch["output"]),
     )
     return state, metrics
 
@@ -407,13 +489,13 @@ def _eval_step(state, batch):
 
     logits = state.apply_fn(
         dict(params=state.params, batch_stats=state.batch_stats),
-        batch["image"],
+        batch["input"],
         train=False,
     )
     loss = jnp.mean(
-        optax.sigmoid_binary_cross_entropy(logits=logits, labels=batch["label"])
+        optax.sigmoid_binary_cross_entropy(logits=logits, labels=batch["output"])
     )
-    accuracy = binary_accuracy(logits=logits, labels=batch["label"])
+    accuracy = binary_accuracy(logits=logits, labels=batch["output"])
     metrics = dict(loss=loss, accuracy=accuracy)
     return metrics
 
@@ -424,7 +506,7 @@ def _predict_batch(batch, variables, apply_func):
 
     logits = apply_func(
         variables,
-        batch["image"],
+        batch["input"],
         train=False,
     )
     return jax.nn.sigmoid(logits)
