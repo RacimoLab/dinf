@@ -110,7 +110,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev18
+  dinf 0.1.1.dev26
 </div>
 
 </div>
@@ -296,7 +296,7 @@ directory will be used.</p></li>
 <h2>Other stuff<a class="headerlink" href="#other-stuff" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="dinf.BagOfVcf">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">BagOfVcf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">individuals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contigs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/vcf.html#BagOfVcf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.BagOfVcf" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">BagOfVcf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">files</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contig_lengths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/vcf.html#BagOfVcf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.BagOfVcf" title="Permalink to this definition">¶</a></dt>
 <dd><p>A collection of indexed VCF or BCF files.</p>
 <p>VCF data are sometimes contained in a single file, and sometimes split into
 multiple files by chromosome. To remove the burden of dealing with both
@@ -309,18 +309,30 @@ methods for sampling regions of the genome at random.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>files</strong> (<em>Iterable</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a><em>]</em>) – An iterable of filenames. Each file must be an indexed VCF or BCF,
 and contain the FORMAT/GT field.</p></li>
-<li><p><strong>individuals</strong> (<em>Iterable</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – An iterable of individual names corresponding to the VCF columns
+<li><p><strong>contig_lengths</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.10)"><em>collections.abc.Mapping</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – A dict mapping a contig name to contig length. Only the contigs in
+this dict will be used.</p></li>
+<li><p><strong>samples</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.10)"><em>collections.abc.Mapping</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>]</em><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – A dictionary that maps a label to a list of individual names,
+where the individual names correspond to the VCF columns
 for which genotypes will be sampled.</p></li>
-<li><p><strong>contigs</strong> (<em>Iterable</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – An iterable of contig names to use. If not specified, all contigs
-identified in the VCFs/BCFs will be used.</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="dinf.BagOfVcf.contig_lengths">
-<span class="sig-name descname"><span class="pre">contig_lengths</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.21)"><span class="pre">numpy.ndarray</span></a></em><a class="headerlink" href="#dinf.BagOfVcf.contig_lengths" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="dinf.BagOfVcf.lengths">
+<span class="sig-name descname"><span class="pre">lengths</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">np.ndarray</span></em><a class="headerlink" href="#dinf.BagOfVcf.lengths" title="Permalink to this definition">¶</a></dt>
 <dd><p>Lengths of the contigs in the bag. The order matches the contig order
 obtained by iterating over the bag.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="dinf.BagOfVcf.samples">
+<span class="sig-name descname"><span class="pre">samples</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.10)"><span class="pre">collections.abc.Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></em><a class="headerlink" href="#dinf.BagOfVcf.samples" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dictionary that maps a label to a list of individual names,
+where the individual names correspond to the VCF columns
+for which genotypes will be sampled.
+This is a bookkeeping device that records which genotypes belong
+to which label (e.g. which population). If None, it is assumed
+that all individuals in the VCF will be treated as exchangeable.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -426,7 +438,7 @@ is a better solution.</p></li>
 </dl>
 <dl class="py property">
 <dt class="sig sig-object py" id="dinf.BinnedHaplotypeMatrix.shape">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix.shape" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix.shape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Shape of the feature matrix.</p>
 </dd></dl>
 
@@ -455,7 +467,7 @@ count of minor alleles in the <span class="math notranslate nohighlight">\(j\)</
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.BinnedHaplotypeMatrix.from_vcf">
-<span class="sig-name descname"><span class="pre">from_vcf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_missing_genotypes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_seg_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#BinnedHaplotypeMatrix.from_vcf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix.from_vcf" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">from_vcf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vb</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_missing_genotypes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_seg_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#BinnedHaplotypeMatrix.from_vcf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix.from_vcf" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a pseudo-genotype matrix from a region of a VCF/BCF.</p>
 <p>The genomic window is drawn uniformly at random from the sequences
 defined in the given <a class="reference internal" href="#dinf.BagOfVcf" title="dinf.BagOfVcf"><code class="xref py py-class docutils literal notranslate"><span class="pre">BagOfVcf</span></code></a>.</p>
@@ -491,7 +503,7 @@ count of minor alleles in the <span class="math notranslate nohighlight">\(j\)</
 
 <dl class="py class">
 <dt class="sig sig-object py" id="dinf.Discriminator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">Discriminator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dnn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discriminator_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'0.0.1'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">Discriminator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dnn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trained</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discriminator_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator" title="Permalink to this definition">¶</a></dt>
 <dd><p>A discriminator neural network.</p>
 <p>Not intended to be instantiated directly. Use either the from_file() or
 from_input_shape() class methods instead.</p>
@@ -500,18 +512,21 @@ from_input_shape() class methods instead.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>dnn</strong> – The neural network. This has an apply() method.</p></li>
 <li><p><strong>input_shape</strong> – The shape of the input to the neural network.</p></li>
-<li><p><strong>variables</strong> – A PyTree of the network parameters.</p></li>
-<li><p><strong>train_metrics</strong> – A PyTree containing the loss/accuracy metrics obtained when training
+<li><p><strong>variables</strong> – A Pytree of the network parameters.</p></li>
+<li><p><strong>train_metrics</strong> – A Pytree containing the loss/accuracy metrics obtained when training
 the network.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Parameters</dt>
 <dd class="field-even"><ul class="simple">
-<li><p><strong>dnn</strong> (<em>flax.linen.module.Module</em>) – </p></li>
-<li><p><strong>input_shape</strong> (<em>Sequence</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – </p></li>
-<li><p><strong>variables</strong> (<em>Any</em>) – </p></li>
-<li><p><strong>train_metrics</strong> (<em>Any</em>) – </p></li>
-<li><p><strong>discriminator_format</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – </p></li>
+<li><p><strong>dnn</strong> (<em>nn.Module</em>) – </p></li>
+<li><p><strong>input_shape</strong> (<em>Pytree</em>) – </p></li>
+<li><p><strong>input_dtype</strong> (<em>np.dtype</em>) – </p></li>
+<li><p><strong>variables</strong> (<em>Pytree</em>) – </p></li>
+<li><p><strong>train_metrics</strong> (<em>Pytree</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – </p></li>
+<li><p><strong>state</strong> (<em>TrainState</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – </p></li>
+<li><p><strong>trained</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – </p></li>
+<li><p><strong>discriminator_format</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – </p></li>
 </ul>
 </dd>
 <dt class="field-odd">Return type</dt>
@@ -520,16 +535,17 @@ the network.</p></li>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.from_input_shape">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_input_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.from_input_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.from_input_shape" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_input_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dtype=&lt;class</span> <span class="pre">'numpy.int8'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.from_input_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.from_input_shape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Build a neural network with the given input shape.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>input_shape</strong> (<em>Sequence</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – The shape of the data that will be given to the network.
-This should be a 3-tuple of (n, m, c), where n is the number of
-hapotypes, m is the size of the “fixed dimension” after resizing
-along the sequence length, and c is the number of colour channels
-(which should be equal to 1).</p></li>
+<li><p><strong>input_shape</strong> (<em>Any</em>) – The shape of the input data for the network. This is a dictionary
+that maps a label to a feature array. Each feature array has shape
+(n, m, c), where
+n &gt;= 2 is the number of (pseudo)haplotypes,
+m &gt;= 4 is the length of the (pseudo)haplotypes,
+and c &lt;= 4 is the number of channels.</p></li>
 <li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.21)"><em>numpy.random._generator.Generator</em></a>) – </p></li>
 </ul>
 </dd>
@@ -578,7 +594,7 @@ along the sequence length, and c is the number of colour channels
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tensorboard_log_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.fit" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.fit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fit discriminator to training data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -590,7 +606,6 @@ along the sequence length, and c is the number of colour channels
 <li><p><strong>val_y</strong> – Labels for validation data.</p></li>
 <li><p><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of minibatch for gradient update step.</p></li>
 <li><p><strong>epochs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of full passes over the training data.</p></li>
-<li><p><strong>tensorboard_log_dir</strong> – Directory for tensorboard logs. If None, no logs will be recorded.</p></li>
 <li><p><strong>reset_metrics</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If true, remove loss/accuracy metrics from previous calls to
 fit() (if any). If false, loss/accuracy metrics will be appended
 to the existing metrics.</p></li>
@@ -663,9 +678,9 @@ the following pattern may be preferred instead.</p>
 </pre></div>
 </div>
 </p></li>
-<li><p><strong>parameters</strong> (<a class="reference internal" href="#dinf.Parameters" title="dinf.parameters.Parameters"><em>dinf.parameters.Parameters</em></a>) – A collection of inferrable parameters, one for each keyword argument
+<li><p><strong>parameters</strong> (<a class="reference internal" href="#dinf.Parameters" title="dinf.Parameters"><em>Parameters</em></a>) – A collection of inferrable parameters, one for each keyword argument
 provided to the <a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a>.</p></li>
-<li><p><strong>feature_shape</strong> (<em>Tuple</em>) – The shape of the n-dimensional arrays produced by <a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">target_func</span></code></a>
+<li><p><strong>feature_shape</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.10)"><em>collections.abc.Mapping</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>Tuple</em><em>]</em>) – The shape of the n-dimensional arrays produced by <a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">target_func</span></code></a>
 and <a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a>.</p></li>
 </ul>
 </dd>
@@ -687,13 +702,13 @@ and <a class="reference internal" href="#dinf.Genobuilder.generator_func" title=
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="dinf.Genobuilder.parameters">
-<span class="sig-name descname"><span class="pre">parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#dinf.Parameters" title="dinf.parameters.Parameters"><span class="pre">dinf.parameters.Parameters</span></a></em><a class="headerlink" href="#dinf.Genobuilder.parameters" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#dinf.Parameters" title="dinf.Parameters"><span class="pre">Parameters</span></a></em><a class="headerlink" href="#dinf.Genobuilder.parameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>The inferrable parameters.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="dinf.Genobuilder.feature_shape">
-<span class="sig-name descname"><span class="pre">feature_shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Tuple</span></em><a class="headerlink" href="#dinf.Genobuilder.feature_shape" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">feature_shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.10)"><span class="pre">collections.abc.Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.Genobuilder.feature_shape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Shape of the n-dimensional arrays produced by <a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">target_func</span></code></a>
 and <a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a>.</p>
 </dd></dl>
@@ -702,6 +717,9 @@ and <a class="reference internal" href="#dinf.Genobuilder.generator_func" title=
 <dt class="sig sig-object py" id="dinf.Genobuilder.check">
 <span class="sig-name descname"><span class="pre">check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1234</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/genobuilder.html#Genobuilder.check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Genobuilder.check" title="Permalink to this definition">¶</a></dt>
 <dd><p>Basic health checks: draw parameters and call the functions.</p>
+<p>We don’t do this when initialising the Genobuilder, because calling
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">generator_func()</span></code> is potentially time consuming, which could
+lead to annoying delays for the command line interface.</p>
 </dd></dl>
 
 </dd></dl>
@@ -943,7 +961,7 @@ j’th draw for the k’th parameter.</p>
         
             &copy; Copyright 2021.<br/>
           <div class="extra_footer">
-            dinf 0.1.1.dev18+gab98a1c
+            dinf 0.1.1.dev26+gf125df1
           </div>
       </p>
     </div>

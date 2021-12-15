@@ -99,7 +99,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev18
+  dinf 0.1.1.dev26
 </div>
 
 </div>
@@ -167,13 +167,16 @@
               <div>
                 
   <h1>Source code for dinf.genobuilder</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">dataclasses</span>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">dataclasses</span>
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">.parameters</span> <span class="kn">import</span> <span class="n">Parameters</span>
+<span class="kn">from</span> <span class="nn">.misc</span> <span class="kn">import</span> <span class="n">tree_equal</span><span class="p">,</span> <span class="n">tree_shape</span>
 
 
 <span class="k">def</span> <span class="nf">_sim_shim</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">keys</span><span class="p">):</span>
@@ -258,7 +261,7 @@
 <span class="sd">    The inferrable parameters.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">feature_shape</span><span class="p">:</span> <span class="n">Tuple</span>
+    <span class="n">feature_shape</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">]</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Shape of the n-dimensional arrays produced by :attr:`.target_func`</span>
 <span class="sd">    and :attr:`.generator_func`.</span>
@@ -279,21 +282,31 @@
 <div class="viewcode-block" id="Genobuilder.check"><a class="viewcode-back" href="../../api.html#dinf.Genobuilder.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1234</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Basic health checks: draw parameters and call the functions.</span>
+
+<span class="sd">        We don&#39;t do this when initialising the Genobuilder, because calling</span>
+<span class="sd">        :meth:`.generator_func()` is potentially time consuming, which could</span>
+<span class="sd">        lead to annoying delays for the command line interface.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
         <span class="n">thetas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">num_replicates</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span>
-        <span class="n">x_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_func</span><span class="p">((</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">31</span><span class="p">),</span> <span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">x_g</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Output of generator_func has shape </span><span class="si">{</span><span class="n">x_g</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;but feature_shape is </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="s2">&quot;parameters.draw(num_replicates=5) produced output with shape &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, expected shape </span><span class="si">{</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span><span class="si">}</span><span class="s2">.&quot;</span>
             <span class="p">)</span>
-        <span class="n">x_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_func</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">31</span><span class="p">))</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">x_t</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">):</span>
+
+        <span class="n">x_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_func</span><span class="p">((</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">31</span><span class="p">),</span> <span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">tree_equal</span><span class="p">(</span><span class="n">tree_shape</span><span class="p">(</span><span class="n">x_g</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Output of target_func has shape </span><span class="si">{</span><span class="n">x_t</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;but feature_shape is </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;generator_func produced feature shape </span><span class="si">{</span><span class="n">tree_shape</span><span class="p">(</span><span class="n">x_g</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;but feature_shape is </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">x_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_func</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">31</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">tree_equal</span><span class="p">(</span><span class="n">tree_shape</span><span class="p">(</span><span class="n">x_t</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;target_func produced feature shape </span><span class="si">{</span><span class="n">tree_shape</span><span class="p">(</span><span class="n">x_t</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;but feature_shape is </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span></div></div>
 </pre></div>
 
@@ -314,7 +327,7 @@
         
             &copy; Copyright 2021.<br/>
           <div class="extra_footer">
-            dinf 0.1.1.dev18+gab98a1c
+            dinf 0.1.1.dev26+gf125df1
           </div>
       </p>
     </div>

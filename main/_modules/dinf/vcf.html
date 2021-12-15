@@ -99,7 +99,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev18
+  dinf 0.1.1.dev26
 </div>
 
 </div>
@@ -170,6 +170,7 @@
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
 <span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
@@ -178,6 +179,43 @@
 <span class="kn">import</span> <span class="nn">cyvcf2</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_contig_lengths</span><span class="p">(</span>
+    <span class="n">filename</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">keep_contigs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load contig lengths from a space-separated file like an fai (fasta index).</span>
+
+<span class="sd">    The file must have (at least) two columns, the first specifies the</span>
+<span class="sd">    contig id, and the second is the contig length. Additional columns</span>
+<span class="sd">    are ignored.</span>
+
+<span class="sd">    :param filename: The path to the file.</span>
+<span class="sd">    :param keep_contigs: Use only the specified contigs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">keep_contigs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">keep_contigs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">keep_contigs</span><span class="p">)</span>
+        <span class="n">seen_contigs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">fields</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+            <span class="n">contig</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">keep_contigs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">seen_contigs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">contig</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">contig</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">keep_contigs</span><span class="p">:</span>
+                    <span class="k">continue</span>
+            <span class="n">length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">contig</span><span class="p">]</span> <span class="o">=</span> <span class="n">length</span>
+    <span class="k">if</span> <span class="n">keep_contigs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">contigs_not_found</span> <span class="o">=</span> <span class="n">keep_contigs</span> <span class="o">-</span> <span class="n">seen_contigs</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">contigs_not_found</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Requested contigs not found: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">contigs_not_found</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span>
 
 
 <span class="k">def</span> <span class="nf">get_genotype_matrix</span><span class="p">(</span>
@@ -248,10 +286,6 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;Mismatched ploidy among sites in </span><span class="si">{</span><span class="n">chrom</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">end</span><span class="si">}</span><span class="s2">.&quot;</span>
         <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
-    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np_G</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Mismatched ploidy among individuals in </span><span class="si">{</span><span class="n">chrom</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">end</span><span class="si">}</span><span class="s2">.&quot;</span>
-        <span class="p">)</span>
 
     <span class="n">np_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span> <span class="o">-</span> <span class="n">start</span>
     <span class="k">return</span> <span class="n">np_G</span><span class="p">,</span> <span class="n">np_positions</span>
@@ -269,30 +303,45 @@
 <span class="sd">    methods for sampling regions of the genome at random.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">contig_lengths</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="n">lengths</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Lengths of the contigs in the bag. The order matches the contig order</span>
 <span class="sd">    obtained by iterating over the bag.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># TODO: samples should be a Pytree</span>
+    <span class="n">samples</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A dictionary that maps a label to a list of individual names,</span>
+<span class="sd">    where the individual names correspond to the VCF columns</span>
+<span class="sd">    for which genotypes will be sampled.</span>
+<span class="sd">    This is a bookkeeping device that records which genotypes belong</span>
+<span class="sd">    to which label (e.g. which population). If None, it is assumed</span>
+<span class="sd">    that all individuals in the VCF will be treated as exchangeable.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">files</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">individuals</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">contigs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">samples</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">contig_lengths</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param files:</span>
 <span class="sd">            An iterable of filenames. Each file must be an indexed VCF or BCF,</span>
 <span class="sd">            and contain the FORMAT/GT field.</span>
-<span class="sd">        :param individuals:</span>
-<span class="sd">            An iterable of individual names corresponding to the VCF columns</span>
+<span class="sd">        :param contig_lengths:</span>
+<span class="sd">            A dict mapping a contig name to contig length. Only the contigs in</span>
+<span class="sd">            this dict will be used.</span>
+<span class="sd">        :param samples:</span>
+<span class="sd">            A dictionary that maps a label to a list of individual names,</span>
+<span class="sd">            where the individual names correspond to the VCF columns</span>
 <span class="sd">            for which genotypes will be sampled.</span>
-<span class="sd">        :param contigs:</span>
-<span class="sd">            An iterable of contig names to use. If not specified, all contigs</span>
-<span class="sd">            identified in the VCFs/BCFs will be used.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">individuals</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">samples</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">individuals</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="n">samples</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
         <span class="c1"># Silence some warnings from cyvcf2.</span>
         <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
             <span class="c1"># We check if a contig is usable for a given vcf by querying</span>
@@ -302,21 +351,25 @@
             <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span>
                 <span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;no intervals found&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span>
             <span class="p">)</span>
-            <span class="c1"># We detect this condition and explicitly raise an error.</span>
+            <span class="c1"># We detect this condition and raise our own error below.</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span>
                 <span class="s2">&quot;ignore&quot;</span><span class="p">,</span>
                 <span class="n">message</span><span class="o">=</span><span class="s2">&quot;not all requested samples found&quot;</span><span class="p">,</span>
                 <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_fill_bag</span><span class="p">(</span><span class="n">files</span><span class="o">=</span><span class="n">files</span><span class="p">,</span> <span class="n">individuals</span><span class="o">=</span><span class="n">individuals</span><span class="p">,</span> <span class="n">contigs</span><span class="o">=</span><span class="n">contigs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fill_bag</span><span class="p">(</span>
+                <span class="n">files</span><span class="o">=</span><span class="n">files</span><span class="p">,</span> <span class="n">contig_lengths</span><span class="o">=</span><span class="n">contig_lengths</span><span class="p">,</span> <span class="n">individuals</span><span class="o">=</span><span class="n">individuals</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">samples</span> <span class="o">=</span> <span class="n">samples</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_regions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">def</span> <span class="nf">_fill_bag</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">files</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">],</span>
+        <span class="n">contig_lengths</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">individuals</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">contigs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Construct a mapping from contig id to cyvcf2.VCF object.</span>
@@ -324,7 +377,6 @@
 
         <span class="n">contig2file</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">contig2vcf</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">cyvcf2</span><span class="o">.</span><span class="n">VCF</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">contig_lengths</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="n">files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">files</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
@@ -335,12 +387,14 @@
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">individuals</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">individuals</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Individuals list contains duplicates.&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">contigs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">contigs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">contigs</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">contigs</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">contigs</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Contigs list contains duplicates.&quot;</span><span class="p">)</span>
-            <span class="n">contigs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">contigs</span><span class="p">)</span>
+        <span class="n">all_samples</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">all_samples_file</span> <span class="o">=</span> <span class="kc">None</span>
 
+        <span class="k">if</span> <span class="n">contig_lengths</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">contig_lengths</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">contigs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">contigs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">contig_lengths</span><span class="p">)</span>
         <span class="n">contigs_seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 
         <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
@@ -352,14 +406,30 @@
                 <span class="ow">or</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">.csi&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
             <span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No index found for </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">individuals</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">individuals</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">all_samples</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">all_samples</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">vcf</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span>
+                    <span class="n">all_samples_file</span> <span class="o">=</span> <span class="n">file</span>
+                <span class="k">elif</span> <span class="n">all_samples</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="n">vcf</span><span class="o">.</span><span class="n">samples</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2"> has different samples than </span><span class="si">{</span><span class="n">all_samples_file</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
                 <span class="n">individuals_not_found</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">individuals</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">vcf</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">individuals_not_found</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">&quot;Requested individuals not found in </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">: &quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">individuals_not_found</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">individuals_not_found</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
                     <span class="p">)</span>
-            <span class="k">for</span> <span class="n">contig_id</span><span class="p">,</span> <span class="n">contig_length</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">vcf</span><span class="o">.</span><span class="n">seqnames</span><span class="p">,</span> <span class="n">vcf</span><span class="o">.</span><span class="n">seqlens</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">contigs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">vcf</span><span class="o">.</span><span class="n">seqlens</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2"> doesn&#39;t contain contig lengths. &quot;</span>
+                        <span class="s2">&quot;You must provide a contig_lengths argument.&quot;</span>
+                    <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">contig_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vcf</span><span class="o">.</span><span class="n">seqnames</span><span class="p">):</span>
                 <span class="n">contigs_seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">contig_id</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">contigs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">contig_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">contigs</span><span class="p">:</span>
                     <span class="k">continue</span>
@@ -376,21 +446,22 @@
                         <span class="sa">f</span><span class="s2">&quot;sequence &#39;</span><span class="si">{</span><span class="n">contig_id</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
                     <span class="p">)</span>
                 <span class="n">contig2file</span><span class="p">[</span><span class="n">contig_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">file</span>
-                <span class="n">contig_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">contig_length</span><span class="p">)</span>
                 <span class="n">contig2vcf</span><span class="p">[</span><span class="n">contig_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">vcf</span>
+                <span class="k">if</span> <span class="n">contigs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">contig_lengths</span><span class="p">[</span><span class="n">contig_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">vcf</span><span class="o">.</span><span class="n">seqlens</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>  <span class="c1"># type: ignore[index]</span>
 
         <span class="k">if</span> <span class="n">contigs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">contigs_not_found</span> <span class="o">=</span> <span class="n">contigs</span> <span class="o">-</span> <span class="n">contigs_seen</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">contigs_not_found</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Requested contigs not found: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">contigs_not_found</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Requested contigs not found: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">contigs_not_found</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
                 <span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">contig2file</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No usable vcf/bcf files in the list.&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_contig2vcf</span> <span class="o">=</span> <span class="n">contig2vcf</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">contig_lengths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">contig_lengths</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lengths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromiter</span><span class="p">(</span><span class="n">contig_lengths</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contig2vcf</span>
@@ -418,11 +489,11 @@
 <span class="sd">            the usual convention for &#39;chrom:start-end&#39;, e.g. in bcftools.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">long_enough</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">contig_lengths</span> <span class="o">&gt;=</span> <span class="n">sequence_length</span>
+        <span class="n">long_enough</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengths</span> <span class="o">&gt;=</span> <span class="n">sequence_length</span>
         <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">long_enough</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No contigs with length &gt;= </span><span class="si">{</span><span class="n">sequence_length</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
         <span class="n">contig_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)[</span><span class="n">long_enough</span><span class="p">]</span>
-        <span class="n">contig_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">contig_lengths</span><span class="p">[</span><span class="n">long_enough</span><span class="p">]</span>
+        <span class="n">contig_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengths</span><span class="p">[</span><span class="n">long_enough</span><span class="p">]</span>
 
         <span class="n">p</span> <span class="o">=</span> <span class="n">contig_lengths</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">contig_lengths</span><span class="p">)</span>
         <span class="n">idx</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">contig_ids</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
@@ -507,7 +578,7 @@
         
             &copy; Copyright 2021.<br/>
           <div class="extra_footer">
-            dinf 0.1.1.dev18+gab98a1c
+            dinf 0.1.1.dev26+gf125df1
           </div>
       </p>
     </div>
