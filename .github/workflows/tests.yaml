@@ -67,6 +67,7 @@ jobs:
         run: |
           python -m pytest \
             -n auto \
+            -v \
             --cov=dinf \
             --cov-report=term-missing \
             --cov-report=xml \
