@@ -364,6 +364,7 @@ class BagOfVcf(collections.abc.Mapping):
              - ``positions`` are the site coordinates, as an offset from the
                the start of the genomic window.
         """
+        assert retries > 0
         for _ in range(retries):
             if len(self._regions) == 0:
                 self._regions = self.sample_regions(1000, sequence_length, rng)
