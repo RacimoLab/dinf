@@ -123,37 +123,6 @@ def _mcmc_log_prob(
     rng: np.random.Generator,
     num_replicates: int,
     parallelism: int,
-) -> float:
-    """
-    Function to be maximised by mcmc. For testing the vector version (below).
-    """
-    assert len(theta) == len(parameters)
-    if not parameters.bounds_contain(theta):
-        # param out of bounds
-        return -np.inf
-
-    seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates)
-    params = np.tile(theta, (num_replicates, 1))
-    M = _sim_replicates(
-        sim_func=generator,
-        args=zip(seeds, params),
-        num_replicates=num_replicates,
-        parallelism=parallelism,
-    )
-    D = np.mean(discriminator.predict(M))
-    with np.errstate(divide="ignore"):
-        return np.log(D)
-
-
-def _mcmc_log_prob_vector(
-    theta: np.ndarray,
-    *,
-    discriminator: dinf.Discriminator,
-    generator: Callable,
-    parameters: dinf.Parameters,
-    rng: np.random.Generator,
-    num_replicates: int,
-    parallelism: int,
 ) -> np.ndarray:
     """
     Function to be maximised by mcmc. Vectorised version.
@@ -186,15 +155,6 @@ def _mcmc_log_prob_vector(
     return log_D
 
 
-def _chain_from_netcdf(filename):
-    dataset = az.from_netcdf(filename)
-    chain = np.array(dataset.posterior.to_array())
-    # Chain has shape (params, walkers, steps)
-    chain = chain.swapaxes(0, 2)
-    # now has shape (steps, walkers, params)
-    return chain
-
-
 def _run_mcmc_emcee(
     start: np.ndarray,
     discriminator: dinf.Discriminator,
@@ -208,9 +168,9 @@ def _run_mcmc_emcee(
     sampler = emcee.EnsembleSampler(
         walkers,
         len(genobuilder.parameters),
-        _mcmc_log_prob_vector,
+        _mcmc_log_prob,
         vectorize=True,
-        # kwargs passed to _mcmc_log_prob_vector
+        # kwargs passed to _mcmc_log_prob
         kwargs=dict(
             discriminator=discriminator,
             generator=genobuilder.generator_func,

@@ -1,7 +1,8 @@
 from __future__ import annotations
 import functools
+import os
 import pathlib
-from typing import Iterable
+from typing import Callable, Iterable
 
 import arviz as az
 import numpy as np
@@ -63,16 +64,15 @@ def test_abc_gan(tmp_path):
         )
 
     # resume
+    os.chdir(working_directory)
     dinf.abc_gan(
         genobuilder=genobuilder,
         iterations=1,
         training_replicates=16,
-        test_replicates=0,
+        test_replicates=2,
         epochs=1,
         proposals=20,
         posteriors=7,
-        working_directory=working_directory,
-        parallelism=2,
         rng=rng,
     )
     for i in range(3):
@@ -84,6 +84,43 @@ def test_abc_gan(tmp_path):
             var_names=genobuilder.parameters,
             check_acceptance_rate=False,
         )
+
+    with pytest.raises(
+        ValueError, match="Cannot subsample .* posteriors from .* proposals"
+    ):
+        dinf.abc_gan(
+            genobuilder=genobuilder,
+            iterations=2,
+            training_replicates=16,
+            test_replicates=0,
+            epochs=1,
+            proposals=20,
+            posteriors=70,
+            working_directory=working_directory,
+            parallelism=2,
+            rng=rng,
+        )
+
+    backup = working_directory / "bak"
+    for file in [
+        working_directory / f"{i}" / "discriminator.pkl",
+        working_directory / f"{i}" / "abc.ncf",
+    ]:
+        file.rename(backup)
+        with pytest.raises(RuntimeError, match="incomplete"):
+            dinf.abc_gan(
+                genobuilder=genobuilder,
+                iterations=2,
+                training_replicates=16,
+                test_replicates=0,
+                epochs=1,
+                proposals=20,
+                posteriors=70,
+                working_directory=working_directory,
+                parallelism=2,
+                rng=rng,
+            )
+        backup.rename(file)
 
 
 @pytest.mark.usefixtures("tmp_path")
@@ -116,17 +153,16 @@ def test_mcmc_gan(tmp_path):
         )
 
     # resume
+    os.chdir(working_directory)
     dinf.mcmc_gan(
         genobuilder=genobuilder,
         iterations=1,
         training_replicates=16,
-        test_replicates=0,
+        test_replicates=2,
         epochs=1,
         walkers=6,
         steps=1,
         Dx_replicates=2,
-        working_directory=working_directory,
-        parallelism=2,
         rng=rng,
     )
     for i in range(3):
@@ -138,6 +174,75 @@ def test_mcmc_gan(tmp_path):
             var_names=genobuilder.parameters,
             check_acceptance_rate=True,
         )
+
+    with pytest.raises(ValueError, match="resuming from .* which used .* walkers"):
+        dinf.mcmc_gan(
+            genobuilder=genobuilder,
+            iterations=2,
+            training_replicates=16,
+            test_replicates=0,
+            epochs=1,
+            walkers=8,
+            steps=1,
+            Dx_replicates=2,
+            working_directory=working_directory,
+            parallelism=2,
+            rng=rng,
+        )
+
+    backup = working_directory / "bak"
+    for file in [
+        working_directory / f"{i}" / "discriminator.pkl",
+        working_directory / f"{i}" / "mcmc.ncf",
+    ]:
+        file.rename(backup)
+        with pytest.raises(RuntimeError, match="incomplete"):
+            dinf.mcmc_gan(
+                genobuilder=genobuilder,
+                iterations=2,
+                training_replicates=16,
+                test_replicates=0,
+                epochs=1,
+                walkers=6,
+                steps=1,
+                Dx_replicates=2,
+                working_directory=working_directory,
+                parallelism=2,
+                rng=rng,
+            )
+        backup.rename(file)
+
+
+def mcmc_log_prob(
+    theta: np.ndarray,
+    *,
+    discriminator: dinf.Discriminator,
+    generator: Callable,
+    parameters: dinf.Parameters,
+    rng: np.random.Generator,
+    num_replicates: int,
+    parallelism: int,
+) -> float:
+    """
+    Non-vector version of dinf.dinf._mcmc_log_prob()
+    (the function to be maximised by the mcmc).
+    """
+    assert len(theta) == len(parameters)
+    if not parameters.bounds_contain(theta):
+        # param out of bounds
+        return -np.inf
+
+    seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates)
+    params = np.tile(theta, (num_replicates, 1))
+    M = dinf.dinf._sim_replicates(
+        sim_func=generator,
+        args=zip(seeds, params),
+        num_replicates=num_replicates,
+        parallelism=parallelism,
+    )
+    D = np.mean(discriminator.predict(M))
+    with np.errstate(divide="ignore"):
+        return np.log(D)
 
 
 class TestLogProb:
@@ -159,44 +264,23 @@ class TestLogProb:
         )
 
     def test_log_prob(self):
-        rng = np.random.default_rng(1)
-        log_prob = functools.partial(
+        # non-vector version
+        log_prob_1 = functools.partial(
+            mcmc_log_prob,
+            discriminator=self.discriminator,
+            generator=self.genobuilder.generator_func,
+            parameters=self.genobuilder.parameters,
+            rng=np.random.default_rng(1),
+            num_replicates=2,
+            parallelism=1,
+        )
+        # vector version
+        log_prob_n = functools.partial(
             dinf.dinf._mcmc_log_prob,
             discriminator=self.discriminator,
             generator=self.genobuilder.generator_func,
             parameters=self.genobuilder.parameters,
-            rng=rng,
-            num_replicates=2,
-            parallelism=1,
-        )
-
-        parameters = tuple(self.genobuilder.parameters.values())
-        true_params = [p.truth for p in parameters]
-        D = np.exp(log_prob(true_params))
-        # The model should learn *something* about the true data even with
-        # negligible training.
-        assert D > 0
-
-        for theta in [
-            [parameters[0].low - 1] + true_params[1:],
-            [parameters[0].high + 1] + true_params[1:],
-            true_params[:-1] + [parameters[-1].low - 1],
-            true_params[:-1] + [parameters[-1].high + 1],
-            [p.low - 1 for p in parameters],
-            [p.high + 1 for p in parameters],
-        ]:
-            log_D = log_prob(theta)
-            assert log_D < 0
-            assert np.isinf(log_D)
-
-    def test_log_prob_vector(self):
-        rng = np.random.default_rng(1)
-        log_prob = functools.partial(
-            dinf.dinf._mcmc_log_prob_vector,
-            discriminator=self.discriminator,
-            generator=self.genobuilder.generator_func,
-            parameters=self.genobuilder.parameters,
-            rng=rng,
+            rng=np.random.default_rng(1),
             num_replicates=2,
             parallelism=1,
         )
@@ -216,7 +300,29 @@ class TestLogProb:
             ]
         )
 
-        log_D = log_prob(thetas)
+        log_D = log_prob_n(thetas)
         assert len(log_D) == len(thetas)
         assert np.exp(log_D[0]) > 0
         assert all(np.isinf(log_D[1:]))
+
+        for j in range(len(thetas)):
+            log_D_1 = log_prob_1(thetas[j])
+            assert np.isclose(log_D_1, log_D[j])
+
+        # Random thetas.
+        thetas = self.genobuilder.parameters.draw(20, rng=np.random.default_rng(123))
+        log_D = log_prob_n(thetas)
+        assert len(log_D) == len(thetas)
+        assert all(np.exp(log_D) > 0)
+
+        for j in range(len(thetas)):
+            log_D_1 = log_prob_1(thetas[j])
+            assert np.isclose(log_D_1, log_D[j])
+
+        # All out of bounds.
+        thetas = np.array([[p.low - 1 for p in parameters] for _ in range(20)])
+        log_D = log_prob_n(thetas)
+        assert all(np.isinf(log_D))
+        for j in range(len(thetas)):
+            log_D_1 = log_prob_1(thetas[j])
+            assert np.isinf(log_D_1)
