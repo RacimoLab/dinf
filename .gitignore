@@ -8,3 +8,4 @@ dinf.egg-info/
 dinf/_version.py
 dist/
 .coverage
+.coverage.*

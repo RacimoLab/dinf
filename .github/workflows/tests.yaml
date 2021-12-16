@@ -19,6 +19,7 @@ jobs:
     defaults:
       run:
         shell: bash
+    timeout-minutes: 20
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -67,6 +68,7 @@ jobs:
         run: |
           python -m pytest \
             -n auto \
+            -v \
             --cov=dinf \
             --cov-report=term-missing \
             --cov-report=xml \

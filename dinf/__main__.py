@@ -136,7 +136,7 @@ class AbcGan:
     def __init__(self, subparsers):
         parser = subparsers.add_parser(
             "abc-gan",
-            help="Run the ABC GAN",
+            # help="Run the ABC GAN",
             description=textwrap.dedent(self.__doc__),
             formatter_class=ADRDFormatter,
         )
@@ -166,7 +166,7 @@ class AbcGan:
     def __call__(self, args: argparse.Namespace):
         rng = np.random.default_rng(args.seed)
         genobuilder = _get_user_genobuilder(args.genob_model)
-        dinf.abc_gan(
+        dinf.dinf.abc_gan(
             genobuilder=genobuilder,
             iterations=args.iterations,
             training_replicates=args.training_replicates,
@@ -282,7 +282,9 @@ def main(args_list=None):
     )
     top_parser.add_argument("--version", action="version", version=dinf.__version__)
 
-    subparsers = top_parser.add_subparsers(dest="subcommand")
+    subparsers = top_parser.add_subparsers(
+        dest="subcommand", metavar="{mcmc-gan,check}"
+    )
     AbcGan(subparsers)
     McmcGan(subparsers)
     Check(subparsers)

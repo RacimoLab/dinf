@@ -732,11 +732,14 @@ class TestBagOfVcf:
     def test_contigs_are_all_too_short(self, tmp_path):
         create_vcf_dataset(tmp_path, contig_lengths=[100_000])
         vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
-        with pytest.raises(ValueError, match="No contigs with length >="):
+        assert len(vb._regions) == 0
+        assert all(vb.lengths < 1_000_000)
+        with pytest.raises(ValueError, match=r"No contigs with length >="):
             vb.sample_genotype_matrix(
                 sequence_length=1_000_000,
                 min_seg_sites=1,
                 max_missing_genotypes=0,
                 require_phased=True,
                 rng=np.random.default_rng(1234),
+                retries=1,
             )

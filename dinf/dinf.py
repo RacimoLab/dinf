@@ -1,4 +1,5 @@
 from __future__ import annotations
+import copy
 import logging
 import multiprocessing
 import os
@@ -11,7 +12,10 @@ import emcee
 import jax
 import numpy as np
 
-import dinf
+from .discriminator import Discriminator
+from .genobuilder import Genobuilder
+from .parameters import Parameters
+from .store import Store
 
 logger = logging.getLogger(__name__)
 
@@ -117,40 +121,9 @@ def _generate_training_data(
 def _mcmc_log_prob(
     theta: np.ndarray,
     *,
-    discriminator: dinf.Discriminator,
+    discriminator: Discriminator,
     generator: Callable,
-    parameters: dinf.Parameters,
-    rng: np.random.Generator,
-    num_replicates: int,
-    parallelism: int,
-) -> float:
-    """
-    Function to be maximised by mcmc. For testing the vector version (below).
-    """
-    assert len(theta) == len(parameters)
-    if not parameters.bounds_contain(theta):
-        # param out of bounds
-        return -np.inf
-
-    seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates)
-    params = np.tile(theta, (num_replicates, 1))
-    M = _sim_replicates(
-        sim_func=generator,
-        args=zip(seeds, params),
-        num_replicates=num_replicates,
-        parallelism=parallelism,
-    )
-    D = np.mean(discriminator.predict(M))
-    with np.errstate(divide="ignore"):
-        return np.log(D)
-
-
-def _mcmc_log_prob_vector(
-    theta: np.ndarray,
-    *,
-    discriminator: dinf.Discriminator,
-    generator: Callable,
-    parameters: dinf.Parameters,
+    parameters: Parameters,
     rng: np.random.Generator,
     num_replicates: int,
     parallelism: int,
@@ -186,19 +159,10 @@ def _mcmc_log_prob_vector(
     return log_D
 
 
-def _chain_from_netcdf(filename):
-    dataset = az.from_netcdf(filename)
-    chain = np.array(dataset.posterior.to_array())
-    # Chain has shape (params, walkers, steps)
-    chain = chain.swapaxes(0, 2)
-    # now has shape (steps, walkers, params)
-    return chain
-
-
 def _run_mcmc_emcee(
     start: np.ndarray,
-    discriminator: dinf.Discriminator,
-    genobuilder: dinf.Genobuilder,
+    discriminator: Discriminator,
+    genobuilder: Genobuilder,
     walkers: int,
     steps: int,
     Dx_replicates: int,
@@ -208,9 +172,9 @@ def _run_mcmc_emcee(
     sampler = emcee.EnsembleSampler(
         walkers,
         len(genobuilder.parameters),
-        _mcmc_log_prob_vector,
+        _mcmc_log_prob,
         vectorize=True,
-        # kwargs passed to _mcmc_log_prob_vector
+        # kwargs passed to _mcmc_log_prob
         kwargs=dict(
             discriminator=discriminator,
             generator=genobuilder.generator_func,
@@ -250,8 +214,8 @@ def _run_mcmc_emcee(
 
 def _train_discriminator(
     *,
-    discriminator: dinf.Discriminator,
-    genobuilder: dinf.Genobuilder,
+    discriminator: Discriminator,
+    genobuilder: Genobuilder,
     training_replicates: int,
     test_replicates: int,
     epochs: int,
@@ -293,7 +257,7 @@ def _train_discriminator(
 
 def mcmc_gan(
     *,
-    genobuilder: dinf.Genobuilder,
+    genobuilder: Genobuilder,
     iterations: int,
     training_replicates: int,
     test_replicates: int,
@@ -347,10 +311,12 @@ def mcmc_gan(
     :param rng:
         Numpy random number generator.
     """
+    # We modify the parameters, so take a copy.
+    genobuilder = copy.deepcopy(genobuilder)
 
     if working_directory is None:
         working_directory = "."
-    store = dinf.Store(working_directory)
+    store = Store(working_directory)
 
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
@@ -367,7 +333,7 @@ def mcmc_gan(
         resume = all(files_exist)
 
     if resume:
-        discriminator = dinf.Discriminator.from_file(store[-1] / "discriminator.pkl")
+        discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
         dataset = az.from_netcdf(store[-1] / "mcmc.ncf")
         chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
         start = chain[-1]
@@ -380,11 +346,12 @@ def mcmc_gan(
         posterior_sample = chain.reshape(-1, chain.shape[-1])
         genobuilder.parameters.update_posterior(posterior_sample)
     else:
-        discriminator = dinf.Discriminator.from_input_shape(
-            genobuilder.feature_shape, rng
-        )
+        discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
         # Starting point for the mcmc chain.
-        start = genobuilder.parameters.draw(num_replicates=walkers, rng=rng)
+        start = genobuilder.parameters.draw_prior(num_replicates=walkers, rng=rng)
+
+    # If start values are linearly dependent, emcee complains loudly.
+    assert not np.any((start[0] == start[1:]).all(axis=-1))
 
     n_observed_calls = 0
     n_generator_calls = 0
@@ -438,8 +405,8 @@ def mcmc_gan(
 
 def _run_abc(
     *,
-    discriminator: dinf.Discriminator,
-    genobuilder: dinf.Genobuilder,
+    discriminator: Discriminator,
+    genobuilder: Genobuilder,
     proposals: int,
     posteriors: int,
     parallelism: int,
@@ -472,7 +439,7 @@ def _run_abc(
 
 def abc_gan(
     *,
-    genobuilder: dinf.Genobuilder,
+    genobuilder: Genobuilder,
     iterations: int,
     training_replicates: int,
     test_replicates: int,
@@ -523,9 +490,12 @@ def abc_gan(
     :param rng:
         Numpy random number generator.
     """
+    # We modify the parameters, so take a copy.
+    genobuilder = copy.deepcopy(genobuilder)
+
     if working_directory is None:
         working_directory = "."
-    store = dinf.Store(working_directory)
+    store = Store(working_directory)
 
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
@@ -542,15 +512,13 @@ def abc_gan(
         resume = all(files_exist)
 
     if resume:
-        discriminator = dinf.Discriminator.from_file(store[-1] / "discriminator.pkl")
+        discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
         dataset = az.from_netcdf(store[-1] / "abc.ncf")
         genobuilder.parameters.update_posterior(
             np.array(dataset.posterior.to_array()).swapaxes(0, 2).squeeze()
         )
     else:
-        discriminator = dinf.Discriminator.from_input_shape(
-            genobuilder.feature_shape, rng
-        )
+        discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
 
     n_observed_calls = 0
     n_generator_calls = 0

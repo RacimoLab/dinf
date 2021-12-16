@@ -3,10 +3,12 @@ import pathlib
 
 
 class Store(collections.abc.Sequence):
-    """A sequence of folders with names "0", "1", ..."""
+    """
+    A sequence of folders with names "0", "1", ...
 
-    base: pathlib.Path
-    """Base directory containing the sequence."""
+    :ivar pathlib.Path base:
+        Base directory containing the sequence.
+    """
 
     def __init__(self, base):
         self.base = pathlib.Path(base)
