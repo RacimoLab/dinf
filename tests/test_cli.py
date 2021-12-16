@@ -30,37 +30,37 @@ def test_get_user_genobuilder_obj_wrong_type(tmp_path):
     with pytest.raises(TypeError, match="not a .*Genobuilder"):
         dinf.__main__._get_user_genobuilder(filename)
 
-#
-#class TestTopLevel:
-#    def test_help(self):
-#        out1 = subprocess.run(
-#            "python -m dinf -h".split(), check=True, stdout=subprocess.PIPE
-#        )
-#        assert b"mcmc-gan" in out1.stdout
-#        assert b"check" in out1.stdout
-#        # Not supported.
-#        assert b"abc-gan" not in out1.stdout
-#
-#        out2 = subprocess.run(
-#            "python -m dinf --help".split(), check=True, stdout=subprocess.PIPE
-#        )
-#        assert out1.stdout == out2.stdout
-#
-#        # No args should also output the help.
-#        out3 = subprocess.run("python -m dinf".split(), stdout=subprocess.PIPE)
-#        assert out1.stdout == out3.stdout
-#        assert out3.returncode != 0
-#
-#    def test_version(self):
-#        out = subprocess.run(
-#            "python -m dinf --version".split(),
-#            check=True,
-#            stdout=subprocess.PIPE,
-#            encoding="utf8",
-#        )
-#        assert out.stdout.strip() == dinf.__version__
-#
-#
+
+class TestTopLevel:
+    def test_help(self):
+        out1 = subprocess.run(
+            "python -m dinf -h".split(), check=True, stdout=subprocess.PIPE
+        )
+        assert b"mcmc-gan" in out1.stdout
+        assert b"check" in out1.stdout
+        # Not supported.
+        assert b"abc-gan" not in out1.stdout
+
+        out2 = subprocess.run(
+            "python -m dinf --help".split(), check=True, stdout=subprocess.PIPE
+        )
+        assert out1.stdout == out2.stdout
+
+        # No args should also output the help.
+        out3 = subprocess.run("python -m dinf".split(), stdout=subprocess.PIPE)
+        assert out1.stdout == out3.stdout
+        assert out3.returncode != 0
+
+    def test_version(self):
+        out = subprocess.run(
+            "python -m dinf --version".split(),
+            check=True,
+            stdout=subprocess.PIPE,
+            encoding="utf8",
+        )
+        assert out.stdout.strip() == dinf.__version__
+
+
 #class TestCheck:
 #    def test_help(self):
 #        out1 = subprocess.run(
