@@ -61,28 +61,28 @@ class TestTopLevel:
         assert out.stdout.strip() == dinf.__version__
 
 
-#class TestCheck:
-#    def test_help(self):
-#        out1 = subprocess.run(
-#            "python -m dinf check -h".split(), check=True, stdout=subprocess.PIPE
-#        )
-#        out2 = subprocess.run(
-#            "python -m dinf check --help".split(), check=True, stdout=subprocess.PIPE
-#        )
-#        assert out1.stdout == out2.stdout
-#
-#    def test_example(self):
-#        ex = "examples/bottleneck/model.py"
-#        out = subprocess.run(
-#            f"python -m dinf check {ex}".split(),
-#            check=True,
-#            stdout=subprocess.PIPE,
-#            stderr=subprocess.PIPE,
-#        )
-#        assert not out.stdout
-#        assert not out.stderr
-#
-#
+class TestCheck:
+    def test_help(self):
+        out1 = subprocess.run(
+            "python -m dinf check -h".split(), check=True, stdout=subprocess.PIPE
+        )
+        out2 = subprocess.run(
+            "python -m dinf check --help".split(), check=True, stdout=subprocess.PIPE
+        )
+        assert out1.stdout == out2.stdout
+
+    def test_example(self):
+        ex = "examples/bottleneck/model.py"
+        out = subprocess.run(
+            f"python -m dinf check {ex}".split(),
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        assert not out.stdout
+        assert not out.stderr
+
+
 #class TestAbcGan:
 #    def test_help(self):
 #        out1 = subprocess.run(
