@@ -1,4 +1,5 @@
 from __future__ import annotations
+import copy
 import functools
 import os
 import pathlib
@@ -11,6 +12,10 @@ import pytest
 
 import dinf
 import examples.bottleneck.model  # type: ignore[import]
+
+
+def get_genobuilder():
+    return copy.deepcopy(examples.bottleneck.model.genobuilder)
 
 
 def check_discriminator(filename: str | pathlib.Path):
@@ -38,7 +43,7 @@ def check_ncf(
 @pytest.mark.usefixtures("tmp_path")
 def test_abc_gan(tmp_path):
     rng = np.random.default_rng(123)
-    genobuilder = examples.bottleneck.model.genobuilder
+    genobuilder = get_genobuilder()
     working_directory = tmp_path / "work_dir"
     dinf.dinf.abc_gan(
         genobuilder=genobuilder,
@@ -126,7 +131,7 @@ def test_abc_gan(tmp_path):
 @pytest.mark.usefixtures("tmp_path")
 def test_mcmc_gan(tmp_path):
     rng = np.random.default_rng(1234)
-    genobuilder = examples.bottleneck.model.genobuilder
+    genobuilder = get_genobuilder()
     working_directory = tmp_path / "workdir"
     dinf.mcmc_gan(
         genobuilder=genobuilder,
@@ -248,7 +253,7 @@ def mcmc_log_prob(
 class TestLogProb:
     @classmethod
     def setup_class(cls):
-        cls.genobuilder = examples.bottleneck.model.genobuilder
+        cls.genobuilder = get_genobuilder()
         rng = np.random.default_rng(111)
         cls.discriminator = dinf.Discriminator.from_input_shape(
             cls.genobuilder.feature_shape, rng
@@ -310,7 +315,9 @@ class TestLogProb:
             assert np.isclose(log_D_1, log_D[j])
 
         # Random thetas.
-        thetas = self.genobuilder.parameters.draw(20, rng=np.random.default_rng(123))
+        thetas = self.genobuilder.parameters.draw_prior(
+            20, rng=np.random.default_rng(123)
+        )
         log_D = log_prob_n(thetas)
         assert len(log_D) == len(thetas)
         assert all(np.exp(log_D) > 0)

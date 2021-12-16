@@ -1,4 +1,5 @@
 from __future__ import annotations
+import copy
 import logging
 import multiprocessing
 import os
@@ -310,6 +311,8 @@ def mcmc_gan(
     :param rng:
         Numpy random number generator.
     """
+    # We modify the parameters, so take a copy.
+    genobuilder = copy.deepcopy(genobuilder)
 
     if working_directory is None:
         working_directory = "."
@@ -345,7 +348,7 @@ def mcmc_gan(
     else:
         discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
         # Starting point for the mcmc chain.
-        start = genobuilder.parameters.draw(num_replicates=walkers, rng=rng)
+        start = genobuilder.parameters.draw_prior(num_replicates=walkers, rng=rng)
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))
@@ -487,6 +490,9 @@ def abc_gan(
     :param rng:
         Numpy random number generator.
     """
+    # We modify the parameters, so take a copy.
+    genobuilder = copy.deepcopy(genobuilder)
+
     if working_directory is None:
         working_directory = "."
     store = Store(working_directory)
