@@ -110,7 +110,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev28
+  dinf 0.1.1.dev40
 </div>
 
 </div>
@@ -219,42 +219,6 @@
 <div class="section" id="inference">
 <h2>Inference<a class="headerlink" href="#inference" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
-<dt class="sig sig-object py" id="dinf.abc_gan">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">abc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genobuilder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proposals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posteriors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#abc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.abc_gan" title="Permalink to this definition">¶</a></dt>
-<dd><p>Run the ABC GAN.</p>
-<p>Each iteration of the GAN can be conceptually divided into:
-- constructing train/test datasets for the discriminator,
-- trainin the discriminator for a certain number of epochs,
-- running the ABC.</p>
-<p>In the first iteration, the parameter values given to the generator
-to produce the test/train datasets are drawn from the parameters’ prior
-distribution. In subsequent iterations, the parameter values are drawn
-by sampling with replacement from the previous iteration’s ABC posterior.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>genobuilder</strong> (<a class="reference internal" href="#dinf.Genobuilder" title="dinf.Genobuilder"><em>dinf.Genobuilder</em></a>) – Genobuilder object that describes the GAN.</p></li>
-<li><p><strong>iterations</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of GAN iterations.</p></li>
-<li><p><strong>training_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the dataset used to train the discriminator.
-This dataset is constructed once each GAN iteration.</p></li>
-<li><p><strong>test_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the test dataset used to evalutate the discriminator after
-each training epoch.</p></li>
-<li><p><strong>epochs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of full passes over the training dataset when training
-the discriminator.</p></li>
-<li><p><strong>proposals</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of ABC sample draws.</p></li>
-<li><p><strong>posteriors</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of top-ranked ABC sample draws to keep.</p></li>
-<li><p><strong>working_directory</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – Folder to output results. If not specified, the current
-directory will be used.</p></li>
-<li><p><strong>parallelism</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
-<a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.generator_func()</span></code></a> and
-<a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.target_func()</span></code></a>.</p></li>
-<li><p><strong>rng</strong> (<em>np.random.Generator</em>) – Numpy random number generator.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="dinf.mcmc_gan">
 <span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">mcmc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genobuilder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">walkers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Dx_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#mcmc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.mcmc_gan" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run the MCMC GAN.</p>
@@ -269,7 +233,7 @@ by sampling with replacement from the previous iteration’s MCMC chains.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>genobuilder</strong> (<a class="reference internal" href="#dinf.Genobuilder" title="dinf.Genobuilder"><em>dinf.Genobuilder</em></a>) – Genobuilder object that describes the GAN.</p></li>
+<li><p><strong>genobuilder</strong> (<a class="reference internal" href="#dinf.Genobuilder" title="dinf.Genobuilder"><em>Genobuilder</em></a>) – Genobuilder object that describes the GAN.</p></li>
 <li><p><strong>iterations</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of GAN iterations.</p></li>
 <li><p><strong>training_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the dataset used to train the discriminator.
 This dataset is constructed once each GAN iteration.</p></li>
@@ -305,8 +269,20 @@ object for that contig. The interface is provided via Python’s
 <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Mapping</span></code></a> protocol. In addition, the class provides
 methods for sampling regions of the genome at random.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>lengths</strong> (<em>np.ndarray</em>) – Lengths of the contigs in the bag. The order matches the contig order
+obtained by iterating over the bag.</p></li>
+<li><p><strong>samples</strong> – A dictionary that maps a label to a list of individual names,
+where the individual names correspond to the VCF columns
+for which genotypes will be sampled.
+This is a bookkeeping device that records which genotypes belong
+to which label (e.g. which population). If None, it is assumed
+that all individuals in the VCF will be treated as exchangeable.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Parameters</dt>
+<dd class="field-even"><ul class="simple">
 <li><p><strong>files</strong> (<em>Iterable</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a><em>]</em>) – An iterable of filenames. Each file must be an indexed VCF or BCF,
 and contain the FORMAT/GT field.</p></li>
 <li><p><strong>contig_lengths</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.10)"><em>collections.abc.Mapping</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>] </em><em>| </em><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><em>None</em></a>) – A dict mapping a contig name to contig length. Only the contigs in
@@ -317,24 +293,6 @@ for which genotypes will be sampled.</p></li>
 </ul>
 </dd>
 </dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="dinf.BagOfVcf.lengths">
-<span class="sig-name descname"><span class="pre">lengths</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">np.ndarray</span></em><a class="headerlink" href="#dinf.BagOfVcf.lengths" title="Permalink to this definition">¶</a></dt>
-<dd><p>Lengths of the contigs in the bag. The order matches the contig order
-obtained by iterating over the bag.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="dinf.BagOfVcf.samples">
-<span class="sig-name descname"><span class="pre">samples</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.10)"><span class="pre">collections.abc.Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></em><a class="headerlink" href="#dinf.BagOfVcf.samples" title="Permalink to this definition">¶</a></dt>
-<dd><p>A dictionary that maps a label to a list of individual names,
-where the individual names correspond to the VCF columns
-for which genotypes will be sampled.
-This is a bookkeeping device that records which genotypes belong
-to which label (e.g. which population). If None, it is assumed
-that all individuals in the VCF will be treated as exchangeable.</p>
-</dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.BagOfVcf.sample_regions">
 <span class="sig-name descname"><span class="pre">sample_regions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/vcf.html#BagOfVcf.sample_regions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.BagOfVcf.sample_regions" title="Permalink to this definition">¶</a></dt>
@@ -895,16 +853,10 @@ j’th draw for the k’th parameter.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">Store</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/store.html#Store"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Store" title="Permalink to this definition">¶</a></dt>
 <dd><p>A sequence of folders with names “0”, “1”, …</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>base</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – </p>
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><p><strong>base</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – Base directory containing the sequence.</p>
 </dd>
 </dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="dinf.Store.base">
-<span class="sig-name descname"><span class="pre">base</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">pathlib.Path</span></a></em><a class="headerlink" href="#dinf.Store.base" title="Permalink to this definition">¶</a></dt>
-<dd><p>Base directory containing the sequence.</p>
-</dd></dl>
-
 </dd></dl>
 
 </div>
@@ -961,7 +913,7 @@ j’th draw for the k’th parameter.</p>
         
             &copy; Copyright 2021.<br/>
           <div class="extra_footer">
-            dinf 0.1.1.dev28+ge777744
+            dinf 0.1.1.dev40+g4b418b2
           </div>
       </p>
     </div>

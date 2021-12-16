@@ -99,7 +99,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev28
+  dinf 0.1.1.dev40
 </div>
 
 </div>
@@ -172,10 +172,12 @@
 
 
 <div class="viewcode-block" id="Store"><a class="viewcode-back" href="../../api.html#dinf.Store">[docs]</a><span class="k">class</span> <span class="nc">Store</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Sequence</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;A sequence of folders with names &quot;0&quot;, &quot;1&quot;, ...&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A sequence of folders with names &quot;0&quot;, &quot;1&quot;, ...</span>
 
-    <span class="n">base</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span>
-    <span class="sd">&quot;&quot;&quot;Base directory containing the sequence.&quot;&quot;&quot;</span>
+<span class="sd">    :ivar pathlib.Path base:</span>
+<span class="sd">        Base directory containing the sequence.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
@@ -241,7 +243,7 @@
         
             &copy; Copyright 2021.<br/>
           <div class="extra_footer">
-            dinf 0.1.1.dev28+ge777744
+            dinf 0.1.1.dev40+g4b418b2
           </div>
       </p>
     </div>

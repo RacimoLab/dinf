@@ -99,7 +99,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev28
+  dinf 0.1.1.dev40
 </div>
 
 </div>
@@ -301,23 +301,18 @@
 <span class="sd">    object for that contig. The interface is provided via Python&#39;s</span>
 <span class="sd">    :class:`collections.abc.Mapping` protocol. In addition, the class provides</span>
 <span class="sd">    methods for sampling regions of the genome at random.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">lengths</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Lengths of the contigs in the bag. The order matches the contig order</span>
-<span class="sd">    obtained by iterating over the bag.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="c1"># TODO: samples should be a Pytree</span>
-    <span class="n">samples</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A dictionary that maps a label to a list of individual names,</span>
-<span class="sd">    where the individual names correspond to the VCF columns</span>
-<span class="sd">    for which genotypes will be sampled.</span>
-<span class="sd">    This is a bookkeeping device that records which genotypes belong</span>
-<span class="sd">    to which label (e.g. which population). If None, it is assumed</span>
-<span class="sd">    that all individuals in the VCF will be treated as exchangeable.</span>
+<span class="sd">    :ivar lengths:</span>
+<span class="sd">        Lengths of the contigs in the bag. The order matches the contig order</span>
+<span class="sd">        obtained by iterating over the bag.</span>
+<span class="sd">    :vartype lengths: np.ndarray</span>
+<span class="sd">    :ivar samples:</span>
+<span class="sd">        A dictionary that maps a label to a list of individual names,</span>
+<span class="sd">        where the individual names correspond to the VCF columns</span>
+<span class="sd">        for which genotypes will be sampled.</span>
+<span class="sd">        This is a bookkeeping device that records which genotypes belong</span>
+<span class="sd">        to which label (e.g. which population). If None, it is assumed</span>
+<span class="sd">        that all individuals in the VCF will be treated as exchangeable.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -538,6 +533,7 @@
 <span class="sd">             - ``positions`` are the site coordinates, as an offset from the</span>
 <span class="sd">               the start of the genomic window.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">retries</span> <span class="o">&gt;</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">retries</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_regions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_regions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_regions</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="n">sequence_length</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
@@ -578,7 +574,7 @@
         
             &copy; Copyright 2021.<br/>
           <div class="extra_footer">
-            dinf 0.1.1.dev28+ge777744
+            dinf 0.1.1.dev40+g4b418b2
           </div>
       </p>
     </div>
