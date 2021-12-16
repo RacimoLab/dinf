@@ -1,4 +1,5 @@
 import subprocess
+import sys
 
 import pytest
 
@@ -93,6 +94,9 @@ class TestAbcGan:
         )
         assert out1.stdout == out2.stdout
 
+    @pytest.mark.skipif(
+        sys.platform.startswith("darwin"), reason="Deadlock on Github Actions."
+    )
     @pytest.mark.usefixtures("tmp_path")
     def test_example(self, tmp_path):
         working_directory = tmp_path / "work_dir"
@@ -137,6 +141,9 @@ class TestMcmcGan:
         )
         assert out1.stdout == out2.stdout
 
+    @pytest.mark.skipif(
+        sys.platform.startswith("darwin"), reason="Deadlock on Github Actions."
+    )
     @pytest.mark.usefixtures("tmp_path")
     def test_example(self, tmp_path):
         working_directory = tmp_path / "work_dir"
