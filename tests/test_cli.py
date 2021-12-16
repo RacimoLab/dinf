@@ -125,9 +125,9 @@ class TestCheck:
 #                var_names=genobuilder.parameters,
 #                check_acceptance_rate=False,
 #            )
-#
-#
-#class TestMcmcGan:
+
+
+class TestMcmcGan:
 #    def test_help(self):
 #        out1 = subprocess.run(
 #            "python -m dinf mcmc-gan -h".split(), check=True, stdout=subprocess.PIPE
@@ -136,37 +136,37 @@ class TestCheck:
 #            "python -m dinf mcmc-gan --help".split(), check=True, stdout=subprocess.PIPE
 #        )
 #        assert out1.stdout == out2.stdout
-#
-#    @pytest.mark.usefixtures("tmp_path")
-#    def test_example(self, tmp_path):
-#        working_directory = tmp_path / "work_dir"
-#        ex = "examples/bottleneck/model.py"
-#        subprocess.run(
-#            f"""
-#            python -m dinf mcmc-gan
-#                --parallelism 2
-#                --iterations 2
-#                --training-replicates 16
-#                --test-replicates 0
-#                --epochs 1
-#                --walkers 6
-#                --steps 1
-#                --Dx-replicates 2
-#                --working-directory {working_directory}
-#                {ex}
-#            """.split(),
-#            check=True,
-#            stdout=subprocess.PIPE,
-#            stderr=subprocess.PIPE,
-#        )
-#        assert working_directory.exists()
-#        genobuilder = dinf.__main__._get_user_genobuilder(ex)
-#        for i in range(2):
-#            check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-#            check_ncf(
-#                working_directory / f"{i}" / "mcmc.ncf",
-#                chains=6,
-#                draws=1,
-#                var_names=genobuilder.parameters,
-#                check_acceptance_rate=True,
-#            )
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_example(self, tmp_path):
+        working_directory = tmp_path / "work_dir"
+        ex = "examples/bottleneck/model.py"
+        subprocess.run(
+            f"""
+            python -m dinf mcmc-gan
+                --parallelism 2
+                --iterations 2
+                --training-replicates 16
+                --test-replicates 0
+                --epochs 1
+                --walkers 6
+                --steps 1
+                --Dx-replicates 2
+                --working-directory {working_directory}
+                {ex}
+            """.split(),
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        assert working_directory.exists()
+        genobuilder = dinf.__main__._get_user_genobuilder(ex)
+        for i in range(2):
+            check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+            check_ncf(
+                working_directory / f"{i}" / "mcmc.ncf",
+                chains=6,
+                draws=1,
+                var_names=genobuilder.parameters,
+                check_acceptance_rate=True,
+            )
