@@ -347,6 +347,9 @@ def mcmc_gan(
         # Starting point for the mcmc chain.
         start = genobuilder.parameters.draw(num_replicates=walkers, rng=rng)
 
+    # If start values are linearly dependent, emcee complains loudly.
+    assert not np.any((start[0] == start[1:]).all(axis=-1))
+
     n_observed_calls = 0
     n_generator_calls = 0
 
