@@ -3,6 +3,8 @@ import msprime
 import pytest
 import tskit
 
+import jax
+
 import dinf
 from .test_vcf import bcftools_index, create_vcf_dataset
 
@@ -181,6 +183,29 @@ class TestBinnedHaplotypeMatrix:
             rng=rng,
         )
         np.testing.assert_array_equal(M, M_ref)
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_ts_no_seg_sites(self, tmp_path):
+        ploidy = 2
+        num_individuals = 128
+        num_bins = 64
+        sequence_length = 100_000
+        ts = do_sim(
+            num_individuals=num_individuals,
+            ploidy=ploidy,
+            sequence_length=sequence_length,
+            mutation_rate=0,
+        )
+        bhm = dinf.BinnedHaplotypeMatrix(
+            num_individuals=num_individuals,
+            num_bins=num_bins,
+            maf_thresh=0,
+            ploidy=ploidy,
+            phased=True,
+        )
+        rng = np.random.default_rng(1234)
+        M = bhm.from_ts(ts, rng=rng)
+        assert M.sum() == 0
 
     @pytest.mark.parametrize("ploidy", [1, 2, 3])
     def test_from_ts_maf_thresh(self, ploidy):
@@ -548,6 +573,36 @@ class TestMultipleBinnedHaplotypeMatrices:
         assert dinf.misc.tree_equal(
             feature_extractor.shape, dinf.misc.tree_shape(features)
         )
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_ts_no_seg_sites(self, tmp_path):
+        ploidy = 2
+        num_individuals = 32
+        populations = ["b", "c"]  # sampled populations
+        ts = do_sim(
+            ploidy=None,  # per-sample values are provided
+            sequence_length=100_000,
+            demography=self.demography,
+            samples=[
+                msprime.SampleSet(num_individuals, ploidy=ploidy, population=pop)
+                for pop in populations
+            ],
+            mutation_rate=0,
+        )
+        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+
+        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+            num_individuals={pop: num_individuals for pop in populations},
+            num_bins={pop: 24 for pop in populations},
+            ploidy={pop: ploidy for pop in populations},
+            global_phased=True,
+            global_maf_thresh=0,
+        )
+
+        rng = np.random.default_rng(1234)
+        features = feature_extractor.from_ts(ts, rng=rng, individuals=individuals)
+        for M in jax.tree_leaves(features):
+            assert M.sum() == 0
 
     def test_from_ts_mismatched_individuals_labels(self):
         ploidy = 2
