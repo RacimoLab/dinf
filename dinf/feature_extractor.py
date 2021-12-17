@@ -139,6 +139,9 @@ class BinnedHaplotypeMatrix:
             :math:`i`.
         """
         assert len(G) == len(positions)
+        M = np.zeros(self.shape, dtype=self._dtype)
+        if len(positions) == 0:
+            return M
         bins = np.floor_divide(positions * self._num_bins, sequence_length).astype(
             np.int32
         )
@@ -170,7 +173,6 @@ class BinnedHaplotypeMatrix:
             G = np.reshape(G, (-1, self._num_individuals, self._ploidy))
             G = np.sum(G, axis=2)
 
-        M = np.zeros(self.shape, dtype=self._dtype)
         for j, genotypes in zip(bins[keep], G[keep]):
             M[:, j, 0] += genotypes
 
