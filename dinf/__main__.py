@@ -6,6 +6,7 @@ import textwrap
 import numpy as np
 
 import dinf
+import dinf.report
 
 
 def _add_common_parser_group(parser):
@@ -251,6 +252,41 @@ class Check:
         genobuilder.check()
 
 
+class Report:
+    """
+    Create a report from a previous MCMC-GAN run.
+    """
+
+    def __init__(self, subparsers):
+        parser = subparsers.add_parser(
+            "report",
+            help="Create a report from an MCMC-GAN run",
+            description=textwrap.dedent(self.__doc__),
+            formatter_class=ADRDFormatter,
+        )
+        parser.set_defaults(func=self)
+
+        parser.add_argument(
+            "-d",
+            "--working-directory",
+            type=str,
+            help=(
+                "Folder containing results. If not specified, the current "
+                "directory will be used."
+            ),
+        )
+        parser.add_argument(
+            "genob_model",
+            metavar="user_model.py",
+            type=pathlib.Path,
+            help=_GENOB_MODEL_HELP,
+        )
+
+    def __call__(self, args: argparse.Namespace):
+        genobuilder = _get_user_genobuilder(args.genob_model)
+        dinf.report.report(genobuilder, args.working_directory)
+
+
 def main(args_list=None):
     top_parser = argparse.ArgumentParser(
         prog="dinf",
@@ -259,11 +295,11 @@ def main(args_list=None):
     top_parser.add_argument("--version", action="version", version=dinf.__version__)
 
     subparsers = top_parser.add_subparsers(
-        dest="subcommand", metavar="{check,mcmc-gan}"
+        dest="subcommand", metavar="{check,mcmc-gan,report}"
     )
     Check(subparsers)
-    AbcGan(subparsers)
     McmcGan(subparsers)
+    Report(subparsers)
 
     args = top_parser.parse_args(args_list)
     if args.subcommand is None:
