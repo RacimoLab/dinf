@@ -3,6 +3,7 @@ from typing import Dict, Iterable, List, Tuple
 import collections
 import itertools
 import logging
+import os
 import pathlib
 import warnings
 
@@ -224,7 +225,7 @@ class BagOfVcf(collections.abc.Mapping):
         contigs_seen = set()
 
         for file in files:
-            vcf = cyvcf2.VCF(file, samples=individuals, lazy=True, threads=1)
+            vcf = cyvcf2.VCF(file, samples=individuals, lazy=True, threads=None)
             if "GT" not in vcf:
                 raise ValueError(f"{file} doesn't contain GT field.")
             if not (
@@ -286,8 +287,18 @@ class BagOfVcf(collections.abc.Mapping):
         if len(contig2file) == 0:
             raise ValueError("No usable vcf/bcf files in the list.")
 
+        if individuals is None:
+            assert all_samples is not None
+            individuals = list(all_samples)
+        self._individuals = individuals
+        self._contig2file = contig2file
         self._contig2vcf = contig2vcf
         self.lengths = np.fromiter(contig_lengths.values(), dtype=int)
+
+        # The VCF objects are not valid in child processes, so we set a flag
+        # before forking to ensure they're reopened when used in the child.
+        self._needs_reopen = False
+        os.register_at_fork(before=self._close)
 
     def __iter__(self):
         yield from self._contig2vcf
@@ -295,10 +306,25 @@ class BagOfVcf(collections.abc.Mapping):
     def __getitem__(self, key):
         if not isinstance(key, str):
             raise TypeError("key must be a string")
+        if self._needs_reopen:
+            self._reopen()
         return self._contig2vcf[key]
 
     def __len__(self):
         return len(self._contig2vcf)
+
+    def _close(self):
+        for contig_id in list(self):
+            del self._contig2vcf[contig_id]
+            self._contig2vcf[contig_id] = None
+        self._needs_reopen = True
+
+    def _reopen(self):
+        self._contig2vcf = {
+            contig_id: cyvcf2.VCF(file, samples=self._individuals, lazy=True, threads=1)
+            for contig_id, file in self._contig2file.items()
+        }
+        self._needs_reopen = False
 
     def sample_regions(
         self, size: int, sequence_length: int, rng: np.random.Generator

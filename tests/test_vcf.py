@@ -1,5 +1,6 @@
 from __future__ import annotations
 import collections
+import os
 import pathlib
 import re
 import subprocess
@@ -743,3 +744,27 @@ class TestBagOfVcf:
                 rng=np.random.default_rng(1234),
                 retries=1,
             )
+
+    # XXX: This test forks, and can produce two reports.
+    @pytest.mark.usefixtures("tmp_path")
+    def test_reopen_after_fork(self, tmp_path):
+        create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
+        assert not vb._needs_reopen
+        pre_fork_chr1 = vb["1"]
+        pid = os.fork()
+        if pid == 0:
+            # child
+            assert vb._needs_reopen
+            assert vb["1"] is not pre_fork_chr1
+            assert not vb._needs_reopen
+        else:
+            # parent
+            w_pid, w_status = os.waitpid(pid, 0)
+            assert w_pid == pid
+            assert os.WIFEXITED(w_status)
+            assert os.WEXITSTATUS(w_status) == 0
+
+            # We don't mind if the VCF is reopened in the parent or not,
+            # only that the VCF can be used again as normal.
+            assert vb["1"] is not None

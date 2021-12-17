@@ -115,7 +115,9 @@ features = dinf.MultipleBinnedHaplotypeMatrices(
     num_individuals={pop: num_individuals for pop in populations},
     num_bins={pop: 128 for pop in populations},
     ploidy={pop: 2 for pop in populations},
-    global_phased=True,
+    # The so-called "phased" 1kG vcfs also contain unphased genotypes
+    # for some individuals at some sites.
+    global_phased=False,
     global_maf_thresh=0.05,
 )
 
