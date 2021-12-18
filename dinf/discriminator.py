@@ -101,7 +101,8 @@ class ExchangeableCNN(nn.Module):
             x = Symmetric(axis=2)(x)
             combined.append(x)
 
-        y = nn.Dense(features=1)(combined)
+        ys = jnp.concatenate(combined, axis=-1)
+        y = nn.Dense(features=1)(ys)
 
         # flatten
         y = y.reshape((-1,))

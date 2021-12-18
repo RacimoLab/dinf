@@ -4,7 +4,7 @@ import chex
 import pytest
 
 from dinf import discriminator
-from dinf.misc import leading_dim_size, tree_car, tree_cdr
+from dinf.misc import leading_dim_size, tree_cons, tree_car, tree_cdr
 
 
 def random_dataset(size=None, shape=None, seed=1234):
@@ -74,9 +74,16 @@ class TestDiscriminator:
         with pytest.raises(ValueError, match="features must each have shape"):
             discriminator.Discriminator.from_input_shape(input_shape, rng)
 
-    def test_fit(self):
-        train_x, train_y, input_shape = random_dataset(50)
-        val_x, val_y, _ = random_dataset(40)
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            (20, 8, 32, 1),
+            {"a": (20, 8, 32, 1), "b": {"c": (20, 16, 8, 2)}},
+        ],
+    )
+    def test_fit(self, shape):
+        train_x, train_y, input_shape = random_dataset(shape=shape)
+        val_x, val_y, _ = random_dataset(shape=tree_cons(10, tree_cdr(shape)))
 
         rng = np.random.default_rng(1234)
         d1 = discriminator.Discriminator.from_input_shape(input_shape, rng)
@@ -157,16 +164,23 @@ class TestDiscriminator:
         with pytest.raises(ValueError, match="discriminator is not compatible"):
             discriminator.Discriminator.from_file(filename)
 
-    def test_predict(self):
-        train_x, train_y, input_shape = random_dataset(50)
-        val_x, val_y, _ = random_dataset(30)
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            (20, 8, 32, 1),
+            {"a": (20, 8, 32, 1), "b": (20, 16, 8, 2)},
+        ],
+    )
+    def test_predict(self, shape):
+        train_x, train_y, input_shape = random_dataset(shape=shape)
+        val_x, val_y, _ = random_dataset(shape=tree_cons(10, tree_cdr(shape)))
 
         rng = np.random.default_rng(1234)
         d = discriminator.Discriminator.from_input_shape(input_shape, rng)
         d.fit(rng, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y)
 
         y1 = d.predict(val_x)
-        assert np.shape(y1) == (30,)
+        assert np.shape(y1) == (10,)
         assert all(y1 >= 0)
         assert all(y1 <= 1)
 
