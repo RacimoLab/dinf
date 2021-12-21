@@ -50,6 +50,22 @@ def get_contig_lengths(
     return data
 
 
+def filter_missingness(G, max_missing_genotypes):
+    return (G == -1).sum(axis=(1, 2)) <= max_missing_genotypes
+
+
+def filter_invariant(G):
+    num_non_missing = (G >= 0).sum(axis=(1, 2))
+    ac0 = (G == 0).sum(axis=(1, 2))
+    ac1 = (G == 1).sum(axis=(1, 2))
+    ac2 = (G == 2).sum(axis=(1, 2))
+    ac3 = (G == 3).sum(axis=(1, 2))
+    return np.logical_and(
+        np.logical_and(num_non_missing != ac0, num_non_missing != ac1),
+        np.logical_and(num_non_missing != ac2, num_non_missing != ac3),
+    )
+
+
 def get_genotype_matrix(
     vcf: cyvcf2.VCF,
     *,
@@ -85,8 +101,8 @@ def get_genotype_matrix(
          - ``positions`` are the site coordinates, as a zero-based offset from
            the ``start`` coordinate.
     """
-    G = []
-    positions = []
+    gt_list = []
+    positions_list = []
     for variant in vcf(f"{chrom}:{start}-{end}"):
         # XXX: Many variant fields are broken for ploidy > 2.
         # https://github.com/brentp/cyvcf2/issues/227
@@ -96,21 +112,16 @@ def get_genotype_matrix(
 
         a = variant.genotype.array()
         gt = a[:, :-1]
-        if np.sum(gt == -1) > max_missing_genotypes:
-            continue
-        if len(np.unique(gt[gt >= 0])) == 1:
-            # Invariant site.
-            continue
 
         # Check phasing. For ploidy == 1, genotypes are reported as unphased.
-        if require_phased and gt.shape[1] > 1 and not np.all(a[:, -1]):
+        if require_phased and gt.shape[1] > 1 and not (a[:, -1]).all():
             raise ValueError(f"Unphased genotypes at {chrom}:{variant.POS}.\n{variant}")
 
-        G.append(gt)
-        positions.append(variant.POS)
+        gt_list.append(gt)
+        positions_list.append(variant.POS)
 
     try:
-        np_G = np.array(G, dtype=np.int8)
+        G = np.array(gt_list, dtype=np.int8)
     except ValueError as e:
         # Most likely an "inhomogeneous shape" error, caused by different
         # ploidies at different sites. Catch and reraise to provide
@@ -119,8 +130,21 @@ def get_genotype_matrix(
             f"Mismatched ploidy among sites in {chrom}:{start}-{end}."
         ) from e
 
-    np_positions = np.array(positions, dtype=int) - start
-    return np_G, np_positions
+    positions = np.array(positions_list, dtype=int) - start
+
+    if len(G) > 0:
+        # Filter for missingness.
+        keep = filter_missingness(G, max_missing_genotypes)
+        G = G[keep]
+        positions = positions[keep]
+
+    if len(G) > 0:
+        # Filter invariant sites.
+        keep = filter_invariant(G)
+        G = G[keep]
+        positions = positions[keep]
+
+    return G, positions
 
 
 class BagOfVcf(collections.abc.Mapping):
@@ -342,7 +366,7 @@ class BagOfVcf(collections.abc.Mapping):
         """
 
         long_enough = self.lengths >= sequence_length
-        if sum(long_enough) == 0:
+        if not np.any(long_enough):
             raise ValueError(f"No contigs with length >= {sequence_length}.")
         contig_ids = np.array(self, dtype=object)[long_enough]
         contig_lengths = self.lengths[long_enough]
