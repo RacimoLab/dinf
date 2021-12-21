@@ -99,7 +99,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev49
+  dinf 0.1.1.dev52
 </div>
 
 </div>
@@ -173,6 +173,7 @@
 <span class="kn">import</span> <span class="nn">pathlib</span>
 <span class="kn">import</span> <span class="nn">pickle</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">jax</span>
@@ -302,7 +303,6 @@
 
     <span class="n">dnn</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span>
     <span class="n">input_shape</span><span class="p">:</span> <span class="n">Pytree</span>
-    <span class="n">input_dtype</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span>
     <span class="n">variables</span><span class="p">:</span> <span class="n">Pytree</span>
     <span class="n">train_metrics</span><span class="p">:</span> <span class="n">Pytree</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">state</span><span class="p">:</span> <span class="n">TrainState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -312,7 +312,10 @@
 
 <div class="viewcode-block" id="Discriminator.from_input_shape"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.from_input_shape">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_input_shape</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span> <span class="n">input_dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">input_shape</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+        <span class="n">dnn</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Discriminator</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Build a neural network with the given input shape.</span>
@@ -325,7 +328,8 @@
 <span class="sd">            m &gt;= 4 is the length of the (pseudo)haplotypes,</span>
 <span class="sd">            and c &lt;= 4 is the number of channels.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">dnn</span> <span class="o">=</span> <span class="n">ExchangeableCNN</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">dnn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dnn</span> <span class="o">=</span> <span class="n">ExchangeableCNN</span><span class="p">()</span>
         <span class="n">key</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">63</span><span class="p">))</span>
 
         <span class="c1"># Sanity checks.</span>
@@ -346,9 +350,8 @@
 
         <span class="c1"># Add leading batch dimension.</span>
         <span class="n">input_shape</span> <span class="o">=</span> <span class="n">tree_cons</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)</span>
-        <span class="n">input_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">input_dtype</span><span class="p">)</span>
         <span class="n">dummy_input</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
-            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">input_dtype</span><span class="p">),</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">),</span>
             <span class="n">input_shape</span><span class="p">,</span>
             <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
         <span class="p">)</span>
@@ -358,12 +361,7 @@
             <span class="k">return</span> <span class="n">dnn</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
         <span class="n">variables</span> <span class="o">=</span> <span class="n">init</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">dummy_input</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">dnn</span><span class="o">=</span><span class="n">dnn</span><span class="p">,</span>
-            <span class="n">variables</span><span class="o">=</span><span class="n">variables</span><span class="p">,</span>
-            <span class="n">input_shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">,</span>
-            <span class="n">input_dtype</span><span class="o">=</span><span class="n">input_dtype</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">dnn</span><span class="o">=</span><span class="n">dnn</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="n">variables</span><span class="p">,</span> <span class="n">input_shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Discriminator.from_file"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.from_file">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Discriminator</span><span class="p">:</span>
@@ -415,7 +413,14 @@
         <span class="c1"># TODO: this sucks. The order of layers in the CNN are lost, because of</span>
         <span class="c1"># https://github.com/google/jax/issues/4085</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;intermediates&quot;</span><span class="p">]))</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">))</span></div>
+        <span class="nb">print</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">))</span>
+
+        <span class="n">num_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="n">jax</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span>
+                <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">])</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Total number of trainable parameters:&quot;</span><span class="p">,</span> <span class="n">num_params</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Discriminator.fit"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -479,7 +484,7 @@
                     <span class="sa">f</span><span class="s2">&quot;val_x=</span><span class="si">{</span><span class="n">tree_shape</span><span class="p">(</span><span class="n">val_x</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
 
-            <span class="c1"># For a binary classifier, y has no trialing dimensions.</span>
+            <span class="c1"># For a binary classifier, y has no trailing dimensions.</span>
             <span class="c1"># if not tree_equal(*map(tree_cdr, map(tree_shape, [train_y, val_y]))):</span>
             <span class="c1">#    raise ValueError(</span>
             <span class="c1">#        &quot;Trailing dimensions of train_y and val_y must match.\n&quot;</span>
@@ -508,14 +513,17 @@
 
             <span class="n">metrics_sum</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">accuracy</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batchify</span><span class="p">(</span><span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)):</span>
+            <span class="n">t_prev</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
                 <span class="n">state</span><span class="p">,</span> <span class="n">batch_metrics</span> <span class="o">=</span> <span class="n">_train_step</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
                 <span class="n">actual_batch_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">])</span>
                 <span class="n">n</span><span class="p">,</span> <span class="n">metrics_sum</span> <span class="o">=</span> <span class="n">running_metrics</span><span class="p">(</span>
                     <span class="n">n</span><span class="p">,</span> <span class="n">actual_batch_size</span><span class="p">,</span> <span class="n">metrics_sum</span><span class="p">,</span> <span class="n">batch_metrics</span>
                 <span class="p">)</span>
-                <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">20</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">t_now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">t_now</span> <span class="o">-</span> <span class="n">t_prev</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">:</span>
                     <span class="n">print_metrics</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">metrics_sum</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">t_prev</span> <span class="o">=</span> <span class="n">t_now</span>
 
             <span class="n">loss</span><span class="p">,</span> <span class="n">accuracy</span> <span class="o">=</span> <span class="n">print_metrics</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">metrics_sum</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
             <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
@@ -699,7 +707,7 @@
         
             &copy; Copyright 2021.<br/>
           <div class="extra_footer">
-            dinf 0.1.1.dev49+g0bf4684
+            dinf 0.1.1.dev52+g0e27d3f
           </div>
       </p>
     </div>

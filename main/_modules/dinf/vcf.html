@@ -99,7 +99,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev49
+  dinf 0.1.1.dev52
 </div>
 
 </div>
@@ -219,6 +219,22 @@
     <span class="k">return</span> <span class="n">data</span>
 
 
+<span class="k">def</span> <span class="nf">filter_missingness</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">max_missing_genotypes</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="n">max_missing_genotypes</span>
+
+
+<span class="k">def</span> <span class="nf">filter_invariant</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="n">num_non_missing</span> <span class="o">=</span> <span class="p">(</span><span class="n">G</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">ac0</span> <span class="o">=</span> <span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">ac1</span> <span class="o">=</span> <span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">ac2</span> <span class="o">=</span> <span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">ac3</span> <span class="o">=</span> <span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">num_non_missing</span> <span class="o">!=</span> <span class="n">ac0</span><span class="p">,</span> <span class="n">num_non_missing</span> <span class="o">!=</span> <span class="n">ac1</span><span class="p">),</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">num_non_missing</span> <span class="o">!=</span> <span class="n">ac2</span><span class="p">,</span> <span class="n">num_non_missing</span> <span class="o">!=</span> <span class="n">ac3</span><span class="p">),</span>
+    <span class="p">)</span>
+
+
 <span class="k">def</span> <span class="nf">get_genotype_matrix</span><span class="p">(</span>
     <span class="n">vcf</span><span class="p">:</span> <span class="n">cyvcf2</span><span class="o">.</span><span class="n">VCF</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
@@ -254,8 +270,8 @@
 <span class="sd">         - ``positions`` are the site coordinates, as a zero-based offset from</span>
 <span class="sd">           the ``start`` coordinate.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">G</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">positions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">gt_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">positions_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">variant</span> <span class="ow">in</span> <span class="n">vcf</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">chrom</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">end</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">):</span>
         <span class="c1"># XXX: Many variant fields are broken for ploidy &gt; 2.</span>
         <span class="c1"># https://github.com/brentp/cyvcf2/issues/227</span>
@@ -265,21 +281,16 @@
 
         <span class="n">a</span> <span class="o">=</span> <span class="n">variant</span><span class="o">.</span><span class="n">genotype</span><span class="o">.</span><span class="n">array</span><span class="p">()</span>
         <span class="n">gt</span> <span class="o">=</span> <span class="n">a</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gt</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">max_missing_genotypes</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">gt</span><span class="p">[</span><span class="n">gt</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">]))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="c1"># Invariant site.</span>
-            <span class="k">continue</span>
 
         <span class="c1"># Check phasing. For ploidy == 1, genotypes are reported as unphased.</span>
-        <span class="k">if</span> <span class="n">require_phased</span> <span class="ow">and</span> <span class="n">gt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">a</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="n">require_phased</span> <span class="ow">and</span> <span class="n">gt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">a</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unphased genotypes at </span><span class="si">{</span><span class="n">chrom</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">variant</span><span class="o">.</span><span class="n">POS</span><span class="si">}</span><span class="s2">.</span><span class="se">\n</span><span class="si">{</span><span class="n">variant</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-        <span class="n">G</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gt</span><span class="p">)</span>
-        <span class="n">positions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">POS</span><span class="p">)</span>
+        <span class="n">gt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gt</span><span class="p">)</span>
+        <span class="n">positions_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variant</span><span class="o">.</span><span class="n">POS</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">np_G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">gt_list</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="c1"># Most likely an &quot;inhomogeneous shape&quot; error, caused by different</span>
         <span class="c1"># ploidies at different sites. Catch and reraise to provide</span>
@@ -288,8 +299,21 @@
             <span class="sa">f</span><span class="s2">&quot;Mismatched ploidy among sites in </span><span class="si">{</span><span class="n">chrom</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">end</span><span class="si">}</span><span class="s2">.&quot;</span>
         <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
 
-    <span class="n">np_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span> <span class="o">-</span> <span class="n">start</span>
-    <span class="k">return</span> <span class="n">np_G</span><span class="p">,</span> <span class="n">np_positions</span>
+    <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">positions_list</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span> <span class="o">-</span> <span class="n">start</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Filter for missingness.</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">filter_missingness</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">max_missing_genotypes</span><span class="p">)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">G</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">positions</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Filter invariant sites.</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">filter_invariant</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">G</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">positions</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">positions</span>
 
 
 <div class="viewcode-block" id="BagOfVcf"><a class="viewcode-back" href="../../api.html#dinf.BagOfVcf">[docs]</a><span class="k">class</span> <span class="nc">BagOfVcf</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
@@ -511,7 +535,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">long_enough</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengths</span> <span class="o">&gt;=</span> <span class="n">sequence_length</span>
-        <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">long_enough</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">long_enough</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No contigs with length &gt;= </span><span class="si">{</span><span class="n">sequence_length</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
         <span class="n">contig_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)[</span><span class="n">long_enough</span><span class="p">]</span>
         <span class="n">contig_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lengths</span><span class="p">[</span><span class="n">long_enough</span><span class="p">]</span>
@@ -600,7 +624,7 @@
         
             &copy; Copyright 2021.<br/>
           <div class="extra_footer">
-            dinf 0.1.1.dev49+g0bf4684
+            dinf 0.1.1.dev52+g0e27d3f
           </div>
       </p>
     </div>
