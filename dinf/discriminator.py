@@ -4,6 +4,7 @@ import functools
 import pathlib
 import pickle
 import sys
+import time
 
 import numpy as np
 import jax
@@ -133,7 +134,6 @@ class Discriminator:
 
     dnn: nn.Module
     input_shape: Pytree
-    input_dtype: np.dtype
     variables: Pytree
     train_metrics: Pytree | None = None
     state: TrainState | None = None
@@ -143,7 +143,10 @@ class Discriminator:
 
     @classmethod
     def from_input_shape(
-        cls, input_shape: Pytree, rng: np.random.Generator, input_dtype=np.int8
+        cls,
+        input_shape: Pytree,
+        rng: np.random.Generator,
+        dnn: nn.Module = None,
     ) -> Discriminator:
         """
         Build a neural network with the given input shape.
@@ -156,7 +159,8 @@ class Discriminator:
             m >= 4 is the length of the (pseudo)haplotypes,
             and c <= 4 is the number of channels.
         """
-        dnn = ExchangeableCNN()
+        if dnn is None:
+            dnn = ExchangeableCNN()
         key = jax.random.PRNGKey(rng.integers(2 ** 63))
 
         # Sanity checks.
@@ -177,9 +181,8 @@ class Discriminator:
 
         # Add leading batch dimension.
         input_shape = tree_cons(1, input_shape)
-        input_dtype = np.dtype(input_dtype)
         dummy_input = jax.tree_map(
-            lambda x: jnp.zeros(x, dtype=input_dtype),
+            lambda x: jnp.zeros(x, dtype=np.int8),
             input_shape,
             is_leaf=lambda x: isinstance(x, tuple),
         )
@@ -189,12 +192,7 @@ class Discriminator:
             return dnn.init(*args, train=False)
 
         variables = init(key, dummy_input)
-        return cls(
-            dnn=dnn,
-            variables=variables,
-            input_shape=input_shape,
-            input_dtype=input_dtype,
-        )
+        return cls(dnn=dnn, variables=variables, input_shape=input_shape)
 
     @classmethod
     def from_file(cls, filename: str | pathlib.Path) -> Discriminator:
@@ -247,6 +245,13 @@ class Discriminator:
         # https://github.com/google/jax/issues/4085
         print(jax.tree_map(lambda x: (x.shape, x.dtype), state["intermediates"]))
         print(jax.tree_map(lambda x: (x.shape, x.dtype), self.variables))
+
+        num_params = np.sum(
+            jax.tree_leaves(
+                jax.tree_map(lambda x: np.prod(x.shape), self.variables["params"])
+            )
+        )
+        print("Total number of trainable parameters:", num_params)
 
     def fit(
         self,
@@ -310,7 +315,7 @@ class Discriminator:
                     f"val_x={tree_shape(val_x)}"
                 )
 
-            # For a binary classifier, y has no trialing dimensions.
+            # For a binary classifier, y has no trailing dimensions.
             # if not tree_equal(*map(tree_cdr, map(tree_shape, [train_y, val_y]))):
             #    raise ValueError(
             #        "Trailing dimensions of train_y and val_y must match.\n"
@@ -339,14 +344,17 @@ class Discriminator:
 
             metrics_sum = dict(loss=0, accuracy=0)
             n = 0
-            for i, batch in enumerate(batchify(train_ds, batch_size)):
+            t_prev = time.time()
+            for batch in batchify(train_ds, batch_size):
                 state, batch_metrics = _train_step(state, batch)
                 actual_batch_size = len(batch["input"])
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
                 )
-                if i % 20 == 0:
+                t_now = time.time()
+                if t_now - t_prev > 0.5:
                     print_metrics(n, metrics_sum, end="\r")
+                    t_prev = t_now
 
             loss, accuracy = print_metrics(n, metrics_sum, end="")
             sys.stdout.flush()
