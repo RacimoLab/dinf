@@ -1,35 +1,11 @@
 from __future__ import annotations
 import argparse
-import importlib
 import pathlib
-import sys
 import textwrap
 
 import numpy as np
 
 import dinf
-
-
-def _get_user_genobuilder(filename: str | pathlib.Path) -> dinf.Genobuilder:
-    """
-    Load the symbol "genobuilder" from a file.
-
-    https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
-    """
-    spec = importlib.util.spec_from_file_location("user_module", filename)
-    # Pacify mypy. These assertions hold even when the file doesn't exist.
-    assert spec is not None
-    assert isinstance(spec.loader, importlib.abc.Loader)
-
-    user_module = importlib.util.module_from_spec(spec)
-    sys.modules["user_module"] = user_module
-    spec.loader.exec_module(user_module)
-    genobuilder = getattr(user_module, "genobuilder", None)
-    if genobuilder is None:
-        raise AttributeError(f"genobuilder not found in {filename}")
-    if not isinstance(genobuilder, dinf.Genobuilder):
-        raise TypeError("genobuilder is not a dinf.Genobuilder object")
-    return genobuilder
 
 
 def _add_common_parser_group(parser):
@@ -165,7 +141,7 @@ class AbcGan:
 
     def __call__(self, args: argparse.Namespace):
         rng = np.random.default_rng(args.seed)
-        genobuilder = _get_user_genobuilder(args.genob_model)
+        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
         dinf.dinf.abc_gan(
             genobuilder=genobuilder,
             iterations=args.iterations,
@@ -233,7 +209,7 @@ class McmcGan:
 
     def __call__(self, args: argparse.Namespace):
         rng = np.random.default_rng(args.seed)
-        genobuilder = _get_user_genobuilder(args.genob_model)
+        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
         dinf.mcmc_gan(
             genobuilder=genobuilder,
             iterations=args.iterations,
@@ -271,7 +247,7 @@ class Check:
         )
 
     def __call__(self, args: argparse.Namespace):
-        genobuilder = _get_user_genobuilder(args.genob_model)
+        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
         genobuilder.check()
 
 

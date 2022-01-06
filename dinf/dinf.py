@@ -4,6 +4,7 @@ import logging
 import multiprocessing
 import os
 import pathlib
+import signal
 from typing import cast, Callable
 import warnings
 
@@ -22,15 +23,57 @@ logger = logging.getLogger(__name__)
 _pool = None
 
 
-def _process_pool_init(parallelism):
-    # Start the process pool before the GPU has been initialised, otherwise
-    # we get weird GPU resource issues because the subprocesses are holding
-    # onto some CUDA thing.
-    # We use multiprocessing, because concurrent.futures spawns the initial
-    # processes on demand (https://bugs.python.org/issue39207), which means
-    # they can be spawned after the GPU has been initialised.
+def _initializer(filename):
+    # Ignore ctrl-c in workers. This is handled in the main process.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    # Ensure symbols from the user's genobuilder are avilable to workers.
+    if filename is not None:
+        Genobuilder._from_file(filename)
+
+
+def _process_pool_init(parallelism, genobuilder):
+    # Start the process pool before the GPU has been initialised, or using
+    # the "spawn" start method, otherwise we get weird GPU resource issues
+    # because the subprocesses are holding onto some CUDA thing.
+    # We use multiprocessing, because concurrent.futures uses fork() on unix,
+    # and the initial processes are forked on demand
+    # (https://bugs.python.org/issue39207), which means they can be forked
+    # after the GPU has been initialised.
     global _pool
-    _pool = multiprocessing.Pool(processes=parallelism)
+    assert _pool is None
+    ctx = multiprocessing.get_context("spawn")
+    _pool = ctx.Pool(
+        processes=parallelism,
+        initializer=_initializer,
+        initargs=(genobuilder._filename,),
+    )
+
+
+def cleanup_process_pool_afterwards(func):
+    """
+    A decorator for functions using the process pool, to do cleanup.
+    """
+
+    def wrapper(*args, **kwargs):
+        global _pool
+        terminate = False
+        try:
+            func(*args, **kwargs)
+        except KeyboardInterrupt:
+            terminate = True
+            raise
+        finally:
+            if _pool is not None:
+                if terminate:
+                    _pool.terminate()
+                else:
+                    # close() instead of terminate() when reasonable to do so.
+                    # https://pytest-cov.readthedocs.io/en/latest/subprocess-support.html
+                    _pool.close()
+                _pool.join()
+                _pool = None
+
+    return wrapper
 
 
 def _sim_replicates(*, sim_func, args, num_replicates, parallelism):
@@ -38,8 +81,7 @@ def _sim_replicates(*, sim_func, args, num_replicates, parallelism):
         map_f = map
     else:
         global _pool
-        if _pool is None:
-            _process_pool_init(parallelism)
+        assert _pool is not None
         map_f = _pool.imap
 
     result = None
@@ -255,6 +297,7 @@ def _train_discriminator(
     )
 
 
+@cleanup_process_pool_afterwards
 def mcmc_gan(
     *,
     genobuilder: Genobuilder,
@@ -321,7 +364,7 @@ def mcmc_gan(
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
-    _process_pool_init(parallelism)
+    _process_pool_init(parallelism, genobuilder)
 
     resume = False
     if len(store) > 0:
@@ -437,6 +480,7 @@ def _run_abc(
     return dataset
 
 
+@cleanup_process_pool_afterwards
 def abc_gan(
     *,
     genobuilder: Genobuilder,
@@ -500,7 +544,7 @@ def abc_gan(
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
-    _process_pool_init(parallelism)
+    _process_pool_init(parallelism, genobuilder)
 
     resume = False
     if len(store) > 0:
