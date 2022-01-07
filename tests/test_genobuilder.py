@@ -81,3 +81,23 @@ class TestGenobuilder:
         )
         with pytest.raises(ValueError, match="parameters.draw.* shape"):
             g.check()
+
+    def test_from_file_file_not_found(self):
+        with pytest.raises(FileNotFoundError, match=r"nonexistent.py"):
+            dinf.Genobuilder._from_file("nonexistent.py")
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_file_obj_not_found(self, tmp_path):
+        filename = tmp_path / "model.py"
+        with open(filename, "w") as f:
+            f.write("geeenobilder = {}\n")
+        with pytest.raises(AttributeError, match="genobuilder not found"):
+            dinf.Genobuilder._from_file(filename)
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_file_obj_wrong_type(self, tmp_path):
+        filename = tmp_path / "model.py"
+        with open(filename, "w") as f:
+            f.write("genobuilder = {}\n")
+        with pytest.raises(TypeError, match="not a .*Genobuilder"):
+            dinf.Genobuilder._from_file(filename)

@@ -264,7 +264,7 @@ class TestLogProb:
             training_replicates=100,
             test_replicates=0,
             epochs=1,
-            parallelism=2,  # XXX: should't hardcode this
+            parallelism=1,
             rng=rng,
         )
 

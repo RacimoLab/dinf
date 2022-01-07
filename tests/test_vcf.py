@@ -1,9 +1,11 @@
 from __future__ import annotations
+import atexit
 import collections
-import os
+import multiprocessing
 import pathlib
 import re
 import subprocess
+import tempfile
 from typing import Callable, List, Tuple
 
 import cyvcf2
@@ -745,26 +747,55 @@ class TestBagOfVcf:
                 retries=1,
             )
 
-    # XXX: This test forks, and can produce two reports.
-    @pytest.mark.usefixtures("tmp_path")
-    def test_reopen_after_fork(self, tmp_path):
-        create_vcf_dataset(tmp_path, contig_lengths=[100_000])
-        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
-        assert not vb._needs_reopen
-        pre_fork_chr1 = vb["1"]
-        pid = os.fork()
-        if pid == 0:
-            # child
-            assert vb._needs_reopen
-            assert vb["1"] is not pre_fork_chr1
-            assert not vb._needs_reopen
-        else:
-            # parent
-            w_pid, w_status = os.waitpid(pid, 0)
-            assert w_pid == pid
-            assert os.WIFEXITED(w_status)
-            assert os.WEXITSTATUS(w_status) == 0
 
-            # We don't mind if the VCF is reopened in the parent or not,
-            # only that the VCF can be used again as normal.
-            assert vb["1"] is not None
+# When using a VCF inside a multiprocessing process pool, we must ensure that
+# the cyvcf2.VCF() handles are not shared between distinct processes.
+# https://github.com/RacimoLab/dinf/issues/40
+# Actually, it's hard to test for this, because distinct worker processes may
+# use the same virtual memory address for their own copy of the VCF handle,
+# and thus id(vcf) could return the same value in distinct workers despite
+# being a distinct handle (i.e. using a distinct OS file descriptor).
+# So we just check that the worker process's vcf has a different id to
+# the parent process's vcf. These ids aren't guaranteed to be different
+# when using "forkserver" or "spawn" start methods, but in practice they will
+# be different. In the "fork" case, both will be in memory simultaneously
+# and thus are guaranteed to be different.
+
+tmpdir = tempfile.TemporaryDirectory()
+atexit.register(tmpdir.cleanup)
+tmp_path = pathlib.Path(tmpdir.name)
+create_vcf_dataset(tmp_path, contig_lengths=[100_000])
+vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
+
+
+def _worker_using_vcf(parent_chrom_id):
+    chrom1 = vb["1"]
+    assert id(chrom1) != parent_chrom_id
+    regions = list(chrom1("1:1-100000"))
+    assert len(regions) >= 0
+    pid = multiprocessing.current_process().pid
+    return pid, id(chrom1)
+
+
+@pytest.mark.parametrize("start_method", multiprocessing.get_all_start_methods())
+def test_vcf_inside_process_pool(start_method):
+
+    # Check VCF in the parent process.
+    chrom1 = vb["1"]
+    regions = list(chrom1("1:1-100000"))
+    assert len(regions) >= 0
+    parent_chrom1_id = id(chrom1)
+
+    num_processes = 8
+    num_jobs = 32
+    worker_chrom1_ids_by_pid = collections.defaultdict(list)
+    ctx = multiprocessing.get_context(start_method)
+    pool = ctx.Pool(processes=num_processes)
+    for pid, chrom1_id in pool.map(_worker_using_vcf, [(parent_chrom1_id)] * num_jobs):
+        worker_chrom1_ids_by_pid[pid].append(chrom1_id)
+    pool.close()
+    pool.join()
+
+    for pid, id_list in worker_chrom1_ids_by_pid.items():
+        # Id should be the same for all jobs in a given worker.
+        assert len(set(id_list)) == 1

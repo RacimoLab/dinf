@@ -1,5 +1,4 @@
 import subprocess
-import sys
 
 import pytest
 
@@ -7,29 +6,6 @@ import dinf
 import dinf.__main__
 
 from .test_dinf import check_discriminator, check_ncf
-
-
-def test_get_user_genobuilder_file_not_found():
-    with pytest.raises(FileNotFoundError, match=r"nonexistent.py"):
-        dinf.__main__._get_user_genobuilder("nonexistent.py")
-
-
-@pytest.mark.usefixtures("tmp_path")
-def test_get_user_genobuilder_obj_not_found(tmp_path):
-    filename = tmp_path / "model.py"
-    with open(filename, "w") as f:
-        f.write("geeenobilder = {}\n")
-    with pytest.raises(AttributeError, match="genobuilder not found"):
-        dinf.__main__._get_user_genobuilder(filename)
-
-
-@pytest.mark.usefixtures("tmp_path")
-def test_get_user_genobuilder_obj_wrong_type(tmp_path):
-    filename = tmp_path / "model.py"
-    with open(filename, "w") as f:
-        f.write("genobuilder = {}\n")
-    with pytest.raises(TypeError, match="not a .*Genobuilder"):
-        dinf.__main__._get_user_genobuilder(filename)
 
 
 class TestTopLevel:
@@ -94,11 +70,8 @@ class TestAbcGan:
         )
         assert out1.stdout == out2.stdout
 
-    @pytest.mark.skipif(
-        sys.platform.startswith("darwin"), reason="Deadlock on Github Actions."
-    )
     @pytest.mark.usefixtures("tmp_path")
-    def test_example(self, tmp_path):
+    def test_abc_gan_example(self, tmp_path):
         working_directory = tmp_path / "work_dir"
         ex = "examples/bottleneck/model.py"
         subprocess.run(
@@ -119,7 +92,7 @@ class TestAbcGan:
             stderr=subprocess.PIPE,
         )
         assert working_directory.exists()
-        genobuilder = dinf.__main__._get_user_genobuilder(ex)
+        genobuilder = dinf.Genobuilder._from_file(ex)
         for i in range(2):
             check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
             check_ncf(
@@ -141,11 +114,8 @@ class TestMcmcGan:
         )
         assert out1.stdout == out2.stdout
 
-    @pytest.mark.skipif(
-        sys.platform.startswith("darwin"), reason="Deadlock on Github Actions."
-    )
     @pytest.mark.usefixtures("tmp_path")
-    def test_example(self, tmp_path):
+    def test_mcmc_gan_example(self, tmp_path):
         working_directory = tmp_path / "work_dir"
         ex = "examples/bottleneck/model.py"
         subprocess.run(
@@ -167,7 +137,7 @@ class TestMcmcGan:
             stderr=subprocess.PIPE,
         )
         assert working_directory.exists()
-        genobuilder = dinf.__main__._get_user_genobuilder(ex)
+        genobuilder = dinf.Genobuilder._from_file(ex)
         for i in range(2):
             check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
             check_ncf(

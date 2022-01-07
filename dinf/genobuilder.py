@@ -2,6 +2,9 @@ from __future__ import annotations
 import collections
 import dataclasses
 import functools
+import importlib
+import pathlib
+import sys
 from typing import Callable, Tuple
 
 import numpy as np
@@ -109,6 +112,7 @@ class Genobuilder:
             functools.partial(_sim_shim, func=f, keys=tuple(self.parameters)), f
         )
         self._orig_generator_func = f
+        self._filename = None
 
     def check(self, seed=1234):
         """
@@ -139,3 +143,28 @@ class Genobuilder:
                 f"target_func produced feature shape {tree_shape(x_t)}, "
                 f"but feature_shape is {self.feature_shape}"
             )
+
+    @staticmethod
+    def _from_file(filename: str | pathlib.Path) -> Genobuilder:
+        """
+        Load the symbol "genobuilder" from a file.
+
+        https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
+        """
+        module_name = "_dinf_user_module"
+        spec = importlib.util.spec_from_file_location(module_name, filename)
+        # Pacify mypy. These assertions hold even when the file doesn't exist.
+        assert spec is not None
+        assert isinstance(spec.loader, importlib.abc.Loader)
+
+        user_module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = user_module
+        spec.loader.exec_module(user_module)
+
+        genobuilder = getattr(user_module, "genobuilder", None)
+        if genobuilder is None:
+            raise AttributeError(f"genobuilder not found in {filename}")
+        if not isinstance(genobuilder, Genobuilder):
+            raise TypeError(f"{filename}: genobuilder is not a dinf.Genobuilder object")
+        genobuilder._filename = filename
+        return genobuilder
