@@ -259,11 +259,11 @@ def main(args_list=None):
     top_parser.add_argument("--version", action="version", version=dinf.__version__)
 
     subparsers = top_parser.add_subparsers(
-        dest="subcommand", metavar="{mcmc-gan,check}"
+        dest="subcommand", metavar="{check,mcmc-gan}"
     )
+    Check(subparsers)
     AbcGan(subparsers)
     McmcGan(subparsers)
-    Check(subparsers)
 
     args = top_parser.parse_args(args_list)
     if args.subcommand is None:

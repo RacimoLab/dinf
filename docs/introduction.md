@@ -1,4 +1,4 @@
-# Dinf
+# Introduction
 
 ```{todo}
 Write docs.

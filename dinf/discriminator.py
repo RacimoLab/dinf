@@ -158,6 +158,11 @@ class Discriminator:
             n >= 2 is the number of (pseudo)haplotypes,
             m >= 4 is the length of the (pseudo)haplotypes,
             and c <= 4 is the number of channels.
+        :param numpy.random.Generator rng:
+            The numpy random number generator.
+        :param dnn:
+            A discriminator neural network.
+            If not specified, an exchangeable CNN will be used.
         """
         if dnn is None:
             dnn = ExchangeableCNN()
@@ -270,7 +275,7 @@ class Discriminator:
         """
         Fit discriminator to training data.
 
-        :param rng: Numpy random number generator.
+        :param numpy.random.Generator rng: Numpy random number generator.
         :param train_x: Training data.
         :param train_y: Labels for training data.
         :param val_x: Validation data.

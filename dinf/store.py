@@ -1,3 +1,4 @@
+from __future__ import annotations
 import collections.abc
 import pathlib
 
@@ -6,19 +7,31 @@ class Store(collections.abc.Sequence):
     """
     A sequence of folders with names "0", "1", ...
 
+    This class implements the :class:`collections.abc.Sequence` protocol.
+
     :ivar pathlib.Path base:
         Base directory containing the sequence.
     """
 
-    def __init__(self, base):
+    def __init__(self, base: str | pathlib.Path, *, create: bool = False):
+        """
+        :param base:
+            The base directory containing the sequence.
+        :param create:
+            If True, create the base directory if it doesn't exist.
+            If False (*default*), raise an error if the base directory
+            doesn't exist.
+        """
+        self._length = 0
         self.base = pathlib.Path(base)
+        if create:
+            self.base.mkdir(parents=True, exist_ok=True)
         if not self.base.exists():
-            self.base.mkdir(parents=True)
+            raise ValueError(f"{self.base} not found")
         if not self.base.is_dir():
             raise ValueError(f"{self.base} is not a directory")
 
         # Find the length.
-        self._length = 0
         try:
             while True:
                 path = self[self._length]
@@ -29,9 +42,18 @@ class Store(collections.abc.Sequence):
             pass
 
     def __len__(self):
+        """
+        Length of the sequence.
+        """
         return self._length
 
     def __getitem__(self, index):
+        """
+        Get the path with the given index.
+
+        :param int index:
+            The 0-based index into the sequence.
+        """
         if not isinstance(index, int):
             # Slicing not supported.
             raise TypeError("Store index must be an integer")
@@ -52,6 +74,9 @@ class Store(collections.abc.Sequence):
         return s
 
     def increment(self):
+        """
+        Add a new folder to the end of the sequence.
+        """
         new = self.base / f"{len(self)}"
         new.mkdir()
         self._length += 1

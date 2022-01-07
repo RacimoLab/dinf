@@ -1,6 +1,6 @@
 from __future__ import annotations
 import collections
-from typing import Dict, Tuple
+from typing import Dict, Mapping, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -188,7 +188,7 @@ class BinnedHaplotypeMatrix:
         Create a pseudo-genotype matrix from a tree sequence.
 
         :param ts: The tree sequence.
-        :param rng: Numpy random number generator.
+        :param numpy.random.Generator rng: Numpy random number generator.
         :return:
             Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
             For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
@@ -240,7 +240,7 @@ class BinnedHaplotypeMatrix:
         :param min_seg_sites:
             Sampled genotype matrix must have at least this many variable
             sites (after filtering sites for missingness).
-        :param rng:
+        :param numpy.random.Generator rng:
             Numpy random number generator.
         :return:
             Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
@@ -276,7 +276,7 @@ class BinnedHaplotypeMatrix:
 
 class MultipleBinnedHaplotypeMatrices:
     """
-    A labelled collection of :class:`BinnedHaplotypeMatrices`.
+    A factory for labelled collections of :class:`BinnedHaplotypeMatrix` objects.
 
     One feature matrix is produced for each label. Labels typically
     correspond to populations, but this need not be the case.
@@ -285,15 +285,36 @@ class MultipleBinnedHaplotypeMatrices:
     def __init__(
         self,
         *,
-        num_individuals: dict,
-        num_bins: dict,
-        ploidy: dict,
+        num_individuals: Mapping[str, int],
+        num_bins: Mapping[str, int],
+        ploidy: Mapping[str, int],
         # TODO: label-specific options for phased and maf_thresh.
         # phased: dict,
         # maf_thresh: dict,
         global_phased: bool,
         global_maf_thresh: float,
     ):
+        """
+        :param num_individuals:
+            A dict that maps labels to the the number of individuals
+            in the feature matrix.
+        :param num_bins:
+            A dict that maps labels to the number of bins into which the
+            sequence is partitioned.
+        :param ploidy:
+            A dict that maps labels to the ploidy of the individuals.
+        :param global_phased:
+            If True, the individuals' haplotypes will each be included as
+            independent rows in each feature matrix and the shape of the
+            feature matrix for label `l` will be
+            ``(ploidy[l] * num_individuals[l], num_bins[l], 1)``.
+            If False, the allele counts for each individual will be summed
+            across their chromosome copies and the shape of the feature matrix
+            will be ``(num_individuals[l], num_bins[l], 1)``.
+        :param global_maf_thresh:
+            Minor allele frequency (MAF) threshold. Sites with MAF lower than
+            this value are ignored.
+        """
         dict_args = [num_individuals, num_bins, ploidy]
         dict_strs = "num_individuals, num_bins, ploidy"
         for d in dict_args:
@@ -322,6 +343,7 @@ class MultipleBinnedHaplotypeMatrices:
 
     @property
     def shape(self) -> Dict[str, Tuple[int, int, int]]:
+        """Shape of the feature matrix."""
         return {label: bhm.shape for label, bhm in self.bh_matrices.items()}
 
     def from_ts(
@@ -329,18 +351,18 @@ class MultipleBinnedHaplotypeMatrices:
         ts: tskit.TreeSequence,
         *,
         rng: np.random.Generator,
-        individuals: collections.abc.Mapping[str, npt.NDArray[np.integer]],
+        individuals: Mapping[str, npt.NDArray[np.integer]],
     ) -> Dict[str, np.ndarray]:
         """
-        Create a pseudo-genotype matrix from a tree sequence.
+        Create pseudo-genotype matrices from a tree sequence.
 
         :param ts: The tree sequence.
-        :param rng: Numpy random number generator.
+        :param numpy.random.Generator rng: Numpy random number generator.
         :param individuals:
             A mapping from label to an array of individuals.
         :return:
-            A dictionary mapping a label to a feature array.
-            Each array has shape ``(num_pseudo_haplotypes, num_bins, 1)``.
+            A dictionary mapping a label ``l`` to a feature array.
+            Each array has shape ``(num_pseudo_haplotypes[l], num_bins[l], 1)``.
             For an array :math:`M`, the :math:`M[i][j][0]`'th entry is the
             count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
             :math:`i`.
@@ -389,7 +411,7 @@ class MultipleBinnedHaplotypeMatrices:
         rng: np.random.Generator,
     ) -> Dict[str, np.ndarray]:
         """
-        Create a pseudo-genotype matrix from a region of a VCF/BCF.
+        Create pseudo-genotype matrices from a region of a VCF/BCF.
 
         The genomic window is drawn uniformly at random from the sequences
         defined in the given :class:`BagOfVcf`.
@@ -409,11 +431,12 @@ class MultipleBinnedHaplotypeMatrices:
         :param min_seg_sites:
             Sampled genotype matrix must have at least this many variable
             sites (after filtering sites for missingness).
-        :param rng:
+        :param numpy.random.Generator rng:
             Numpy random number generator.
         :return:
-            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
-            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
+            A dictionary mapping a label ``l`` to a feature array.
+            Each array has shape ``(num_pseudo_haplotypes[l], num_bins[l], 1)``.
+            For an array :math:`M`, the :math:`M[i][j][0]`'th entry is the
             count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
             :math:`i`.
         """

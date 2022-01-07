@@ -11,6 +11,15 @@ import numpy.typing as npt
 class Param:
     """
     A parameter whose value is to be inferred.
+
+    :param low:
+        The lower bound for the parameter.
+    :param high:
+        The uppper bound for the parameter.
+    :param truth:
+        The true value of the parameter. Set to None when the value is not known
+        (e.g. when inferring parameters of empirical data). If the value is not
+        None, this value may be used as the truth in a simulation study.
     """
 
     low: float
@@ -41,7 +50,7 @@ class Param:
         Draw a random sample from the prior distribution.
 
         :param size: The sample size.
-        :param rng: The numpy random number generator.
+        :param numpy.random.Generator rng: The numpy random number generator.
         :return: A numpy array of parameter values.
         """
         return rng.uniform(low=self.low, high=self.high, size=size)
@@ -65,6 +74,10 @@ class Parameters(collections.abc.Mapping):
     """
 
     def __init__(self, **kwargs: Param):
+        """
+        :param kwargs:
+            The named :class:`Param` object(s).
+        """
         self._posterior: npt.NDArray | None = None
         self._params = copy.deepcopy(kwargs)
         for k, v in self._params.items():
@@ -83,12 +96,12 @@ class Parameters(collections.abc.Mapping):
 
     def draw_prior(
         self, num_replicates: int, rng: np.random.Generator
-    ) -> npt.NDArray[np.float_]:
+    ) -> npt.NDArray[np.floating]:
         """
         Draw a random sample for the parameters, from the prior distribution.
 
         :param num_replicates: The sample size.
-        :param rng: The numpy random number generator.
+        :param numpy.random.Generator rng: The numpy random number generator.
         :return:
             A 2d numpy array of parameter values, where ret[j][k] is the
             j'th draw for the k'th parameter.
@@ -106,7 +119,7 @@ class Parameters(collections.abc.Mapping):
         Otherise, the sample is drawn from the prior distribution.
 
         :param num_replicates: The sample size.
-        :param rng: The numpy random number generator.
+        :param numpy.random.Generator rng: The numpy random number generator.
         :return:
             A 2d numpy array of parameter values, where ret[j][k] is the
             j'th draw for the k'th parameter.
@@ -138,15 +151,18 @@ class Parameters(collections.abc.Mapping):
         )
         return ret
 
-    def update_posterior(self, posterior: npt.ArrayLike) -> None:
+    def with_posterior(self, posterior: np.ndarray) -> Parameters:
         """
-        Set the posterior sample for these parameters.
+        Create a new :class:`Parameters` object that samples from the given posterior.
 
         :param posterior:
             A 2d array of parameter values, where posterior[j][k] is the
             j'th draw for the k'th parameter.
+        :return: The new :class:`Parameters` object.
         """
         posterior = np.array(posterior)
         assert len(posterior.shape) == 2
         assert posterior.shape[-1] == len(self)
-        self._posterior = posterior
+        posterior_parameters = self.__class__(**self._params)
+        posterior_parameters._posterior = posterior
+        return posterior_parameters

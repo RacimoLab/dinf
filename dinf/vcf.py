@@ -20,7 +20,7 @@ def get_contig_lengths(
     Load contig lengths from a space-separated file like an fai (fasta index).
 
     The file must have (at least) two columns, the first specifies the
-    contig id, and the second is the contig length. Additional columns
+    contig ID, and the second is the contig length. Additional columns
     are ignored.
 
     :param filename: The path to the file.
@@ -153,8 +153,8 @@ class BagOfVcf(collections.abc.Mapping):
 
     VCF data are sometimes contained in a single file, and sometimes split into
     multiple files by chromosome. To remove the burden of dealing with both
-    of these common cases, this class maps a contig id to a :class:`cyvcf2.VCF`
-    object for that contig. The interface is provided via Python's
+    of these common cases, this class maps a contig ID to a :class:`cyvcf2.VCF`
+    object for that contig. The interface is provided by via Python's
     :class:`collections.abc.Mapping` protocol. In addition, the class provides
     methods for sampling regions of the genome at random.
 
@@ -223,7 +223,7 @@ class BagOfVcf(collections.abc.Mapping):
         individuals: Iterable[str] | None = None,
     ) -> None:
         """
-        Construct a mapping from contig id to cyvcf2.VCF object.
+        Construct a mapping from contig ID to :class:`cyvcf2.VCF` object.
         """
 
         contig2file: Dict[str, str | pathlib.Path] = {}
@@ -325,16 +325,34 @@ class BagOfVcf(collections.abc.Mapping):
         os.register_at_fork(before=self._close)
 
     def __iter__(self):
+        """
+        Iterate over contig IDs in the bag.
+        """
         yield from self._contig2vcf
 
-    def __getitem__(self, key):
-        if not isinstance(key, str):
+    def __getitem__(self, contig_id: str) -> cyvcf2.VCF:
+        """
+        Get the :class:`cyvcf2.VCF` containing the given contig.
+
+        :param contig_id:
+            The contig ID.
+        :return:
+            The :class:`cyvcf2.VCF` object.
+        :rtype: cyvcf2.VCF
+        """
+        if not isinstance(contig_id, str):
             raise TypeError("key must be a string")
         if self._needs_reopen:
             self._reopen()
-        return self._contig2vcf[key]
+        return self._contig2vcf[contig_id]
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """
+        The number of distinct VCF and/or BCF files in the bag.
+
+        :return:
+            The size of the bag.
+        """
         return len(self._contig2vcf)
 
     def _close(self):
@@ -358,7 +376,7 @@ class BagOfVcf(collections.abc.Mapping):
 
         :param size: Number of genomic windows to sample.
         :param sequence_length: Length of the sequence to sample.
-        :param rng: The numpy random number generator.
+        :param numpy.random.Generator rng: The numpy random number generator.
         :return:
             List of 3-tuples: (chrom, start, end).
             The start and end coordinates are 1-based and inclusive, to match
@@ -389,7 +407,7 @@ class BagOfVcf(collections.abc.Mapping):
         require_phased: bool,
         rng: np.random.Generator,
         retries: int = 1000,
-    ):
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Sample a genotype matrix uniformly at random from the genome.
 
@@ -403,7 +421,7 @@ class BagOfVcf(collections.abc.Mapping):
             sites (after filtering sites for missingness).
         :param require_phased:
             If True, raise an error if genotypes are not phased.
-        :param rng:
+        :param numpy.random.Generator rng:
             Numpy random number generator.
         :param retries:
             Maximum number of attempts allowed to find a genomic window with
