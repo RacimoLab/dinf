@@ -41,7 +41,7 @@
     <script src="../../_static/clipboard.min.js"></script>
     <script src="../../_static/copybutton.js"></script>
     <script>var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
-    <script src="../../_static/sphinx-book-theme.12a9622fbb08dcb3a2a40b2c02b83a57.js"></script>
+    <script src="../../_static/sphinx-book-theme.d59cb220de22ca1c485ebbdc042f0030.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -99,7 +99,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev56
+  dinf 0.1.1.dev58
 </div>
 
 </div>
@@ -156,14 +156,24 @@
         </div>
 
         <!-- Table of contents -->
-        <div class="d-none d-md-block col-md-2 bd-toc show">
+        <div class="d-none d-md-block col-md-2 bd-toc show noprint">
             
         </div>
     </div>
 </div>
     <div id="main-content" class="row">
         <div class="col-12 col-md-9 pl-md-3 pr-md-0">
-        
+            <!-- Table of contents that is only displayed when printing the page -->
+            <div id="jb-print-docs-body" class="onlyprint">
+                <h1></h1>
+                <!-- Table of contents -->
+                <div id="print-main-content">
+                    <div id="jb-print-toc">
+                        
+                    </div>
+                </div>
+            </div>
+            
               <div>
                 
   <h1>Source code for dinf.dinf</h1><div class="highlight"><pre>
@@ -173,6 +183,7 @@
 <span class="kn">import</span> <span class="nn">multiprocessing</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">signal</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Callable</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
@@ -191,15 +202,57 @@
 <span class="n">_pool</span> <span class="o">=</span> <span class="kc">None</span>
 
 
-<span class="k">def</span> <span class="nf">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">):</span>
-    <span class="c1"># Start the process pool before the GPU has been initialised, otherwise</span>
-    <span class="c1"># we get weird GPU resource issues because the subprocesses are holding</span>
-    <span class="c1"># onto some CUDA thing.</span>
-    <span class="c1"># We use multiprocessing, because concurrent.futures spawns the initial</span>
-    <span class="c1"># processes on demand (https://bugs.python.org/issue39207), which means</span>
-    <span class="c1"># they can be spawned after the GPU has been initialised.</span>
+<span class="k">def</span> <span class="nf">_initializer</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="c1"># Ignore ctrl-c in workers. This is handled in the main process.</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_IGN</span><span class="p">)</span>
+    <span class="c1"># Ensure symbols from the user&#39;s genobuilder are avilable to workers.</span>
+    <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">Genobuilder</span><span class="o">.</span><span class="n">_from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">):</span>
+    <span class="c1"># Start the process pool before the GPU has been initialised, or using</span>
+    <span class="c1"># the &quot;spawn&quot; start method, otherwise we get weird GPU resource issues</span>
+    <span class="c1"># because the subprocesses are holding onto some CUDA thing.</span>
+    <span class="c1"># We use multiprocessing, because concurrent.futures uses fork() on unix,</span>
+    <span class="c1"># and the initial processes are forked on demand</span>
+    <span class="c1"># (https://bugs.python.org/issue39207), which means they can be forked</span>
+    <span class="c1"># after the GPU has been initialised.</span>
     <span class="k">global</span> <span class="n">_pool</span>
-    <span class="n">_pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">parallelism</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">_pool</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">get_context</span><span class="p">(</span><span class="s2">&quot;spawn&quot;</span><span class="p">)</span>
+    <span class="n">_pool</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span>
+        <span class="n">processes</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
+        <span class="n">initializer</span><span class="o">=</span><span class="n">_initializer</span><span class="p">,</span>
+        <span class="n">initargs</span><span class="o">=</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">_filename</span><span class="p">,),</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">cleanup_process_pool_afterwards</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A decorator for functions using the process pool, to do cleanup.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">global</span> <span class="n">_pool</span>
+        <span class="n">terminate</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="n">terminate</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">raise</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">_pool</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">terminate</span><span class="p">:</span>
+                    <span class="n">_pool</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># close() instead of terminate() when reasonable to do so.</span>
+                    <span class="c1"># https://pytest-cov.readthedocs.io/en/latest/subprocess-support.html</span>
+                    <span class="n">_pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="n">_pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+                <span class="n">_pool</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">wrapper</span>
 
 
 <span class="k">def</span> <span class="nf">_sim_replicates</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">sim_func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">num_replicates</span><span class="p">,</span> <span class="n">parallelism</span><span class="p">):</span>
@@ -207,8 +260,7 @@
         <span class="n">map_f</span> <span class="o">=</span> <span class="nb">map</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">global</span> <span class="n">_pool</span>
-        <span class="k">if</span> <span class="n">_pool</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">_pool</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">map_f</span> <span class="o">=</span> <span class="n">_pool</span><span class="o">.</span><span class="n">imap</span>
 
     <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
@@ -424,7 +476,8 @@
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="mcmc_gan"><a class="viewcode-back" href="../../api.html#dinf.mcmc_gan">[docs]</a><span class="k">def</span> <span class="nf">mcmc_gan</span><span class="p">(</span>
+<div class="viewcode-block" id="mcmc_gan"><a class="viewcode-back" href="../../api.html#dinf.mcmc_gan">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
+<span class="k">def</span> <span class="nf">mcmc_gan</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
     <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -490,7 +543,7 @@
     <span class="k">if</span> <span class="n">parallelism</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
 
-    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">)</span>
+    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
 
     <span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -606,6 +659,7 @@
     <span class="k">return</span> <span class="n">dataset</span>
 
 
+<span class="nd">@cleanup_process_pool_afterwards</span>
 <span class="k">def</span> <span class="nf">abc_gan</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
@@ -669,7 +723,7 @@
     <span class="k">if</span> <span class="n">parallelism</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
 
-    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">)</span>
+    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
 
     <span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -730,26 +784,24 @@
 
               </div>
               
-        
-            <!-- Previous / next buttons -->
+            
+                <!-- Previous / next buttons -->
 <div class='prev-next-area'>
 </div>
-        
+            
         </div>
     </div>
     <footer class="footer">
-    <div class="container">
-      <p>
-        
-          By Graham Gower<br/>
-        
-            &copy; Copyright 2021.<br/>
-          <div class="extra_footer">
-            dinf 0.1.1.dev56+gc47c762
-          </div>
-      </p>
-    </div>
-  </footer>
+  <p>
+    
+      By Graham Gower<br/>
+    
+        &copy; Copyright 2021.<br/>
+      <div class="extra_footer">
+        dinf 0.1.1.dev58+ga7a7272
+      </div>
+  </p>
+</footer>
 </main>
 
 
