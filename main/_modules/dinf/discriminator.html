@@ -78,19 +78,36 @@
         <ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="../../introduction.html">
-   Dinf
+   Introduction
   </a>
  </li>
 </ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Tutorials
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../tutorial/01.html">
+   1. Create a Dinf model
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Reference
+ </span>
+</p>
 <ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="../../api.html">
-   API Reference
+   API reference
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="../../cli.html">
-   Command line interface
+   CLI reference
   </a>
  </li>
 </ul>
@@ -99,7 +116,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev60
+  dinf 0.1.1.dev62
 </div>
 
 </div>
@@ -337,6 +354,11 @@
 <span class="sd">            n &gt;= 2 is the number of (pseudo)haplotypes,</span>
 <span class="sd">            m &gt;= 4 is the length of the (pseudo)haplotypes,</span>
 <span class="sd">            and c &lt;= 4 is the number of channels.</span>
+<span class="sd">        :param numpy.random.Generator rng:</span>
+<span class="sd">            The numpy random number generator.</span>
+<span class="sd">        :param dnn:</span>
+<span class="sd">            A discriminator neural network.</span>
+<span class="sd">            If not specified, an exchangeable CNN will be used.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">dnn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">dnn</span> <span class="o">=</span> <span class="n">ExchangeableCNN</span><span class="p">()</span>
@@ -449,7 +471,7 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fit discriminator to training data.</span>
 
-<span class="sd">        :param rng: Numpy random number generator.</span>
+<span class="sd">        :param numpy.random.Generator rng: Numpy random number generator.</span>
 <span class="sd">        :param train_x: Training data.</span>
 <span class="sd">        :param train_y: Labels for training data.</span>
 <span class="sd">        :param val_x: Validation data.</span>
@@ -716,7 +738,7 @@
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev60+g5fdeef9
+        dinf 0.1.1.dev62+g6071a29
       </div>
   </p>
 </footer>

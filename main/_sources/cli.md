@@ -1,11 +1,11 @@
-# Command line interface
+# CLI reference
 
 ```{program-output} python -m dinf -h
 ```
 
-## dinf abc-gan
+## dinf check
 
-```{program-output} python -m dinf abc-gan -h
+```{program-output} python -m dinf check -h
 ```
 
 ## dinf mcmc-gan

@@ -78,19 +78,36 @@
         <ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="../../introduction.html">
-   Dinf
+   Introduction
   </a>
  </li>
 </ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Tutorials
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../tutorial/01.html">
+   1. Create a Dinf model
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Reference
+ </span>
+</p>
 <ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="../../api.html">
-   API Reference
+   API reference
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="../../cli.html">
-   Command line interface
+   CLI reference
   </a>
  </li>
 </ul>
@@ -99,7 +116,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev60
+  dinf 0.1.1.dev62
 </div>
 
 </div>
@@ -179,7 +196,7 @@
   <h1>Source code for dinf.feature_extractor</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">collections</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">numpy.typing</span> <span class="k">as</span> <span class="nn">npt</span>
@@ -367,7 +384,7 @@
 <span class="sd">        Create a pseudo-genotype matrix from a tree sequence.</span>
 
 <span class="sd">        :param ts: The tree sequence.</span>
-<span class="sd">        :param rng: Numpy random number generator.</span>
+<span class="sd">        :param numpy.random.Generator rng: Numpy random number generator.</span>
 <span class="sd">        :return:</span>
 <span class="sd">            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.</span>
 <span class="sd">            For a matrix :math:`M`, the :math:`M[i][j][0]`&#39;th entry is the</span>
@@ -419,7 +436,7 @@
 <span class="sd">        :param min_seg_sites:</span>
 <span class="sd">            Sampled genotype matrix must have at least this many variable</span>
 <span class="sd">            sites (after filtering sites for missingness).</span>
-<span class="sd">        :param rng:</span>
+<span class="sd">        :param numpy.random.Generator rng:</span>
 <span class="sd">            Numpy random number generator.</span>
 <span class="sd">        :return:</span>
 <span class="sd">            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.</span>
@@ -453,9 +470,9 @@
         <span class="p">)</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">MultipleBinnedHaplotypeMatrices</span><span class="p">:</span>
+<div class="viewcode-block" id="MultipleBinnedHaplotypeMatrices"><a class="viewcode-back" href="../../api.html#dinf.MultipleBinnedHaplotypeMatrices">[docs]</a><span class="k">class</span> <span class="nc">MultipleBinnedHaplotypeMatrices</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A labelled collection of :class:`BinnedHaplotypeMatrices`.</span>
+<span class="sd">    A factory for labelled collections of :class:`BinnedHaplotypeMatrix` objects.</span>
 
 <span class="sd">    One feature matrix is produced for each label. Labels typically</span>
 <span class="sd">    correspond to populations, but this need not be the case.</span>
@@ -464,15 +481,36 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">num_individuals</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-        <span class="n">num_bins</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-        <span class="n">ploidy</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">num_individuals</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+        <span class="n">num_bins</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+        <span class="n">ploidy</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
         <span class="c1"># TODO: label-specific options for phased and maf_thresh.</span>
         <span class="c1"># phased: dict,</span>
         <span class="c1"># maf_thresh: dict,</span>
         <span class="n">global_phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
         <span class="n">global_maf_thresh</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param num_individuals:</span>
+<span class="sd">            A dict that maps labels to the the number of individuals</span>
+<span class="sd">            in the feature matrix.</span>
+<span class="sd">        :param num_bins:</span>
+<span class="sd">            A dict that maps labels to the number of bins into which the</span>
+<span class="sd">            sequence is partitioned.</span>
+<span class="sd">        :param ploidy:</span>
+<span class="sd">            A dict that maps labels to the ploidy of the individuals.</span>
+<span class="sd">        :param global_phased:</span>
+<span class="sd">            If True, the individuals&#39; haplotypes will each be included as</span>
+<span class="sd">            independent rows in each feature matrix and the shape of the</span>
+<span class="sd">            feature matrix for label `l` will be</span>
+<span class="sd">            ``(ploidy[l] * num_individuals[l], num_bins[l], 1)``.</span>
+<span class="sd">            If False, the allele counts for each individual will be summed</span>
+<span class="sd">            across their chromosome copies and the shape of the feature matrix</span>
+<span class="sd">            will be ``(num_individuals[l], num_bins[l], 1)``.</span>
+<span class="sd">        :param global_maf_thresh:</span>
+<span class="sd">            Minor allele frequency (MAF) threshold. Sites with MAF lower than</span>
+<span class="sd">            this value are ignored.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dict_args</span> <span class="o">=</span> <span class="p">[</span><span class="n">num_individuals</span><span class="p">,</span> <span class="n">num_bins</span><span class="p">,</span> <span class="n">ploidy</span><span class="p">]</span>
         <span class="n">dict_strs</span> <span class="o">=</span> <span class="s2">&quot;num_individuals, num_bins, ploidy&quot;</span>
         <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dict_args</span><span class="p">:</span>
@@ -501,25 +539,26 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="n">bhm</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">bhm</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bh_matrices</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
-    <span class="k">def</span> <span class="nf">from_ts</span><span class="p">(</span>
+<div class="viewcode-block" id="MultipleBinnedHaplotypeMatrices.from_ts"><a class="viewcode-back" href="../../api.html#dinf.MultipleBinnedHaplotypeMatrices.from_ts">[docs]</a>    <span class="k">def</span> <span class="nf">from_ts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">ts</span><span class="p">:</span> <span class="n">tskit</span><span class="o">.</span><span class="n">TreeSequence</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
-        <span class="n">individuals</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">]],</span>
+        <span class="n">individuals</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">]],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Create a pseudo-genotype matrix from a tree sequence.</span>
+<span class="sd">        Create pseudo-genotype matrices from a tree sequence.</span>
 
 <span class="sd">        :param ts: The tree sequence.</span>
-<span class="sd">        :param rng: Numpy random number generator.</span>
+<span class="sd">        :param numpy.random.Generator rng: Numpy random number generator.</span>
 <span class="sd">        :param individuals:</span>
 <span class="sd">            A mapping from label to an array of individuals.</span>
 <span class="sd">        :return:</span>
-<span class="sd">            A dictionary mapping a label to a feature array.</span>
-<span class="sd">            Each array has shape ``(num_pseudo_haplotypes, num_bins, 1)``.</span>
+<span class="sd">            A dictionary mapping a label ``l`` to a feature array.</span>
+<span class="sd">            Each array has shape ``(num_pseudo_haplotypes[l], num_bins[l], 1)``.</span>
 <span class="sd">            For an array :math:`M`, the :math:`M[i][j][0]`&#39;th entry is the</span>
 <span class="sd">            count of minor alleles in the :math:`j`&#39;th bin of psdeudo-haplotype</span>
 <span class="sd">            :math:`i`.</span>
@@ -556,9 +595,9 @@
                 <span class="n">H</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">sequence_length</span><span class="o">=</span><span class="n">ts</span><span class="o">.</span><span class="n">sequence_length</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
             <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">labelled_features</span>
+        <span class="k">return</span> <span class="n">labelled_features</span></div>
 
-    <span class="k">def</span> <span class="nf">from_vcf</span><span class="p">(</span>
+<div class="viewcode-block" id="MultipleBinnedHaplotypeMatrices.from_vcf"><a class="viewcode-back" href="../../api.html#dinf.MultipleBinnedHaplotypeMatrices.from_vcf">[docs]</a>    <span class="k">def</span> <span class="nf">from_vcf</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vb</span><span class="p">:</span> <span class="n">BagOfVcf</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -568,7 +607,7 @@
         <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Create a pseudo-genotype matrix from a region of a VCF/BCF.</span>
+<span class="sd">        Create pseudo-genotype matrices from a region of a VCF/BCF.</span>
 
 <span class="sd">        The genomic window is drawn uniformly at random from the sequences</span>
 <span class="sd">        defined in the given :class:`BagOfVcf`.</span>
@@ -588,11 +627,12 @@
 <span class="sd">        :param min_seg_sites:</span>
 <span class="sd">            Sampled genotype matrix must have at least this many variable</span>
 <span class="sd">            sites (after filtering sites for missingness).</span>
-<span class="sd">        :param rng:</span>
+<span class="sd">        :param numpy.random.Generator rng:</span>
 <span class="sd">            Numpy random number generator.</span>
 <span class="sd">        :return:</span>
-<span class="sd">            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.</span>
-<span class="sd">            For a matrix :math:`M`, the :math:`M[i][j][0]`&#39;th entry is the</span>
+<span class="sd">            A dictionary mapping a label ``l`` to a feature array.</span>
+<span class="sd">            Each array has shape ``(num_pseudo_haplotypes[l], num_bins[l], 1)``.</span>
+<span class="sd">            For an array :math:`M`, the :math:`M[i][j][0]`&#39;th entry is the</span>
 <span class="sd">            count of minor alleles in the :math:`j`&#39;th bin of psdeudo-haplotype</span>
 <span class="sd">            :math:`i`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -631,7 +671,7 @@
             <span class="n">labelled_features</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">bh_matrix</span><span class="o">.</span><span class="n">_from_genotype_matrix</span><span class="p">(</span>
                 <span class="n">H</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">sequence_length</span><span class="o">=</span><span class="n">sequence_length</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">labelled_features</span>
+        <span class="k">return</span> <span class="n">labelled_features</span></div></div>
 </pre></div>
 
               </div>
@@ -650,7 +690,7 @@
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev60+g5fdeef9
+        dinf 0.1.1.dev62+g6071a29
       </div>
   </p>
 </footer>

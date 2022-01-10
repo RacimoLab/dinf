@@ -78,19 +78,36 @@
         <ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="../../introduction.html">
-   Dinf
+   Introduction
   </a>
  </li>
 </ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Tutorials
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../tutorial/01.html">
+   1. Create a Dinf model
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Reference
+ </span>
+</p>
 <ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="../../api.html">
-   API Reference
+   API reference
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="../../cli.html">
-   Command line interface
+   CLI reference
   </a>
  </li>
 </ul>
@@ -99,7 +116,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev60
+  dinf 0.1.1.dev62
 </div>
 
 </div>
@@ -495,9 +512,10 @@
 <span class="sd">    Run the MCMC GAN.</span>
 
 <span class="sd">    Each iteration of the GAN can be conceptually divided into parts:</span>
-<span class="sd">    - construct train/test datasets for the discriminator,</span>
-<span class="sd">    - train the discriminator for a certain number of epochs,</span>
-<span class="sd">    - run the MCMC.</span>
+
+<span class="sd">      - construct train/test datasets for the discriminator,</span>
+<span class="sd">      - train the discriminator for a certain number of epochs,</span>
+<span class="sd">      - run the MCMC.</span>
 
 <span class="sd">    In the first iteration, the parameter values given to the generator</span>
 <span class="sd">    to produce the test/train datasets are drawn from the parameters&#39; prior</span>
@@ -512,7 +530,7 @@
 <span class="sd">        Size of the dataset used to train the discriminator.</span>
 <span class="sd">        This dataset is constructed once each GAN iteration.</span>
 <span class="sd">    :param test_replicates:</span>
-<span class="sd">        Size of the test dataset used to evalutate the discriminator after</span>
+<span class="sd">        Size of the test dataset used to evaluate the discriminator after</span>
 <span class="sd">        each training epoch.</span>
 <span class="sd">    :param epochs:</span>
 <span class="sd">        Number of full passes over the training dataset when training</span>
@@ -530,7 +548,7 @@
 <span class="sd">        Number of processes to use for parallelising calls to the</span>
 <span class="sd">        :meth:`Genobuilder.generator_func` and</span>
 <span class="sd">        :meth:`Genobuilder.target_func`.</span>
-<span class="sd">    :param rng:</span>
+<span class="sd">    :param numpy.random.Generator rng:</span>
 <span class="sd">        Numpy random number generator.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># We modify the parameters, so take a copy.</span>
@@ -538,7 +556,7 @@
 
     <span class="k">if</span> <span class="n">working_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">working_directory</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
-    <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">working_directory</span><span class="p">)</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">parallelism</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
@@ -566,7 +584,7 @@
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s1">&#39;mcmc.ncf&#39;</span><span class="si">}</span><span class="s2"> which used </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="si">}</span><span class="s2"> walkers.&quot;</span>
             <span class="p">)</span>
         <span class="n">posterior_sample</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">chain</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">update_posterior</span><span class="p">(</span><span class="n">posterior_sample</span><span class="p">)</span>
+        <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">with_posterior</span><span class="p">(</span><span class="n">posterior_sample</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
         <span class="c1"># Starting point for the mcmc chain.</span>
@@ -612,7 +630,7 @@
 
         <span class="c1"># Update the parameters to draw from the posterior sample</span>
         <span class="c1"># (the merged chains from the mcmc).</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">update_posterior</span><span class="p">(</span>
+        <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">with_posterior</span><span class="p">(</span>
             <span class="n">chain</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">chain</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
             <span class="c1"># np.array(dataset.posterior.to_array()).swapaxes(0, 2)</span>
         <span class="p">)</span>
@@ -677,9 +695,10 @@
 <span class="sd">    Run the ABC GAN.</span>
 
 <span class="sd">    Each iteration of the GAN can be conceptually divided into:</span>
-<span class="sd">    - constructing train/test datasets for the discriminator,</span>
-<span class="sd">    - trainin the discriminator for a certain number of epochs,</span>
-<span class="sd">    - running the ABC.</span>
+
+<span class="sd">      - constructing train/test datasets for the discriminator,</span>
+<span class="sd">      - trainin the discriminator for a certain number of epochs,</span>
+<span class="sd">      - running the ABC.</span>
 
 <span class="sd">    In the first iteration, the parameter values given to the generator</span>
 <span class="sd">    to produce the test/train datasets are drawn from the parameters&#39; prior</span>
@@ -694,7 +713,7 @@
 <span class="sd">        Size of the dataset used to train the discriminator.</span>
 <span class="sd">        This dataset is constructed once each GAN iteration.</span>
 <span class="sd">    :param test_replicates:</span>
-<span class="sd">        Size of the test dataset used to evalutate the discriminator after</span>
+<span class="sd">        Size of the test dataset used to evaluate the discriminator after</span>
 <span class="sd">        each training epoch.</span>
 <span class="sd">    :param epochs:</span>
 <span class="sd">        Number of full passes over the training dataset when training</span>
@@ -710,7 +729,7 @@
 <span class="sd">        Number of processes to use for parallelising calls to the</span>
 <span class="sd">        :meth:`Genobuilder.generator_func` and</span>
 <span class="sd">        :meth:`Genobuilder.target_func`.</span>
-<span class="sd">    :param rng:</span>
+<span class="sd">    :param numpy.random.Generator rng:</span>
 <span class="sd">        Numpy random number generator.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># We modify the parameters, so take a copy.</span>
@@ -718,7 +737,7 @@
 
     <span class="k">if</span> <span class="n">working_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">working_directory</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
-    <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">working_directory</span><span class="p">)</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">parallelism</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
@@ -737,7 +756,7 @@
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
         <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_netcdf</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;abc.ncf&quot;</span><span class="p">)</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">update_posterior</span><span class="p">(</span>
+        <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">with_posterior</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">posterior</span><span class="o">.</span><span class="n">to_array</span><span class="p">())</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -772,7 +791,7 @@
         <span class="n">az</span><span class="o">.</span><span class="n">to_netcdf</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;abc.ncf&quot;</span><span class="p">)</span>
 
         <span class="c1"># Update to draw from the posterior sample in the next iteration.</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">update_posterior</span><span class="p">(</span>
+        <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">with_posterior</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">posterior</span><span class="o">.</span><span class="n">to_array</span><span class="p">())</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
         <span class="p">)</span>
 
@@ -798,7 +817,7 @@
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev60+g5fdeef9
+        dinf 0.1.1.dev62+g6071a29
       </div>
   </p>
 </footer>

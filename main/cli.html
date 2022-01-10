@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Command line interface &#8212; Dinf</title>
+    <title>CLI reference &#8212; Dinf</title>
     
   <link href="_static/css/theme.css" rel="stylesheet">
   <link href="_static/css/index.ff1ffe594081f20da1ef19478df9384b.css" rel="stylesheet">
@@ -51,7 +51,7 @@
     <script async="async" src="_static/sphinx-thebe.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="API Reference" href="api.html" />
+    <link rel="prev" title="API reference" href="api.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="docsearch:language" content="None">
     
@@ -86,19 +86,36 @@
         <ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="introduction.html">
-   Dinf
+   Introduction
   </a>
  </li>
 </ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Tutorials
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="tutorial/01.html">
+   1. Create a Dinf model
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Reference
+ </span>
+</p>
 <ul class="current nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="api.html">
-   API Reference
+   API reference
   </a>
  </li>
  <li class="toctree-l1 current active">
   <a class="current reference internal" href="#">
-   Command line interface
+   CLI reference
   </a>
  </li>
 </ul>
@@ -107,7 +124,7 @@
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev60
+  dinf 0.1.1.dev62
 </div>
 
 </div>
@@ -191,8 +208,8 @@
             <nav id="bd-toc-nav" aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#dinf-abc-gan">
-   dinf abc-gan
+  <a class="reference internal nav-link" href="#dinf-check">
+   dinf check
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
@@ -210,7 +227,7 @@
         <div class="col-12 col-md-9 pl-md-3 pr-md-0">
             <!-- Table of contents that is only displayed when printing the page -->
             <div id="jb-print-docs-body" class="onlyprint">
-                <h1>Command line interface</h1>
+                <h1>CLI reference</h1>
                 <!-- Table of contents -->
                 <div id="print-main-content">
                     <div id="jb-print-toc">
@@ -221,8 +238,8 @@
                         <nav aria-label="Page">
                             <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#dinf-abc-gan">
-   dinf abc-gan
+  <a class="reference internal nav-link" href="#dinf-check">
+   dinf check
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
@@ -239,81 +256,36 @@
             
               <div>
                 
-  <div class="tex2jax_ignore mathjax_ignore section" id="command-line-interface">
-<h1>Command line interface<a class="headerlink" href="#command-line-interface" title="Permalink to this headline">¶</a></h1>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [--version] {mcmc-gan,check} ...
+  <div class="tex2jax_ignore mathjax_ignore section" id="cli-reference">
+<h1>CLI reference<a class="headerlink" href="#cli-reference" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [--version] {check,mcmc-gan} ...
 
 Discriminator-based inference of population parameters.
 
 positional arguments:
-  {mcmc-gan,check}
-    mcmc-gan        Run the MCMC GAN
+  {check,mcmc-gan}
     check           Basic genobuilder health checks
+    mcmc-gan        Run the MCMC GAN
 
 optional arguments:
   -h, --help        show this help message and exit
   --version         show program&#39;s version number and exit
 </pre></div>
 </div>
-<div class="section" id="dinf-abc-gan">
-<h2>dinf abc-gan<a class="headerlink" href="#dinf-abc-gan" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf abc-gan [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
-                    [-R TEST_REPLICATES] [-e EPOCHS] [-p PROPOSALS]
-                    [-P POSTERIORS] [-i ITERATIONS] [-d WORKING_DIRECTORY]
-                    user_model.py
+<div class="section" id="dinf-check">
+<h2>dinf check<a class="headerlink" href="#dinf-check" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf check [-h] user_model.py
 
-Run the ABC GAN.
+Check a genobuilder object by calling the target and generator functions.
 
-Each iteration of the GAN can be conceptually divided into:
-- constructing train/test datasets for the discriminator,
-- training the discriminator for a certain number of epochs,
-- running the ABC.
-
-In the first iteration, the parameter values given to the generator
-to produce the test/train datasets are drawn from the parameters&#39; prior
-distribution. In subsequent iterations, the parameter values are drawn
-by sampling with replacement from the previous iteration&#39;s ABC posterior.
+positional arguments:
+  user_model.py  Python script from which to import the variable
+                 &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                 describes the GAN. See the examples/ folder for example
+                 models.
 
 optional arguments:
-  -h, --help            show this help message and exit
-
-common arguments:
-  -S SEED, --seed SEED  Seed for the random number generator. (default: None)
-  -j PARALLELISM, --parallelism PARALLELISM
-                        Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func.
-                        (default: None)
-
-training arguments:
-  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
-                        Size of the dataset used to train the discriminator.
-                        This dataset is constructed once each GAN iteration.
-                        (default: 1000000)
-  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
-                        Size of the test dataset used to evalutate the
-                        discriminator after each training epoch. (default:
-                        10000)
-  -e EPOCHS, --epochs EPOCHS
-                        Number of full passes over the training dataset when
-                        training the discriminator. (default: 1)
-
-ABC arguments:
-  -p PROPOSALS, --proposals PROPOSALS
-                        Number of ABC sample draws. (default: 1000000)
-  -P POSTERIORS, --posteriors POSTERIORS
-                        Number of top-ranked ABC sample draws to keep.
-                        (default: 1000)
-
-GAN arguments:
-  -i ITERATIONS, --iterations ITERATIONS
-                        Number of GAN iterations. (default: 1)
-  -d WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
-                        Folder to output results. If not specified, the
-                        current directory will be used. (default: None)
-  user_model.py         Python script from which to import the variable
-                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
-                        describes the GAN. See the examples/ folder for
-                        example models.
+  -h, --help     show this help message and exit
 </pre></div>
 </div>
 </div>
@@ -413,7 +385,7 @@ GAN arguments:
         <i class="fas fa-angle-left"></i>
         <div class="prev-next-info">
             <p class="prev-next-subtitle">previous</p>
-            <p class="prev-next-title">API Reference</p>
+            <p class="prev-next-title">API reference</p>
         </div>
     </a>
 </div>
@@ -427,7 +399,7 @@ GAN arguments:
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev60+g5fdeef9
+        dinf 0.1.1.dev62+g6071a29
       </div>
   </p>
 </footer>
