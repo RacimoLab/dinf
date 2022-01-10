@@ -22,6 +22,18 @@ class TestStore:
         assert not (tmp_path / f"{size}").exists()
 
     @pytest.mark.usefixtures("tmp_path")
+    def test_create(self, tmp_path):
+        working_directory = tmp_path / "working_directory"
+        with pytest.raises(ValueError, match=".*not found"):
+            store = dinf.Store(working_directory, create=False)
+        assert not working_directory.exists()
+        store = dinf.Store(working_directory, create=True)
+        assert working_directory.exists()
+        assert len(store) == 0
+        store = dinf.Store(working_directory, create=False)
+        assert len(store) == 0
+
+    @pytest.mark.usefixtures("tmp_path")
     @pytest.mark.parametrize("size", [1, 5, 300])
     def test_increment(self, tmp_path, size):
         store = dinf.Store(tmp_path)

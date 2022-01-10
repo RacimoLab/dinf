@@ -316,9 +316,10 @@ def mcmc_gan(
     Run the MCMC GAN.
 
     Each iteration of the GAN can be conceptually divided into parts:
-    - construct train/test datasets for the discriminator,
-    - train the discriminator for a certain number of epochs,
-    - run the MCMC.
+
+      - construct train/test datasets for the discriminator,
+      - train the discriminator for a certain number of epochs,
+      - run the MCMC.
 
     In the first iteration, the parameter values given to the generator
     to produce the test/train datasets are drawn from the parameters' prior
@@ -333,7 +334,7 @@ def mcmc_gan(
         Size of the dataset used to train the discriminator.
         This dataset is constructed once each GAN iteration.
     :param test_replicates:
-        Size of the test dataset used to evalutate the discriminator after
+        Size of the test dataset used to evaluate the discriminator after
         each training epoch.
     :param epochs:
         Number of full passes over the training dataset when training
@@ -351,7 +352,7 @@ def mcmc_gan(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param rng:
+    :param numpy.random.Generator rng:
         Numpy random number generator.
     """
     # We modify the parameters, so take a copy.
@@ -359,7 +360,7 @@ def mcmc_gan(
 
     if working_directory is None:
         working_directory = "."
-    store = Store(working_directory)
+    store = Store(working_directory, create=True)
 
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
@@ -387,7 +388,7 @@ def mcmc_gan(
                 f"{store[-1] / 'mcmc.ncf'} which used {len(start)} walkers."
             )
         posterior_sample = chain.reshape(-1, chain.shape[-1])
-        genobuilder.parameters.update_posterior(posterior_sample)
+        genobuilder.parameters = genobuilder.parameters.with_posterior(posterior_sample)
     else:
         discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
         # Starting point for the mcmc chain.
@@ -433,7 +434,7 @@ def mcmc_gan(
 
         # Update the parameters to draw from the posterior sample
         # (the merged chains from the mcmc).
-        genobuilder.parameters.update_posterior(
+        genobuilder.parameters = genobuilder.parameters.with_posterior(
             chain.reshape(-1, chain.shape[-1])
             # np.array(dataset.posterior.to_array()).swapaxes(0, 2)
         )
@@ -498,9 +499,10 @@ def abc_gan(
     Run the ABC GAN.
 
     Each iteration of the GAN can be conceptually divided into:
-    - constructing train/test datasets for the discriminator,
-    - trainin the discriminator for a certain number of epochs,
-    - running the ABC.
+
+      - constructing train/test datasets for the discriminator,
+      - trainin the discriminator for a certain number of epochs,
+      - running the ABC.
 
     In the first iteration, the parameter values given to the generator
     to produce the test/train datasets are drawn from the parameters' prior
@@ -515,7 +517,7 @@ def abc_gan(
         Size of the dataset used to train the discriminator.
         This dataset is constructed once each GAN iteration.
     :param test_replicates:
-        Size of the test dataset used to evalutate the discriminator after
+        Size of the test dataset used to evaluate the discriminator after
         each training epoch.
     :param epochs:
         Number of full passes over the training dataset when training
@@ -531,7 +533,7 @@ def abc_gan(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param rng:
+    :param numpy.random.Generator rng:
         Numpy random number generator.
     """
     # We modify the parameters, so take a copy.
@@ -539,7 +541,7 @@ def abc_gan(
 
     if working_directory is None:
         working_directory = "."
-    store = Store(working_directory)
+    store = Store(working_directory, create=True)
 
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
@@ -558,7 +560,7 @@ def abc_gan(
     if resume:
         discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
         dataset = az.from_netcdf(store[-1] / "abc.ncf")
-        genobuilder.parameters.update_posterior(
+        genobuilder.parameters = genobuilder.parameters.with_posterior(
             np.array(dataset.posterior.to_array()).swapaxes(0, 2).squeeze()
         )
     else:
@@ -593,7 +595,7 @@ def abc_gan(
         az.to_netcdf(dataset, store[-1] / "abc.ncf")
 
         # Update to draw from the posterior sample in the next iteration.
-        genobuilder.parameters.update_posterior(
+        genobuilder.parameters = genobuilder.parameters.with_posterior(
             np.array(dataset.posterior.to_array()).swapaxes(0, 2).squeeze()
         )
 

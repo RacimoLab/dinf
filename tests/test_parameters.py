@@ -185,7 +185,7 @@ class TestParameters:
         assert len(in_bounds) == size
         assert np.all(in_bounds)
 
-    def test_update_posterior(self):
+    def test_with_posterior(self):
         params = Parameters(
             a=Param(low=0, high=10),
             b=Param(low=-1e6, high=1e6),
@@ -194,8 +194,11 @@ class TestParameters:
         assert params._posterior is None
         rng = np.random.default_rng(1234)
         xs = params.draw_prior(10, rng)
-        params.update_posterior(xs)
-        assert np.all(params._posterior == xs)
+        posterior_params = params.with_posterior(xs)
+        assert params._posterior is None
+        assert np.all(posterior_params._posterior == xs)
+        x = posterior_params.draw(1, rng)
+        assert x in xs
 
     @pytest.mark.parametrize("size1,size2", [(1, 10), (50, 1), (50, 500)])
     def test_draw(self, size1, size2):
@@ -212,11 +215,11 @@ class TestParameters:
         assert len(in_bounds) == size1
         assert np.all(in_bounds)
 
-        params.update_posterior(xs)
+        posterior_params = params.with_posterior(xs)
         # draw from the posterior
-        xs = params.draw(size2, rng)
+        xs = posterior_params.draw(size2, rng)
         assert len(xs) == size2
-        in_bounds = params.bounds_contain(xs)
+        in_bounds = posterior_params.bounds_contain(xs)
         assert len(in_bounds) == size2
         assert np.all(in_bounds)
 

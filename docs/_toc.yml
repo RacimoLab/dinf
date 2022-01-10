@@ -1,7 +1,13 @@
-format: jb-article
+format: jb-book
 root: introduction
-sections:
-- file: api
-- file: cli
+parts:
+- caption: Tutorials
+  numbered: true
+  chapters:
+  - file: tutorial/01
+- caption: Reference
+  chapters:
+  - file: api
+  - file: cli
 #- file: examples
 #- file: CHANGELOG
