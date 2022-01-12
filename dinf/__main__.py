@@ -283,7 +283,7 @@ class Report:
         )
 
     def __call__(self, args: argparse.Namespace):
-        genobuilder = _get_user_genobuilder(args.genob_model)
+        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
         dinf.report.report(genobuilder, args.working_directory)
 
 
