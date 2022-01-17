@@ -4,9 +4,9 @@ queue_rules:
       - base=main
       - check-success=build-docs
       - check-success=lint
-      - check-success=tests (macos-10.15, 3.7)
+      - check-success=tests (macos-10.15, 3.8)
       - check-success=tests (macos-10.15, 3.9)
-      - check-success=tests (ubuntu-18.04, 3.7)
+      - check-success=tests (ubuntu-18.04, 3.8)
       - check-success=tests (ubuntu-18.04, 3.10)
 
 pull_request_rules:
@@ -16,23 +16,27 @@ pull_request_rules:
       - author~=^dependabot(|-preview)\[bot\]$
       - check-success=build-docs
       - check-success=lint
-      - check-success=tests (macos-10.15, 3.7)
+      - check-success=tests (macos-10.15, 3.8)
       - check-success=tests (macos-10.15, 3.9)
-      - check-success=tests (ubuntu-18.04, 3.7)
+      - check-success=tests (ubuntu-18.04, 3.8)
       - check-success=tests (ubuntu-18.04, 3.10)
     actions:
       queue:
         name: default
-  - name: automatic merge for main when CI passes and reviewed
+  - name: automatic merge when CI passes, reviewed, and has automerge label
     conditions:
-      - "#approved-reviews-by>=1"
-      - base=main
-      - check-success=build-docs
-      - check-success=lint
-      - check-success=tests (macos-10.15, 3.7)
-      - check-success=tests (macos-10.15, 3.9)
-      - check-success=tests (ubuntu-18.04, 3.7)
-      - check-success=tests (ubuntu-18.04, 3.10)
+      - and:
+        - or:
+          - "#approved-reviews-by>=1"
+          - author=grahamgower
+        - base=main
+        - label=automerge
+        - check-success=build-docs
+        - check-success=lint
+        - check-success=tests (macos-10.15, 3.8)
+        - check-success=tests (macos-10.15, 3.9)
+        - check-success=tests (ubuntu-18.04, 3.8)
+        - check-success=tests (ubuntu-18.04, 3.10)
     actions:
       queue:
         name: default
