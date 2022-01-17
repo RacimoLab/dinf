@@ -454,7 +454,7 @@ class MultipleBinnedHaplotypeMatrices:
             rng=rng,
         )
         num_samples = [len(v) for v in vb.samples.values()]
-        offsets = np.concatenate(([0], np.cumsum(num_samples[:-1])))
+        offsets = np.cumsum([0] + num_samples[:-1])
 
         labelled_features = {}
         for j, (label, bh_matrix) in enumerate(self.bh_matrices.items()):
