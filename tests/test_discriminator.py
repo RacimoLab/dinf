@@ -37,6 +37,38 @@ class TestExchangeableCNN:
         )
         assert np.shape(y) == (50,)
 
+    @pytest.mark.parametrize("seed", (1, 2, 3, 4))
+    def test_individual_exchangeability(self, seed):
+        cnn = discriminator.ExchangeableCNN()
+        x1, _, _ = random_dataset(50, seed=seed)
+        variables = cnn.init(jax.random.PRNGKey(0), x1, train=False)
+        y1 = cnn.apply(variables, x1, train=False)
+
+        # permute rows
+        rng = np.random.default_rng(seed + 100)
+        for _ in range(10):
+            x2 = jax.tree_map(lambda a: rng.permutation(a, axis=1), x1)
+            y2 = cnn.apply(variables, x2, train=False)
+            # Set a generous tolerance here, as the CNN is using 32 bit floats.
+            np.testing.assert_allclose(y1, y2, rtol=1e-2)
+
+    @pytest.mark.parametrize("seed", (1, 2, 3, 4))
+    def test_batch_dimension_exchangeability(self, seed):
+        cnn = discriminator.ExchangeableCNN()
+        size = 50
+        x1, _, _ = random_dataset(size, seed=seed)
+        variables = cnn.init(jax.random.PRNGKey(0), x1, train=False)
+        y1 = cnn.apply(variables, x1, train=False)
+
+        # permute along batch dimension
+        rng = np.random.default_rng(seed + 100)
+        for _ in range(10):
+            idx = rng.permutation(size)
+            x2 = jax.tree_map(lambda a: a[idx], x1)
+            y2 = cnn.apply(variables, x2, train=False)
+            # Set a generous tolerance here, as the CNN is using 32 bit floats.
+            np.testing.assert_allclose(y1[idx], y2, rtol=1e-2)
+
 
 class TestDiscriminator:
     @pytest.mark.parametrize(
