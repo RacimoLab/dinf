@@ -653,7 +653,7 @@ class Surrogate:
             x = np.linspace(0, 1, num_points)
             density = kde(x)
             weights = 1.0 / np.interp(p, x, density)
-            # weights = np.sqrt(weights)
+            weights = np.sqrt(weights)
             return weights
 
         do_eval = val_x is not None

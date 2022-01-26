@@ -866,7 +866,14 @@ def mcmc_gan_alfi(
     test_thetas = genobuilder.parameters.draw_prior(
         num_replicates=test_replicates // 2, rng=rng
     )
-    steps = math.ceil((training_replicates + test_replicates) / (2 * walkers))
+
+    num_replicates = math.ceil((training_replicates + test_replicates) / 2)
+    if steps * walkers < num_replicates:
+        raise ValueError(
+            f"Insufficient MCMC samples (steps * walkers = {steps * walkers}) "
+            "for training the discriminator "
+            f"((training_replicates + test_replicates / 2) = {num_replicates})"
+        )
 
     n_observed_calls = 0
     n_generator_calls = 0
@@ -913,7 +920,7 @@ def mcmc_gan_alfi(
         )
         az.to_netcdf(dataset, store[-1] / "mcmc.ncf")
 
-        # discard first half as burn in
+        # Discard first half as burn in.
         dataset = dataset.isel(draw=slice(steps, None))
 
         chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
@@ -921,10 +928,11 @@ def mcmc_gan_alfi(
         start = chain[-1]
 
         thetas = chain.reshape(-1, chain.shape[-1])
-        train_thetas = thetas[: training_replicates // 2]
-        test_thetas = thetas[training_replicates // 2 :]
+        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=False)
+        train_thetas = sampled_thetas[: training_replicates // 2]
+        test_thetas = sampled_thetas[training_replicates // 2 :]
 
-        n_observed_calls += len(thetas)
-        n_generator_calls += len(thetas)
+        n_observed_calls += num_replicates
+        n_generator_calls += num_replicates
         print(f"Observed data extracted {n_observed_calls} times.")
         print(f"Generator called {n_generator_calls} times.")
