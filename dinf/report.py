@@ -83,7 +83,7 @@ def _pair_plot(dataset, truths, figsize, var_names=None, filter_vars=None):
 
 def _all_pair_plots(dataset, truths, figsize):
     var_names = list(dataset.posterior.data_vars.keys())
-    for var_name1, var_name2 in itertools.permutations(var_names, 2):
+    for var_name1, var_name2 in itertools.combinations(var_names, 2):
         fig = _pair_plot(dataset, truths, figsize, var_names=[var_name1, var_name2])
         yield fig
 
@@ -160,14 +160,15 @@ def report(
     dpi = 200
 
     with PdfPages(output_filename) as pdf:
-        for j, path in enumerate(store):
+        for j, path in enumerate(store, 1):
+            if j > 10:
+                break
             dataset = az.from_netcdf(path / "mcmc.ncf")
             # discard burn-in
             #num_draws = len(dataset.posterior.draw)
             #dataset = dataset.isel(draw=slice(num_draws // 2, None, 100))
-            acceptance_rate = float(dataset.sample_stats.acceptance_rate.iloc(chain=0, draw=0))
+            acceptance_rate = float(dataset.sample_stats.acceptance_rate.isel(chain=0, draw=0))
 
-            """
             for fig in _all_pair_plots(dataset, truths, figsize):
                 fig.suptitle(f"iteration {j} / {fig._suptitle.get_text()}")
                 pdf.savefig(figure=fig, dpi=dpi)
@@ -177,6 +178,7 @@ def report(
                 fig.suptitle(f"iteration {j} / {fig._suptitle.get_text()}")
                 pdf.savefig(figure=fig, dpi=dpi)
                 plt.close(fig)
+            """
 
             fig = _plot_autocorr(dataset, figsize)
             fig.suptitle(f"iteration {j} / {fig._suptitle.get_text()}")
