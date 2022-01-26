@@ -8,3 +8,4 @@ flax==0.3.6
 optax==0.1.0
 msprime==1.1.0
 demes==0.2.1
+scipy==1.7.3

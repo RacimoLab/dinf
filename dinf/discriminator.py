@@ -5,8 +5,10 @@ import pathlib
 import pickle
 import sys
 import time
+from typing import Sequence
 
 import numpy as np
+import scipy.stats
 import jax
 import jax.numpy as jnp
 from flax import linen as nn
@@ -21,6 +23,9 @@ from .misc import (
     tree_cdr,
     leading_dim_size,
 )
+
+# Small fudge-factor to avoid numerical instability.
+EPSILON = jnp.finfo(jnp.float32).eps
 
 
 # Because we use batch normalisation, the training state needs to also record
@@ -260,7 +265,6 @@ class Discriminator:
 
     def fit(
         self,
-        rng: np.random.Generator,
         *,
         train_x,
         train_y,
@@ -334,7 +338,7 @@ class Discriminator:
             )
             return n + batch_size, new_metrics
 
-        def train_epoch(state, train_ds, batch_size, epoch, key):
+        def train_epoch(state, train_ds, batch_size, epoch):
             """Train for a single epoch."""
 
             def print_metrics(n, metrics_sum, end):
@@ -403,11 +407,9 @@ class Discriminator:
                     test_accuracy=[],
                 )
 
-        seed = rng.integers(1 ** 63)
-        keys = jax.random.split(jax.random.PRNGKey(seed), epochs)
-        for epoch, key in enumerate(keys, 1):
+        for epoch in range(1, epochs + 1):
             train_loss, train_accuracy, state = train_epoch(
-                state, train_ds, batch_size, epoch, key
+                state, train_ds, batch_size, epoch
             )
             self.train_metrics["train_loss"].append(train_loss)
             self.train_metrics["train_accuracy"].append(train_accuracy)
@@ -500,7 +502,6 @@ def _train_step(state, batch):
 @jax.jit
 def _eval_step(state, batch):
     """Evaluate for a single step."""
-
     logits = state.apply_fn(
         dict(params=state.params, batch_stats=state.batch_stats),
         batch["input"],
@@ -517,10 +518,230 @@ def _eval_step(state, batch):
 @functools.partial(jax.jit, static_argnums=(2,))
 def _predict_batch(batch, variables, apply_func):
     """Make predictions on a batch."""
-
-    logits = apply_func(
-        variables,
-        batch["input"],
-        train=False,
-    )
+    logits = apply_func(variables, batch["input"], train=False)
     return jax.nn.sigmoid(logits)
+
+
+##
+# Surrogate network stuff.
+
+
+class SurrogateMLP(nn.Module):
+    layers: Sequence[int] = (64, 32)
+
+    @nn.compact
+    def __call__(self, inputs, *, train: bool):  # type: ignore[override]
+        x = inputs
+        x = nn.BatchNorm(use_running_average=not train)(x)
+        for i, size in enumerate(self.layers):
+            if i == 0:
+                # Expand capacity of first layer according to input size.
+                size *= inputs.shape[-1]
+            x = nn.Dense(size)(x)
+            x = nn.gelu(x)
+        x = nn.Dense(2)(x)
+        x = EPSILON + jax.nn.softplus(x)
+        alpha, beta = x[..., 0], x[..., 1]
+        return alpha, beta
+
+
+@dataclasses.dataclass
+class Surrogate:
+    network: nn.Module
+    input_shape: Pytree
+    variables: Pytree
+    state: TrainState | None = None
+
+    @classmethod
+    def from_input_shape(
+        cls,
+        input_shape: int,
+        rng: np.random.Generator,
+        network: nn.Module = None,
+    ) -> Surrogate:
+        """
+        Build a neural network with the given input shape.
+
+        :param input_shape:
+            The shape of the input data for the network.
+        :param numpy.random.Generator rng:
+            The numpy random number generator.
+        :param network:
+            A neural network. If not specified, a simple MLP will be used.
+        """
+        if network is None:
+            network = SurrogateMLP()
+        key = jax.random.PRNGKey(rng.integers(2 ** 63))
+
+        assert input_shape >= 1
+
+        # Add leading batch dimension.
+        input_shape2 = (1, input_shape)
+        dummy_input = jnp.zeros(input_shape2)
+
+        @jax.jit
+        def init(*args):
+            return network.init(*args, train=False)
+
+        variables = init(key, dummy_input)
+        return cls(network=network, variables=variables, input_shape=input_shape2)
+
+    def to_file(self, filename) -> None:
+        """
+        Save neural network to the given file.
+
+        :param filename: The filename to which the model will be saved.
+        """
+        data = dataclasses.asdict(self)
+        data["state"] = None
+        data["network"] = self.network  # asdict converts this to a dict
+        with open(filename, "wb") as f:
+            pickle.dump(data, f)
+
+    def summary(self):
+        """Print a summary of the neural network."""
+        a = jax.tree_map(
+            jnp.zeros,
+            self.input_shape,
+            is_leaf=lambda x: isinstance(x, tuple),
+        )
+        _, state = self.network.apply(
+            self.variables,
+            a,
+            capture_intermediates=True,
+            mutable=["intermediates"],
+        )
+        # TODO: this sucks. The order of layers in the CNN are lost, because of
+        # https://github.com/google/jax/issues/4085
+        print(jax.tree_map(lambda x: (x.shape, x.dtype), state["intermediates"]))
+        print(jax.tree_map(lambda x: (x.shape, x.dtype), self.variables))
+
+        num_params = np.sum(
+            jax.tree_leaves(
+                jax.tree_map(lambda x: np.prod(x.shape), self.variables["params"])
+            )
+        )
+        print("Total number of trainable parameters:", num_params)
+
+    def fit(
+        self,
+        *,
+        train_x,
+        train_y,
+        val_x=None,
+        val_y=None,
+        batch_size: int = 64,
+        epochs: int = 1,
+    ):
+        state = self.state
+        if state is None:
+            state = TrainState.create(
+                apply_fn=self.network.apply,
+                tx=optax.adam(learning_rate=0.001),
+                params=self.variables["params"],
+                batch_stats=self.variables.get("batch_stats", {}),
+            )
+
+        # The density of labels is not uniform over [0, 1], so we weight the
+        # loss for each instance by the inverse density at that point.
+        # Yang et al. 2021, https://arxiv.org/abs/2102.09554
+        def weights(p, bandwidth=0.2, num_points=100):
+            """
+            Get the inverse of the density (Gaussian KDE) at points p.
+            """
+            kde = scipy.stats.gaussian_kde(p, bandwidth)
+            x = np.linspace(0, 1, num_points)
+            density = kde(x)
+            weights = 1.0 / np.interp(p, x, density)
+            # weights = np.sqrt(weights)
+            return weights
+
+        do_eval = val_x is not None
+        train_ds = dict(input=train_x, output=train_y, weights=weights(train_y))
+        if do_eval:
+            test_ds = dict(input=val_x, output=val_y, weights=weights(val_y))
+
+        for epoch in range(epochs):
+            loss_sum = 0
+            n = 0
+            for batch in batchify(train_ds, batch_size):
+                state, loss = _train_step_surrogate(state, batch)
+                loss_sum += loss
+                n += 1
+            train_loss = loss_sum / n
+
+            if do_eval:
+                n = 0
+                loss_sum = 0
+                for batch in batchify(test_ds, batch_size):
+                    loss_sum += _train_step_surrogate(state, batch, update=False)
+                    n += 1
+                test_loss = loss_sum / n
+
+            print(f"Surrogate train loss {train_loss:.4f}", end="")
+            if do_eval:
+                print(f"; test loss {test_loss:.4f}", end="")
+            if epoch < epochs - 1:
+                print(end="\r")
+            else:
+                print()
+
+        assert state is not None
+        self.state = state
+        self.variables = jax.tree_map(
+            np.array,
+            dict(
+                params=jax.device_get(state.params),
+                batch_stats=jax.device_get(state.batch_stats),
+            ),
+        )
+
+    def predict(self, x, *, batch_size: int = 1024) -> np.ndarray:
+        dataset = dict(input=x)
+        y = []
+        for batch in batchify(dataset, batch_size):
+            y.append(
+                _predict_batch_surrogate(batch, self.variables, self.network.apply)
+            )
+        return np.concatenate(y, axis=1)
+
+
+def beta_loss(*, alpha, beta, y):
+    y = jnp.where(y < EPSILON, EPSILON, y)
+    y = jnp.where(y > 1 - EPSILON, 1 - EPSILON, y)
+    loss = -jax.scipy.stats.beta.logpdf(y, alpha, beta)
+    loss = jnp.where(jnp.isfinite(loss), loss, 14)
+    return loss
+
+
+@functools.partial(jax.jit, static_argnums=(2,))
+def _train_step_surrogate(state, batch, update=True):
+    """Train for a single step."""
+
+    def loss_fn(params):
+        (alpha, beta), new_state = state.apply_fn(
+            dict(params=params, batch_stats=state.batch_stats),
+            batch["input"],
+            mutable=["batch_stats"] if update else [],
+            train=update,
+        )
+        loss = jnp.mean(
+            batch["weights"] * beta_loss(alpha=alpha, beta=beta, y=batch["output"])
+        )
+        return loss, new_state
+
+    if update:
+        grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
+        (loss, new_state), grads = grad_fn(state.params)
+        state = state.apply_gradients(grads=grads, batch_stats=new_state["batch_stats"])
+        return state, loss
+    else:
+        loss, _ = loss_fn(state.params)
+        return loss
+
+
+@functools.partial(jax.jit, static_argnums=(2,))
+def _predict_batch_surrogate(batch, variables, apply_func):
+    """Make predictions on a batch."""
+    alpha, beta = apply_func(variables, batch["input"], train=False)
+    return alpha, beta

@@ -1,10 +1,12 @@
 from __future__ import annotations
 import copy
 import logging
+import math
 import multiprocessing
 import os
 import pathlib
 import signal
+import pickle
 from typing import cast, Callable
 import warnings
 
@@ -13,7 +15,7 @@ import emcee
 import jax
 import numpy as np
 
-from .discriminator import Discriminator
+from .discriminator import Discriminator, Surrogate
 from .genobuilder import Genobuilder
 from .parameters import Parameters
 from .store import Store
@@ -284,7 +286,6 @@ def _train_discriminator(
         )
 
     discriminator.fit(
-        rng,
         train_x=train_x,
         train_y=train_y,
         val_x=val_x,
@@ -601,5 +602,329 @@ def abc_gan(
 
         n_observed_calls += (training_replicates + test_replicates) // 2
         n_generator_calls += (training_replicates + test_replicates) // 2 + proposals
+        print(f"Observed data extracted {n_observed_calls} times.")
+        print(f"Generator called {n_generator_calls} times.")
+
+
+def _mcmc_log_prob_alfi(
+    theta: np.ndarray,
+    *,
+    surrogate: Surrogate,
+    parameters: Parameters,
+) -> np.ndarray:
+    """
+    Function to be maximised by mcmc. Vectorised version.
+    """
+    num_walkers, num_params = theta.shape
+    assert num_params == len(parameters)
+    log_D = np.full(num_walkers, -np.inf)
+
+    # Identify workers with one or more out-of-bounds parameters.
+    in_bounds = parameters.bounds_contain(theta)
+    num_in_bounds = np.sum(in_bounds)
+    if num_in_bounds > 0:
+        alpha, beta = surrogate.predict(theta[in_bounds])
+        with np.errstate(divide="ignore"):
+            log_D[in_bounds] = np.log(alpha / (alpha + beta))
+    return log_D
+
+
+def _run_mcmc_emcee_alfi(
+    start: np.ndarray,
+    surrogate: Surrogate,
+    genobuilder: Genobuilder,
+    walkers: int,
+    steps: int,
+    rng: np.random.Generator,
+):
+    sampler = emcee.EnsembleSampler(
+        walkers,
+        len(genobuilder.parameters),
+        _mcmc_log_prob_alfi,
+        vectorize=True,
+        # kwargs passed to _mcmc_log_prob_alfi
+        kwargs=dict(surrogate=surrogate, parameters=genobuilder.parameters),
+    )
+
+    mt_initial_state = np.random.mtrand.RandomState(rng.integers(2 ** 31)).get_state()
+    state = emcee.State(start, random_state=mt_initial_state)
+    sampler.run_mcmc(state, nsteps=steps)
+    chain = sampler.get_chain()
+
+    datadict = {
+        "posterior": {
+            p: chain[..., j].swapaxes(0, 1)
+            for j, p in enumerate(genobuilder.parameters)
+        },
+        "sample_stats": {
+            "lp": sampler.get_log_prob().swapaxes(0, 1),
+            "acceptance_rate": np.mean(sampler.acceptance_fraction),
+        },
+    }
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=UserWarning,
+            message="More chains.*than draws",
+            module="arviz",
+        )
+        dataset = az.from_dict(**datadict)
+
+    print("MCMC acceptance rate", np.mean(sampler.acceptance_fraction))
+
+    return dataset
+
+
+def _generate_data_alfi(*, generator, thetas, parallelism, rng):
+    """
+    Return generator output for randomly drawn parameter values.
+    """
+    num_replicates = len(thetas)
+    seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates)
+    data = _sim_replicates(
+        sim_func=generator,
+        args=zip(seeds, thetas),
+        num_replicates=num_replicates,
+        parallelism=parallelism,
+    )
+    return data
+
+
+def _generate_training_data_alfi(*, target, generator, thetas, parallelism, rng):
+    x_generator = _generate_data_alfi(
+        generator=generator,
+        thetas=thetas,
+        parallelism=parallelism,
+        rng=rng,
+    )
+    x_target = _observe_data(
+        target=target,
+        num_replicates=len(thetas),
+        parallelism=parallelism,
+        rng=rng,
+    )
+    # XXX: Large copy doubles peak memory.
+    # Preallocate somehow?
+    x = jax.tree_map(lambda *l: np.concatenate(l), x_generator, x_target)
+    # del x_generator
+    del x_target
+    y = np.concatenate((np.zeros(len(thetas)), np.ones(len(thetas))))
+    # shuffle
+    indexes = rng.permutation(len(y))
+    # XXX: Large copy doubles peak memory.
+    # Do this in-place?
+    # https://stackoverflow.com/a/60902210/9500949
+    x = jax.tree_map(lambda l: l[indexes], x)
+    y = y[indexes]
+    return x, y, x_generator
+
+
+def _train_alfi(
+    *,
+    discriminator: Discriminator,
+    surrogate: Surrogate,
+    genobuilder: Genobuilder,
+    train_thetas: np.ndarray,
+    test_thetas: np.ndarray,
+    epochs: int,
+    parallelism: int,
+    rng: np.random.Generator,
+):
+    train_x, train_y, train_x_generator = _generate_training_data_alfi(
+        target=genobuilder.target_func,
+        generator=genobuilder.generator_func,
+        thetas=train_thetas,
+        parallelism=parallelism,
+        rng=rng,
+    )
+    val_x, val_y = None, None
+    if len(test_thetas) > 0:
+        val_x, val_y, val_x_generator = _generate_training_data_alfi(
+            target=genobuilder.target_func,
+            generator=genobuilder.generator_func,
+            thetas=test_thetas,
+            parallelism=parallelism,
+            rng=rng,
+        )
+
+    discriminator.fit(
+        train_x=train_x,
+        train_y=train_y,
+        val_x=val_x,
+        val_y=val_y,
+        epochs=epochs,
+        # Clear the training loss/accuracy metrics from last iteration.
+        reset_metrics=True,
+    )
+
+    train_y_pred = discriminator.predict(train_x_generator)
+    val_y_pred = discriminator.predict(val_x_generator)
+    surrogate.fit(
+        train_x=train_thetas,
+        train_y=train_y_pred,
+        val_x=test_thetas,
+        val_y=val_y_pred,
+        epochs=epochs,
+    )
+
+    alpha, beta = surrogate.predict(train_thetas)
+
+    return train_y_pred, alpha, beta
+
+
+@cleanup_process_pool_afterwards
+def mcmc_gan_alfi(
+    *,
+    genobuilder: Genobuilder,
+    iterations: int,
+    training_replicates: int,
+    test_replicates: int,
+    epochs: int,
+    walkers: int,
+    steps: int,
+    working_directory: None | str | pathlib.Path = None,
+    parallelism: None | int = None,
+    rng: np.random.Generator,
+):
+    """
+    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
+
+    :param genobuilder:
+        Genobuilder object that describes the GAN.
+    :param iterations:
+        Number of GAN iterations.
+    :param training_replicates:
+        Size of the dataset used to train the discriminator.
+        This dataset is constructed once each GAN iteration.
+    :param test_replicates:
+        Size of the test dataset used to evaluate the discriminator after
+        each training epoch.
+    :param epochs:
+        Number of full passes over the training dataset when training
+        the discriminator.
+    :param walkers:
+        Number of independent MCMC chains.
+    :param steps:
+        The chain length for each MCMC walker.
+    :param working_directory:
+        Folder to output results. If not specified, the current
+        directory will be used.
+    :param parallelism:
+        Number of processes to use for parallelising calls to the
+        :meth:`Genobuilder.generator_func` and
+        :meth:`Genobuilder.target_func`.
+    :param numpy.random.Generator rng:
+        Numpy random number generator.
+    """
+    # We modify the parameters, so take a copy.
+    genobuilder = copy.deepcopy(genobuilder)
+
+    if working_directory is None:
+        working_directory = "."
+    store = Store(working_directory, create=True)
+
+    if parallelism is None:
+        parallelism = cast(int, os.cpu_count())
+
+    _process_pool_init(parallelism, genobuilder)
+
+    resume = False
+    if len(store) > 0:
+        files_exist = [
+            (store[-1] / fn).exists() for fn in ("discriminator.pkl", "mcmc.ncf")
+        ]
+        if sum(files_exist) == 1:
+            raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
+        resume = all(files_exist)
+
+    if resume:
+        discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
+        dataset = az.from_netcdf(store[-1] / "mcmc.ncf")
+        chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
+        start = chain[-1]
+        if len(start) != walkers:
+            # TODO: allow this by sampling start points for the walkers?
+            raise ValueError(
+                f"request for {walkers} walkers, but resuming from "
+                f"{store[-1] / 'mcmc.ncf'} which used {len(start)} walkers."
+            )
+        posterior_sample = chain.reshape(-1, chain.shape[-1])
+        genobuilder.parameters = genobuilder.parameters.with_posterior(posterior_sample)
+    else:
+        discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+        # Starting point for the mcmc chain.
+        start = genobuilder.parameters.draw_prior(num_replicates=walkers, rng=rng)
+
+    surrogate = Surrogate.from_input_shape(len(genobuilder.parameters), rng)
+
+    # If start values are linearly dependent, emcee complains loudly.
+    assert not np.any((start[0] == start[1:]).all(axis=-1))
+
+    train_thetas = genobuilder.parameters.draw_prior(
+        num_replicates=training_replicates // 2, rng=rng
+    )
+    test_thetas = genobuilder.parameters.draw_prior(
+        num_replicates=test_replicates // 2, rng=rng
+    )
+    steps = math.ceil((training_replicates + test_replicates) / (2 * walkers))
+
+    n_observed_calls = 0
+    n_generator_calls = 0
+
+    for i in range(len(store) + 1, len(store) + 1 + iterations):
+        print(f"MCMC GAN ALFI iteration {i}")
+        store.increment()
+
+        train_y_pred, alpha, beta = _train_alfi(
+            discriminator=discriminator,
+            surrogate=surrogate,
+            genobuilder=genobuilder,
+            train_thetas=train_thetas,
+            test_thetas=test_thetas,
+            epochs=epochs,
+            parallelism=parallelism,
+            rng=rng,
+        )
+        discriminator.to_file(store[-1] / "discriminator.pkl")
+        surrogate.to_file(store[-1] / "surrogate.pkl")
+
+        with open(store[-1] / "s.pkl", "wb") as f:
+            pickle.dump((train_thetas, train_y_pred, alpha, beta), f)
+
+        s_pred = alpha / (alpha + beta)
+        which = "D"
+        for j in (np.argmax(train_y_pred), np.argmax(s_pred)):
+            print(
+                f"Best {which}: D(θ)={train_y_pred[j]:.3g}; "
+                f"S(θ)={s_pred[j]}; "
+                f"α={alpha[j]:.3g}, β={beta[j]:.3g}"
+            )
+            for param_name, value in zip(genobuilder.parameters, train_thetas[j]):
+                print(" ", param_name, value)
+            which = "S"
+
+        dataset = _run_mcmc_emcee_alfi(
+            start=start,
+            surrogate=surrogate,
+            genobuilder=genobuilder,
+            walkers=walkers,
+            steps=2 * steps,
+            rng=rng,
+        )
+        az.to_netcdf(dataset, store[-1] / "mcmc.ncf")
+
+        # discard first half as burn in
+        dataset = dataset.isel(draw=slice(steps, None))
+
+        chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
+        # The chain for next iteration starts at the end of this chain.
+        start = chain[-1]
+
+        thetas = chain.reshape(-1, chain.shape[-1])
+        train_thetas = thetas[: training_replicates // 2]
+        test_thetas = thetas[training_replicates // 2 :]
+
+        n_observed_calls += len(thetas)
+        n_generator_calls += len(thetas)
         print(f"Observed data extracted {n_observed_calls} times.")
         print(f"Generator called {n_generator_calls} times.")

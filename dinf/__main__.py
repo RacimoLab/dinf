@@ -210,7 +210,7 @@ class McmcGan:
     def __call__(self, args: argparse.Namespace):
         rng = np.random.default_rng(args.seed)
         genobuilder = dinf.Genobuilder._from_file(args.genob_model)
-        dinf.mcmc_gan(
+        dinf.mcmc_gan_alfi(
             genobuilder=genobuilder,
             iterations=args.iterations,
             training_replicates=args.training_replicates,
@@ -218,7 +218,7 @@ class McmcGan:
             epochs=args.epochs,
             walkers=args.walkers,
             steps=args.steps,
-            Dx_replicates=args.Dx_replicates,
+            # Dx_replicates=args.Dx_replicates,
             working_directory=args.working_directory,
             parallelism=args.parallelism,
             rng=rng,
