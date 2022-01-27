@@ -931,7 +931,7 @@ def mcmc_gan_alfi(
         )
         """
         dataset = rw_mcmc(
-            start=start,
+            start=start[0],
             surrogate=surrogate,
             parameters=genobuilder.parameters,
             #walkers=walkers,
