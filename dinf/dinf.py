@@ -816,8 +816,13 @@ def mcmc_gan_alfi(
     :param numpy.random.Generator rng:
         Numpy random number generator.
     """
-    # We modify the parameters, so take a copy.
-    genobuilder = copy.deepcopy(genobuilder)
+    num_replicates = math.ceil((training_replicates + test_replicates) / 2)
+    if steps * walkers < num_replicates:
+        raise ValueError(
+            f"Insufficient MCMC samples (steps * walkers = {steps * walkers}) "
+            "for training the discriminator "
+            f"((training_replicates + test_replicates / 2) = {num_replicates})"
+        )
 
     if working_directory is None:
         working_directory = "."
@@ -831,15 +836,19 @@ def mcmc_gan_alfi(
     resume = False
     if len(store) > 0:
         files_exist = [
-            (store[-1] / fn).exists() for fn in ("discriminator.pkl", "mcmc.ncf")
+            (store[-1] / fn).exists()
+            for fn in ("discriminator.pkl", "surrogate.pkl", "mcmc.ncf")
         ]
-        if sum(files_exist) == 1:
+        if sum(files_exist) not in (0, len(files_exist)):
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
         resume = all(files_exist)
 
     if resume:
         discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
+        surrogate = Surrogate.from_file(store[-1] / "surrogate.pkl")
         dataset = az.from_netcdf(store[-1] / "mcmc.ncf")
+        # Discard first half as burn in.
+        dataset = dataset.isel(draw=slice(steps, None))
         chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
         start = chain[-1]
         if len(start) != walkers:
@@ -848,32 +857,26 @@ def mcmc_gan_alfi(
                 f"request for {walkers} walkers, but resuming from "
                 f"{store[-1] / 'mcmc.ncf'} which used {len(start)} walkers."
             )
-        posterior_sample = chain.reshape(-1, chain.shape[-1])
-        genobuilder.parameters = genobuilder.parameters.with_posterior(posterior_sample)
+
+        thetas = chain.reshape(-1, chain.shape[-1])
+        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=False)
+        train_thetas = sampled_thetas[: training_replicates // 2]
+        test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
         discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+        surrogate = Surrogate.from_input_shape(len(genobuilder.parameters), rng)
         # Starting point for the mcmc chain.
         start = genobuilder.parameters.draw_prior(num_replicates=walkers, rng=rng)
 
-    surrogate = Surrogate.from_input_shape(len(genobuilder.parameters), rng)
+        train_thetas = genobuilder.parameters.draw_prior(
+            num_replicates=training_replicates // 2, rng=rng
+        )
+        test_thetas = genobuilder.parameters.draw_prior(
+            num_replicates=test_replicates // 2, rng=rng
+        )
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))
-
-    train_thetas = genobuilder.parameters.draw_prior(
-        num_replicates=training_replicates // 2, rng=rng
-    )
-    test_thetas = genobuilder.parameters.draw_prior(
-        num_replicates=test_replicates // 2, rng=rng
-    )
-
-    num_replicates = math.ceil((training_replicates + test_replicates) / 2)
-    if steps * walkers < num_replicates:
-        raise ValueError(
-            f"Insufficient MCMC samples (steps * walkers = {steps * walkers}) "
-            "for training the discriminator "
-            f"((training_replicates + test_replicates / 2) = {num_replicates})"
-        )
 
     n_observed_calls = 0
     n_generator_calls = 0
@@ -921,13 +924,17 @@ def mcmc_gan_alfi(
         az.to_netcdf(dataset, store[-1] / "mcmc.ncf")
 
         # Discard first half as burn in.
-        dataset = dataset.isel(draw=slice(steps, None))
+        #dataset = dataset.isel(draw=slice(steps, None))
 
         chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
         # The chain for next iteration starts at the end of this chain.
         start = chain[-1]
 
-        thetas = chain.reshape(-1, chain.shape[-1])
+        # Discard half of the dataset with the lowest log prob.
+        lp = np.array(dataset.sample_stats.lp).swapaxis(0, 1).reshape(-1)
+        idx = np.argsort(lp)[len(lp) // 2:]
+        thetas = chain.reshape(-1, chain.shape[-1])[idx]
+
         sampled_thetas = rng.choice(thetas, size=num_replicates, replace=False)
         train_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]

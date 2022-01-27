@@ -586,6 +586,20 @@ class Surrogate:
         variables = init(key, dummy_input)
         return cls(network=network, variables=variables, input_shape=input_shape2)
 
+    @classmethod
+    def from_file(cls, filename: str | pathlib.Path) -> Discriminator:
+        """
+        Load neural network from the given file.
+
+        :param filename: The filename of the saved model.
+        :return: The neural network.
+        """
+        with open(filename, "rb") as f:
+            data = pickle.load(f)
+        expected_fields = set(map(lambda f: f.name, dataclasses.fields(cls)))
+        assert data.keys() == expected_fields
+        return cls(**data)
+
     def to_file(self, filename) -> None:
         """
         Save neural network to the given file.
