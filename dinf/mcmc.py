@@ -54,7 +54,7 @@ def _surrogate_log_prob(theta, surrogate, parameters):
     assert len(theta) == len(parameters), (theta, len(parameters))
     # in_bounds = parameters.bounds_contain(theta)
     alpha, beta = surrogate.network.apply(
-        surrogate.variables, jnp.expand_dims(theta, 0), train=False)
+        surrogate.variables, jnp.expand_dims(theta, 0), train=False
     )
     #alpha, beta = _predict_batch_surrogate(
     #    {"input": jnp.expand_dims(theta, 0)},
