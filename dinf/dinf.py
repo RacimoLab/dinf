@@ -931,7 +931,7 @@ def mcmc_gan_alfi(
         start = chain[-1]
 
         # Discard half of the dataset with the lowest log prob.
-        lp = np.array(dataset.sample_stats.lp).swapaxis(0, 1).reshape(-1)
+        lp = np.array(dataset.sample_stats.lp).swapaxes(0, 1).reshape(-1)
         idx = np.argsort(lp)[len(lp) // 2:]
         thetas = chain.reshape(-1, chain.shape[-1])[idx]
 
