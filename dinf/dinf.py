@@ -925,16 +925,19 @@ def mcmc_gan_alfi(
         az.to_netcdf(dataset, store[-1] / "mcmc.ncf")
 
         # Discard first half as burn in.
-        #dataset = dataset.isel(draw=slice(steps, None))
+        dataset = dataset.isel(draw=slice(steps, None))
 
         chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
         # The chain for next iteration starts at the end of this chain.
         start = chain[-1]
 
+        thetas = chain.reshape(-1, chain.shape[-1])
+
         # Discard half of the dataset with the lowest log prob.
-        lp = np.array(dataset.sample_stats.lp).swapaxes(0, 1).reshape(-1)
-        idx = np.argsort(lp)[len(lp) // 2:]
-        thetas = chain.reshape(-1, chain.shape[-1])[idx]
+        #lp = np.array(dataset.sample_stats.lp).swapaxes(0, 1).reshape(-1)
+        #idx = np.argsort(lp)[len(lp) // 2:]
+        #thetas = thetas[idx]
+
 
         sampled_thetas = rng.choice(thetas, size=num_replicates, replace=False)
         train_thetas = sampled_thetas[: training_replicates // 2]
