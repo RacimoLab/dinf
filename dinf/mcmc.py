@@ -52,7 +52,7 @@ def mh_run(
     return samples[1:], samples_lp[1:], acceptance_rate
 
 def _surrogate_log_prob(theta, surrogate, parameters):
-    assert len(theta) == len(parameters)
+    assert len(theta) == len(parameters), (theta, len(parameters))
     in_bounds = parameters.bounds_contain(theta)
     return np.where(in_bounds, surrogate.predict(theta), -np.inf)
 
