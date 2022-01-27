@@ -727,6 +727,10 @@ def beta_loss(*, alpha, beta, y):
     loss = jnp.where(jnp.isfinite(loss), loss, 14)
     return loss
 
+def l2_loss(*, alpha, beta, y):
+    p = alpha / (alpha + beta)
+    loss = jnp.linalg.norm(p - y, axis=-1)
+    return loss
 
 @functools.partial(jax.jit, static_argnums=(2,))
 def _train_step_surrogate(state, batch, update=True):

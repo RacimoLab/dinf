@@ -19,6 +19,7 @@ from .discriminator import Discriminator, Surrogate
 from .genobuilder import Genobuilder
 from .parameters import Parameters
 from .store import Store
+from .mcmc import rw_mcmc
 
 logger = logging.getLogger(__name__)
 
@@ -671,6 +672,7 @@ def _run_mcmc_emcee_alfi(
         )
         dataset = az.from_dict(**datadict)
 
+    # XXX: use logger
     print("MCMC acceptance rate", np.mean(sampler.acceptance_fraction))
 
     return dataset
@@ -914,11 +916,21 @@ def mcmc_gan_alfi(
                 print(" ", param_name, value)
             which = "S"
 
+        """
         dataset = _run_mcmc_emcee_alfi(
             start=start,
             surrogate=surrogate,
             genobuilder=genobuilder,
             walkers=walkers,
+            steps=2 * steps,
+            rng=rng,
+        )
+        """
+        dataset = rw_mcmc(
+            start=start,
+            surrogate=surrogate,
+            genobuilder=genobuilder,
+            #walkers=walkers,
             steps=2 * steps,
             rng=rng,
         )
