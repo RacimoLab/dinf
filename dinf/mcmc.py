@@ -84,7 +84,7 @@ def rw_mcmc(
     datadict = {
         "posterior": {
             p: np.expand_dims(np.array(samples[..., j]), 0)
-            for j, p in enumerate(genobuilder.parameters)
+            for j, p in enumerate(parameters)
         },
         "sample_stats": {
             "lp": np.expand_dims(np.array(lp), 0),
