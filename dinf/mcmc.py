@@ -60,7 +60,7 @@ def _surrogate_log_prob(theta, surrogate, parameters):
 def rw_mcmc(
     start,
     surrogate,
-    genobuilder,
+    parameters,
     steps: int,
     rng,
 ):

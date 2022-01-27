@@ -633,19 +633,19 @@ def _mcmc_log_prob_alfi(
 def _run_mcmc_emcee_alfi(
     start: np.ndarray,
     surrogate: Surrogate,
-    genobuilder: Genobuilder,
+    parameters: Parameters,
     walkers: int,
     steps: int,
     rng: np.random.Generator,
 ):
     sampler = emcee.EnsembleSampler(
         walkers,
-        len(genobuilder.parameters),
+        len(parameters),
         _mcmc_log_prob_alfi,
         vectorize=True,
         moves=emcee.moves.GaussianMove(1.0),
         # kwargs passed to _mcmc_log_prob_alfi
-        kwargs=dict(surrogate=surrogate, parameters=genobuilder.parameters),
+        kwargs=dict(surrogate=surrogate, parameters=parameters),
     )
 
     mt_initial_state = np.random.mtrand.RandomState(rng.integers(2 ** 31)).get_state()
@@ -656,7 +656,7 @@ def _run_mcmc_emcee_alfi(
     datadict = {
         "posterior": {
             p: chain[..., j].swapaxes(0, 1)
-            for j, p in enumerate(genobuilder.parameters)
+            for j, p in enumerate(parameters)
         },
         "sample_stats": {
             "lp": sampler.get_log_prob().swapaxes(0, 1),
@@ -761,11 +761,15 @@ def _train_alfi(
     )
 
     train_y_pred = discriminator.predict(train_x_generator)
-    val_y_pred = discriminator.predict(val_x_generator)
+    val_x_thetas = None
+    val_y_pred = None
+    if len(test_thetas) > 0:
+        val_x_thetas = test_thetas
+        val_y_pred = discriminator.predict(val_x_generator)
     surrogate.fit(
         train_x=train_thetas,
         train_y=train_y_pred,
-        val_x=test_thetas,
+        val_x=val_x_thetas,
         val_y=val_y_pred,
         epochs=epochs,
     )
@@ -920,7 +924,7 @@ def mcmc_gan_alfi(
         dataset = _run_mcmc_emcee_alfi(
             start=start,
             surrogate=surrogate,
-            genobuilder=genobuilder,
+            parameters=parameters,
             walkers=walkers,
             steps=2 * steps,
             rng=rng,
@@ -929,7 +933,7 @@ def mcmc_gan_alfi(
         dataset = rw_mcmc(
             start=start,
             surrogate=surrogate,
-            genobuilder=genobuilder,
+            parameters=parameters,
             #walkers=walkers,
             steps=2 * steps,
             rng=rng,
