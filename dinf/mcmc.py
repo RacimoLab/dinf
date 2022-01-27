@@ -80,7 +80,7 @@ def rw_mcmc(
             for j, p in enumerate(genobuilder.parameters)
         },
         "sample_stats": {
-            "lp": np.expand_dims(np.array(lp), 0)
+            "lp": np.expand_dims(np.array(lp), 0),
             "acceptance_rate": acceptance_rate,
         },
     }
