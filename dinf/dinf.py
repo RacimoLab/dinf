@@ -924,7 +924,7 @@ def mcmc_gan_alfi(
         dataset = _run_mcmc_emcee_alfi(
             start=start,
             surrogate=surrogate,
-            parameters=parameters,
+            parameters=genobuilder.parameters,
             walkers=walkers,
             steps=2 * steps,
             rng=rng,
@@ -933,7 +933,7 @@ def mcmc_gan_alfi(
         dataset = rw_mcmc(
             start=start,
             surrogate=surrogate,
-            parameters=parameters,
+            parameters=genobuilder.parameters,
             #walkers=walkers,
             steps=2 * steps,
             rng=rng,
