@@ -61,7 +61,7 @@ def _surrogate_log_prob(theta, surrogate, parameters):
     #    surrogate.variables,
     #    surrogate.network.apply,
     #)
-    return jnp.log(alpha / (alpha + beta))
+    return jnp.log(alpha / (alpha + beta))[0]
 
 
 def rw_mcmc(
