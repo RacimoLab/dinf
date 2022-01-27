@@ -717,7 +717,7 @@ class Surrogate:
             y.append(
                 _predict_batch_surrogate(batch, self.variables, self.network.apply)
             )
-        return np.concatenate(y, axis=1)
+        return jnp.concatenate(y, axis=1)
 
 
 def beta_loss(*, alpha, beta, y):
