@@ -52,9 +52,10 @@ def mh_run(
     return samples[1:], samples_lp[1:], acceptance_rate
 
 def _surrogate_log_prob(theta, surrogate, parameters):
+    from .discriminator import _predict_batch_surrogate
     assert len(theta) == len(parameters), (theta, len(parameters))
     #in_bounds = parameters.bounds_contain(theta)
-    alpha, beta = surrogate.predict(theta)
+    alpha, beta = _predict_batch_surrogate(jnp.expand_dims(theta, 0), surrogate.variables, surrogate.network.apply)
     return jnp.log(alpha / (alpha + beta))
 
 def rw_mcmc(
