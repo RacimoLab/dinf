@@ -643,7 +643,7 @@ def _run_mcmc_emcee_alfi(
         len(parameters),
         _mcmc_log_prob_alfi,
         vectorize=True,
-        moves=emcee.moves.GaussianMove(1.0),
+        moves=emcee.moves.GaussianMove(10.0),
         # kwargs passed to _mcmc_log_prob_alfi
         kwargs=dict(surrogate=surrogate, parameters=parameters),
     )
@@ -920,7 +920,6 @@ def mcmc_gan_alfi(
                 print(" ", param_name, value)
             which = "S"
 
-        """
         dataset = _run_mcmc_emcee_alfi(
             start=start,
             surrogate=surrogate,
@@ -938,6 +937,7 @@ def mcmc_gan_alfi(
             steps=2 * steps,
             rng=rng,
         )
+        """
         az.to_netcdf(dataset, store[-1] / "mcmc.ncf")
 
         # Discard first half as burn in.
