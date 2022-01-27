@@ -35,28 +35,34 @@ def mh_run(
         )
         return
 
+    initial_lp = log_prob(initial_position)
     key = jax.random.PRNGKey(seed)
     samples = jnp.empty((num_steps + 1, *initial_position.shape))
     samples = samples.at[0].set(initial_position)
     samples_lp = jnp.empty(num_steps + 1)
-    samples_lp = samples_lp.at[0].set(log_prob(initial_position))
-    init_state = (
-        key,
-        samples,
-        samples_lp,
-        0,
-    )
-    out_state = jax.lax.fori_loop(1, num_steps + 1, step, init_state)
+    samples_lp = samples_lp.at[0].set(initial_lp)
+    in_state = (key, samples, samples_lp, 0)
+    out_state = jax.lax.fori_loop(1, num_steps + 1, step, in_state)
     _, samples, samples_lp, acceptance_count = out_state
     acceptance_rate = acceptance_count / num_steps
     return samples[1:], samples_lp[1:], acceptance_rate
 
+
 def _surrogate_log_prob(theta, surrogate, parameters):
     from .discriminator import _predict_batch_surrogate
+
     assert len(theta) == len(parameters), (theta, len(parameters))
-    #in_bounds = parameters.bounds_contain(theta)
-    alpha, beta = _predict_batch_surrogate({"input": jnp.expand_dims(theta, 0)}, surrogate.variables, surrogate.network.apply)
+    # in_bounds = parameters.bounds_contain(theta)
+    alpha, beta = surrogate.network.apply(
+        surrogate.variables, jnp.expand_dims(theta, 0), train=False)
+    )
+    #alpha, beta = _predict_batch_surrogate(
+    #    {"input": jnp.expand_dims(theta, 0)},
+    #    surrogate.variables,
+    #    surrogate.network.apply,
+    #)
     return jnp.log(alpha / (alpha + beta))
+
 
 def rw_mcmc(
     start,
@@ -71,7 +77,7 @@ def rw_mcmc(
             _surrogate_log_prob, surrogate=surrogate, parameters=parameters
         ),
         initial_position=start,
-        seed=rng.integers(low=0, high=2**31),
+        seed=rng.integers(low=0, high=2 ** 31),
     )
     # XXX: use logger
     print("MCMC acceptance rate", acceptance_rate)
