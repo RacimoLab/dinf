@@ -642,6 +642,7 @@ def _run_mcmc_emcee_alfi(
         len(genobuilder.parameters),
         _mcmc_log_prob_alfi,
         vectorize=True,
+        moves=emcee.moves.GaussianMove(1.0),
         # kwargs passed to _mcmc_log_prob_alfi
         kwargs=dict(surrogate=surrogate, parameters=genobuilder.parameters),
     )
