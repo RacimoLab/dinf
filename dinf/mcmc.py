@@ -53,8 +53,9 @@ def mh_run(
 
 def _surrogate_log_prob(theta, surrogate, parameters):
     assert len(theta) == len(parameters), (theta, len(parameters))
-    in_bounds = parameters.bounds_contain(theta)
-    return np.where(in_bounds, surrogate.predict(theta), -np.inf)
+    #in_bounds = parameters.bounds_contain(theta)
+    alpha, beta = surrogate.predict(theta)
+    return jnp.log(alpha / (alpha + beta))
 
 def rw_mcmc(
     start,
