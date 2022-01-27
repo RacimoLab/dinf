@@ -76,7 +76,7 @@ def rw_mcmc(
     print("MCMC acceptance rate", acceptance_rate)
     datadict = {
         "posterior": {
-            p: np.expand_dims(np.array(samples[.., j]), 0)
+            p: np.expand_dims(np.array(samples[..., j]), 0)
             for j, p in enumerate(genobuilder.parameters)
         },
         "sample_stats": {
