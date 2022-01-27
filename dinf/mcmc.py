@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import numpy as np
 
 
-def rw_proposal(key, x, step=1):
+def rw_proposal(key, x, step=10.0):
     proposal = x + step * jax.random.normal(key, x.shape, x.dtype)
     return proposal
 
