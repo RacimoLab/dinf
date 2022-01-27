@@ -55,7 +55,7 @@ def _surrogate_log_prob(theta, surrogate, parameters):
     from .discriminator import _predict_batch_surrogate
     assert len(theta) == len(parameters), (theta, len(parameters))
     #in_bounds = parameters.bounds_contain(theta)
-    alpha, beta = _predict_batch_surrogate(jnp.expand_dims(theta, 0), surrogate.variables, surrogate.network.apply)
+    alpha, beta = _predict_batch_surrogate({"input": jnp.expand_dims(theta, 0)}, surrogate.variables, surrogate.network.apply)
     return jnp.log(alpha / (alpha + beta))
 
 def rw_mcmc(
