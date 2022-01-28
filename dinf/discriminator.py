@@ -726,7 +726,7 @@ def beta_loss(*, alpha, beta, y):
     y = jnp.where(y < EPSILON, EPSILON, y)
     y = jnp.where(y > 1 - EPSILON, 1 - EPSILON, y)
     loss = -jax.scipy.stats.beta.logpdf(y, alpha, beta)
-    loss = jnp.where(jnp.isfinite(loss), loss, 14)
+    #loss = jnp.where(jnp.isfinite(loss), loss, 14)
     return loss
 
 def l2_loss(*, alpha, beta, y):
