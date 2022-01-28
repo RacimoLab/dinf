@@ -44,7 +44,7 @@ def _pair_plot(dataset, truths, figsize, var_names=None, filter_vars=None):
         dataset,
         var_names=var_names,
         filter_vars=filter_vars,
-        #ax=ax,
+        # ax=ax,
         figsize=figsize,
         kind="hexbin",
         marginals=True,
@@ -68,18 +68,20 @@ def _pair_plot(dataset, truths, figsize, var_names=None, filter_vars=None):
     )
     """
 
-    #fmt = matplotlib.ticker.ScalarFormatter(useOffset=False, useMathText=True)
-    #fmt.set_scientific(True)
-    #for ax in fig.axes:
+    # fmt = matplotlib.ticker.ScalarFormatter(useOffset=False, useMathText=True)
+    # fmt.set_scientific(True)
+    # for ax in fig.axes:
     #    ax.xaxis.set_major_formatter(fmt)
     #    ax.yaxis.set_major_formatter(fmt)
 
-    # Why is it so hard to get a single value out of an arviz dataset?
-    acceptance_rate = float(dataset.sample_stats["acceptance_rate"].as_numpy()[0][0])
+    acceptance_rate = float(
+        dataset.sample_stats.acceptance_rate.isel(chain=0, draw=0)
+    )
 
     fig.suptitle(f"pair plot / acceptance_rate = {acceptance_rate:.3g}")
     fig.set_tight_layout(True)
     return fig
+
 
 def _all_pair_plots(dataset, truths, figsize):
     var_names = list(dataset.posterior.data_vars.keys())
@@ -87,14 +89,18 @@ def _all_pair_plots(dataset, truths, figsize):
         fig = _pair_plot(dataset, truths, figsize, var_names=[var_name1, var_name2])
         yield fig
 
+
 def _grouped_pair_plots(dataset, truths, figsize):
     for var_names, filter_vars in [
         ("^N_", "regex"),
         ("^m_", "regex"),
         ("^dT_", "regex"),
     ]:
-        fig = _pair_plot(dataset, truths, figsize, var_names=var_names, filter_vars=filter_vars)
+        fig = _pair_plot(
+            dataset, truths, figsize, var_names=var_names, filter_vars=filter_vars
+        )
         yield fig
+
 
 def _autocorr(x):
     n_t, n_w = x.shape
@@ -117,7 +123,6 @@ def _plot_autocorr(dataset, figsize):
     )
     fig = _fig_from_arviz_axes(axes)
     """
-
 
     var_names = list(dataset.posterior.data_vars.keys())
     ndim = len(var_names)
@@ -158,19 +163,25 @@ def report(
 
     figsize = scale * plt.figaspect(aspect)
     dpi = 200
+    howmany = 10
 
     with PdfPages(output_filename) as pdf:
         for j, path in enumerate(store, 1):
-            if j > 10:
-                break
+            if howmany > 0 and j > howmany and j < len(store) - howmany:
+                continue
             dataset = az.from_netcdf(path / "mcmc.ncf")
+            acceptance_rate = float(
+                dataset.sample_stats.acceptance_rate.isel(chain=0, draw=0)
+            )
             # discard burn-in
-            #num_draws = len(dataset.posterior.draw)
-            #dataset = dataset.isel(draw=slice(num_draws // 2, None, 100))
-            acceptance_rate = float(dataset.sample_stats.acceptance_rate.isel(chain=0, draw=0))
+            num_draws = len(dataset.posterior.draw)
+            dataset = dataset.isel(draw=slice(num_draws // 2, None))
 
             for fig in _all_pair_plots(dataset, truths, figsize):
-                fig.suptitle(f"iteration {j} / {fig._suptitle.get_text()}")
+                fig.suptitle(
+                    f"iteration {j} / pair plot / "
+                    f"acceptance_rate = {acceptance_rate:.3g}"
+                )
                 pdf.savefig(figure=fig, dpi=dpi)
                 plt.close(fig)
             """
