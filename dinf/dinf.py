@@ -643,7 +643,7 @@ def _run_mcmc_emcee_alfi(
         len(parameters),
         _mcmc_log_prob_alfi,
         vectorize=True,
-        moves=emcee.moves.GaussianMove(10.0),
+        #moves=emcee.moves.GaussianMove(10.0),
         # kwargs passed to _mcmc_log_prob_alfi
         kwargs=dict(surrogate=surrogate, parameters=parameters),
     )

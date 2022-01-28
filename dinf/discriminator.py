@@ -83,24 +83,25 @@ class ExchangeableCNN(nn.Module):
         conv = functools.partial(nn.Conv, kernel_size=(1, 5), use_bias=False)
         # https://flax.readthedocs.io/en/latest/howtos/state_params.html
         norm = functools.partial(nn.BatchNorm, use_running_average=not train)
+        activation = nn.gelu
 
         combined = []
         for input_feature in jax.tree_leaves(inputs):
             x = norm()(input_feature)
 
             x = conv(features=32, strides=(1, 2))(x)
-            x = nn.elu(x)
+            x = activation(x)
             x = norm()(x)
 
             x = conv(features=64, strides=(1, 2))(x)
-            x = nn.elu(x)
+            x = activation(x)
             x = norm()(x)
 
             # collapse haplotypes
             x = Symmetric(axis=1)(x)
 
             x = conv(features=64)(x)
-            x = nn.elu(x)
+            x = activation(x)
             x = norm()(x)
 
             # collapse genomic bins
@@ -527,16 +528,17 @@ def _predict_batch(batch, variables, apply_func):
 
 
 class SurrogateMLP(nn.Module):
-    layers: Sequence[int] = (64, 32)
+    layers: Sequence[int] = (64, 64, 32)
 
     @nn.compact
     def __call__(self, inputs, *, train: bool):  # type: ignore[override]
+        num_params = inputs.shape[-1]
         x = inputs
         x = nn.BatchNorm(use_running_average=not train)(x)
         for i, size in enumerate(self.layers):
             if i == 0:
                 # Expand capacity of first layer according to input size.
-                size *= inputs.shape[-1]
+                size *= num_params
             x = nn.Dense(size)(x)
             x = nn.gelu(x)
         x = nn.Dense(2)(x)
