@@ -129,7 +129,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev103
+  dinf 0.1.1.dev107
 </div>
 
 </div>
@@ -755,30 +755,6 @@ j’th draw for the k’th parameter.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="dinf.Parameters.draw">
-<span class="sig-name descname"><span class="pre">draw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.draw"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.draw" title="Permalink to this definition">¶</a></dt>
-<dd><p>Draw a random sample for the parameters.</p>
-<p>If there is a posterior sample associated with the parameters,
-the sample will be drawn from the posterior with replacement.
-Otherise, the sample is drawn from the prior distribution.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>num_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The sample size.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A 2d numpy array of parameter values, where ret[j][k] is the
-j’th draw for the k’th parameter.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.22)">numpy.dtype</a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.floating" title="(in NumPy v1.22)">numpy.floating</a>]]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="dinf.Parameters.bounds_contain">
 <span class="sig-name descname"><span class="pre">bounds_contain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.bounds_contain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.bounds_contain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test if values are within in the parameter bounds.</p>
@@ -793,24 +769,6 @@ j’th coordinate is within the parameter space, and False otherwise.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.22)">numpy.dtype</a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool_" title="(in NumPy v1.22)">numpy.bool_</a>]]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="dinf.Parameters.with_posterior">
-<span class="sig-name descname"><span class="pre">with_posterior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">posterior</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.with_posterior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.with_posterior" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a new <a class="reference internal" href="#dinf.Parameters" title="dinf.Parameters"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parameters</span></code></a> object that samples from the given posterior.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>posterior</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a>) – A 2d array of parameter values, where posterior[j][k] is the
-j’th draw for the k’th parameter.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The new <a class="reference internal" href="#dinf.Parameters" title="dinf.Parameters"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parameters</span></code></a> object.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="#dinf.Parameters" title="dinf.parameters.Parameters">dinf.parameters.Parameters</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -908,14 +866,14 @@ the input. ret[j] is True if x[j] is in bounds, False otherwise.</p>
 <h2>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="dinf.Discriminator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">Discriminator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dnn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trained</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discriminator_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">Discriminator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trained</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discriminator_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator" title="Permalink to this definition">¶</a></dt>
 <dd><p>A discriminator neural network.</p>
 <p>Not intended to be instantiated directly. Use either the from_file() or
 from_input_shape() class methods instead.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dnn</strong> – The neural network. This has an apply() method.</p></li>
+<li><p><strong>network</strong> – The neural network. This has an apply() method.</p></li>
 <li><p><strong>input_shape</strong> – The shape of the input to the neural network.</p></li>
 <li><p><strong>variables</strong> – A Pytree of the network parameters.</p></li>
 <li><p><strong>train_metrics</strong> – A Pytree containing the loss/accuracy metrics obtained when training
@@ -924,7 +882,7 @@ the network.</p></li>
 </dd>
 <dt class="field-even">Parameters</dt>
 <dd class="field-even"><ul class="simple">
-<li><p><strong>dnn</strong> (<em>nn.Module</em>) – </p></li>
+<li><p><strong>network</strong> (<em>nn.Module</em>) – </p></li>
 <li><p><strong>input_shape</strong> (<em>Pytree</em>) – </p></li>
 <li><p><strong>variables</strong> (<em>Pytree</em>) – </p></li>
 <li><p><strong>train_metrics</strong> (<em>Pytree</em><em> | </em><em>None</em>) – </p></li>
@@ -939,7 +897,7 @@ the network.</p></li>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.from_input_shape">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_input_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dnn</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.from_input_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.from_input_shape" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_input_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">network</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.from_input_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.from_input_shape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Build a neural network with the given input shape.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -951,7 +909,7 @@ n &gt;= 2 is the number of (pseudo)haplotypes,
 m &gt;= 4 is the length of the (pseudo)haplotypes,
 and c &lt;= 4 is the number of channels.</p></li>
 <li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
-<li><p><strong>dnn</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.10)"><em>Optional</em></a><em>[</em><em>flax.linen.module.Module</em><em>]</em>) – A discriminator neural network.
+<li><p><strong>network</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.10)"><em>Optional</em></a><em>[</em><em>flax.linen.module.Module</em><em>]</em>) – A discriminator neural network.
 If not specified, an exchangeable CNN will be used.</p></li>
 </ul>
 </dd>
@@ -1000,12 +958,11 @@ If not specified, an exchangeable CNN will be used.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.fit" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.fit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fit discriminator to training data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
 <li><p><strong>train_x</strong> – Training data.</p></li>
 <li><p><strong>train_y</strong> – Labels for training data.</p></li>
 <li><p><strong>val_x</strong> – Validation data.</p></li>
@@ -1138,7 +1095,7 @@ doesn’t exist.</p></li>
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev103+g9da4cd3
+        dinf 0.1.1.dev107+gdcefdcc
       </div>
   </p>
 </footer>

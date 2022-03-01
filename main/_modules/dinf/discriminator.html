@@ -125,7 +125,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev103
+  dinf 0.1.1.dev107
 </div>
 
 </div>
@@ -283,24 +283,25 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">conv</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="c1"># https://flax.readthedocs.io/en/latest/howtos/state_params.html</span>
         <span class="n">norm</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm</span><span class="p">,</span> <span class="n">use_running_average</span><span class="o">=</span><span class="ow">not</span> <span class="n">train</span><span class="p">)</span>
+        <span class="n">activation</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">elu</span>
 
         <span class="n">combined</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">input_feature</span> <span class="ow">in</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">input_feature</span><span class="p">)</span>
 
             <span class="n">x</span> <span class="o">=</span> <span class="n">conv</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))(</span><span class="n">x</span><span class="p">)</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">elu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">activation</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
 
             <span class="n">x</span> <span class="o">=</span> <span class="n">conv</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))(</span><span class="n">x</span><span class="p">)</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">elu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">activation</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
 
             <span class="c1"># collapse haplotypes</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">Symmetric</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
 
             <span class="n">x</span> <span class="o">=</span> <span class="n">conv</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="mi">64</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">elu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">activation</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
 
             <span class="c1"># collapse genomic bins</span>
@@ -329,7 +330,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">    Not intended to be instantiated directly. Use either the from_file() or</span>
 <span class="sd">    from_input_shape() class methods instead.</span>
 
-<span class="sd">    :ivar dnn: The neural network. This has an apply() method.</span>
+<span class="sd">    :ivar network: The neural network. This has an apply() method.</span>
 <span class="sd">    :ivar input_shape: The shape of the input to the neural network.</span>
 <span class="sd">    :ivar variables: A Pytree of the network parameters.</span>
 <span class="sd">    :ivar train_metrics:</span>
@@ -337,21 +338,21 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">        the network.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">dnn</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span>
+    <span class="n">network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span>
     <span class="n">input_shape</span><span class="p">:</span> <span class="n">Pytree</span>
     <span class="n">variables</span><span class="p">:</span> <span class="n">Pytree</span>
     <span class="n">train_metrics</span><span class="p">:</span> <span class="n">Pytree</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">state</span><span class="p">:</span> <span class="n">TrainState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">trained</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="c1"># Bump this after making internal changes.</span>
-    <span class="n">discriminator_format</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">discriminator_format</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
 
 <div class="viewcode-block" id="Discriminator.from_input_shape"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.from_input_shape">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_input_shape</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">input_shape</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">,</span>
         <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
-        <span class="n">dnn</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Discriminator</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Build a neural network with the given input shape.</span>
@@ -365,12 +366,12 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">            and c &lt;= 4 is the number of channels.</span>
 <span class="sd">        :param numpy.random.Generator rng:</span>
 <span class="sd">            The numpy random number generator.</span>
-<span class="sd">        :param dnn:</span>
+<span class="sd">        :param network:</span>
 <span class="sd">            A discriminator neural network.</span>
 <span class="sd">            If not specified, an exchangeable CNN will be used.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">dnn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">dnn</span> <span class="o">=</span> <span class="n">ExchangeableCNN</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">network</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">network</span> <span class="o">=</span> <span class="n">ExchangeableCNN</span><span class="p">()</span>
         <span class="n">key</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">63</span><span class="p">))</span>
 
         <span class="c1"># Sanity checks.</span>
@@ -399,10 +400,10 @@ const thebe_selector_output = ".output, .cell_output"
 
         <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
         <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">dnn</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">network</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
         <span class="n">variables</span> <span class="o">=</span> <span class="n">init</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">dummy_input</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">dnn</span><span class="o">=</span><span class="n">dnn</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="n">variables</span><span class="p">,</span> <span class="n">input_shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">network</span><span class="o">=</span><span class="n">network</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="n">variables</span><span class="p">,</span> <span class="n">input_shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Discriminator.from_file"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.from_file">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Discriminator</span><span class="p">:</span>
@@ -433,7 +434,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="n">data</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;dnn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dnn</span>  <span class="c1"># asdict converts this to a dict</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;network&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span>  <span class="c1"># asdict converts this to a dict</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
 
@@ -444,7 +445,7 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span>
             <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dnn</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">,</span>
             <span class="n">a</span><span class="p">,</span>
             <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -465,7 +466,6 @@ const thebe_selector_output = ".output, .cell_output"
 
 <div class="viewcode-block" id="Discriminator.fit"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">train_x</span><span class="p">,</span>
         <span class="n">train_y</span><span class="p">,</span>
@@ -480,7 +480,6 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fit discriminator to training data.</span>
 
-<span class="sd">        :param numpy.random.Generator rng: Numpy random number generator.</span>
 <span class="sd">        :param train_x: Training data.</span>
 <span class="sd">        :param train_y: Labels for training data.</span>
 <span class="sd">        :param val_x: Validation data.</span>
@@ -539,7 +538,7 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="p">)</span>
             <span class="k">return</span> <span class="n">n</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">new_metrics</span>
 
-        <span class="k">def</span> <span class="nf">train_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">train_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epoch</span><span class="p">):</span>
             <span class="sd">&quot;&quot;&quot;Train for a single epoch.&quot;&quot;&quot;</span>
 
             <span class="k">def</span> <span class="nf">print_metrics</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">metrics_sum</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
@@ -587,7 +586,7 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span>
         <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">state</span> <span class="o">=</span> <span class="n">TrainState</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-                <span class="n">apply_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dnn</span><span class="o">.</span><span class="n">apply</span><span class="p">,</span>
+                <span class="n">apply_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">,</span>
                 <span class="n">tx</span><span class="o">=</span><span class="n">optax</span><span class="o">.</span><span class="n">adam</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.001</span><span class="p">),</span>
                 <span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">],</span>
                 <span class="n">batch_stats</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;batch_stats&quot;</span><span class="p">,</span> <span class="p">{}),</span>
@@ -608,11 +607,9 @@ const thebe_selector_output = ".output, .cell_output"
                     <span class="n">test_accuracy</span><span class="o">=</span><span class="p">[],</span>
                 <span class="p">)</span>
 
-        <span class="n">seed</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">1</span><span class="o">**</span><span class="mi">63</span><span class="p">)</span>
-        <span class="n">keys</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">seed</span><span class="p">),</span> <span class="n">epochs</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
             <span class="n">train_loss</span><span class="p">,</span> <span class="n">train_accuracy</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">train_epoch</span><span class="p">(</span>
-                <span class="n">state</span><span class="p">,</span> <span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">key</span>
+                <span class="n">state</span><span class="p">,</span> <span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epoch</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span><span class="p">[</span><span class="s2">&quot;train_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_loss</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span><span class="p">[</span><span class="s2">&quot;train_accuracy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_accuracy</span><span class="p">)</span>
@@ -660,7 +657,7 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">dataset</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
         <span class="n">y</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-            <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_predict_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dnn</span><span class="o">.</span><span class="n">apply</span><span class="p">))</span>
+            <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_predict_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">y</span><span class="p">)</span></div></div>
 
 
@@ -705,7 +702,6 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
 <span class="k">def</span> <span class="nf">_eval_step</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Evaluate for a single step.&quot;&quot;&quot;</span>
-
     <span class="n">logits</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">apply_fn</span><span class="p">(</span>
         <span class="nb">dict</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">batch_stats</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">batch_stats</span><span class="p">),</span>
         <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">],</span>
@@ -722,12 +718,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="nd">@functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">,</span> <span class="n">static_argnums</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,))</span>
 <span class="k">def</span> <span class="nf">_predict_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="n">apply_func</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Make predictions on a batch.&quot;&quot;&quot;</span>
-
-    <span class="n">logits</span> <span class="o">=</span> <span class="n">apply_func</span><span class="p">(</span>
-        <span class="n">variables</span><span class="p">,</span>
-        <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">],</span>
-        <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">apply_func</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">],</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
 </pre></div>
 
@@ -747,7 +738,7 @@ const thebe_selector_output = ".output, .cell_output"
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev103+g9da4cd3
+        dinf 0.1.1.dev107+gdcefdcc
       </div>
   </p>
 </footer>

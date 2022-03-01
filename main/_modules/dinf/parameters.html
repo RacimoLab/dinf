@@ -125,7 +125,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev103
+  dinf 0.1.1.dev107
 </div>
 
 </div>
@@ -313,30 +313,6 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span></div>
 
-<div class="viewcode-block" id="Parameters.draw"><a class="viewcode-back" href="../../api.html#dinf.Parameters.draw">[docs]</a>    <span class="k">def</span> <span class="nf">draw</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">num_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Draw a random sample for the parameters.</span>
-
-<span class="sd">        If there is a posterior sample associated with the parameters,</span>
-<span class="sd">        the sample will be drawn from the posterior with replacement.</span>
-<span class="sd">        Otherise, the sample is drawn from the prior distribution.</span>
-
-<span class="sd">        :param num_replicates: The sample size.</span>
-<span class="sd">        :param numpy.random.Generator rng: The numpy random number generator.</span>
-<span class="sd">        :return:</span>
-<span class="sd">            A 2d numpy array of parameter values, where ret[j][k] is the</span>
-<span class="sd">            j&#39;th draw for the k&#39;th parameter.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_posterior</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># sample from the prior</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># sample from the posterior</span>
-            <span class="n">idx</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_posterior</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">)</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_posterior</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span></div>
-
 <div class="viewcode-block" id="Parameters.bounds_contain"><a class="viewcode-back" href="../../api.html#dinf.Parameters.bounds_contain">[docs]</a>    <span class="k">def</span> <span class="nf">bounds_contain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Test if values are within in the parameter bounds.</span>
@@ -354,23 +330,7 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())],</span>
             <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">ret</span></div>
-
-<div class="viewcode-block" id="Parameters.with_posterior"><a class="viewcode-back" href="../../api.html#dinf.Parameters.with_posterior">[docs]</a>    <span class="k">def</span> <span class="nf">with_posterior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">posterior</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Parameters</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Create a new :class:`Parameters` object that samples from the given posterior.</span>
-
-<span class="sd">        :param posterior:</span>
-<span class="sd">            A 2d array of parameter values, where posterior[j][k] is the</span>
-<span class="sd">            j&#39;th draw for the k&#39;th parameter.</span>
-<span class="sd">        :return: The new :class:`Parameters` object.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">posterior</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">posterior</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">posterior</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
-        <span class="k">assert</span> <span class="n">posterior</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="n">posterior_parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">)</span>
-        <span class="n">posterior_parameters</span><span class="o">.</span><span class="n">_posterior</span> <span class="o">=</span> <span class="n">posterior</span>
-        <span class="k">return</span> <span class="n">posterior_parameters</span></div></div>
+        <span class="k">return</span> <span class="n">ret</span></div></div>
 </pre></div>
 
               </div>
@@ -389,7 +349,7 @@ const thebe_selector_output = ".output, .cell_output"
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev103+g9da4cd3
+        dinf 0.1.1.dev107+gdcefdcc
       </div>
   </p>
 </footer>

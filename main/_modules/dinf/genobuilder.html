@@ -125,7 +125,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev103
+  dinf 0.1.1.dev107
 </div>
 
 </div>
@@ -328,10 +328,10 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">        lead to annoying delays for the command line interface.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-        <span class="n">thetas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">num_replicates</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">num_replicates</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;parameters.draw(num_replicates=5) produced output with shape &quot;</span>
+                <span class="s2">&quot;parameters.draw_prior(num_replicates=5) produced output with shape &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, expected shape </span><span class="si">{</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span><span class="si">}</span><span class="s2">.&quot;</span>
             <span class="p">)</span>
 
@@ -391,7 +391,7 @@ const thebe_selector_output = ".output, .cell_output"
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev103+g9da4cd3
+        dinf 0.1.1.dev107+gdcefdcc
       </div>
   </p>
 </footer>
