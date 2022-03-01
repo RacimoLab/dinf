@@ -119,13 +119,13 @@ class TestDiscriminator:
 
         rng = np.random.default_rng(1234)
         d1 = discriminator.Discriminator.from_input_shape(input_shape, rng)
-        d1.fit(rng, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y)
+        d1.fit(train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y)
         chex.assert_tree_all_finite(d1.variables)
 
         # Results should be deterministic and not depend on validation.
         rng = np.random.default_rng(1234)
         d2 = discriminator.Discriminator.from_input_shape(input_shape, rng)
-        d2.fit(rng, train_x=train_x, train_y=train_y)
+        d2.fit(train_x=train_x, train_y=train_y)
         chex.assert_trees_all_close(d1.variables, d2.variables)
 
     def test_fit_bad_shapes(self):
@@ -133,34 +133,34 @@ class TestDiscriminator:
 
         x, y, input_shape = random_dataset(shape=(30, 12, 34, 2))
         d = discriminator.Discriminator.from_input_shape(input_shape, rng)
-        d.fit(rng, train_x=x, train_y=y)
+        d.fit(train_x=x, train_y=y)
 
         with pytest.raises(ValueError, match="Must specify both"):
-            d.fit(rng, train_x=x, train_y=y, val_x=x)
+            d.fit(train_x=x, train_y=y, val_x=x)
         with pytest.raises(ValueError, match="Must specify both"):
-            d.fit(rng, train_x=x, train_y=y, val_y=y)
+            d.fit(train_x=x, train_y=y, val_y=y)
 
         with pytest.raises(ValueError, match="Leading dimensions"):
-            d.fit(rng, train_x=x[:20, ...], train_y=y)
+            d.fit(train_x=x[:20, ...], train_y=y)
         with pytest.raises(ValueError, match="Leading dimensions"):
-            d.fit(rng, train_x=x, train_y=y[:20])
+            d.fit(train_x=x, train_y=y[:20])
         with pytest.raises(ValueError, match="Leading dimensions"):
-            d.fit(rng, train_x=x, train_y=y, val_x=x[:20, ...], val_y=y)
+            d.fit(train_x=x, train_y=y, val_x=x[:20, ...], val_y=y)
         with pytest.raises(ValueError, match="Leading dimensions"):
-            d.fit(rng, train_x=x, train_y=y, val_x=x, val_y=y[:20])
+            d.fit(train_x=x, train_y=y, val_x=x, val_y=y[:20])
 
         with pytest.raises(ValueError, match="Trailing dimensions"):
-            d.fit(rng, train_x=x[:, :8, :, :], train_y=y)
+            d.fit(train_x=x[:, :8, :, :], train_y=y)
         with pytest.raises(ValueError, match="Trailing dimensions"):
-            d.fit(rng, train_x=x[:, :, :8, :], train_y=y)
+            d.fit(train_x=x[:, :, :8, :], train_y=y)
         with pytest.raises(ValueError, match="Trailing dimensions"):
-            d.fit(rng, train_x=x[:, :, :, :1], train_y=y)
+            d.fit(train_x=x[:, :, :, :1], train_y=y)
         with pytest.raises(ValueError, match="Trailing dimensions"):
-            d.fit(rng, train_x=x, train_y=y, val_x=x[:, :8, :, :], val_y=y)
+            d.fit(train_x=x, train_y=y, val_x=x[:, :8, :, :], val_y=y)
         with pytest.raises(ValueError, match="Trailing dimensions"):
-            d.fit(rng, train_x=x, train_y=y, val_x=x[:, :, :8, :], val_y=y)
+            d.fit(train_x=x, train_y=y, val_x=x[:, :, :8, :], val_y=y)
         with pytest.raises(ValueError, match="Trailing dimensions"):
-            d.fit(rng, train_x=x, train_y=y, val_x=x[:, :, :, :1], val_y=y)
+            d.fit(train_x=x, train_y=y, val_x=x[:, :, :, :1], val_y=y)
 
     @pytest.mark.usefixtures("capsys")
     def test_summary(self, capsys):
@@ -178,7 +178,7 @@ class TestDiscriminator:
         rng = np.random.default_rng(1234)
         x, y, input_shape = random_dataset(50)
         d1 = discriminator.Discriminator.from_input_shape(input_shape, rng)
-        d1.fit(rng, train_x=x, train_y=y)
+        d1.fit(train_x=x, train_y=y)
         d1_y = d1.predict(x)
         filename = tmp_path / "discriminator.pkl"
         d1.to_file(filename)
@@ -209,7 +209,7 @@ class TestDiscriminator:
 
         rng = np.random.default_rng(1234)
         d = discriminator.Discriminator.from_input_shape(input_shape, rng)
-        d.fit(rng, train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y)
+        d.fit(train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y)
 
         y1 = d.predict(val_x)
         assert np.shape(y1) == (10,)
@@ -224,7 +224,7 @@ class TestDiscriminator:
         rng = np.random.default_rng(1234)
         x, y, input_shape = random_dataset(shape=(30, 12, 34, 2))
         d = discriminator.Discriminator.from_input_shape(input_shape, rng)
-        d.fit(rng, train_x=x, train_y=y)
+        d.fit(train_x=x, train_y=y)
 
         with pytest.raises(ValueError, match="Trailing dimensions"):
             d.predict(x[:, :8, :, :])

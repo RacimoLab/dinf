@@ -278,7 +278,6 @@ def _train_discriminator(
         )
 
     discriminator.fit(
-        rng,
         train_x=train_x,
         train_y=train_y,
         val_x=val_x,

@@ -78,24 +78,25 @@ class ExchangeableCNN(nn.Module):
         conv = functools.partial(nn.Conv, kernel_size=(1, 5), use_bias=False)
         # https://flax.readthedocs.io/en/latest/howtos/state_params.html
         norm = functools.partial(nn.BatchNorm, use_running_average=not train)
+        activation = nn.elu
 
         combined = []
         for input_feature in jax.tree_leaves(inputs):
             x = norm()(input_feature)
 
             x = conv(features=32, strides=(1, 2))(x)
-            x = nn.elu(x)
+            x = activation(x)
             x = norm()(x)
 
             x = conv(features=64, strides=(1, 2))(x)
-            x = nn.elu(x)
+            x = activation(x)
             x = norm()(x)
 
             # collapse haplotypes
             x = Symmetric(axis=1)(x)
 
             x = conv(features=64)(x)
-            x = nn.elu(x)
+            x = activation(x)
             x = norm()(x)
 
             # collapse genomic bins
@@ -260,7 +261,6 @@ class Discriminator:
 
     def fit(
         self,
-        rng: np.random.Generator,
         *,
         train_x,
         train_y,
@@ -275,7 +275,6 @@ class Discriminator:
         """
         Fit discriminator to training data.
 
-        :param numpy.random.Generator rng: Numpy random number generator.
         :param train_x: Training data.
         :param train_y: Labels for training data.
         :param val_x: Validation data.
@@ -334,7 +333,7 @@ class Discriminator:
             )
             return n + batch_size, new_metrics
 
-        def train_epoch(state, train_ds, batch_size, epoch, key):
+        def train_epoch(state, train_ds, batch_size, epoch):
             """Train for a single epoch."""
 
             def print_metrics(n, metrics_sum, end):
@@ -403,11 +402,9 @@ class Discriminator:
                     test_accuracy=[],
                 )
 
-        seed = rng.integers(1**63)
-        keys = jax.random.split(jax.random.PRNGKey(seed), epochs)
-        for epoch, key in enumerate(keys, 1):
+        for epoch in range(1, epochs + 1):
             train_loss, train_accuracy, state = train_epoch(
-                state, train_ds, batch_size, epoch, key
+                state, train_ds, batch_size, epoch
             )
             self.train_metrics["train_loss"].append(train_loss)
             self.train_metrics["train_accuracy"].append(train_accuracy)
@@ -500,7 +497,6 @@ def _train_step(state, batch):
 @jax.jit
 def _eval_step(state, batch):
     """Evaluate for a single step."""
-
     logits = state.apply_fn(
         dict(params=state.params, batch_stats=state.batch_stats),
         batch["input"],
@@ -517,10 +513,5 @@ def _eval_step(state, batch):
 @functools.partial(jax.jit, static_argnums=(2,))
 def _predict_batch(batch, variables, apply_func):
     """Make predictions on a batch."""
-
-    logits = apply_func(
-        variables,
-        batch["input"],
-        train=False,
-    )
+    logits = apply_func(variables, batch["input"], train=False)
     return jax.nn.sigmoid(logits)
