@@ -78,24 +78,25 @@ class ExchangeableCNN(nn.Module):
         conv = functools.partial(nn.Conv, kernel_size=(1, 5), use_bias=False)
         # https://flax.readthedocs.io/en/latest/howtos/state_params.html
         norm = functools.partial(nn.BatchNorm, use_running_average=not train)
+        activation = nn.elu
 
         combined = []
         for input_feature in jax.tree_leaves(inputs):
             x = norm()(input_feature)
 
             x = conv(features=32, strides=(1, 2))(x)
-            x = nn.elu(x)
+            x = activation(x)
             x = norm()(x)
 
             x = conv(features=64, strides=(1, 2))(x)
-            x = nn.elu(x)
+            x = activation(x)
             x = norm()(x)
 
             # collapse haplotypes
             x = Symmetric(axis=1)(x)
 
             x = conv(features=64)(x)
-            x = nn.elu(x)
+            x = activation(x)
             x = norm()(x)
 
             # collapse genomic bins
@@ -124,7 +125,7 @@ class Discriminator:
     Not intended to be instantiated directly. Use either the from_file() or
     from_input_shape() class methods instead.
 
-    :ivar dnn: The neural network. This has an apply() method.
+    :ivar network: The neural network. This has an apply() method.
     :ivar input_shape: The shape of the input to the neural network.
     :ivar variables: A Pytree of the network parameters.
     :ivar train_metrics:
@@ -132,21 +133,21 @@ class Discriminator:
         the network.
     """
 
-    dnn: nn.Module
+    network: nn.Module
     input_shape: Pytree
     variables: Pytree
     train_metrics: Pytree | None = None
     state: TrainState | None = None
     trained: bool = False
     # Bump this after making internal changes.
-    discriminator_format: int = 1
+    discriminator_format: int = 2
 
     @classmethod
     def from_input_shape(
         cls,
         input_shape: Pytree,
         rng: np.random.Generator,
-        dnn: nn.Module = None,
+        network: nn.Module = None,
     ) -> Discriminator:
         """
         Build a neural network with the given input shape.
@@ -160,12 +161,12 @@ class Discriminator:
             and c <= 4 is the number of channels.
         :param numpy.random.Generator rng:
             The numpy random number generator.
-        :param dnn:
+        :param network:
             A discriminator neural network.
             If not specified, an exchangeable CNN will be used.
         """
-        if dnn is None:
-            dnn = ExchangeableCNN()
+        if network is None:
+            network = ExchangeableCNN()
         key = jax.random.PRNGKey(rng.integers(2**63))
 
         # Sanity checks.
@@ -194,10 +195,10 @@ class Discriminator:
 
         @jax.jit
         def init(*args):
-            return dnn.init(*args, train=False)
+            return network.init(*args, train=False)
 
         variables = init(key, dummy_input)
-        return cls(dnn=dnn, variables=variables, input_shape=input_shape)
+        return cls(network=network, variables=variables, input_shape=input_shape)
 
     @classmethod
     def from_file(cls, filename: str | pathlib.Path) -> Discriminator:
@@ -228,7 +229,7 @@ class Discriminator:
         """
         data = dataclasses.asdict(self)
         data["state"] = None
-        data["dnn"] = self.dnn  # asdict converts this to a dict
+        data["network"] = self.network  # asdict converts this to a dict
         with open(filename, "wb") as f:
             pickle.dump(data, f)
 
@@ -239,7 +240,7 @@ class Discriminator:
             self.input_shape,
             is_leaf=lambda x: isinstance(x, tuple),
         )
-        _, state = self.dnn.apply(
+        _, state = self.network.apply(
             self.variables,
             a,
             train=False,
@@ -260,7 +261,6 @@ class Discriminator:
 
     def fit(
         self,
-        rng: np.random.Generator,
         *,
         train_x,
         train_y,
@@ -275,7 +275,6 @@ class Discriminator:
         """
         Fit discriminator to training data.
 
-        :param numpy.random.Generator rng: Numpy random number generator.
         :param train_x: Training data.
         :param train_y: Labels for training data.
         :param val_x: Validation data.
@@ -334,7 +333,7 @@ class Discriminator:
             )
             return n + batch_size, new_metrics
 
-        def train_epoch(state, train_ds, batch_size, epoch, key):
+        def train_epoch(state, train_ds, batch_size, epoch):
             """Train for a single epoch."""
 
             def print_metrics(n, metrics_sum, end):
@@ -382,7 +381,7 @@ class Discriminator:
         state = self.state
         if state is None:
             state = TrainState.create(
-                apply_fn=self.dnn.apply,
+                apply_fn=self.network.apply,
                 tx=optax.adam(learning_rate=0.001),
                 params=self.variables["params"],
                 batch_stats=self.variables.get("batch_stats", {}),
@@ -403,11 +402,9 @@ class Discriminator:
                     test_accuracy=[],
                 )
 
-        seed = rng.integers(1**63)
-        keys = jax.random.split(jax.random.PRNGKey(seed), epochs)
-        for epoch, key in enumerate(keys, 1):
+        for epoch in range(1, epochs + 1):
             train_loss, train_accuracy, state = train_epoch(
-                state, train_ds, batch_size, epoch, key
+                state, train_ds, batch_size, epoch
             )
             self.train_metrics["train_loss"].append(train_loss)
             self.train_metrics["train_accuracy"].append(train_accuracy)
@@ -455,7 +452,7 @@ class Discriminator:
         dataset = dict(input=x)
         y = []
         for batch in batchify(dataset, batch_size):
-            y.append(_predict_batch(batch, self.variables, self.dnn.apply))
+            y.append(_predict_batch(batch, self.variables, self.network.apply))
         return np.concatenate(y)
 
 
@@ -500,7 +497,6 @@ def _train_step(state, batch):
 @jax.jit
 def _eval_step(state, batch):
     """Evaluate for a single step."""
-
     logits = state.apply_fn(
         dict(params=state.params, batch_stats=state.batch_stats),
         batch["input"],
@@ -517,10 +513,5 @@ def _eval_step(state, batch):
 @functools.partial(jax.jit, static_argnums=(2,))
 def _predict_batch(batch, variables, apply_func):
     """Make predictions on a batch."""
-
-    logits = apply_func(
-        variables,
-        batch["input"],
-        train=False,
-    )
+    logits = apply_func(variables, batch["input"], train=False)
     return jax.nn.sigmoid(logits)

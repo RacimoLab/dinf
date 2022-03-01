@@ -123,7 +123,7 @@ class TestMcmcGan:
             python -m dinf mcmc-gan
                 --parallelism 2
                 --iterations 2
-                --training-replicates 16
+                --training-replicates 10
                 --test-replicates 0
                 --epochs 1
                 --walkers 6

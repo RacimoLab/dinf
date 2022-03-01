@@ -120,7 +120,7 @@ def test_abc_gan(tmp_path):
                 test_replicates=0,
                 epochs=1,
                 proposals=20,
-                posteriors=70,
+                posteriors=7,
                 working_directory=working_directory,
                 parallelism=2,
                 rng=rng,
@@ -136,7 +136,7 @@ def test_mcmc_gan(tmp_path):
     dinf.mcmc_gan(
         genobuilder=genobuilder,
         iterations=2,
-        training_replicates=16,
+        training_replicates=10,
         test_replicates=0,
         epochs=1,
         walkers=6,
@@ -162,7 +162,7 @@ def test_mcmc_gan(tmp_path):
     dinf.mcmc_gan(
         genobuilder=genobuilder,
         iterations=1,
-        training_replicates=16,
+        training_replicates=10,
         test_replicates=2,
         epochs=1,
         walkers=6,
@@ -184,10 +184,25 @@ def test_mcmc_gan(tmp_path):
         dinf.mcmc_gan(
             genobuilder=genobuilder,
             iterations=2,
-            training_replicates=16,
+            training_replicates=10,
             test_replicates=0,
             epochs=1,
             walkers=8,
+            steps=1,
+            Dx_replicates=2,
+            working_directory=working_directory,
+            parallelism=2,
+            rng=rng,
+        )
+
+    with pytest.raises(ValueError, match="Insufficient MCMC samples"):
+        dinf.mcmc_gan(
+            genobuilder=genobuilder,
+            iterations=2,
+            training_replicates=100,
+            test_replicates=0,
+            epochs=1,
+            walkers=6,
             steps=1,
             Dx_replicates=2,
             working_directory=working_directory,
@@ -205,7 +220,7 @@ def test_mcmc_gan(tmp_path):
             dinf.mcmc_gan(
                 genobuilder=genobuilder,
                 iterations=2,
-                training_replicates=16,
+                training_replicates=10,
                 test_replicates=0,
                 epochs=1,
                 walkers=6,
@@ -258,11 +273,15 @@ class TestLogProb:
         cls.discriminator = dinf.Discriminator.from_input_shape(
             cls.genobuilder.feature_shape, rng
         )
+        training_thetas = cls.genobuilder.parameters.draw_prior(
+            num_replicates=100, rng=rng
+        )
+        test_thetas = cls.genobuilder.parameters.draw_prior(num_replicates=0, rng=rng)
         dinf.dinf._train_discriminator(
             discriminator=cls.discriminator,
             genobuilder=cls.genobuilder,
-            training_replicates=100,
-            test_replicates=0,
+            training_thetas=training_thetas,
+            test_thetas=test_thetas,
             epochs=1,
             parallelism=1,
             rng=rng,

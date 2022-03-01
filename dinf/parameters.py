@@ -108,30 +108,6 @@ class Parameters(collections.abc.Mapping):
         """
         return np.transpose([p.draw_prior(num_replicates, rng) for p in self.values()])
 
-    def draw(
-        self, num_replicates: int, rng: np.random.Generator
-    ) -> npt.NDArray[np.floating]:
-        """
-        Draw a random sample for the parameters.
-
-        If there is a posterior sample associated with the parameters,
-        the sample will be drawn from the posterior with replacement.
-        Otherise, the sample is drawn from the prior distribution.
-
-        :param num_replicates: The sample size.
-        :param numpy.random.Generator rng: The numpy random number generator.
-        :return:
-            A 2d numpy array of parameter values, where ret[j][k] is the
-            j'th draw for the k'th parameter.
-        """
-        if self._posterior is None:
-            # sample from the prior
-            return self.draw_prior(num_replicates, rng)
-        else:
-            # sample from the posterior
-            idx = rng.integers(low=0, high=len(self._posterior), size=num_replicates)
-            return self._posterior[idx]
-
     def bounds_contain(self, x: np.ndarray) -> npt.NDArray[np.bool_]:
         """
         Test if values are within in the parameter bounds.
@@ -150,19 +126,3 @@ class Parameters(collections.abc.Mapping):
             axis=0,
         )
         return ret
-
-    def with_posterior(self, posterior: np.ndarray) -> Parameters:
-        """
-        Create a new :class:`Parameters` object that samples from the given posterior.
-
-        :param posterior:
-            A 2d array of parameter values, where posterior[j][k] is the
-            j'th draw for the k'th parameter.
-        :return: The new :class:`Parameters` object.
-        """
-        posterior = np.array(posterior)
-        assert len(posterior.shape) == 2
-        assert posterior.shape[-1] == len(self)
-        posterior_parameters = self.__class__(**self._params)
-        posterior_parameters._posterior = posterior
-        return posterior_parameters
