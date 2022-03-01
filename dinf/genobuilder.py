@@ -123,10 +123,10 @@ class Genobuilder:
         lead to annoying delays for the command line interface.
         """
         rng = np.random.default_rng(seed)
-        thetas = self.parameters.draw(num_replicates=5, rng=rng)
+        thetas = self.parameters.draw_prior(num_replicates=5, rng=rng)
         if thetas.shape != (5, len(self.parameters)):
             raise ValueError(
-                "parameters.draw(num_replicates=5) produced output with shape "
+                "parameters.draw_prior(num_replicates=5) produced output with shape "
                 f"{thetas.shape}, expected shape {(5, len(self.parameters))}."
             )
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
-import copy
 import logging
+import math
 import multiprocessing
 import os
 import pathlib
@@ -97,19 +97,19 @@ def _sim_replicates(*, sim_func, args, num_replicates, parallelism):
     return jax.tree_unflatten(treedef, result)
 
 
-def _generate_data(*, generator, parameters, num_replicates, parallelism, rng):
+def _generate_data(*, generator, thetas, parallelism, rng):
     """
     Return generator output for randomly drawn parameter values.
     """
+    num_replicates = len(thetas)
     seeds = rng.integers(low=1, high=2**31, size=num_replicates)
-    params = parameters.draw(num_replicates=num_replicates, rng=rng)
     data = _sim_replicates(
         sim_func=generator,
-        args=zip(seeds, params),
+        args=zip(seeds, thetas),
         num_replicates=num_replicates,
         parallelism=parallelism,
     )
-    return params, data
+    return data
 
 
 def _observe_data(*, target, num_replicates, parallelism, rng):
@@ -126,21 +126,17 @@ def _observe_data(*, target, num_replicates, parallelism, rng):
     return data
 
 
-def _generate_training_data(
-    *, target, generator, parameters, num_replicates, parallelism, rng
-):
-    nreps_generator = num_replicates // 2
-    nreps_target = num_replicates - num_replicates // 2
-    _, x_generator = _generate_data(
+def _generate_training_data(*, target, generator, thetas, parallelism, rng):
+    num_replicates = len(thetas)
+    x_generator = _generate_data(
         generator=generator,
-        parameters=parameters,
-        num_replicates=nreps_generator,
+        thetas=thetas,
         parallelism=parallelism,
         rng=rng,
     )
     x_target = _observe_data(
         target=target,
-        num_replicates=nreps_target,
+        num_replicates=num_replicates,
         parallelism=parallelism,
         rng=rng,
     )
@@ -149,9 +145,9 @@ def _generate_training_data(
     x = jax.tree_map(lambda *l: np.concatenate(l), x_generator, x_target)
     del x_generator
     del x_target
-    y = np.concatenate((np.zeros(nreps_generator), np.ones(nreps_target)))
+    y = np.concatenate((np.zeros(num_replicates), np.ones(num_replicates)))
     # shuffle
-    indexes = rng.permutation(num_replicates)
+    indexes = rng.permutation(len(y))
     # XXX: Large copy doubles peak memory.
     # Do this in-place?
     # https://stackoverflow.com/a/60902210/9500949
@@ -204,7 +200,8 @@ def _mcmc_log_prob(
 def _run_mcmc_emcee(
     start: np.ndarray,
     discriminator: Discriminator,
-    genobuilder: Genobuilder,
+    generator: Callable,
+    parameters: Parameters,
     walkers: int,
     steps: int,
     Dx_replicates: int,
@@ -213,14 +210,14 @@ def _run_mcmc_emcee(
 ):
     sampler = emcee.EnsembleSampler(
         walkers,
-        len(genobuilder.parameters),
+        len(parameters),
         _mcmc_log_prob,
         vectorize=True,
         # kwargs passed to _mcmc_log_prob
         kwargs=dict(
             discriminator=discriminator,
-            generator=genobuilder.generator_func,
-            parameters=genobuilder.parameters,
+            generator=generator,
+            parameters=parameters,
             parallelism=parallelism,
             num_replicates=Dx_replicates,
             rng=rng,
@@ -234,8 +231,7 @@ def _run_mcmc_emcee(
 
     datadict = {
         "posterior": {
-            p: chain[..., j].swapaxes(0, 1)
-            for j, p in enumerate(genobuilder.parameters)
+            p: chain[..., j].swapaxes(0, 1) for j, p in enumerate(parameters)
         },
         "sample_stats": {
             "lp": sampler.get_log_prob().swapaxes(0, 1),
@@ -258,8 +254,8 @@ def _train_discriminator(
     *,
     discriminator: Discriminator,
     genobuilder: Genobuilder,
-    training_replicates: int,
-    test_replicates: int,
+    training_thetas: np.ndarray,
+    test_thetas: np.ndarray,
     epochs: int,
     parallelism: int,
     rng: np.random.Generator,
@@ -267,18 +263,16 @@ def _train_discriminator(
     train_x, train_y = _generate_training_data(
         target=genobuilder.target_func,
         generator=genobuilder.generator_func,
-        parameters=genobuilder.parameters,
-        num_replicates=training_replicates,
+        thetas=training_thetas,
         parallelism=parallelism,
         rng=rng,
     )
     val_x, val_y = None, None
-    if test_replicates > 0:
+    if len(test_thetas) > 0:
         val_x, val_y = _generate_training_data(
             target=genobuilder.target_func,
             generator=genobuilder.generator_func,
-            parameters=genobuilder.parameters,
-            num_replicates=test_replicates,
+            thetas=test_thetas,
             parallelism=parallelism,
             rng=rng,
         )
@@ -355,8 +349,13 @@ def mcmc_gan(
     :param numpy.random.Generator rng:
         Numpy random number generator.
     """
-    # We modify the parameters, so take a copy.
-    genobuilder = copy.deepcopy(genobuilder)
+    num_replicates = math.ceil((training_replicates + test_replicates) / 2)
+    if steps * walkers < num_replicates:
+        raise ValueError(
+            f"Insufficient MCMC samples (steps * walkers = {steps * walkers}) "
+            "for training the discriminator: "
+            f"(training_replicates + test_replicates) / 2 = {num_replicates}"
+        )
 
     if working_directory is None:
         working_directory = "."
@@ -387,12 +386,22 @@ def mcmc_gan(
                 f"request for {walkers} walkers, but resuming from "
                 f"{store[-1] / 'mcmc.ncf'} which used {len(start)} walkers."
             )
-        posterior_sample = chain.reshape(-1, chain.shape[-1])
-        genobuilder.parameters = genobuilder.parameters.with_posterior(posterior_sample)
+
+        thetas = chain.reshape(-1, chain.shape[-1])
+        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=False)
+        training_thetas = sampled_thetas[: training_replicates // 2]
+        test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
         discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
         # Starting point for the mcmc chain.
         start = genobuilder.parameters.draw_prior(num_replicates=walkers, rng=rng)
+
+        training_thetas = genobuilder.parameters.draw_prior(
+            num_replicates=training_replicates // 2, rng=rng
+        )
+        test_thetas = genobuilder.parameters.draw_prior(
+            num_replicates=test_replicates // 2, rng=rng
+        )
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))
@@ -400,15 +409,15 @@ def mcmc_gan(
     n_observed_calls = 0
     n_generator_calls = 0
 
-    for i in range(iterations):
+    for i in range(len(store) + 1, len(store) + 1 + iterations):
         print(f"MCMC GAN iteration {i}")
         store.increment()
 
         _train_discriminator(
             discriminator=discriminator,
             genobuilder=genobuilder,
-            training_replicates=training_replicates,
-            test_replicates=test_replicates,
+            training_thetas=training_thetas,
+            test_thetas=test_thetas,
             epochs=epochs,
             parallelism=parallelism,
             rng=rng,
@@ -418,7 +427,8 @@ def mcmc_gan(
         dataset = _run_mcmc_emcee(
             start=start,
             discriminator=discriminator,
-            genobuilder=genobuilder,
+            generator=genobuilder.generator_func,
+            parameters=genobuilder.parameters,
             walkers=walkers,
             steps=steps,
             Dx_replicates=Dx_replicates,
@@ -428,21 +438,16 @@ def mcmc_gan(
         az.to_netcdf(dataset, store[-1] / "mcmc.ncf")
 
         chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
-
         # The chain for next iteration starts at the end of this chain.
         start = chain[-1]
 
-        # Update the parameters to draw from the posterior sample
-        # (the merged chains from the mcmc).
-        genobuilder.parameters = genobuilder.parameters.with_posterior(
-            chain.reshape(-1, chain.shape[-1])
-            # np.array(dataset.posterior.to_array()).swapaxes(0, 2)
-        )
+        thetas = chain.reshape(-1, chain.shape[-1])
+        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=False)
+        training_thetas = sampled_thetas[: training_replicates // 2]
+        test_thetas = sampled_thetas[training_replicates // 2 :]
 
-        n_observed_calls += (training_replicates + test_replicates) // 2
-        n_generator_calls += (
-            training_replicates + test_replicates
-        ) // 2 + walkers * steps * Dx_replicates
+        n_observed_calls += num_replicates
+        n_generator_calls += num_replicates + walkers * steps * Dx_replicates
         print(f"Observed data extracted {n_observed_calls} times.")
         print(f"Generator called {n_generator_calls} times.")
 
@@ -450,32 +455,27 @@ def mcmc_gan(
 def _run_abc(
     *,
     discriminator: Discriminator,
-    genobuilder: Genobuilder,
-    proposals: int,
+    generator: Callable,
+    parameters: Parameters,
+    thetas: np.ndarray,
     posteriors: int,
     parallelism: int,
     rng: np.random.Generator,
 ):
-    if posteriors > proposals:
-        raise ValueError(
-            f"Cannot subsample {posteriors} posteriors from {proposals} proposals"
-        )
-
-    params, x = _generate_data(
-        generator=genobuilder.generator_func,
-        parameters=genobuilder.parameters,
-        num_replicates=proposals,
+    x = _generate_data(
+        generator=generator,
+        thetas=thetas,
         parallelism=parallelism,
         rng=rng,
     )
     y = discriminator.predict(x)
     top = np.argsort(y)[::-1][:posteriors]
-    top_params = params[top]
+    top_params = thetas[top]
     with np.errstate(divide="ignore"):
         log_top_y = np.log(y[top])
 
     dataset = az.from_dict(
-        posterior={p: top_params[..., j] for j, p in enumerate(genobuilder.parameters)},
+        posterior={p: top_params[..., j] for j, p in enumerate(parameters)},
         sample_stats={"lp": log_top_y},
     )
     return dataset
@@ -536,8 +536,12 @@ def abc_gan(
     :param numpy.random.Generator rng:
         Numpy random number generator.
     """
-    # We modify the parameters, so take a copy.
-    genobuilder = copy.deepcopy(genobuilder)
+    if posteriors > proposals:
+        raise ValueError(
+            f"Cannot subsample {posteriors} posteriors from {proposals} proposals"
+        )
+
+    num_replicates = math.ceil((training_replicates + test_replicates) / 2)
 
     if working_directory is None:
         working_directory = "."
@@ -560,46 +564,61 @@ def abc_gan(
     if resume:
         discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
         dataset = az.from_netcdf(store[-1] / "abc.ncf")
-        genobuilder.parameters = genobuilder.parameters.with_posterior(
-            np.array(dataset.posterior.to_array()).swapaxes(0, 2).squeeze()
-        )
+
+        chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
+        thetas = chain.reshape(-1, chain.shape[-1])
+        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=True)
+        training_thetas = sampled_thetas[: training_replicates // 2]
+        test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
         discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+
+        training_thetas = genobuilder.parameters.draw_prior(
+            num_replicates=training_replicates // 2, rng=rng
+        )
+        test_thetas = genobuilder.parameters.draw_prior(
+            num_replicates=test_replicates // 2, rng=rng
+        )
 
     n_observed_calls = 0
     n_generator_calls = 0
 
-    for i in range(iterations):
+    for i in range(len(store) + 1, len(store) + 1 + iterations):
         print(f"ABC GAN iteration {i}")
         store.increment()
 
         _train_discriminator(
             discriminator=discriminator,
             genobuilder=genobuilder,
-            training_replicates=training_replicates,
-            test_replicates=test_replicates,
+            training_thetas=training_thetas,
+            test_thetas=test_thetas,
             epochs=epochs,
             parallelism=parallelism,
             rng=rng,
         )
         discriminator.to_file(store[-1] / "discriminator.pkl")
 
+        proposal_thetas = genobuilder.parameters.draw_prior(
+            num_replicates=proposals, rng=rng
+        )
         dataset = _run_abc(
             discriminator=discriminator,
-            genobuilder=genobuilder,
-            proposals=proposals,
+            generator=genobuilder.generator_func,
+            parameters=genobuilder.parameters,
+            thetas=proposal_thetas,
             posteriors=posteriors,
             parallelism=parallelism,
             rng=rng,
         )
         az.to_netcdf(dataset, store[-1] / "abc.ncf")
 
-        # Update to draw from the posterior sample in the next iteration.
-        genobuilder.parameters = genobuilder.parameters.with_posterior(
-            np.array(dataset.posterior.to_array()).swapaxes(0, 2).squeeze()
-        )
+        chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
+        thetas = chain.reshape(-1, chain.shape[-1])
+        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=True)
+        training_thetas = sampled_thetas[: training_replicates // 2]
+        test_thetas = sampled_thetas[training_replicates // 2 :]
 
-        n_observed_calls += (training_replicates + test_replicates) // 2
-        n_generator_calls += (training_replicates + test_replicates) // 2 + proposals
+        n_observed_calls += num_replicates
+        n_generator_calls += num_replicates + proposals
         print(f"Observed data extracted {n_observed_calls} times.")
         print(f"Generator called {n_generator_calls} times.")
