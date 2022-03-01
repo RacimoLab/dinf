@@ -130,14 +130,14 @@ class Genobuilder:
                 f"{thetas.shape}, expected shape {(5, len(self.parameters))}."
             )
 
-        x_g = self.generator_func((rng.integers(low=0, high=2 ** 31), thetas[0]))
+        x_g = self.generator_func((rng.integers(low=0, high=2**31), thetas[0]))
         if not tree_equal(tree_shape(x_g), self.feature_shape):
             raise ValueError(
                 f"generator_func produced feature shape {tree_shape(x_g)}, "
                 f"but feature_shape is {self.feature_shape}"
             )
 
-        x_t = self.target_func(rng.integers(low=0, high=2 ** 31))
+        x_t = self.target_func(rng.integers(low=0, high=2**31))
         if not tree_equal(tree_shape(x_t), self.feature_shape):
             raise ValueError(
                 f"target_func produced feature shape {tree_shape(x_t)}, "

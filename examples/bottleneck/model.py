@@ -41,7 +41,7 @@ def generator(seed, *, N0, N1):
     rng = np.random.default_rng(seed)
     graph = demography(N0=N0, N1=N1)
     demog = msprime.Demography.from_demes(graph)
-    seed1, seed2 = rng.integers(low=1, high=2 ** 31, size=2)
+    seed1, seed2 = rng.integers(low=1, high=2**31, size=2)
 
     ts = msprime.sim_ancestry(
         samples=num_individuals,

@@ -101,7 +101,7 @@ def _generate_data(*, generator, parameters, num_replicates, parallelism, rng):
     """
     Return generator output for randomly drawn parameter values.
     """
-    seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates)
+    seeds = rng.integers(low=1, high=2**31, size=num_replicates)
     params = parameters.draw(num_replicates=num_replicates, rng=rng)
     data = _sim_replicates(
         sim_func=generator,
@@ -116,7 +116,7 @@ def _observe_data(*, target, num_replicates, parallelism, rng):
     """
     Return observations from the target dataset.
     """
-    seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates)
+    seeds = rng.integers(low=1, high=2**31, size=num_replicates)
     data = _sim_replicates(
         sim_func=target,
         args=seeds,
@@ -183,7 +183,7 @@ def _mcmc_log_prob(
     if num_in_bounds == 0:
         return log_D
 
-    seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates * num_in_bounds)
+    seeds = rng.integers(low=1, high=2**31, size=num_replicates * num_in_bounds)
     params = np.repeat(theta[in_bounds], num_replicates, axis=0)
     assert len(seeds) == len(params)
     M = _sim_replicates(
@@ -227,7 +227,7 @@ def _run_mcmc_emcee(
         ),
     )
 
-    mt_initial_state = np.random.mtrand.RandomState(rng.integers(2 ** 31)).get_state()
+    mt_initial_state = np.random.mtrand.RandomState(rng.integers(2**31)).get_state()
     state = emcee.State(start, random_state=mt_initial_state)
     sampler.run_mcmc(state, nsteps=steps)
     chain = sampler.get_chain()

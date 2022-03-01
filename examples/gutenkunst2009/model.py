@@ -127,7 +127,7 @@ def generator(seed, **params):
     rng = np.random.default_rng(seed)
     graph = demography(**params)
     demog = msprime.Demography.from_demes(graph)
-    seed1, seed2 = rng.integers(low=1, high=2 ** 31, size=2)
+    seed1, seed2 = rng.integers(low=1, high=2**31, size=2)
 
     populations = list(samples)
 

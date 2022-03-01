@@ -21,7 +21,7 @@ def do_sim(
 ):
     """Return a tree sequence."""
     rng = np.random.default_rng(1234)
-    seed1, seed2 = rng.integers(low=1, high=2 ** 31, size=2)
+    seed1, seed2 = rng.integers(low=1, high=2**31, size=2)
     if demography is None:
         demography = msprime.Demography()
         demography.add_population(name="a", initial_size=10_000)
@@ -653,7 +653,7 @@ class TestMultipleBinnedHaplotypeMatrices:
 
         feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
             num_individuals={pop: num_individuals for pop in populations},
-            num_bins={"b": 24, "c": 10 ** 6},
+            num_bins={"b": 24, "c": 10**6},
             ploidy={pop: ploidy for pop in populations},
             global_phased=phased,
             global_maf_thresh=0,
