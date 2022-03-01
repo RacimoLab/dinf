@@ -237,7 +237,7 @@ def mcmc_log_prob(
         # param out of bounds
         return -np.inf
 
-    seeds = rng.integers(low=1, high=2 ** 31, size=num_replicates)
+    seeds = rng.integers(low=1, high=2**31, size=num_replicates)
     params = np.tile(theta, (num_replicates, 1))
     M = dinf.dinf._sim_replicates(
         sim_func=generator,

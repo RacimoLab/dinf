@@ -166,7 +166,7 @@ class Discriminator:
         """
         if dnn is None:
             dnn = ExchangeableCNN()
-        key = jax.random.PRNGKey(rng.integers(2 ** 63))
+        key = jax.random.PRNGKey(rng.integers(2**63))
 
         # Sanity checks.
         if not jax.tree_util.tree_all(
@@ -403,7 +403,7 @@ class Discriminator:
                     test_accuracy=[],
                 )
 
-        seed = rng.integers(1 ** 63)
+        seed = rng.integers(1**63)
         keys = jax.random.split(jax.random.PRNGKey(seed), epochs)
         for epoch, key in enumerate(keys, 1):
             train_loss, train_accuracy, state = train_epoch(
