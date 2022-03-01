@@ -125,7 +125,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev101
+  dinf 0.1.1.dev103
 </div>
 
 </div>
@@ -306,7 +306,7 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return generator output for randomly drawn parameter values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">seeds</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">)</span>
+    <span class="n">seeds</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">)</span>
     <span class="n">params</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">num_replicates</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">_sim_replicates</span><span class="p">(</span>
         <span class="n">sim_func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
@@ -321,7 +321,7 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return observations from the target dataset.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">seeds</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">)</span>
+    <span class="n">seeds</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">)</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">_sim_replicates</span><span class="p">(</span>
         <span class="n">sim_func</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
         <span class="n">args</span><span class="o">=</span><span class="n">seeds</span><span class="p">,</span>
@@ -388,7 +388,7 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="k">if</span> <span class="n">num_in_bounds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">log_D</span>
 
-    <span class="n">seeds</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span> <span class="o">*</span> <span class="n">num_in_bounds</span><span class="p">)</span>
+    <span class="n">seeds</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span> <span class="o">*</span> <span class="n">num_in_bounds</span><span class="p">)</span>
     <span class="n">params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">in_bounds</span><span class="p">],</span> <span class="n">num_replicates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">seeds</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">_sim_replicates</span><span class="p">(</span>
@@ -432,7 +432,7 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="p">),</span>
     <span class="p">)</span>
 
-    <span class="n">mt_initial_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">mtrand</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">31</span><span class="p">))</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+    <span class="n">mt_initial_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">mtrand</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">))</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
     <span class="n">state</span> <span class="o">=</span> <span class="n">emcee</span><span class="o">.</span><span class="n">State</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">mt_initial_state</span><span class="p">)</span>
     <span class="n">sampler</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">nsteps</span><span class="o">=</span><span class="n">steps</span><span class="p">)</span>
     <span class="n">chain</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">get_chain</span><span class="p">()</span>
@@ -826,7 +826,7 @@ const thebe_selector_output = ".output, .cell_output"
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev101+gac012ec
+        dinf 0.1.1.dev103+g9da4cd3
       </div>
   </p>
 </footer>
