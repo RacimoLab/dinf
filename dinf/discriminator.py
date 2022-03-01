@@ -125,7 +125,7 @@ class Discriminator:
     Not intended to be instantiated directly. Use either the from_file() or
     from_input_shape() class methods instead.
 
-    :ivar dnn: The neural network. This has an apply() method.
+    :ivar network: The neural network. This has an apply() method.
     :ivar input_shape: The shape of the input to the neural network.
     :ivar variables: A Pytree of the network parameters.
     :ivar train_metrics:
@@ -133,21 +133,21 @@ class Discriminator:
         the network.
     """
 
-    dnn: nn.Module
+    network: nn.Module
     input_shape: Pytree
     variables: Pytree
     train_metrics: Pytree | None = None
     state: TrainState | None = None
     trained: bool = False
     # Bump this after making internal changes.
-    discriminator_format: int = 1
+    discriminator_format: int = 2
 
     @classmethod
     def from_input_shape(
         cls,
         input_shape: Pytree,
         rng: np.random.Generator,
-        dnn: nn.Module = None,
+        network: nn.Module = None,
     ) -> Discriminator:
         """
         Build a neural network with the given input shape.
@@ -161,12 +161,12 @@ class Discriminator:
             and c <= 4 is the number of channels.
         :param numpy.random.Generator rng:
             The numpy random number generator.
-        :param dnn:
+        :param network:
             A discriminator neural network.
             If not specified, an exchangeable CNN will be used.
         """
-        if dnn is None:
-            dnn = ExchangeableCNN()
+        if network is None:
+            network = ExchangeableCNN()
         key = jax.random.PRNGKey(rng.integers(2**63))
 
         # Sanity checks.
@@ -195,10 +195,10 @@ class Discriminator:
 
         @jax.jit
         def init(*args):
-            return dnn.init(*args, train=False)
+            return network.init(*args, train=False)
 
         variables = init(key, dummy_input)
-        return cls(dnn=dnn, variables=variables, input_shape=input_shape)
+        return cls(network=network, variables=variables, input_shape=input_shape)
 
     @classmethod
     def from_file(cls, filename: str | pathlib.Path) -> Discriminator:
@@ -229,7 +229,7 @@ class Discriminator:
         """
         data = dataclasses.asdict(self)
         data["state"] = None
-        data["dnn"] = self.dnn  # asdict converts this to a dict
+        data["network"] = self.network  # asdict converts this to a dict
         with open(filename, "wb") as f:
             pickle.dump(data, f)
 
@@ -240,7 +240,7 @@ class Discriminator:
             self.input_shape,
             is_leaf=lambda x: isinstance(x, tuple),
         )
-        _, state = self.dnn.apply(
+        _, state = self.network.apply(
             self.variables,
             a,
             train=False,
@@ -381,7 +381,7 @@ class Discriminator:
         state = self.state
         if state is None:
             state = TrainState.create(
-                apply_fn=self.dnn.apply,
+                apply_fn=self.network.apply,
                 tx=optax.adam(learning_rate=0.001),
                 params=self.variables["params"],
                 batch_stats=self.variables.get("batch_stats", {}),
@@ -452,7 +452,7 @@ class Discriminator:
         dataset = dict(input=x)
         y = []
         for batch in batchify(dataset, batch_size):
-            y.append(_predict_batch(batch, self.variables, self.dnn.apply))
+            y.append(_predict_batch(batch, self.variables, self.network.apply))
         return np.concatenate(y)
 
 
