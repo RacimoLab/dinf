@@ -29,7 +29,7 @@ from .feature_extractor import BinnedHaplotypeMatrix, MultipleBinnedHaplotypeMat
 from .genobuilder import Genobuilder
 from .parameters import Param, Parameters
 from .store import Store
-from .vcf import BagOfVcf, get_contig_lengths
+from .vcf import BagOfVcf, get_contig_lengths, get_samples_from_1kgp_metadata
 
 __all__ = [
     "__version__",
@@ -42,5 +42,6 @@ __all__ = [
     "Parameters",
     "Store",
     "get_contig_lengths",
+    "get_samples_from_1kgp_metadata",
     "mcmc_gan",
 ]

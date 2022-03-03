@@ -13,6 +13,27 @@ import cyvcf2
 logger = logging.getLogger(__name__)
 
 
+def get_samples_from_1kgp_metadata(filename: str, populations: list) -> dict:
+    """
+    Get sample IDs for 1000 Genomes Project populations.
+    Related individuals are removed based on the FatherID and MotherID.
+
+    :param filename:
+        Path to the file "20130606_g1k_3202_samples_ped_population.txt"
+        This file can be downloaded from
+        http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/
+    :param populations:
+        List of populations to extract.
+    :return:
+        A dict mapping population names to a list of sample IDs.
+    """
+    data = np.recfromtxt(filename, names=True, encoding="ascii")
+    # Remove related individuals.
+    data = data[data.FatherID == "0"]
+    data = data[data.MotherID == "0"]
+    return {pop: data.SampleID[data.Population == pop].tolist() for pop in populations}
+
+
 def get_contig_lengths(
     filename: pathlib.Path | str, keep_contigs: Iterable[str] | None = None
 ) -> dict:

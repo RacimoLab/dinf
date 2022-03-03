@@ -1,3 +1,7 @@
+Many of the examples here are written to use 1000 Genomes Project files.
+If you intend to run these examples, the links below can be used to
+obtain the relevant data files.
+
 High coverage whole genome sequencing of the expanded 1000 Genomes Project cohort including 602 trios.
 https://www.biorxiv.org/content/10.1101/2021.02.06.430068v2
 

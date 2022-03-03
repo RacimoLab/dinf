@@ -104,6 +104,20 @@ class Genobuilder:
     def __post_init__(self):
         if len(self.parameters) == 0:
             raise ValueError("Must define one or more parameters")
+
+        if self.target_func is None:
+            # Use the generator function with the parameter's "truth" values
+            # as the target function. I.e. do a simulation study.
+            theta_truth = {k: p.truth for k, p in self.parameters.items()}
+            truth_missing = [k for k, truth in theta_truth.items() if truth is None]
+            if len(truth_missing) > 0:
+                raise ValueError(
+                    "For a simulation study (with genobuilder.target_func=None), "
+                    "all parameters must have `truth' values defined.\n"
+                    f"Truth values missing for: {', '.join(truth_missing)}."
+                )
+            self.target_func = functools.partial(self.generator_func, **theta_truth)
+
         # Transform generator_func from a function accepting arbitrary kwargs
         # (which limits user error) into a function accepting a sequence of
         # args (which is easier to pass to the mcmc).
@@ -153,8 +167,12 @@ class Genobuilder:
         """
         module_name = "_dinf_user_module"
         spec = importlib.util.spec_from_file_location(module_name, filename)
-        # Pacify mypy. These assertions hold even when the file doesn't exist.
-        assert spec is not None
+        if spec is None:
+            raise ImportError(
+                f"Could not load spec for `{filename}'. "
+                "Check that the file exists and has a .py extension."
+            )
+        # Pacify mypy.
         assert isinstance(spec.loader, importlib.abc.Loader)
 
         user_module = importlib.util.module_from_spec(spec)
