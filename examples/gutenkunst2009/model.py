@@ -6,26 +6,15 @@ import msprime
 import numpy as np
 
 import dinf
-import dinf.misc
 
 
-def load_samples_from_g1k_metadata(filename: str, populations: list) -> dict:
-    """Return a dictionary mapping population name to a list of sample IDs."""
-    data = np.recfromtxt(filename, names=True, encoding="ascii")
-    # Remove related individuals.
-    data = data[data.FatherID == "0"]
-    data = data[data.MotherID == "0"]
-    return {pop: data.SampleID[data.Population == pop].tolist() for pop in populations}
-
-
+populations = ["YRI", "CEU", "CHB"]
+samples = dinf.get_samples_from_1kgp_metadata(
+    "20130606_g1k_3202_samples_ped_population.txt", populations
+)
 contig_lengths = dinf.get_contig_lengths(
     "GRCh38_full_analysis_set_plus_decoy_hla.fa.fai",
     keep_contigs={f"chr{c + 1}" for c in range(21)},  # Exclude chrX, etc.
-)
-
-populations = ["YRI", "CEU", "CHB"]
-samples = load_samples_from_g1k_metadata(
-    "20130606_g1k_3202_samples_ped_population.txt", populations
 )
 num_individuals = 64
 recombination_rate = 1.25e-8
@@ -34,7 +23,7 @@ sequence_length = 1_000_000
 
 parameters = dinf.Parameters(
     # population sizes
-    N_ancestral=dinf.Param(low=100, high=30_000),
+    N_anc=dinf.Param(low=100, high=30_000),
     N_AMH=dinf.Param(low=100, high=30_000),
     N_OOA=dinf.Param(low=100, high=10_000),
     N_YRI=dinf.Param(low=100, high=100_000),
@@ -60,8 +49,11 @@ parameters = dinf.Parameters(
 )
 
 
-def demography(**params) -> demes.Graph:
-    assert params.keys() == parameters.keys()
+def demography(**theta):
+    # There are lots of parameters here, so its simpler to just pluck them
+    # directly from the "theta" kwargs dict. But these should definitely
+    # match the parameter names.
+    assert theta.keys() == parameters.keys()
 
     b = demes.Builder(
         description="Gutenkunst et al. (2009) three-population model.",
@@ -73,8 +65,8 @@ def demography(**params) -> demes.Graph:
         "ancestral",
         epochs=[
             dict(
-                end_time=params["dT_CEU_CHB"] + params["dT_OOA"] + params["dT_AMH"],
-                start_size=params["N_ancestral"],
+                end_time=theta["dT_CEU_CHB"] + theta["dT_OOA"] + theta["dT_AMH"],
+                start_size=theta["N_anc"],
             )
         ],
     )
@@ -83,31 +75,31 @@ def demography(**params) -> demes.Graph:
         ancestors=["ancestral"],
         epochs=[
             dict(
-                end_time=params["dT_CEU_CHB"] + params["dT_OOA"],
-                start_size=params["N_AMH"],
+                end_time=theta["dT_CEU_CHB"] + theta["dT_OOA"],
+                start_size=theta["N_AMH"],
             )
         ],
     )
     b.add_deme(
         "OOA",
         ancestors=["AMH"],
-        epochs=[dict(end_time=params["dT_CEU_CHB"], start_size=params["N_OOA"])],
+        epochs=[dict(end_time=theta["dT_CEU_CHB"], start_size=theta["N_OOA"])],
     )
-    b.add_deme("YRI", ancestors=["AMH"], epochs=[dict(start_size=params["N_YRI"])])
+    b.add_deme("YRI", ancestors=["AMH"], epochs=[dict(start_size=theta["N_YRI"])])
     b.add_deme(
         "CEU",
         ancestors=["OOA"],
-        epochs=[dict(start_size=params["N_CEU_start"], end_size=params["N_CEU_end"])],
+        epochs=[dict(start_size=theta["N_CEU_start"], end_size=theta["N_CEU_end"])],
     )
     b.add_deme(
         "CHB",
         ancestors=["OOA"],
-        epochs=[dict(start_size=params["N_CHB_start"], end_size=params["N_CHB_end"])],
+        epochs=[dict(start_size=theta["N_CHB_start"], end_size=theta["N_CHB_end"])],
     )
-    b.add_migration(demes=["YRI", "OOA"], rate=params["m_YRI_OOA"])
-    b.add_migration(demes=["YRI", "CEU"], rate=params["m_YRI_CEU"])
-    b.add_migration(demes=["YRI", "CHB"], rate=params["m_YRI_CHB"])
-    b.add_migration(demes=["CEU", "CHB"], rate=params["m_CEU_CHB"])
+    b.add_migration(demes=["YRI", "OOA"], rate=theta["m_YRI_OOA"])
+    b.add_migration(demes=["YRI", "CEU"], rate=theta["m_YRI_CEU"])
+    b.add_migration(demes=["YRI", "CHB"], rate=theta["m_YRI_CHB"])
+    b.add_migration(demes=["CEU", "CHB"], rate=theta["m_CEU_CHB"])
     return b.resolve()
 
 
@@ -122,14 +114,12 @@ features = dinf.MultipleBinnedHaplotypeMatrices(
 )
 
 
-def generator(seed, **params):
+def generator(seed, **theta):
     """Simulate with the parameters provided to us."""
     rng = np.random.default_rng(seed)
-    graph = demography(**params)
+    graph = demography(**theta)
     demog = msprime.Demography.from_demes(graph)
     seed1, seed2 = rng.integers(low=1, high=2**31, size=2)
-
-    populations = list(samples)
 
     ts = msprime.sim_ancestry(
         samples={pop: num_individuals for pop in populations},

@@ -6,9 +6,9 @@ import dinf
 # minimal genobuilder.
 
 
-def _generator_func(seed, a):
+def _generator_func(seed, my_param):
     rng = np.random.default_rng(seed)
-    return {"a": np.array(rng.uniform(size=10, low=0, high=a))}
+    return {"a": np.array(rng.uniform(size=10, low=0, high=my_param))}
 
 
 def _target_func(seed):
@@ -17,7 +17,7 @@ def _target_func(seed):
 
 feature_shape = {"a": np.array([10])}
 
-_parameters = dinf.Parameters(a=dinf.Param(low=0, high=100))
+_parameters = dinf.Parameters(my_param=dinf.Param(low=0, high=100))
 
 
 class TestGenobuilder:
@@ -40,7 +40,7 @@ class TestGenobuilder:
             )
 
     def test_wrong_generator_shape(self):
-        def generator(seed, a):
+        def generator(seed, my_param):
             return {"a": np.array([1.0, 2.0])}
 
         g = dinf.Genobuilder(
@@ -81,6 +81,19 @@ class TestGenobuilder:
         )
         with pytest.raises(ValueError, match="parameters.draw.* shape"):
             g.check()
+
+    def test_missing_truth_values(self):
+        with pytest.raises(ValueError, match="Truth values missing.*my_param"):
+            dinf.Genobuilder(
+                target_func=None,
+                generator_func=_generator_func,
+                parameters=_parameters,
+                feature_shape=feature_shape,
+            )
+
+    def test_from_file_no_spec(self):
+        with pytest.raises(ImportError, match=r"nonexistent.txt"):
+            dinf.Genobuilder._from_file("nonexistent.txt")
 
     def test_from_file_file_not_found(self):
         with pytest.raises(FileNotFoundError, match=r"nonexistent.py"):

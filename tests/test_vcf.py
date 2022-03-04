@@ -15,6 +15,29 @@ import pytest
 
 import dinf
 
+_1kgp_test_metadata = """\
+FamilyID SampleID FatherID MotherID Sex Population Superpopulation
+HG00096 HG00096 0 0 1 GBR EUR
+HG00097 HG00097 0 0 2 GBR EUR
+SH001 HG00403 0 0 1 CHS EAS
+SH001 HG00404 0 0 2 CHS EAS
+SH001 HG00405 HG00403 HG00404 2 CHS EAS
+"""
+
+
+class TestGetSamplesFrom1KgpMetadata:
+    @pytest.mark.usefixtures("tmp_path")
+    def test_simple(self, tmp_path):
+        filename = tmp_path / "1kgp_metadata.txt"
+        with open(filename, "w") as f:
+            f.write(_1kgp_test_metadata)
+        gbr = dinf.get_samples_from_1kgp_metadata(filename, ["GBR"])
+        assert gbr == {"GBR": ["HG00096", "HG00097"]}
+        chs = dinf.get_samples_from_1kgp_metadata(filename, ["CHS"])
+        assert chs == {"CHS": ["HG00403", "HG00404"]}
+        samples = dinf.get_samples_from_1kgp_metadata(filename, ["GBR", "CHS"])
+        assert samples == dict(**gbr, **chs)
+
 
 class TestGetContigLengths:
     @pytest.mark.usefixtures("tmp_path")

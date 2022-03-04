@@ -23,7 +23,7 @@ bh_matrix = dinf.BinnedHaplotypeMatrix(
 )
 
 
-def demography(*, N0, N1) -> demes.Graph:
+def demography(*, N0, N1):
     b = demes.Builder(description="bottleneck")
     b.add_deme(
         "A",
@@ -57,15 +57,8 @@ def generator(seed, *, N0, N1):
     return feature_matrix
 
 
-def target(seed):
-    """Simulate with fixed values. I.e. the "true" parameter values."""
-    assert all(p.truth is not None for p in parameters.values())
-    sim_kwargs = {k: v.truth for k, v in parameters.items()}
-    return generator(seed, **sim_kwargs)
-
-
 genobuilder = dinf.Genobuilder(
-    target_func=target,
+    target_func=None,
     generator_func=generator,
     parameters=parameters,
     feature_shape=bh_matrix.shape,
