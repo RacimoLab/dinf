@@ -125,7 +125,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev109
+  dinf 0.1.1.dev111
 </div>
 
 </div>
@@ -216,6 +216,27 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="kn">import</span> <span class="nn">cyvcf2</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_samples_from_1kgp_metadata</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">populations</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get sample IDs for 1000 Genomes Project populations.</span>
+<span class="sd">    Related individuals are removed based on the FatherID and MotherID.</span>
+
+<span class="sd">    :param filename:</span>
+<span class="sd">        Path to the file &quot;20130606_g1k_3202_samples_ped_population.txt&quot;</span>
+<span class="sd">        This file can be downloaded from</span>
+<span class="sd">        http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/</span>
+<span class="sd">    :param populations:</span>
+<span class="sd">        List of populations to extract.</span>
+<span class="sd">    :return:</span>
+<span class="sd">        A dict mapping population names to a list of sample IDs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">recfromtxt</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;ascii&quot;</span><span class="p">)</span>
+    <span class="c1"># Remove related individuals.</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">FatherID</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span><span class="p">]</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">MotherID</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">pop</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">SampleID</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Population</span> <span class="o">==</span> <span class="n">pop</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="n">populations</span><span class="p">}</span>
 
 
 <span class="k">def</span> <span class="nf">get_contig_lengths</span><span class="p">(</span>
@@ -677,7 +698,7 @@ const thebe_selector_output = ".output, .cell_output"
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev109+ge095c06
+        dinf 0.1.1.dev111+g17e9d9d
       </div>
   </p>
 </footer>

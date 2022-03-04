@@ -125,7 +125,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev109
+  dinf 0.1.1.dev111
 </div>
 
 </div>
@@ -309,6 +309,20 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must define one or more parameters&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_func</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Use the generator function with the parameter&#39;s &quot;truth&quot; values</span>
+            <span class="c1"># as the target function. I.e. do a simulation study.</span>
+            <span class="n">theta_truth</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">truth</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="n">truth_missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">truth</span> <span class="ow">in</span> <span class="n">theta_truth</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">truth</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">truth_missing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;For a simulation study (with genobuilder.target_func=None), &quot;</span>
+                    <span class="s2">&quot;all parameters must have `truth&#39; values defined.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Truth values missing for: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">truth_missing</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span> <span class="o">**</span><span class="n">theta_truth</span><span class="p">)</span>
+
         <span class="c1"># Transform generator_func from a function accepting arbitrary kwargs</span>
         <span class="c1"># (which limits user error) into a function accepting a sequence of</span>
         <span class="c1"># args (which is easier to pass to the mcmc).</span>
@@ -358,8 +372,12 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">module_name</span> <span class="o">=</span> <span class="s2">&quot;_dinf_user_module&quot;</span>
         <span class="n">spec</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">spec_from_file_location</span><span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
-        <span class="c1"># Pacify mypy. These assertions hold even when the file doesn&#39;t exist.</span>
-        <span class="k">assert</span> <span class="n">spec</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">spec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Could not load spec for `</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&#39;. &quot;</span>
+                <span class="s2">&quot;Check that the file exists and has a .py extension.&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># Pacify mypy.</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">loader</span><span class="p">,</span> <span class="n">importlib</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Loader</span><span class="p">)</span>
 
         <span class="n">user_module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">module_from_spec</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
@@ -391,7 +409,7 @@ const thebe_selector_output = ".output, .cell_output"
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev109+ge095c06
+        dinf 0.1.1.dev111+g17e9d9d
       </div>
   </p>
 </footer>
