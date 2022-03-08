@@ -390,7 +390,8 @@ class MultipleBinnedHaplotypeMatrices:
             ploidy = ts_ploidy_of_individuals(ts, l_individuals)
             if not np.all(ploidy == self._ploidy[label]):
                 raise ValueError(
-                    f"{label}: not all individuals have ploidy == {ploidy}."
+                    f"{label}: not all individuals have ploidy == {self._ploidy[label]}"
+                    f"\n{label} ploidies: {ploidy}."
                 )
             nodes = ts_nodes_of_individuals(ts, l_individuals)
             H = G[:, nodes]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import copy
 import functools
+import itertools
 import os
 import pathlib
 from typing import Callable, Iterable
@@ -233,7 +234,232 @@ def test_mcmc_gan(tmp_path):
         backup.rename(file)
 
 
-def mcmc_log_prob(
+@pytest.mark.usefixtures("tmp_path")
+def test_pg_gan(tmp_path):
+    rng = np.random.default_rng(1234)
+    genobuilder = get_genobuilder()
+    num_params = len(genobuilder.parameters)
+    num_proposals = 2
+    working_directory = tmp_path / "workdir"
+    dinf.pg_gan(
+        genobuilder=genobuilder,
+        iterations=2,
+        training_replicates=10,
+        test_replicates=0,
+        epochs=1,
+        Dx_replicates=2,
+        num_proposals=num_proposals,
+        max_pretraining_iterations=1,
+        working_directory=working_directory,
+        parallelism=2,
+        rng=rng,
+    )
+    assert working_directory.exists()
+    for i in range(2):
+        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_ncf(
+            working_directory / f"{i}" / "pg-gan-proposals.ncf",
+            chains=num_params * num_proposals + 1,
+            draws=1,
+            var_names=genobuilder.parameters,
+            check_acceptance_rate=False,
+        )
+
+    # resume
+    os.chdir(working_directory)
+    dinf.pg_gan(
+        genobuilder=genobuilder,
+        iterations=1,
+        training_replicates=10,
+        test_replicates=2,
+        epochs=1,
+        Dx_replicates=2,
+        num_proposals=num_proposals,
+        rng=rng,
+    )
+    for i in range(3):
+        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_ncf(
+            working_directory / f"{i}" / "pg-gan-proposals.ncf",
+            chains=num_params * num_proposals + 1,
+            draws=1,
+            var_names=genobuilder.parameters,
+            check_acceptance_rate=False,
+        )
+
+    backup = working_directory / "bak"
+    for file in [
+        working_directory / f"{i}" / "discriminator.pkl",
+        working_directory / f"{i}" / "pg-gan-proposals.ncf",
+    ]:
+        file.rename(backup)
+        with pytest.raises(RuntimeError, match="incomplete"):
+            dinf.pg_gan(
+                genobuilder=genobuilder,
+                iterations=2,
+                training_replicates=10,
+                test_replicates=0,
+                epochs=1,
+                Dx_replicates=2,
+                num_proposals=num_proposals,
+                working_directory=working_directory,
+                parallelism=2,
+                rng=rng,
+            )
+        backup.rename(file)
+
+    # TODO: check the right pretraining function is called.
+    for pretraining_method in ("pg-gan", "dinf"):
+        dinf.pg_gan(
+            genobuilder=genobuilder,
+            iterations=0,
+            training_replicates=10,
+            test_replicates=0,
+            epochs=1,
+            Dx_replicates=2,
+            num_proposals=num_proposals,
+            pretraining_method=pretraining_method,
+            max_pretraining_iterations=1,
+            working_directory=tmp_path / pretraining_method,
+            parallelism=2,
+            rng=rng,
+        )
+    with pytest.raises(ValueError, match="pretraining_method"):
+        dinf.pg_gan(
+            genobuilder=genobuilder,
+            iterations=0,
+            training_replicates=10,
+            test_replicates=0,
+            epochs=1,
+            Dx_replicates=2,
+            num_proposals=num_proposals,
+            pretraining_method="not-a-valid-method",
+            max_pretraining_iterations=1,
+            working_directory=tmp_path / "somewhere-new",
+            parallelism=2,
+            rng=rng,
+        )
+
+    # TODO: check the right proposals function is called.
+    for proposals_method in ("pg-gan", "rr", "mvn"):
+        dinf.pg_gan(
+            genobuilder=genobuilder,
+            iterations=1,
+            training_replicates=10,
+            test_replicates=0,
+            epochs=1,
+            Dx_replicates=2,
+            num_proposals=num_proposals,
+            proposals_method=proposals_method,
+            working_directory=working_directory,
+            parallelism=2,
+            rng=rng,
+        )
+    with pytest.raises(ValueError, match="proposals_method"):
+        dinf.pg_gan(
+            genobuilder=genobuilder,
+            iterations=1,
+            training_replicates=10,
+            test_replicates=0,
+            epochs=1,
+            Dx_replicates=2,
+            num_proposals=num_proposals,
+            proposals_method="not-a-valid-method",
+            working_directory=working_directory,
+            parallelism=2,
+            rng=rng,
+        )
+
+
+def elementwise_allclose(array):
+    """
+    Return True if elements of the array are all close, False otherwise.
+    """
+    for i in range(len(array) - 1):
+        if not np.allclose(array[i], array[i + 1 :]):
+            return False
+    else:
+        return True
+
+
+def check_proposals(proposal_thetas, theta, genobuilder, num_proposals):
+    num_params = len(genobuilder.parameters)
+    assert proposal_thetas.shape == (num_proposals * num_params + 1, num_params)
+    np.testing.assert_array_equal(theta, proposal_thetas[0])
+    for i, p in enumerate(genobuilder.parameters.values()):
+        # All proposals should be within the bounds.
+        assert np.all(p.bounds_contain(proposal_thetas[:, i]))
+
+
+def test_sanneal_proposals_pg_gan():
+    rng = np.random.default_rng(4321)
+    genobuilder = get_genobuilder()
+    num_proposals = 10
+
+    for i in range(100):
+        theta = genobuilder.parameters.draw_prior(num_replicates=1, rng=rng)[0]
+        proposal_thetas = dinf.dinf.sanneal_proposals_pg_gan(
+            theta=theta,
+            temperature=1,
+            num_proposals=num_proposals,
+            parameters=genobuilder.parameters,
+            proposal_stddev=1 / 15,
+            rng=rng,
+        )
+        check_proposals(proposal_thetas, theta, genobuilder, num_proposals)
+        for i, p in enumerate(genobuilder.parameters.values()):
+            assert not elementwise_allclose(proposal_thetas[:, i])
+
+
+def test_sanneal_proposals_rr():
+    rng = np.random.default_rng(4321)
+    genobuilder = get_genobuilder()
+    num_proposals = 10
+    num_params = len(genobuilder.parameters)
+
+    iteration = itertools.count()
+    for i in range(100):
+        theta = genobuilder.parameters.draw_prior(num_replicates=1, rng=rng)[0]
+        proposal_thetas = dinf.dinf.sanneal_proposals_rr(
+            theta=theta,
+            temperature=1,
+            num_proposals=num_proposals,
+            parameters=genobuilder.parameters,
+            proposal_stddev=1 / 15,
+            rng=rng,
+            iteration=iteration,
+        )
+        check_proposals(proposal_thetas, theta, genobuilder, num_proposals)
+
+        for j, p in enumerate(genobuilder.parameters.values()):
+            # Check that all proposals are for only one parameter.
+            if j == i % num_params:
+                assert not elementwise_allclose(proposal_thetas[:, j]), (i, j)
+            else:
+                assert elementwise_allclose(proposal_thetas[:, j]), (i, j)
+
+
+def test_sanneal_proposals_mvn():
+    rng = np.random.default_rng(4321)
+    genobuilder = get_genobuilder()
+    num_proposals = 10
+
+    for i in range(100):
+        theta = genobuilder.parameters.draw_prior(num_replicates=1, rng=rng)[0]
+        proposal_thetas = dinf.dinf.sanneal_proposals_mvn(
+            theta=theta,
+            temperature=1,
+            num_proposals=num_proposals,
+            parameters=genobuilder.parameters,
+            proposal_stddev=1 / 15,
+            rng=rng,
+        )
+        check_proposals(proposal_thetas, theta, genobuilder, num_proposals)
+        for i, p in enumerate(genobuilder.parameters.values()):
+            assert not elementwise_allclose(proposal_thetas[:, i])
+
+
+def log_prob(
     theta: np.ndarray,
     *,
     discriminator: dinf.Discriminator,
@@ -244,7 +470,7 @@ def mcmc_log_prob(
     parallelism: int,
 ) -> float:
     """
-    Non-vector version of dinf.dinf._mcmc_log_prob()
+    Non-vector version of dinf.dinf._log_prob()
     (the function to be maximised by the mcmc).
     """
     assert len(theta) == len(parameters)
@@ -290,7 +516,7 @@ class TestLogProb:
     def test_log_prob(self):
         # non-vector version
         log_prob_1 = functools.partial(
-            mcmc_log_prob,
+            log_prob,
             discriminator=self.discriminator,
             generator=self.genobuilder.generator_func,
             parameters=self.genobuilder.parameters,
@@ -300,7 +526,7 @@ class TestLogProb:
         )
         # vector version
         log_prob_n = functools.partial(
-            dinf.dinf._mcmc_log_prob,
+            dinf.dinf._log_prob,
             discriminator=self.discriminator,
             generator=self.genobuilder.generator_func,
             parameters=self.genobuilder.parameters,

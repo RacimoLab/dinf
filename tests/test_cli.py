@@ -147,3 +147,49 @@ class TestMcmcGan:
                 var_names=genobuilder.parameters,
                 check_acceptance_rate=True,
             )
+
+
+class TestPgGan:
+    def test_help(self):
+        out1 = subprocess.run(
+            "python -m dinf pg-gan -h".split(), check=True, stdout=subprocess.PIPE
+        )
+        out2 = subprocess.run(
+            "python -m dinf pg-gan --help".split(), check=True, stdout=subprocess.PIPE
+        )
+        assert out1.stdout == out2.stdout
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_mcmc_gan_example(self, tmp_path):
+        num_proposals = 2
+        working_directory = tmp_path / "work_dir"
+        ex = "examples/bottleneck/model.py"
+        subprocess.run(
+            f"""
+            python -m dinf pg-gan
+                --parallelism 2
+                --iterations 2
+                --training-replicates 10
+                --test-replicates 0
+                --epochs 1
+                --Dx-replicates 2
+                --num-proposals {num_proposals}
+                --working-directory {working_directory}
+                {ex}
+            """.split(),
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        assert working_directory.exists()
+        genobuilder = dinf.Genobuilder._from_file(ex)
+        num_parameters = len(genobuilder.parameters)
+        for i in range(2):
+            check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+            check_ncf(
+                working_directory / f"{i}" / "pg-gan-proposals.ncf",
+                chains=num_parameters * num_proposals + 1,
+                draws=1,
+                var_names=genobuilder.parameters,
+                check_acceptance_rate=False,
+            )

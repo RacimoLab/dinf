@@ -40,9 +40,9 @@ def _add_train_parser_group(parser):
         "-R",
         "--test-replicates",
         type=int,
-        default=10_000,
+        default=1_000,
         help=(
-            "Size of the test dataset used to evalutate the discriminator "
+            "Size of the test dataset used to evaluate the discriminator "
             "after each training epoch."
         ),
     )
@@ -225,6 +225,63 @@ class McmcGan:
         )
 
 
+class PgGan:
+    """
+    Run PG-GAN style simulated annealing.
+    """
+
+    def __init__(self, subparsers):
+        parser = subparsers.add_parser(
+            "pg-gan",
+            help="Run PG-GAN style simulated annealing",
+            description=textwrap.dedent(self.__doc__),
+            formatter_class=ADRDFormatter,
+        )
+        parser.set_defaults(func=self)
+
+        _add_common_parser_group(parser)
+        _add_train_parser_group(parser)
+
+        group = parser.add_argument_group("PG-GAN arguments")
+        group.add_argument(
+            "--Dx-replicates",
+            type=int,
+            default=64,
+            help="Number of generator replicates for approximating E[D(x)|θ].",
+        )
+        group.add_argument(
+            "--num-proposals",
+            type=int,
+            default=10,
+            help="Number of proposals for each parameter in a given iteration.",
+        )
+        group.add_argument(
+            "--max-pretraining-iterations",
+            type=int,
+            default=100,
+            help="Maximum number of pretraining rounds.",
+        )
+
+        _add_gan_parser_group(parser)
+
+    def __call__(self, args: argparse.Namespace):
+        rng = np.random.default_rng(args.seed)
+        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
+        dinf.pg_gan(
+            genobuilder=genobuilder,
+            iterations=args.iterations,
+            training_replicates=args.training_replicates,
+            test_replicates=args.test_replicates,
+            epochs=args.epochs,
+            Dx_replicates=args.Dx_replicates,
+            num_proposals=args.num_proposals,
+            max_pretraining_iterations=args.max_pretraining_iterations,
+            working_directory=args.working_directory,
+            parallelism=args.parallelism,
+            rng=rng,
+        )
+
+
 class Check:
     """
     Check a genobuilder object by calling the target and generator functions.
@@ -259,11 +316,12 @@ def main(args_list=None):
     top_parser.add_argument("--version", action="version", version=dinf.__version__)
 
     subparsers = top_parser.add_subparsers(
-        dest="subcommand", metavar="{check,mcmc-gan}"
+        dest="subcommand", metavar="{check,mcmc-gan,pg-gan}"
     )
     Check(subparsers)
     AbcGan(subparsers)
     McmcGan(subparsers)
+    PgGan(subparsers)
 
     args = top_parser.parse_args(args_list)
     if args.subcommand is None:
