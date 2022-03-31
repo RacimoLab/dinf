@@ -8,7 +8,7 @@ import dinf
 recombination_rate = 1.25e-8
 mutation_rate = 1.25e-8
 num_individuals = 64
-sequence_length = 1_000_000
+sequence_length = 100_000
 parameters = dinf.Parameters(
     N0=dinf.Param(low=10, high=30_000, truth=10_000),
     N1=dinf.Param(low=10, high=30_000, truth=200),

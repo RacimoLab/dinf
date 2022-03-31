@@ -20,7 +20,7 @@ contig_lengths = dinf.get_contig_lengths(
 recombination_rate = 1.25e-8
 mutation_rate = 1.25e-8
 num_individuals = 64  # per population
-sequence_length = 1_000_000
+sequence_length = 100_000
 parameters = dinf.Parameters(
     N_anc=dinf.Param(low=1_000, high=25_000),
     N1=dinf.Param(low=1_000, high=30_000),
