@@ -125,7 +125,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev139
+  dinf 0.1.1.dev141
 </div>
 
 </div>
@@ -595,7 +595,8 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="n">ploidy</span> <span class="o">=</span> <span class="n">ts_ploidy_of_individuals</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">l_individuals</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">ploidy</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">[</span><span class="n">label</span><span class="p">]):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: not all individuals have ploidy == </span><span class="si">{</span><span class="n">ploidy</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: not all individuals have ploidy == </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> ploidies: </span><span class="si">{</span><span class="n">ploidy</span><span class="si">}</span><span class="s2">.&quot;</span>
                 <span class="p">)</span>
             <span class="n">nodes</span> <span class="o">=</span> <span class="n">ts_nodes_of_individuals</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">l_individuals</span><span class="p">)</span>
             <span class="n">H</span> <span class="o">=</span> <span class="n">G</span><span class="p">[:,</span> <span class="n">nodes</span><span class="p">]</span>
@@ -699,7 +700,7 @@ const thebe_selector_output = ".output, .cell_output"
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev139+gf992f18
+        dinf 0.1.1.dev141+g2fa75b9
       </div>
   </p>
 </footer>

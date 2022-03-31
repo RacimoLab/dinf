@@ -126,7 +126,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev139
+  dinf 0.1.1.dev141
 </div>
 
 </div>
@@ -260,18 +260,19 @@ const thebe_selector_output = ".output, .cell_output"
                 
   <div class="tex2jax_ignore mathjax_ignore section" id="cli-reference">
 <h1>CLI reference<a class="headerlink" href="#cli-reference" title="Permalink to this headline">¶</a></h1>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [--version] {check,mcmc-gan} ...
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [--version] {check,mcmc-gan,pg-gan} ...
 
 Discriminator-based inference of population parameters.
 
 positional arguments:
-  {check,mcmc-gan}
-    check           Basic genobuilder health checks
-    mcmc-gan        Run the MCMC GAN
+  {check,mcmc-gan,pg-gan}
+    check               Basic genobuilder health checks
+    mcmc-gan            Run the MCMC GAN
+    pg-gan              Run PG-GAN style simulated annealing
 
 optional arguments:
-  -h, --help        show this help message and exit
-  --version         show program&#39;s version number and exit
+  -h, --help            show this help message and exit
+  --version             show program&#39;s version number and exit
 </pre></div>
 </div>
 <div class="section" id="dinf-check">
@@ -327,9 +328,9 @@ training arguments:
                         This dataset is constructed once each GAN iteration.
                         (default: 1000000)
   -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
-                        Size of the test dataset used to evalutate the
+                        Size of the test dataset used to evaluate the
                         discriminator after each training epoch. (default:
-                        10000)
+                        1000)
   -e EPOCHS, --epochs EPOCHS
                         Number of full passes over the training dataset when
                         training the discriminator. (default: 1)
@@ -401,7 +402,7 @@ GAN arguments:
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev139+gf992f18
+        dinf 0.1.1.dev141+g2fa75b9
       </div>
   </p>
 </footer>

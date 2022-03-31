@@ -125,7 +125,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev139
+  dinf 0.1.1.dev141
 </div>
 
 </div>
@@ -204,6 +204,8 @@ const thebe_selector_output = ".output, .cell_output"
                 
   <h1>Source code for dinf.dinf</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">multiprocessing</span>
@@ -361,8 +363,8 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
 
 
-<span class="k">def</span> <span class="nf">_mcmc_log_prob</span><span class="p">(</span>
-    <span class="n">theta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<span class="k">def</span> <span class="nf">_log_prob</span><span class="p">(</span>
+    <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">discriminator</span><span class="p">:</span> <span class="n">Discriminator</span><span class="p">,</span>
     <span class="n">generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
@@ -374,22 +376,22 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Function to be maximised by mcmc. Vectorised version.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">num_walkers</span><span class="p">,</span> <span class="n">num_params</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">num_walkers</span><span class="p">,</span> <span class="n">num_params</span> <span class="o">=</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span>
     <span class="k">assert</span> <span class="n">num_params</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
     <span class="n">log_D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_walkers</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
 
     <span class="c1"># Identify workers with one or more out-of-bounds parameters.</span>
-    <span class="n">in_bounds</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">in_bounds</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
     <span class="n">num_in_bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">in_bounds</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">num_in_bounds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">log_D</span>
 
     <span class="n">seeds</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span> <span class="o">*</span> <span class="n">num_in_bounds</span><span class="p">)</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">in_bounds</span><span class="p">],</span> <span class="n">num_replicates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">seeds</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">thetas_reps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="n">in_bounds</span><span class="p">],</span> <span class="n">num_replicates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">seeds</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas_reps</span><span class="p">)</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">_sim_replicates</span><span class="p">(</span>
         <span class="n">sim_func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
-        <span class="n">args</span><span class="o">=</span><span class="nb">zip</span><span class="p">(</span><span class="n">seeds</span><span class="p">,</span> <span class="n">params</span><span class="p">),</span>
+        <span class="n">args</span><span class="o">=</span><span class="nb">zip</span><span class="p">(</span><span class="n">seeds</span><span class="p">,</span> <span class="n">thetas_reps</span><span class="p">),</span>
         <span class="n">num_replicates</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">seeds</span><span class="p">),</span>
         <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
     <span class="p">)</span>
@@ -416,9 +418,9 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="n">sampler</span> <span class="o">=</span> <span class="n">emcee</span><span class="o">.</span><span class="n">EnsembleSampler</span><span class="p">(</span>
         <span class="n">walkers</span><span class="p">,</span>
         <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">),</span>
-        <span class="n">_mcmc_log_prob</span><span class="p">,</span>
+        <span class="n">_log_prob</span><span class="p">,</span>
         <span class="n">vectorize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="c1"># kwargs passed to _mcmc_log_prob</span>
+        <span class="c1"># kwargs passed to _log_prob</span>
         <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
             <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
@@ -473,7 +475,7 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_thetas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">test_thetas</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_thetas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="n">_generate_training_data</span><span class="p">(</span>
             <span class="n">target</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
             <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
@@ -482,7 +484,7 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="n">discriminator</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
         <span class="n">train_x</span><span class="o">=</span><span class="n">train_x</span><span class="p">,</span>
         <span class="n">train_y</span><span class="o">=</span><span class="n">train_y</span><span class="p">,</span>
         <span class="n">val_x</span><span class="o">=</span><span class="n">val_x</span><span class="p">,</span>
@@ -493,6 +495,7 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="c1"># TODO</span>
         <span class="c1"># tensorboard_log_dir=working_directory / &quot;tensorboard&quot; / &quot;fit&quot;,</span>
     <span class="p">)</span>
+    <span class="k">return</span> <span class="n">metrics</span>
 
 
 <div class="viewcode-block" id="mcmc_gan"><a class="viewcode-back" href="../../api.html#dinf.mcmc_gan">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
@@ -610,7 +613,7 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="c1"># If start values are linearly dependent, emcee complains loudly.</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">((</span><span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
 
-    <span class="n">n_observed_calls</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">n_target_calls</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">iterations</span><span class="p">):</span>
@@ -650,9 +653,9 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
 
-        <span class="n">n_observed_calls</span> <span class="o">+=</span> <span class="n">num_replicates</span>
+        <span class="n">n_target_calls</span> <span class="o">+=</span> <span class="n">num_replicates</span>
         <span class="n">n_generator_calls</span> <span class="o">+=</span> <span class="n">num_replicates</span> <span class="o">+</span> <span class="n">walkers</span> <span class="o">*</span> <span class="n">steps</span> <span class="o">*</span> <span class="n">Dx_replicates</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Observed data extracted </span><span class="si">{</span><span class="n">n_observed_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Target called </span><span class="si">{</span><span class="n">n_target_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generator called </span><span class="si">{</span><span class="n">n_generator_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span></div>
 
 
@@ -705,7 +708,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">    Each iteration of the GAN can be conceptually divided into:</span>
 
 <span class="sd">      - constructing train/test datasets for the discriminator,</span>
-<span class="sd">      - trainin the discriminator for a certain number of epochs,</span>
+<span class="sd">      - training the discriminator for a certain number of epochs,</span>
 <span class="sd">      - running the ABC.</span>
 
 <span class="sd">    In the first iteration, the parameter values given to the generator</span>
@@ -784,7 +787,7 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="n">num_replicates</span><span class="o">=</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
         <span class="p">)</span>
 
-    <span class="n">n_observed_calls</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">n_target_calls</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">iterations</span><span class="p">):</span>
@@ -822,10 +825,392 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
 
-        <span class="n">n_observed_calls</span> <span class="o">+=</span> <span class="n">num_replicates</span>
+        <span class="n">n_target_calls</span> <span class="o">+=</span> <span class="n">num_replicates</span>
         <span class="n">n_generator_calls</span> <span class="o">+=</span> <span class="n">num_replicates</span> <span class="o">+</span> <span class="n">proposals</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Observed data extracted </span><span class="si">{</span><span class="n">n_observed_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Target called </span><span class="si">{</span><span class="n">n_target_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generator called </span><span class="si">{</span><span class="n">n_generator_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">pretraining_pg_gan</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">genobuilder</span><span class="p">,</span>
+    <span class="n">training_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">test_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">parallelism</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_pretraining_iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">rng</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pretraining roughly like PG-GAN.</span>
+
+<span class="sd">    PG-GAN starts at a point in the parameter space that is favourable</span>
+<span class="sd">    to the discriminator, and it only trains the discriminator enough</span>
+<span class="sd">    to identify such a point. PG-GAN does up to 10 iterations, with</span>
+<span class="sd">    40000/40000 (real/fake) reps each time. Here, we iterate up to</span>
+<span class="sd">    max_pretraining_iterations times, each with training_replicates reps.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
+    <span class="n">acc_best</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">theta_best</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_pretraining_iterations</span><span class="p">):</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">num_replicates</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="n">metrics</span> <span class="o">=</span> <span class="n">_train_discriminator</span><span class="p">(</span>
+            <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
+            <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+            <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
+            <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
+            <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+            <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Use the test accuracy, unless there&#39;s no test data.</span>
+        <span class="n">acc</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;test_accuracy&quot;</span><span class="p">,</span> <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;train_accuracy&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">acc</span> <span class="o">&gt;</span> <span class="n">acc_best</span><span class="p">:</span>
+            <span class="n">theta_best</span> <span class="o">=</span> <span class="n">theta</span>
+        <span class="k">if</span> <span class="n">acc</span> <span class="o">&gt;</span> <span class="mf">0.9</span><span class="p">:</span>
+            <span class="k">break</span>
+
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">theta_best</span>
+
+    <span class="n">num_replicates</span> <span class="o">=</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">n_target_calls</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="n">num_replicates</span>
+    <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="n">num_replicates</span>
+
+    <span class="k">return</span> <span class="n">discriminator</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_target_calls</span><span class="p">,</span> <span class="n">n_generator_calls</span>
+
+
+<span class="k">def</span> <span class="nf">pretraining_dinf</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">genobuilder</span><span class="p">,</span>
+    <span class="n">training_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">test_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">parallelism</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">max_pretraining_iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">rng</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Train the discriminator on data sampled from the prior, until it can</span>
+<span class="sd">    distinguish randomly chosen points from the target dataset with</span>
+<span class="sd">    accuracy 0.9, or until max_pretraining_iterations is exhausted.</span>
+<span class="sd">    In practice, 10,000--20,000 training instances are sufficient.</span>
+
+<span class="sd">    After pretraining, we choose the starting point to be the point</span>
+<span class="sd">    with the highest log probability from a fresh set of candidates</span>
+<span class="sd">    drawn from the prior.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_pretraining_iterations</span><span class="p">):</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
+            <span class="n">num_replicates</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
+        <span class="p">)</span>
+        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
+            <span class="n">num_replicates</span><span class="o">=</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
+        <span class="p">)</span>
+
+        <span class="n">metrics</span> <span class="o">=</span> <span class="n">_train_discriminator</span><span class="p">(</span>
+            <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
+            <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+            <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
+            <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
+            <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+            <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Use the test accuracy, unless there&#39;s no test data.</span>
+        <span class="n">acc</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;test_accuracy&quot;</span><span class="p">,</span> <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;train_accuracy&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">acc</span> <span class="o">&gt;</span> <span class="mf">0.9</span><span class="p">:</span>
+            <span class="k">break</span>
+
+    <span class="n">thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
+        <span class="n">num_replicates</span><span class="o">=</span><span class="n">training_replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
+    <span class="p">)</span>
+    <span class="n">lp</span> <span class="o">=</span> <span class="n">_log_prob</span><span class="p">(</span>
+        <span class="n">thetas</span><span class="p">,</span>
+        <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
+        <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+        <span class="n">num_replicates</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
+        <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">lp</span><span class="p">)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">thetas</span><span class="p">[</span><span class="n">best</span><span class="p">]</span>
+
+    <span class="n">num_replicates</span> <span class="o">=</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">n_target_calls</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="n">num_replicates</span>
+    <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="n">k</span> <span class="o">*</span> <span class="n">num_replicates</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">discriminator</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_target_calls</span><span class="p">,</span> <span class="n">n_generator_calls</span>
+
+
+<span class="k">def</span> <span class="nf">sanneal_proposals_pg_gan</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">num_proposals</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">proposal_stddev</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Proposals like PG-GAN.</span>
+
+<span class="sd">    From Wang et al., pg 8:</span>
+<span class="sd">        During each main training iteration, we choose 10 independent proposals</span>
+<span class="sd">        for each parameter, keeping the other parameters fixed. This creates</span>
+<span class="sd">        10 × P possible parameter sets, where P is the number of parameters</span>
+<span class="sd">        (P = 6 for the IM model). We select the set that minimizes the gen-</span>
+<span class="sd">        erator loss, which has the effect of modifying one parameter each</span>
+<span class="sd">        iteration.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_params</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+    <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">num_params</span><span class="p">,</span> <span class="n">num_proposals</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">theta</span><span class="p">)):</span>
+        <span class="n">sd</span> <span class="o">=</span> <span class="n">temperature</span> <span class="o">*</span> <span class="n">proposal_stddev</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">low</span><span class="p">)</span>
+        <span class="n">new_vals</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sd</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_proposals</span><span class="p">)</span>
+        <span class="c1"># Clamp values within the bounds.</span>
+        <span class="n">new_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">new_vals</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">low</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">high</span><span class="p">)</span>
+        <span class="n">proposal_thetas</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="p">:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_vals</span>
+    <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">proposal_thetas</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_params</span><span class="p">))</span>
+    <span class="c1"># Include the original theta as the first entry in the proposals.</span>
+    <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="n">theta</span><span class="p">],</span> <span class="n">proposal_thetas</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">proposal_thetas</span>
+
+
+<span class="k">def</span> <span class="nf">sanneal_proposals_rr</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="n">num_proposals</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">proposal_stddev</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Round-robin proposals. Varies only one param at a time.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_params</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+    <span class="n">which_param</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">iteration</span><span class="p">)</span> <span class="o">%</span> <span class="n">num_params</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="n">which_param</span><span class="p">]</span>
+    <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">num_proposals</span> <span class="o">*</span> <span class="n">num_params</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="n">proposal_thetas</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">num_proposals</span> <span class="o">*</span> <span class="n">num_params</span><span class="p">,</span> <span class="n">num_params</span><span class="p">)</span>
+
+    <span class="n">sd</span> <span class="o">=</span> <span class="n">temperature</span> <span class="o">*</span> <span class="n">proposal_stddev</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">low</span><span class="p">)</span>
+    <span class="n">new_vals</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">which_param</span><span class="p">],</span> <span class="n">scale</span><span class="o">=</span><span class="n">sd</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_proposals</span> <span class="o">*</span> <span class="n">num_params</span><span class="p">)</span>
+    <span class="c1"># Clamp values within the bounds.</span>
+    <span class="n">new_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">new_vals</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">low</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">high</span><span class="p">)</span>
+    <span class="n">proposal_thetas</span><span class="p">[:,</span> <span class="n">which_param</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_vals</span>
+    <span class="c1"># Include the original theta as the first entry in the proposals.</span>
+    <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="n">theta</span><span class="p">],</span> <span class="n">proposal_thetas</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">proposal_thetas</span>
+
+
+<span class="k">def</span> <span class="nf">sanneal_proposals_mvn</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">num_proposals</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">proposal_stddev</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Multivariate-normal proposals. Varies all params each time.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_params</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+    <span class="n">variances</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="c1"># Match the move distance with the other proposal methods.</span>
+        <span class="p">(</span><span class="n">temperature</span> <span class="o">*</span> <span class="n">proposal_stddev</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">low</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">num_params</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+    <span class="p">]</span>
+    <span class="n">cov</span> <span class="o">=</span> <span class="n">variances</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">num_params</span><span class="p">)</span>
+    <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">cov</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_proposals</span> <span class="o">*</span> <span class="n">num_params</span>
+    <span class="p">)</span>
+    <span class="c1"># Clamp values within the bounds.</span>
+    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+        <span class="n">proposal_thetas</span><span class="p">[:,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">proposal_thetas</span><span class="p">[:,</span> <span class="n">j</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">low</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">high</span>
+        <span class="p">)</span>
+    <span class="c1"># Include the original theta as the first entry in the proposals.</span>
+    <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="n">theta</span><span class="p">],</span> <span class="n">proposal_thetas</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">proposal_thetas</span>
+
+
+<span class="nd">@cleanup_process_pool_afterwards</span>
+<span class="k">def</span> <span class="nf">pg_gan</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
+    <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">training_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">test_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">Dx_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_proposals</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">proposal_stddev</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">15</span><span class="p">,</span>  <span class="c1"># multiplied by the domain&#39;s width</span>
+    <span class="n">pretraining_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;dinf&quot;</span><span class="p">,</span>
+    <span class="n">proposals_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;rr&quot;</span><span class="p">,</span>
+    <span class="n">max_pretraining_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">working_directory</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">parallelism</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    PG-GAN style simulated annealing.</span>
+
+<span class="sd">    Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_replicates</span> <span class="o">=</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span>
+
+    <span class="k">if</span> <span class="n">working_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">working_directory</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">parallelism</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
+
+    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
+
+    <span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">files_exist</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">fn</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;pg-gan-proposals.ncf&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> is incomplete. Delete and try again?&quot;</span><span class="p">)</span>
+        <span class="n">resume</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
+        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_netcdf</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;pg-gan-proposals.ncf&quot;</span><span class="p">)</span>
+        <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">posterior</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">draw</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to_array</span><span class="p">())</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span>
+            <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="n">lp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">sample_stats</span><span class="o">.</span><span class="n">lp</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">draw</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="c1"># First entry is for the current theta in the simulated annealing chain.</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">proposal_thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">current_lp</span> <span class="o">=</span> <span class="n">lp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">lp</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="n">best_lp</span> <span class="o">=</span> <span class="n">lp</span><span class="p">[</span><span class="n">best</span><span class="p">]</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">best_lp</span> <span class="o">&gt;</span> <span class="n">current_lp</span> <span class="ow">or</span> <span class="n">U</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">current_lp</span> <span class="o">/</span> <span class="n">best_lp</span><span class="p">):</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">proposal_thetas</span><span class="p">[</span><span class="n">best</span><span class="p">]</span>
+
+        <span class="c1"># TODO: do something better here?</span>
+        <span class="n">n_target_calls</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="k">if</span> <span class="n">pretraining_method</span> <span class="o">==</span> <span class="s2">&quot;pg-gan&quot;</span><span class="p">:</span>
+            <span class="n">pretraining_func</span> <span class="o">=</span> <span class="n">pretraining_pg_gan</span>
+        <span class="k">elif</span> <span class="n">pretraining_method</span> <span class="o">==</span> <span class="s2">&quot;dinf&quot;</span><span class="p">:</span>
+            <span class="n">pretraining_func</span> <span class="o">=</span> <span class="n">pretraining_dinf</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unknown pretraining_method </span><span class="si">{</span><span class="n">pretraining_method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">discriminator</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_target_calls</span><span class="p">,</span> <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="n">pretraining_func</span><span class="p">(</span>
+            <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+            <span class="n">training_replicates</span><span class="o">=</span><span class="n">training_replicates</span><span class="p">,</span>
+            <span class="n">test_replicates</span><span class="o">=</span><span class="n">test_replicates</span><span class="p">,</span>
+            <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+            <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
+            <span class="n">max_pretraining_iterations</span><span class="o">=</span><span class="n">max_pretraining_iterations</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">proposals_method</span> <span class="o">==</span> <span class="s2">&quot;pg-gan&quot;</span><span class="p">:</span>
+        <span class="n">proposals_func</span> <span class="o">=</span> <span class="n">sanneal_proposals_pg_gan</span>
+    <span class="k">elif</span> <span class="n">proposals_method</span> <span class="o">==</span> <span class="s2">&quot;rr&quot;</span><span class="p">:</span>
+        <span class="n">proposals_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+            <span class="n">sanneal_proposals_rr</span><span class="p">,</span> <span class="n">iteration</span><span class="o">=</span><span class="n">itertools</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">proposals_method</span> <span class="o">==</span> <span class="s2">&quot;mvn&quot;</span><span class="p">:</span>
+        <span class="n">proposals_func</span> <span class="o">=</span> <span class="n">sanneal_proposals_mvn</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unknown proposals_method </span><span class="si">{</span><span class="n">proposals_method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PG-GAN simulated annealing iteration </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">store</span><span class="o">.</span><span class="n">increment</span><span class="p">()</span>
+
+        <span class="n">temperature</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">i</span> <span class="o">/</span> <span class="n">iterations</span><span class="p">)</span>
+
+        <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">proposals_func</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+            <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+            <span class="n">num_proposals</span><span class="o">=</span><span class="n">num_proposals</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">proposal_stddev</span><span class="o">=</span><span class="n">proposal_stddev</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">lp</span> <span class="o">=</span> <span class="n">_log_prob</span><span class="p">(</span>
+            <span class="n">proposal_thetas</span><span class="p">,</span>
+            <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
+            <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">num_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
+            <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">n_generator_calls</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">proposal_thetas</span><span class="p">)</span> <span class="o">*</span> <span class="n">Dx_replicates</span>
+
+        <span class="n">datadict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;posterior&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="n">p</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">proposal_thetas</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;sample_stats&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;lp&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">lp</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="p">},</span>
+        <span class="p">}</span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span>
+                <span class="s2">&quot;ignore&quot;</span><span class="p">,</span>
+                <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="s2">&quot;More chains.*than draws&quot;</span><span class="p">,</span>
+                <span class="n">module</span><span class="o">=</span><span class="s2">&quot;arviz&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="o">**</span><span class="n">datadict</span><span class="p">)</span>
+        <span class="n">az</span><span class="o">.</span><span class="n">to_netcdf</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;pg-gan-proposals.ncf&quot;</span><span class="p">)</span>
+
+        <span class="n">current_lp</span> <span class="o">=</span> <span class="n">lp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># First entry is for the current theta.</span>
+        <span class="n">best</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">lp</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="n">best_lp</span> <span class="o">=</span> <span class="n">lp</span><span class="p">[</span><span class="n">best</span><span class="p">]</span>
+        <span class="n">accept</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">best_lp</span> <span class="o">&gt;</span> <span class="n">current_lp</span> <span class="ow">or</span> <span class="n">U</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">current_lp</span> <span class="o">/</span> <span class="n">best_lp</span><span class="p">)</span> <span class="o">*</span> <span class="n">temperature</span><span class="p">:</span>
+            <span class="c1"># Accept the proposal.</span>
+            <span class="n">accept</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">theta</span> <span class="o">=</span> <span class="n">proposal_thetas</span><span class="p">[</span><span class="n">best</span><span class="p">]</span>
+            <span class="n">current_lp</span> <span class="o">=</span> <span class="n">best_lp</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Proposal accepted&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Proposal rejected&quot;</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;log prob: </span><span class="si">{</span><span class="n">current_lp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">theta_i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">truth</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">theta_i</span><span class="si">}</span><span class="s2"> (truth=</span><span class="si">{</span><span class="n">param</span><span class="o">.</span><span class="n">truth</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">theta_i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">accept</span><span class="p">:</span>
+            <span class="c1"># Train.</span>
+            <span class="c1"># PG-GAN does 5000/5000 (real/fake) reps.</span>
+            <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            <span class="n">_train_discriminator</span><span class="p">(</span>
+                <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
+                <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+                <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
+                <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
+                <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+                <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
+                <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">n_target_calls</span> <span class="o">+=</span> <span class="n">num_replicates</span>
+            <span class="n">n_generator_calls</span> <span class="o">+=</span> <span class="n">num_replicates</span>
+
+        <span class="n">discriminator</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Target called </span><span class="si">{</span><span class="n">n_target_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generator called </span><span class="si">{</span><span class="n">n_generator_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">()</span>
 </pre></div>
 
               </div>
@@ -844,7 +1229,7 @@ const thebe_selector_output = ".output, .cell_output"
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev139+gf992f18
+        dinf 0.1.1.dev141+g2fa75b9
       </div>
   </p>
 </footer>

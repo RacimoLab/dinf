@@ -125,7 +125,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev139
+  dinf 0.1.1.dev141
 </div>
 
 </div>
@@ -630,7 +630,11 @@ const thebe_selector_output = ".output, .cell_output"
                 <span class="n">params</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">device_get</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">params</span><span class="p">),</span>
                 <span class="n">batch_stats</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">device_get</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">batch_stats</span><span class="p">),</span>
             <span class="p">),</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
+
+        <span class="c1"># Return the metrics from the last epoch of training.</span>
+        <span class="n">metrics_conclusion</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="n">metrics_conclusion</span></div>
 
 <div class="viewcode-block" id="Discriminator.predict"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -685,6 +689,21 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">loss</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
             <span class="n">optax</span><span class="o">.</span><span class="n">sigmoid_binary_cross_entropy</span><span class="p">(</span><span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">])</span>
         <span class="p">)</span>
+        <span class="c1"># Entropy regularisation such that the network doesn&#39;t give up and</span>
+        <span class="c1"># predict all ones or all zeros. We weight the regularisation by a</span>
+        <span class="c1"># constant, c, according to how balanced the batch labels are.</span>
+        <span class="c1"># If the batch labels are all 0 or all 1 we don&#39;t do regularisation,</span>
+        <span class="c1"># but if there are equal 0 and 1 labels, then we fully apply</span>
+        <span class="c1"># the regularisation.</span>
+        <span class="c1"># Similar to PG-GAN, but see https://github.com/mathiesonlab/pg-gan/issues/3.</span>
+        <span class="n">logits_entropy</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+            <span class="n">optax</span><span class="o">.</span><span class="n">sigmoid_binary_cross_entropy</span><span class="p">(</span>
+                <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">-</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]))</span>
+        <span class="n">regularisation</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">c</span> <span class="o">*</span> <span class="n">logits_entropy</span>
+        <span class="n">loss</span> <span class="o">-=</span> <span class="n">regularisation</span>
         <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">new_model_state</span><span class="p">)</span>
 
     <span class="n">grad_fn</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">value_and_grad</span><span class="p">(</span><span class="n">loss_fn</span><span class="p">,</span> <span class="n">has_aux</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -738,7 +757,7 @@ const thebe_selector_output = ".output, .cell_output"
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev139+gf992f18
+        dinf 0.1.1.dev141+g2fa75b9
       </div>
   </p>
 </footer>
