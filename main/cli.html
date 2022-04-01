@@ -126,7 +126,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev143
+  dinf 0.1.1.dev145
 </div>
 
 </div>
@@ -215,8 +215,23 @@ const thebe_selector_output = ".output, .cell_output"
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#dinf-abc-gan">
+   dinf abc-gan
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#dinf-alfi-mcmc-gan">
+   dinf alfi-mcmc-gan
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#dinf-mcmc-gan">
    dinf mcmc-gan
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#dinf-pg-gan">
+   dinf pg-gan
   </a>
  </li>
 </ul>
@@ -245,8 +260,23 @@ const thebe_selector_output = ".output, .cell_output"
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#dinf-abc-gan">
+   dinf abc-gan
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#dinf-alfi-mcmc-gan">
+   dinf alfi-mcmc-gan
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#dinf-mcmc-gan">
    dinf mcmc-gan
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#dinf-pg-gan">
+   dinf pg-gan
   </a>
  </li>
 </ul>
@@ -260,13 +290,15 @@ const thebe_selector_output = ".output, .cell_output"
                 
   <div class="tex2jax_ignore mathjax_ignore section" id="cli-reference">
 <h1>CLI reference<a class="headerlink" href="#cli-reference" title="Permalink to this headline">¶</a></h1>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [--version] {check,mcmc-gan,pg-gan} ...
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [--version] {check,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan} ...
 
 Discriminator-based inference of population parameters.
 
 positional arguments:
-  {check,mcmc-gan,pg-gan}
+  {check,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan}
     check               Basic genobuilder health checks
+    abc-gan             Run the ABC GAN
+    alfi-mcmc-gan       Run the ALFI MCMC GAN
     mcmc-gan            Run the MCMC GAN
     pg-gan              Run PG-GAN style simulated annealing
 
@@ -289,6 +321,123 @@ positional arguments:
 
 optional arguments:
   -h, --help     show this help message and exit
+</pre></div>
+</div>
+</div>
+<div class="section" id="dinf-abc-gan">
+<h2>dinf abc-gan<a class="headerlink" href="#dinf-abc-gan" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf abc-gan [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
+                    [-R TEST_REPLICATES] [-e EPOCHS] [-p PROPOSALS]
+                    [-P POSTERIORS] [-i ITERATIONS] [-d WORKING_DIRECTORY]
+                    user_model.py
+
+Run the ABC GAN.
+
+Each iteration of the GAN can be conceptually divided into:
+- constructing train/test datasets for the discriminator,
+- training the discriminator for a certain number of epochs,
+- running the ABC.
+
+In the first iteration, the parameter values given to the generator
+to produce the test/train datasets are drawn from the parameters&#39; prior
+distribution. In subsequent iterations, the parameter values are drawn
+by sampling with replacement from the previous iteration&#39;s ABC posterior.
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the Genobuilder&#39;s generator_func and target_func.
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        This dataset is constructed once each GAN iteration.
+                        (default: 1000000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+ABC arguments:
+  -p PROPOSALS, --proposals PROPOSALS
+                        Number of ABC sample draws. (default: 1000000)
+  -P POSTERIORS, --posteriors POSTERIORS
+                        Number of top-ranked ABC sample draws to keep.
+                        (default: 1000)
+
+GAN arguments:
+  -i ITERATIONS, --iterations ITERATIONS
+                        Number of GAN iterations. (default: 1)
+  -d WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
+                        Folder to output results. If not specified, the
+                        current directory will be used. (default: None)
+  user_model.py         Python script from which to import the variable
+                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        describes the GAN. See the examples/ folder for
+                        example models.
+</pre></div>
+</div>
+</div>
+<div class="section" id="dinf-alfi-mcmc-gan">
+<h2>dinf alfi-mcmc-gan<a class="headerlink" href="#dinf-alfi-mcmc-gan" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf alfi-mcmc-gan [-h] [-S SEED] [-j PARALLELISM]
+                          [-r TRAINING_REPLICATES] [-R TEST_REPLICATES]
+                          [-e EPOCHS] [-w WALKERS] [-s STEPS] [-i ITERATIONS]
+                          [-d WORKING_DIRECTORY]
+                          user_model.py
+
+Run the ALFI MCMC GAN.
+
+This is an MCMC GAN with a surrogate network, as described in
+Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the Genobuilder&#39;s generator_func and target_func.
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        This dataset is constructed once each GAN iteration.
+                        (default: 1000000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+MCMC arguments:
+  -w WALKERS, --walkers WALKERS
+                        Number of independent MCMC chains. (default: 64)
+  -s STEPS, --steps STEPS
+                        The chain length for each MCMC walker. (default: 1000)
+
+GAN arguments:
+  -i ITERATIONS, --iterations ITERATIONS
+                        Number of GAN iterations. (default: 1)
+  -d WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
+                        Folder to output results. If not specified, the
+                        current directory will be used. (default: None)
+  user_model.py         Python script from which to import the variable
+                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        describes the GAN. See the examples/ folder for
+                        example models.
 </pre></div>
 </div>
 </div>
@@ -357,6 +506,64 @@ GAN arguments:
 </pre></div>
 </div>
 </div>
+<div class="section" id="dinf-pg-gan">
+<h2>dinf pg-gan<a class="headerlink" href="#dinf-pg-gan" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf pg-gan [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
+                   [-R TEST_REPLICATES] [-e EPOCHS]
+                   [--Dx-replicates DX_REPLICATES]
+                   [--num-proposals NUM_PROPOSALS]
+                   [--max-pretraining-iterations MAX_PRETRAINING_ITERATIONS]
+                   [-i ITERATIONS] [-d WORKING_DIRECTORY]
+                   user_model.py
+
+Run PG-GAN style simulated annealing.
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the Genobuilder&#39;s generator_func and target_func.
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        This dataset is constructed once each GAN iteration.
+                        (default: 1000000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+PG-GAN arguments:
+  --Dx-replicates DX_REPLICATES
+                        Number of generator replicates for approximating
+                        E[D(x)|θ]. (default: 64)
+  --num-proposals NUM_PROPOSALS
+                        Number of proposals for each parameter in a given
+                        iteration. (default: 10)
+  --max-pretraining-iterations MAX_PRETRAINING_ITERATIONS
+                        Maximum number of pretraining rounds. (default: 100)
+
+GAN arguments:
+  -i ITERATIONS, --iterations ITERATIONS
+                        Number of GAN iterations. (default: 1)
+  -d WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
+                        Folder to output results. If not specified, the
+                        current directory will be used. (default: None)
+  user_model.py         Python script from which to import the variable
+                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        describes the GAN. See the examples/ folder for
+                        example models.
+</pre></div>
+</div>
+</div>
 </div>
 
     <script type="text/x-thebe-config">
@@ -402,7 +609,7 @@ GAN arguments:
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev143+g5a13c6d
+        dinf 0.1.1.dev145+g1cda910
       </div>
   </p>
 </footer>

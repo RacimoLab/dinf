@@ -125,7 +125,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev143
+  dinf 0.1.1.dev145
 </div>
 
 </div>
@@ -220,7 +220,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="kn">import</span> <span class="nn">jax</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">.discriminator</span> <span class="kn">import</span> <span class="n">Discriminator</span>
+<span class="kn">from</span> <span class="nn">.discriminator</span> <span class="kn">import</span> <span class="n">Discriminator</span><span class="p">,</span> <span class="n">Surrogate</span>
 <span class="kn">from</span> <span class="nn">.genobuilder</span> <span class="kn">import</span> <span class="n">Genobuilder</span>
 <span class="kn">from</span> <span class="nn">.parameters</span> <span class="kn">import</span> <span class="n">Parameters</span>
 <span class="kn">from</span> <span class="nn">.store</span> <span class="kn">import</span> <span class="n">Store</span>
@@ -280,7 +280,7 @@ const thebe_selector_output = ".output, .cell_output"
                 <span class="n">_pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
                 <span class="n">_pool</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">return</span> <span class="n">wrapper</span>
+    <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">update_wrapper</span><span class="p">(</span><span class="n">wrapper</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_sim_replicates</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">sim_func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">num_replicates</span><span class="p">,</span> <span class="n">parallelism</span><span class="p">):</span>
@@ -348,19 +348,15 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="c1"># XXX: Large copy doubles peak memory.</span>
-    <span class="c1"># Preallocate somehow?</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="o">*</span><span class="n">l</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">l</span><span class="p">),</span> <span class="n">x_generator</span><span class="p">,</span> <span class="n">x_target</span><span class="p">)</span>
-    <span class="k">del</span> <span class="n">x_generator</span>
     <span class="k">del</span> <span class="n">x_target</span>
     <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_replicates</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">num_replicates</span><span class="p">)))</span>
     <span class="c1"># shuffle</span>
-    <span class="n">indexes</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
     <span class="c1"># XXX: Large copy doubles peak memory.</span>
-    <span class="c1"># Do this in-place?</span>
-    <span class="c1"># https://stackoverflow.com/a/60902210/9500949</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">l</span><span class="p">:</span> <span class="n">l</span><span class="p">[</span><span class="n">indexes</span><span class="p">],</span> <span class="n">x</span><span class="p">)</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">indexes</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">l</span><span class="p">:</span> <span class="n">l</span><span class="p">[</span><span class="n">indices</span><span class="p">],</span> <span class="n">x</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_generator</span>
 
 
 <span class="k">def</span> <span class="nf">_log_prob</span><span class="p">(</span>
@@ -404,31 +400,42 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="k">return</span> <span class="n">log_D</span>
 
 
+<span class="k">def</span> <span class="nf">_log_prob_surrogate</span><span class="p">(</span>
+    <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">surrogate</span><span class="p">:</span> <span class="n">Surrogate</span><span class="p">,</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to be maximised by alfi mcmc.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_walkers</span><span class="p">,</span> <span class="n">num_params</span> <span class="o">=</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span>
+    <span class="k">assert</span> <span class="n">num_params</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+    <span class="n">log_D</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">num_walkers</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+
+    <span class="c1"># Identify workers with one or more out-of-bounds parameters.</span>
+    <span class="n">in_bounds</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
+    <span class="n">num_in_bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">in_bounds</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">num_in_bounds</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span> <span class="o">=</span> <span class="n">surrogate</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="n">in_bounds</span><span class="p">])</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
+            <span class="n">log_D</span><span class="p">[</span><span class="n">in_bounds</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">alpha</span> <span class="o">/</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">+</span> <span class="n">beta</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">log_D</span>
+
+
 <span class="k">def</span> <span class="nf">_run_mcmc_emcee</span><span class="p">(</span>
     <span class="n">start</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">discriminator</span><span class="p">:</span> <span class="n">Discriminator</span><span class="p">,</span>
-    <span class="n">generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
     <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span><span class="p">,</span>
     <span class="n">walkers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">Dx_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">parallelism</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+    <span class="n">log_prob_func</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="n">sampler</span> <span class="o">=</span> <span class="n">emcee</span><span class="o">.</span><span class="n">EnsembleSampler</span><span class="p">(</span>
         <span class="n">walkers</span><span class="p">,</span>
         <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">),</span>
-        <span class="n">_log_prob</span><span class="p">,</span>
+        <span class="n">log_prob_func</span><span class="p">,</span>
         <span class="n">vectorize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="c1"># kwargs passed to _log_prob</span>
-        <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
-            <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-            <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
-            <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
-            <span class="n">num_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
-            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
-        <span class="p">),</span>
     <span class="p">)</span>
 
     <span class="n">mt_initial_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">mtrand</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">))</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
@@ -454,6 +461,9 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="p">)</span>
         <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="o">**</span><span class="n">datadict</span><span class="p">)</span>
 
+    <span class="c1"># XXX: use logger</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MCMC acceptance rate&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">acceptance_fraction</span><span class="p">))</span>
+
     <span class="k">return</span> <span class="n">dataset</span>
 
 
@@ -467,16 +477,17 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="n">parallelism</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span> <span class="o">=</span> <span class="n">_generate_training_data</span><span class="p">(</span>
+    <span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">train_x_generator</span> <span class="o">=</span> <span class="n">_generate_training_data</span><span class="p">(</span>
         <span class="n">target</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
         <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
         <span class="n">thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
         <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
         <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="p">,</span> <span class="n">val_x_generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">test_thetas</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_thetas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="n">_generate_training_data</span><span class="p">(</span>
+        <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="p">,</span> <span class="n">val_x_generator</span> <span class="o">=</span> <span class="n">_generate_training_data</span><span class="p">(</span>
             <span class="n">target</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
             <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
             <span class="n">thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
@@ -495,7 +506,36 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="c1"># TODO</span>
         <span class="c1"># tensorboard_log_dir=working_directory / &quot;tensorboard&quot; / &quot;fit&quot;,</span>
     <span class="p">)</span>
-    <span class="k">return</span> <span class="n">metrics</span>
+
+    <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">train_x_generator</span><span class="p">,</span> <span class="n">val_x_generator</span>
+
+
+<span class="k">def</span> <span class="nf">_train_surrogate</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">discriminator</span><span class="p">:</span> <span class="n">Discriminator</span><span class="p">,</span>
+    <span class="n">surrogate</span><span class="p">:</span> <span class="n">Surrogate</span><span class="p">,</span>
+    <span class="n">training_thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">test_thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">train_x_generator</span><span class="p">,</span>
+    <span class="n">test_x_generator</span><span class="p">,</span>
+    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">train_y_pred</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">train_x_generator</span><span class="p">)</span>
+    <span class="n">val_x_thetas</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">val_y_pred</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">test_thetas</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_thetas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">val_x_thetas</span> <span class="o">=</span> <span class="n">test_thetas</span>
+        <span class="n">val_y_pred</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_x_generator</span><span class="p">)</span>
+    <span class="n">surrogate</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+        <span class="n">train_x</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
+        <span class="n">train_y</span><span class="o">=</span><span class="n">train_y_pred</span><span class="p">,</span>
+        <span class="n">val_x</span><span class="o">=</span><span class="n">val_x_thetas</span><span class="p">,</span>
+        <span class="n">val_y</span><span class="o">=</span><span class="n">val_y_pred</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span> <span class="o">=</span> <span class="n">surrogate</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">training_thetas</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">train_y_pred</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span>
 
 
 <div class="viewcode-block" id="mcmc_gan"><a class="viewcode-back" href="../../api.html#dinf.mcmc_gan">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
@@ -616,6 +656,16 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="n">n_target_calls</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="mi">0</span>
 
+    <span class="n">log_prob_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+        <span class="n">_log_prob</span><span class="p">,</span>
+        <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
+        <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+        <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
+        <span class="n">num_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
+        <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+    <span class="p">)</span>
+
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">iterations</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MCMC GAN iteration </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">store</span><span class="o">.</span><span class="n">increment</span><span class="p">()</span>
@@ -633,14 +683,11 @@ const thebe_selector_output = ".output, .cell_output"
 
         <span class="n">dataset</span> <span class="o">=</span> <span class="n">_run_mcmc_emcee</span><span class="p">(</span>
             <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
-            <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-            <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
             <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">walkers</span><span class="o">=</span><span class="n">walkers</span><span class="p">,</span>
             <span class="n">steps</span><span class="o">=</span><span class="n">steps</span><span class="p">,</span>
-            <span class="n">Dx_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
-            <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+            <span class="n">log_prob_func</span><span class="o">=</span><span class="n">log_prob_func</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">az</span><span class="o">.</span><span class="n">to_netcdf</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.ncf&quot;</span><span class="p">)</span>
 
@@ -688,7 +735,7 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="k">return</span> <span class="n">dataset</span>
 
 
-<span class="nd">@cleanup_process_pool_afterwards</span>
+<div class="viewcode-block" id="abc_gan"><a class="viewcode-back" href="../../api.html#dinf.abc_gan">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
 <span class="k">def</span> <span class="nf">abc_gan</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
@@ -717,7 +764,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">    by sampling with replacement from the previous iteration&#39;s ABC posterior.</span>
 
 <span class="sd">    :param genobuilder:</span>
-<span class="sd">        Genobuilder object that describes the GAN.</span>
+<span class="sd">        Genobuilder object that describes the dinf model.</span>
 <span class="sd">    :param iterations:</span>
 <span class="sd">        Number of GAN iterations.</span>
 <span class="sd">    :param training_replicates:</span>
@@ -828,7 +875,7 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">n_target_calls</span> <span class="o">+=</span> <span class="n">num_replicates</span>
         <span class="n">n_generator_calls</span> <span class="o">+=</span> <span class="n">num_replicates</span> <span class="o">+</span> <span class="n">proposals</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Target called </span><span class="si">{</span><span class="n">n_target_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generator called </span><span class="si">{</span><span class="n">n_generator_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generator called </span><span class="si">{</span><span class="n">n_generator_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span></div>
 
 
 <span class="k">def</span> <span class="nf">pretraining_pg_gan</span><span class="p">(</span>
@@ -860,7 +907,7 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 
-        <span class="n">metrics</span> <span class="o">=</span> <span class="n">_train_discriminator</span><span class="p">(</span>
+        <span class="n">metrics</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_train_discriminator</span><span class="p">(</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
             <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
             <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
@@ -916,7 +963,7 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="n">num_replicates</span><span class="o">=</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
         <span class="p">)</span>
 
-        <span class="n">metrics</span> <span class="o">=</span> <span class="n">_train_discriminator</span><span class="p">(</span>
+        <span class="n">metrics</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_train_discriminator</span><span class="p">(</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
             <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
             <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
@@ -1029,7 +1076,7 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="k">return</span> <span class="n">proposal_thetas</span>
 
 
-<span class="nd">@cleanup_process_pool_afterwards</span>
+<div class="viewcode-block" id="pg_gan"><a class="viewcode-back" href="../../api.html#dinf.pg_gan">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
 <span class="k">def</span> <span class="nf">pg_gan</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
@@ -1051,6 +1098,96 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">    PG-GAN style simulated annealing.</span>
 
 <span class="sd">    Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386</span>
+
+<span class="sd">    :param genobuilder:</span>
+<span class="sd">        Genobuilder object that describes the dinf model.</span>
+<span class="sd">    :param iterations:</span>
+<span class="sd">        Number of GAN iterations.</span>
+<span class="sd">    :param training_replicates:</span>
+<span class="sd">        Size of the dataset used to train the discriminator.</span>
+<span class="sd">        This dataset is constructed once each GAN iteration.</span>
+<span class="sd">    :param test_replicates:</span>
+<span class="sd">        Size of the test dataset used to evaluate the discriminator after</span>
+<span class="sd">        each training epoch.</span>
+<span class="sd">    :param epochs:</span>
+<span class="sd">        Number of full passes over the training dataset when training</span>
+<span class="sd">        the discriminator.</span>
+<span class="sd">    :param Dx_replicates:</span>
+<span class="sd">        Number of generator replicates for approximating E[D(x)|θ].</span>
+<span class="sd">    :param num_proposals:</span>
+<span class="sd">        Number proposals per parameter in each iteration.</span>
+<span class="sd">    :param proposal_stddev:</span>
+<span class="sd">        The standard deviation for the proposal distribution is:</span>
+<span class="sd">        temperature * proposal_stddev * (param.high - param.low)</span>
+<span class="sd">        The default is 1 / 15, as used by PG-GAN.</span>
+<span class="sd">    :param pretraining_method:</span>
+<span class="sd">        A string indicating which method should be used to pretrain the</span>
+<span class="sd">        discriminator and choose a starting point in parameter space.</span>
+
+<span class="sd">         * &quot;dinf&quot; (*default*):</span>
+<span class="sd">           Train the discriminator on data sampled from the prior, until it can</span>
+<span class="sd">           distinguish randomly chosen points from the target dataset with</span>
+<span class="sd">           accuracy 0.9, or until ``max_pretraining_iterations`` is exhausted.</span>
+<span class="sd">           In practice, 10,000--20,000 training instances are sufficient.</span>
+
+<span class="sd">           After pretraining, we choose the starting point to be the point</span>
+<span class="sd">           with the highest log probability from a fresh set of candidates</span>
+<span class="sd">           drawn from the prior.</span>
+
+<span class="sd">         * &quot;pg-gan&quot;:</span>
+<span class="sd">           PG-GAN starts at a point in the parameter space that is favourable</span>
+<span class="sd">           to the discriminator, and it only trains the discriminator enough</span>
+<span class="sd">           to identify such a point.</span>
+
+<span class="sd">           In each iteration we train the discriminator on a single point</span>
+<span class="sd">           sampled from the prior. If the discriminator can distinguish between</span>
+<span class="sd">           that point and the target dataset with accuracy 0.9, this point is</span>
+<span class="sd">           used as the starting point.</span>
+<span class="sd">           Otherwise, a new point is chosen by sampling from the prior.</span>
+<span class="sd">           If ``max_pretraining_iterations`` is exhausted without reaching an</span>
+<span class="sd">           accuracy of 0.9, the point at which the discriminator had the</span>
+<span class="sd">           highest accuracy is used as the starting point.</span>
+
+<span class="sd">    :param proposals_method:</span>
+<span class="sd">        A string indicating which method should be used to produce the proposal</span>
+<span class="sd">        distribution. In each case, ``num_proposals`` × P proposals are</span>
+<span class="sd">        produced, where P is the number of parameters (to match original</span>
+<span class="sd">        PG-GAN behaviour).</span>
+
+<span class="sd">         * &quot;rr&quot; (*default*):</span>
+<span class="sd">           Round-robin proposals. Proposals are generated for one parameter</span>
+<span class="sd">           only, keeping the other parameters fixed.  The parameter is</span>
+<span class="sd">           chosen by cycling through all parameters in order. Proposals are</span>
+<span class="sd">           drawn from a normal distribution with standard deviation:</span>
+<span class="sd">           temperature × ``proposal_stddev`` × (param.high - param.low).</span>
+
+<span class="sd">         * &quot;mvn&quot;:</span>
+<span class="sd">           Multivariate-normal proposals.</span>
+<span class="sd">           Proposals are drawn from a multivariate normal distribution with</span>
+<span class="sd">           covariance matrix defined to have diagonals:</span>
+<span class="sd">           (temperature × ``proposal_stddev`` × (param.high - param.low))**2 / P,</span>
+<span class="sd">           where P is the number of parameters and the high/low bounds vary by</span>
+<span class="sd">           the corresponding parameter. Off-diagonals of the covariance matrix</span>
+<span class="sd">           are set to zero.</span>
+
+<span class="sd">         * &quot;pg-gan&quot;:</span>
+<span class="sd">           Proposals like PG-GAN.</span>
+<span class="sd">           ``num_proposals`` proposals are generated for each parameter,</span>
+<span class="sd">           keeping the other parameters fixed. Proposals are</span>
+<span class="sd">           drawn from a normal distribution with standard deviation:</span>
+<span class="sd">           temperature × ``proposal_stddev`` × (param.high - param.low).</span>
+
+<span class="sd">    :param max_pretraining_iterations:</span>
+<span class="sd">        The maximum number of pretraining iterations.</span>
+<span class="sd">    :param working_directory:</span>
+<span class="sd">        Folder to output results. If not specified, the current</span>
+<span class="sd">        directory will be used.</span>
+<span class="sd">    :param parallelism:</span>
+<span class="sd">        Number of processes to use for parallelising calls to the</span>
+<span class="sd">        :meth:`Genobuilder.generator_func` and</span>
+<span class="sd">        :meth:`Genobuilder.target_func`.</span>
+<span class="sd">    :param numpy.random.Generator rng:</span>
+<span class="sd">        Numpy random number generator.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">num_replicates</span> <span class="o">=</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span>
 
@@ -1210,7 +1347,208 @@ const thebe_selector_output = ".output, .cell_output"
 
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Target called </span><span class="si">{</span><span class="n">n_target_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generator called </span><span class="si">{</span><span class="n">n_generator_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="alfi_mcmc_gan"><a class="viewcode-back" href="../../api.html#dinf.alfi_mcmc_gan">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
+<span class="k">def</span> <span class="nf">alfi_mcmc_gan</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
+    <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">training_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">test_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">walkers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">working_directory</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">parallelism</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run the ALFI MCMC GAN.</span>
+
+<span class="sd">    This behaves similarly to :func:`mcmc_gan`, but introduces a surrogate</span>
+<span class="sd">    neural network that predicts the output of the discriminator from a given</span>
+<span class="sd">    set of input parameter values. The predictions of the surrogate network</span>
+<span class="sd">    are used during MCMC sampling, thus bypassing the generator and producing</span>
+<span class="sd">    deterministic classification of the input parameters.</span>
+
+<span class="sd">    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1</span>
+
+<span class="sd">    :param genobuilder:</span>
+<span class="sd">        Genobuilder object that describes the dinf model.</span>
+<span class="sd">    :param iterations:</span>
+<span class="sd">        Number of GAN iterations.</span>
+<span class="sd">    :param training_replicates:</span>
+<span class="sd">        Size of the dataset used to train the discriminator.</span>
+<span class="sd">        This dataset is constructed once each GAN iteration.</span>
+<span class="sd">    :param test_replicates:</span>
+<span class="sd">        Size of the test dataset used to evaluate the discriminator after</span>
+<span class="sd">        each training epoch.</span>
+<span class="sd">    :param epochs:</span>
+<span class="sd">        Number of full passes over the training dataset when training</span>
+<span class="sd">        the discriminator.</span>
+<span class="sd">    :param walkers:</span>
+<span class="sd">        Number of independent MCMC chains.</span>
+<span class="sd">    :param steps:</span>
+<span class="sd">        The chain length for each MCMC walker.</span>
+<span class="sd">    :param working_directory:</span>
+<span class="sd">        Folder to output results. If not specified, the current</span>
+<span class="sd">        directory will be used.</span>
+<span class="sd">    :param parallelism:</span>
+<span class="sd">        Number of processes to use for parallelising calls to the</span>
+<span class="sd">        :meth:`Genobuilder.generator_func` and</span>
+<span class="sd">        :meth:`Genobuilder.target_func`.</span>
+<span class="sd">    :param numpy.random.Generator rng:</span>
+<span class="sd">        Numpy random number generator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_replicates</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">((</span><span class="n">training_replicates</span> <span class="o">+</span> <span class="n">test_replicates</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">steps</span> <span class="o">*</span> <span class="n">walkers</span> <span class="o">&lt;</span> <span class="n">num_replicates</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Insufficient MCMC samples (steps * walkers = </span><span class="si">{</span><span class="n">steps</span> <span class="o">*</span> <span class="n">walkers</span><span class="si">}</span><span class="s2">) &quot;</span>
+            <span class="s2">&quot;for training the discriminator &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;((training_replicates + test_replicates / 2) = </span><span class="si">{</span><span class="n">num_replicates</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">working_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">working_directory</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">parallelism</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
+
+    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
+
+    <span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">files_exist</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">fn</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;surrogate.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;mcmc.ncf&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> is incomplete. Delete and try again?&quot;</span><span class="p">)</span>
+        <span class="n">resume</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
+        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
+        <span class="n">surrogate</span> <span class="o">=</span> <span class="n">Surrogate</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;surrogate.pkl&quot;</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_netcdf</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.ncf&quot;</span><span class="p">)</span>
+        <span class="c1"># Discard first half as burn in.</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">draw</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        <span class="n">chain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">posterior</span><span class="o">.</span><span class="n">to_array</span><span class="p">())</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">chain</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span> <span class="o">!=</span> <span class="n">walkers</span><span class="p">:</span>
+            <span class="c1"># TODO: allow this by sampling start points for the walkers?</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;request for </span><span class="si">{</span><span class="n">walkers</span><span class="si">}</span><span class="s2"> walkers, but resuming from &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s1">&#39;mcmc.ncf&#39;</span><span class="si">}</span><span class="s2"> which used </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="si">}</span><span class="s2"> walkers.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">chain</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">sampled_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span>
+        <span class="n">surrogate</span> <span class="o">=</span> <span class="n">Surrogate</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">),</span> <span class="n">rng</span><span class="p">)</span>
+        <span class="c1"># Starting point for the mcmc chain.</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">num_replicates</span><span class="o">=</span><span class="n">walkers</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
+            <span class="n">num_replicates</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
+        <span class="p">)</span>
+        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
+            <span class="n">num_replicates</span><span class="o">=</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
+        <span class="p">)</span>
+
+    <span class="c1"># If start values are linearly dependent, emcee complains loudly.</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">((</span><span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="n">n_target_calls</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">log_prob_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+        <span class="n">_log_prob_surrogate</span><span class="p">,</span>
+        <span class="n">surrogate</span><span class="o">=</span><span class="n">surrogate</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">iterations</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ALFI MCMC GAN iteration </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">store</span><span class="o">.</span><span class="n">increment</span><span class="p">()</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="n">train_x_generator</span><span class="p">,</span> <span class="n">test_x_generator</span> <span class="o">=</span> <span class="n">_train_discriminator</span><span class="p">(</span>
+            <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
+            <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+            <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
+            <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
+            <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+            <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">n_target_calls</span> <span class="o">+=</span> <span class="n">num_replicates</span>
+        <span class="n">n_generator_calls</span> <span class="o">+=</span> <span class="n">num_replicates</span>
+        <span class="n">discriminator</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
+
+        <span class="n">train_y_pred</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span> <span class="o">=</span> <span class="n">_train_surrogate</span><span class="p">(</span>
+            <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
+            <span class="n">surrogate</span><span class="o">=</span><span class="n">surrogate</span><span class="p">,</span>
+            <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
+            <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
+            <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+            <span class="n">train_x_generator</span><span class="o">=</span><span class="n">train_x_generator</span><span class="p">,</span>
+            <span class="n">test_x_generator</span><span class="o">=</span><span class="n">test_x_generator</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">surrogate</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;surrogate.pkl&quot;</span><span class="p">)</span>
+
+        <span class="c1"># import pickle</span>
+        <span class="c1"># with open(store[-1] / &quot;s.pkl&quot;, &quot;wb&quot;) as f:</span>
+        <span class="c1">#    pickle.dump((training_thetas, train_y_pred, alpha, beta), f)</span>
+
+        <span class="n">s_pred</span> <span class="o">=</span> <span class="n">alpha</span> <span class="o">/</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">+</span> <span class="n">beta</span><span class="p">)</span>
+        <span class="n">which</span> <span class="o">=</span> <span class="s2">&quot;D&quot;</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">train_y_pred</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">s_pred</span><span class="p">)):</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Best </span><span class="si">{</span><span class="n">which</span><span class="si">}</span><span class="s2">: D(θ)=</span><span class="si">{</span><span class="n">train_y_pred</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="si">:</span><span class="s2">.3g</span><span class="si">}</span><span class="s2">; &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;S(θ)=</span><span class="si">{</span><span class="n">s_pred</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="si">}</span><span class="s2">; &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;α=</span><span class="si">{</span><span class="n">alpha</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="si">:</span><span class="s2">.3g</span><span class="si">}</span><span class="s2">, β=</span><span class="si">{</span><span class="n">beta</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="si">:</span><span class="s2">.3g</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="n">training_thetas</span><span class="p">[</span><span class="n">j</span><span class="p">]):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="n">which</span> <span class="o">=</span> <span class="s2">&quot;S&quot;</span>
+
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">_run_mcmc_emcee</span><span class="p">(</span>
+            <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">walkers</span><span class="o">=</span><span class="n">walkers</span><span class="p">,</span>
+            <span class="n">steps</span><span class="o">=</span><span class="mi">2</span> <span class="o">*</span> <span class="n">steps</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+            <span class="n">log_prob_func</span><span class="o">=</span><span class="n">log_prob_func</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">az</span><span class="o">.</span><span class="n">to_netcdf</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.ncf&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Discard first half as burn in.</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">draw</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+
+        <span class="n">chain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">posterior</span><span class="o">.</span><span class="n">to_array</span><span class="p">())</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># The chain for next iteration starts at the end of this chain.</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">chain</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">chain</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># Discard half of the dataset with the lowest log prob.</span>
+        <span class="c1"># lp = np.array(dataset.sample_stats.lp).swapaxes(0, 1).reshape(-1)</span>
+        <span class="c1"># idx = np.argsort(lp)[len(lp) // 2:]</span>
+        <span class="c1"># thetas = thetas[idx]</span>
+
+        <span class="n">sampled_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
+
+        <span class="c1"># n_target_calls += num_replicates</span>
+        <span class="c1"># n_generator_calls += num_replicates</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Target called </span><span class="si">{</span><span class="n">n_target_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generator called </span><span class="si">{</span><span class="n">n_generator_calls</span><span class="si">}</span><span class="s2"> times.&quot;</span><span class="p">)</span></div>
 </pre></div>
 
               </div>
@@ -1229,7 +1567,7 @@ const thebe_selector_output = ".output, .cell_output"
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev143+g5a13c6d
+        dinf 0.1.1.dev145+g1cda910
       </div>
   </p>
 </footer>
