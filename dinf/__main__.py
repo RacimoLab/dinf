@@ -112,7 +112,7 @@ class AbcGan:
     def __init__(self, subparsers):
         parser = subparsers.add_parser(
             "abc-gan",
-            # help="Run the ABC GAN",
+            help="Run the ABC GAN",
             description=textwrap.dedent(self.__doc__),
             formatter_class=ADRDFormatter,
         )
@@ -150,6 +150,61 @@ class AbcGan:
             epochs=args.epochs,
             proposals=args.proposals,
             posteriors=args.posteriors,
+            working_directory=args.working_directory,
+            parallelism=args.parallelism,
+            rng=rng,
+        )
+
+
+class AlfiMcmcGan:
+    """
+    Run the ALFI MCMC GAN.
+
+    This is an MCMC GAN with a surrogate network, as described in
+    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
+    """
+
+    def __init__(self, subparsers):
+        parser = subparsers.add_parser(
+            "alfi-mcmc-gan",
+            help="Run the ALFI MCMC GAN",
+            description=textwrap.dedent(self.__doc__),
+            formatter_class=ADRDFormatter,
+        )
+        parser.set_defaults(func=self)
+
+        _add_common_parser_group(parser)
+        _add_train_parser_group(parser)
+
+        group = parser.add_argument_group("MCMC arguments")
+        group.add_argument(
+            "-w",
+            "--walkers",
+            type=int,
+            default=64,
+            help="Number of independent MCMC chains.",
+        )
+        group.add_argument(
+            "-s",
+            "--steps",
+            type=int,
+            default=1000,
+            help="The chain length for each MCMC walker.",
+        )
+
+        _add_gan_parser_group(parser)
+
+    def __call__(self, args: argparse.Namespace):
+        rng = np.random.default_rng(args.seed)
+        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
+        dinf.alfi_mcmc_gan(
+            genobuilder=genobuilder,
+            iterations=args.iterations,
+            training_replicates=args.training_replicates,
+            test_replicates=args.test_replicates,
+            epochs=args.epochs,
+            walkers=args.walkers,
+            steps=args.steps,
             working_directory=args.working_directory,
             parallelism=args.parallelism,
             rng=rng,
@@ -316,10 +371,11 @@ def main(args_list=None):
     top_parser.add_argument("--version", action="version", version=dinf.__version__)
 
     subparsers = top_parser.add_subparsers(
-        dest="subcommand", metavar="{check,mcmc-gan,pg-gan}"
+        dest="subcommand", metavar="{check,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan}"
     )
     Check(subparsers)
     AbcGan(subparsers)
+    AlfiMcmcGan(subparsers)
     McmcGan(subparsers)
     PgGan(subparsers)
 

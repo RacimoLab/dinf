@@ -190,10 +190,10 @@ class TestDiscriminator:
     def test_load_old_file(self, tmp_path, discriminator_format):
         rng = np.random.default_rng(1234)
         d1 = discriminator.Discriminator.from_input_shape((30, 40, 1), rng)
-        d1.discriminator_format = discriminator_format
+        d1.format_version = discriminator_format
         filename = tmp_path / "discriminator.pkl"
         d1.to_file(filename)
-        with pytest.raises(ValueError, match="discriminator is not compatible"):
+        with pytest.raises(ValueError, match="network is not compatible"):
             discriminator.Discriminator.from_file(filename)
 
     @pytest.mark.parametrize(
