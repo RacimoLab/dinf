@@ -44,13 +44,30 @@
 ## Inference
 
 ```{eval-rst}
+.. autofunction:: dinf.abc_gan
+```
+
+```{eval-rst}
+.. autofunction:: dinf.alfi_mcmc_gan
+```
+
+```{eval-rst}
 .. autofunction:: dinf.mcmc_gan
+```
+
+```{eval-rst}
+.. autofunction:: dinf.pg_gan
 ```
 
 ## Miscellaneous
 
 ```{eval-rst}
 .. autoclass:: dinf.Discriminator
+   :members:
+```
+
+```{eval-rst}
+.. autoclass:: dinf.Surrogate
    :members:
 ```
 

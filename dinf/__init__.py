@@ -23,8 +23,8 @@ if "KMP_AFFINITY" not in os.environ:
 #    os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
 
 
-from .dinf import mcmc_gan, pg_gan
-from .discriminator import Discriminator
+from .dinf import abc_gan, alfi_mcmc_gan, mcmc_gan, pg_gan
+from .discriminator import Discriminator, Surrogate
 from .feature_extractor import BinnedHaplotypeMatrix, MultipleBinnedHaplotypeMatrices
 from .genobuilder import Genobuilder
 from .parameters import Param, Parameters
@@ -40,9 +40,12 @@ __all__ = [
     "Genobuilder",
     "Param",
     "Parameters",
+    "Surrogate",
     "Store",
     "get_contig_lengths",
     "get_samples_from_1kgp_metadata",
+    "abc_gan",
+    "alfi_mcmc_gan",
     "mcmc_gan",
     "pg_gan",
 ]

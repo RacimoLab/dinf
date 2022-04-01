@@ -15,8 +15,6 @@ class TestTopLevel:
         )
         assert b"mcmc-gan" in out1.stdout
         assert b"check" in out1.stdout
-        # Not supported.
-        assert b"abc-gan" not in out1.stdout
 
         out2 = subprocess.run(
             "python -m dinf --help".split(), check=True, stdout=subprocess.PIPE
@@ -101,6 +99,54 @@ class TestAbcGan:
                 draws=7,
                 var_names=genobuilder.parameters,
                 check_acceptance_rate=False,
+            )
+
+
+class TestAlfiMcmcGan:
+    def test_help(self):
+        out1 = subprocess.run(
+            "python -m dinf alfi-mcmc-gan -h".split(),
+            check=True,
+            stdout=subprocess.PIPE,
+        )
+        out2 = subprocess.run(
+            "python -m dinf alfi-mcmc-gan --help".split(),
+            check=True,
+            stdout=subprocess.PIPE,
+        )
+        assert out1.stdout == out2.stdout
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_alfi_mcmc_gan_example(self, tmp_path):
+        working_directory = tmp_path / "work_dir"
+        ex = "examples/bottleneck/model.py"
+        subprocess.run(
+            f"""
+            python -m dinf alfi-mcmc-gan
+                --parallelism 2
+                --iterations 2
+                --training-replicates 10
+                --test-replicates 0
+                --epochs 1
+                --walkers 6
+                --steps 1
+                --working-directory {working_directory}
+                {ex}
+            """.split(),
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        assert working_directory.exists()
+        genobuilder = dinf.Genobuilder._from_file(ex)
+        for i in range(2):
+            check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+            check_ncf(
+                working_directory / f"{i}" / "mcmc.ncf",
+                chains=6,
+                draws=2,
+                var_names=genobuilder.parameters,
+                check_acceptance_rate=True,
             )
 
 

@@ -235,6 +235,108 @@ def test_mcmc_gan(tmp_path):
 
 
 @pytest.mark.usefixtures("tmp_path")
+def test_alfi_mcmc_gan(tmp_path):
+    rng = np.random.default_rng(1234)
+    genobuilder = get_genobuilder()
+    working_directory = tmp_path / "workdir"
+    steps = 1
+    dinf.alfi_mcmc_gan(
+        genobuilder=genobuilder,
+        iterations=2,
+        training_replicates=10,
+        test_replicates=0,
+        epochs=1,
+        walkers=6,
+        steps=steps,
+        working_directory=working_directory,
+        parallelism=2,
+        rng=rng,
+    )
+    assert working_directory.exists()
+    for i in range(2):
+        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_ncf(
+            working_directory / f"{i}" / "mcmc.ncf",
+            chains=6,
+            draws=2 * steps,
+            var_names=genobuilder.parameters,
+            check_acceptance_rate=True,
+        )
+
+    # resume
+    os.chdir(working_directory)
+    dinf.alfi_mcmc_gan(
+        genobuilder=genobuilder,
+        iterations=1,
+        training_replicates=4,
+        test_replicates=4,
+        epochs=1,
+        walkers=6,
+        steps=steps,
+        rng=rng,
+    )
+    for i in range(3):
+        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_ncf(
+            working_directory / f"{i}" / "mcmc.ncf",
+            chains=6,
+            draws=2 * steps,
+            var_names=genobuilder.parameters,
+            check_acceptance_rate=True,
+        )
+
+    with pytest.raises(ValueError, match="resuming from .* which used .* walkers"):
+        dinf.alfi_mcmc_gan(
+            genobuilder=genobuilder,
+            iterations=2,
+            training_replicates=10,
+            test_replicates=0,
+            epochs=1,
+            walkers=8,
+            steps=1,
+            working_directory=working_directory,
+            parallelism=2,
+            rng=rng,
+        )
+
+    with pytest.raises(ValueError, match="Insufficient MCMC samples"):
+        dinf.alfi_mcmc_gan(
+            genobuilder=genobuilder,
+            iterations=2,
+            training_replicates=100,
+            test_replicates=0,
+            epochs=1,
+            walkers=6,
+            steps=1,
+            working_directory=working_directory,
+            parallelism=2,
+            rng=rng,
+        )
+
+    backup = working_directory / "bak"
+    for file in [
+        working_directory / f"{i}" / "discriminator.pkl",
+        working_directory / f"{i}" / "surrogate.pkl",
+        working_directory / f"{i}" / "mcmc.ncf",
+    ]:
+        file.rename(backup)
+        with pytest.raises(RuntimeError, match="incomplete"):
+            dinf.alfi_mcmc_gan(
+                genobuilder=genobuilder,
+                iterations=2,
+                training_replicates=10,
+                test_replicates=0,
+                epochs=1,
+                walkers=6,
+                steps=1,
+                working_directory=working_directory,
+                parallelism=2,
+                rng=rng,
+            )
+        backup.rename(file)
+
+
+@pytest.mark.usefixtures("tmp_path")
 def test_pg_gan(tmp_path):
     rng = np.random.default_rng(1234)
     genobuilder = get_genobuilder()

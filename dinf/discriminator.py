@@ -5,13 +5,15 @@ import pathlib
 import pickle
 import sys
 import time
+from typing import Sequence
 
-import numpy as np
-import jax
-import jax.numpy as jnp
 from flax import linen as nn
 import flax.training.train_state
+import jax
+import jax.numpy as jnp
+import numpy as np
 import optax
+import scipy.stats
 
 from .misc import (
     Pytree,
@@ -21,6 +23,9 @@ from .misc import (
     tree_cdr,
     leading_dim_size,
 )
+
+# Small fudge-factor to avoid numerical instability.
+EPSILON = jnp.finfo(jnp.float32).eps
 
 
 # Because we use batch normalisation, the training state needs to also record
@@ -118,14 +123,12 @@ class ExchangeableCNN(nn.Module):
 
 
 @dataclasses.dataclass
-class Discriminator:
+class Network:
     """
-    A discriminator neural network.
+    Base class for Discriminator and Surrogate networks.
 
-    Not intended to be instantiated directly. Use either the from_file() or
-    from_input_shape() class methods instead.
 
-    :ivar network: The neural network. This has an apply() method.
+    :ivar network: The flax neural network. This has an apply() method.
     :ivar input_shape: The shape of the input to the neural network.
     :ivar variables: A Pytree of the network parameters.
     :ivar train_metrics:
@@ -140,50 +143,26 @@ class Discriminator:
     state: TrainState | None = None
     trained: bool = False
     # Bump this after making internal changes.
-    discriminator_format: int = 2
+    format_version: int = 2
 
     @classmethod
     def from_input_shape(
         cls,
         input_shape: Pytree,
         rng: np.random.Generator,
-        network: nn.Module = None,
-    ) -> Discriminator:
+        network: nn.Module,
+    ):
         """
         Build a neural network with the given input shape.
 
         :param input_shape:
-            The shape of the input data for the network. This is a dictionary
-            that maps a label to a feature array. Each feature array has shape
-            (n, m, c), where
-            n >= 2 is the number of (pseudo)haplotypes,
-            m >= 4 is the length of the (pseudo)haplotypes,
-            and c <= 4 is the number of channels.
+            The shape of the input data for the network.
         :param numpy.random.Generator rng:
             The numpy random number generator.
         :param network:
-            A discriminator neural network.
-            If not specified, an exchangeable CNN will be used.
+            A flax neural network.
         """
-        if network is None:
-            network = ExchangeableCNN()
         key = jax.random.PRNGKey(rng.integers(2**63))
-
-        # Sanity checks.
-        if not jax.tree_util.tree_all(
-            jax.tree_map(
-                lambda x: np.shape(x) == (3,) and x[0] >= 2 and x[1] >= 4 and x[2] <= 4,
-                input_shape,
-                is_leaf=lambda x: isinstance(x, tuple),
-            )
-        ):
-            raise ValueError(
-                "Input features must each have shape (n, m, c), where "
-                "n >= 2 is the number of (pseudo)haplotypes, "
-                "m >= 4 is the length of the (pseudo)haplotypes, "
-                "and c <= 4 is the number of channels.\n"
-                f"input_shape={input_shape}"
-            )
 
         # Add leading batch dimension.
         input_shape = tree_cons(1, input_shape)
@@ -201,31 +180,31 @@ class Discriminator:
         return cls(network=network, variables=variables, input_shape=input_shape)
 
     @classmethod
-    def from_file(cls, filename: str | pathlib.Path) -> Discriminator:
+    def from_file(cls, filename: str | pathlib.Path):
         """
-        Load discriminator neural network from the given file.
+        Load neural network from the given file.
 
         :param filename: The filename of the saved model.
-        :return: The discriminator object.
+        :return: The network object.
         """
         with open(filename, "rb") as f:
             data = pickle.load(f)
-        if data.pop("discriminator_format") != cls.discriminator_format:
+        if data.pop("format_version", -1) != cls.format_version:
             raise ValueError(
-                f"{filename}: saved discriminator is not compatible with this "
-                "version of dinf. Either train a new discriminator or use an "
+                f"{filename}: saved network is not compatible with this "
+                "version of dinf. Either train a new network or use an "
                 "older version of dinf."
             )
         expected_fields = set(map(lambda f: f.name, dataclasses.fields(cls)))
-        expected_fields.remove("discriminator_format")
+        expected_fields.remove("format_version")
         assert data.keys() == expected_fields
         return cls(**data)
 
     def to_file(self, filename) -> None:
         """
-        Save discriminator neural network to the given file.
+        Save neural network to the given file.
 
-        :param filename: The filename to which the model will be saved.
+        :param filename: The path where the model will be saved.
         """
         data = dataclasses.asdict(self)
         data["state"] = None
@@ -258,6 +237,59 @@ class Discriminator:
             )
         )
         print("Total number of trainable parameters:", num_params)
+
+
+@dataclasses.dataclass
+class Discriminator(Network):
+    """
+    A discriminator network that classifies the origin of feature matrices.
+
+    To instantiate, use the from_file() or from_input_shape() class methods.
+    """
+
+    @classmethod
+    def from_input_shape(
+        cls,
+        input_shape: Pytree,
+        rng: np.random.Generator,
+        network: nn.Module = None,
+    ) -> Discriminator:
+        """
+        Build a discriminator neural network with the given input shape.
+
+        :param input_shape:
+            The shape of the input data for the network. This is a dictionary
+            that maps a label to a feature array. Each feature array has shape
+            (n, m, c), where
+            n >= 2 is the number of (pseudo)haplotypes,
+            m >= 4 is the length of the (pseudo)haplotypes,
+            and c <= 4 is the number of channels.
+        :param numpy.random.Generator rng:
+            The numpy random number generator.
+        :param network:
+            A flax neural network.
+            If not specified, an exchangeable CNN will be used.
+        """
+        if network is None:
+            network = ExchangeableCNN()
+
+        # Sanity checks.
+        if not jax.tree_util.tree_all(
+            jax.tree_map(
+                lambda x: np.shape(x) == (3,) and x[0] >= 2 and x[1] >= 4 and x[2] <= 4,
+                input_shape,
+                is_leaf=lambda x: isinstance(x, tuple),
+            )
+        ):
+            raise ValueError(
+                "Input features must each have shape (n, m, c), where "
+                "n >= 2 is the number of (pseudo)haplotypes, "
+                "m >= 4 is the length of the (pseudo)haplotypes, "
+                "and c <= 4 is the number of channels.\n"
+                f"input_shape={input_shape}"
+            )
+
+        return super().from_input_shape(input_shape, rng, network)
 
     def fit(
         self,
@@ -534,3 +566,208 @@ def _predict_batch(batch, variables, apply_func):
     """Make predictions on a batch."""
     logits = apply_func(variables, batch["input"], train=False)
     return jax.nn.sigmoid(logits)
+
+
+##
+# Surrogate network stuff.
+
+
+class SurrogateMLP(nn.Module):
+    layers: Sequence[int] = (64, 64, 32)
+
+    @nn.compact
+    def __call__(self, inputs, *, train: bool):  # type: ignore[override]
+        num_params = inputs.shape[-1]
+        x = inputs
+        x = nn.BatchNorm(use_running_average=not train)(x)
+        for i, size in enumerate(self.layers):
+            if i == 0:
+                # Expand capacity of first layer according to input size.
+                size *= num_params
+            x = nn.Dense(size)(x)
+            x = nn.gelu(x)
+        x = nn.Dense(2)(x)
+        x = EPSILON + jax.nn.softplus(x)
+        alpha, beta = x[..., 0], x[..., 1]
+        return alpha, beta
+
+
+@dataclasses.dataclass
+class Surrogate(Network):
+    """
+    A surrogate network for the beta-estimation model of ALFI.
+
+    This network predicts the output of the discriminator network
+    from a set of dinf model parameters, thus bypassing the generator.
+    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
+
+    To instantiate, use the from_file() or from_input_shape() class methods.
+    """
+
+    @classmethod
+    def from_input_shape(
+        cls,
+        input_shape: int,
+        rng: np.random.Generator,
+        network: nn.Module = None,
+    ) -> Surrogate:
+        """
+        Build a surrogate neural network with the given input shape.
+
+        :param input_shape:
+            The shape of the input data for the network.
+        :param numpy.random.Generator rng:
+            The numpy random number generator.
+        :param network:
+            A neural network. If not specified, a simple MLP will be used.
+        """
+        if network is None:
+            network = SurrogateMLP()
+        key = jax.random.PRNGKey(rng.integers(2**63))
+
+        assert input_shape >= 1
+
+        # Add leading batch dimension.
+        input_shape2 = (1, input_shape)
+        dummy_input = jnp.zeros(input_shape2)
+
+        @jax.jit
+        def init(*args):
+            return network.init(*args, train=False)
+
+        variables = init(key, dummy_input)
+        return cls(network=network, variables=variables, input_shape=input_shape2)
+
+    def fit(
+        self,
+        *,
+        train_x,
+        train_y,
+        val_x=None,
+        val_y=None,
+        batch_size: int = 64,
+        epochs: int = 1,
+    ):
+        state = self.state
+        if state is None:
+            state = TrainState.create(
+                apply_fn=self.network.apply,
+                tx=optax.adam(learning_rate=0.001),
+                params=self.variables["params"],
+                batch_stats=self.variables.get("batch_stats", {}),
+            )
+
+        # The density of labels is not uniform over [0, 1], so we weight the
+        # loss for each instance by the inverse density at that point.
+        # Yang et al. 2021, https://arxiv.org/abs/2102.09554
+        def weights(p, bandwidth=0.2, num_points=100):
+            """
+            Get the inverse of the density (Gaussian KDE) at points p.
+            """
+            kde = scipy.stats.gaussian_kde(p, bandwidth)
+            x = np.linspace(0, 1, num_points)
+            density = kde(x)
+            weights = 1.0 / np.interp(p, x, density)
+            weights = np.sqrt(weights)
+            return weights
+
+        do_eval = val_x is not None
+        train_ds = dict(input=train_x, output=train_y, weights=weights(train_y))
+        if do_eval:
+            test_ds = dict(input=val_x, output=val_y, weights=weights(val_y))
+
+        for epoch in range(epochs):
+            loss_sum = 0
+            n = 0
+            for batch in batchify(train_ds, batch_size):
+                state, loss = _train_step_surrogate(state, batch)
+                loss_sum += loss
+                n += 1
+            train_loss = loss_sum / n
+
+            if do_eval:
+                n = 0
+                loss_sum = 0
+                for batch in batchify(test_ds, batch_size):
+                    loss_sum += _train_step_surrogate(state, batch, update=False)
+                    n += 1
+                test_loss = loss_sum / n
+
+            print(f"Surrogate train loss {train_loss:.4f}", end="")
+            if do_eval:
+                print(f"; test loss {test_loss:.4f}", end="")
+            if epoch < epochs - 1:
+                print(end="\r")
+            else:
+                print()
+
+        assert state is not None
+        self.state = state
+        self.trained = True
+        self.variables = jax.tree_map(
+            np.array,
+            dict(
+                params=jax.device_get(state.params),
+                batch_stats=jax.device_get(state.batch_stats),
+            ),
+        )
+
+    def predict(self, x, *, batch_size: int = 1024) -> np.ndarray:
+        if not self.trained:
+            raise ValueError(
+                "Cannot make predications as the network has not been trained."
+            )
+        dataset = dict(input=x)
+        y = []
+        for batch in batchify(dataset, batch_size):
+            y.append(
+                _predict_batch_surrogate(batch, self.variables, self.network.apply)
+            )
+        return np.concatenate(y, axis=1)
+
+
+def beta_loss(*, alpha, beta, y):
+    y = jnp.where(y < EPSILON, EPSILON, y)
+    y = jnp.where(y > 1 - EPSILON, 1 - EPSILON, y)
+    loss = -jax.scipy.stats.beta.logpdf(y, alpha, beta)
+    return loss
+
+
+# TODO: The beta distribution seems unnecessary. Try this?
+# def l2_loss(*, alpha, beta, y):
+#    p = alpha / (alpha + beta)
+#    loss = jnp.linalg.norm(p - y, axis=-1)
+#    return loss
+
+
+@functools.partial(jax.jit, static_argnums=(2,))
+def _train_step_surrogate(state, batch, update=True):
+    """Train for a single step."""
+
+    def loss_fn(params):
+        (alpha, beta), new_state = state.apply_fn(
+            dict(params=params, batch_stats=state.batch_stats),
+            batch["input"],
+            mutable=["batch_stats"] if update else [],
+            train=update,
+        )
+        loss = jnp.mean(
+            batch["weights"] * beta_loss(alpha=alpha, beta=beta, y=batch["output"])
+        )
+        return loss, new_state
+
+    if update:
+        grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
+        (loss, new_state), grads = grad_fn(state.params)
+        state = state.apply_gradients(grads=grads, batch_stats=new_state["batch_stats"])
+        return state, loss
+    else:
+        loss, _ = loss_fn(state.params)
+        return loss
+
+
+@functools.partial(jax.jit, static_argnums=(2,))
+def _predict_batch_surrogate(batch, variables, apply_func):
+    """Make predictions on a batch."""
+    alpha, beta = apply_func(variables, batch["input"], train=False)
+    return alpha, beta
