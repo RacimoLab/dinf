@@ -271,6 +271,7 @@ def _train_discriminator(
     epochs: int,
     parallelism: int,
     rng: np.random.Generator,
+    entropy_regularisation: bool = False,
 ):
     train_x, train_y, train_x_generator = _generate_training_data(
         target=genobuilder.target_func,
@@ -300,6 +301,7 @@ def _train_discriminator(
         reset_metrics=True,
         # TODO
         # tensorboard_log_dir=working_directory / "tensorboard" / "fit",
+        entropy_regularisation=entropy_regularisation,
     )
 
     return metrics, train_x_generator, val_x_generator
@@ -1202,6 +1204,8 @@ def pg_gan(
                 epochs=epochs,
                 parallelism=parallelism,
                 rng=rng,
+                # XXX: Is this helpful?
+                entropy_regularisation=True,
             )
             n_target_calls += num_replicates
             n_generator_calls += num_replicates
