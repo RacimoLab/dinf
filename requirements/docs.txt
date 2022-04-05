@@ -1,2 +1,2 @@
-jupyter-book==0.12.2
+jupyter-book==0.12.3
 sphinxcontrib-programoutput==0.17
