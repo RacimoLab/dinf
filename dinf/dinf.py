@@ -370,6 +370,38 @@ def train(
 
 
 @cleanup_process_pool_afterwards
+def predict(
+    *,
+    discriminator: Discriminator,
+    genobuilder: Genobuilder,
+    replicates: int,
+    parallelism: None | int = None,
+    rng: np.random.Generator,
+):
+    if parallelism is None:
+        parallelism = cast(int, os.cpu_count())
+
+    _process_pool_init(parallelism, genobuilder)
+
+    thetas = genobuilder.parameters.draw_prior(num_replicates=replicates, rng=rng)
+    x = _generate_data(
+        generator=genobuilder.generator_func,
+        thetas=thetas,
+        parallelism=parallelism,
+        rng=rng,
+    )
+    y = discriminator.predict(x)
+    with np.errstate(divide="ignore"):
+        log_y = np.log(y)
+
+    dataset = az.from_dict(
+        posterior={p: thetas[..., j] for j, p in enumerate(genobuilder.parameters)},
+        sample_stats={"lp": log_y},
+    )
+    return dataset
+
+
+@cleanup_process_pool_afterwards
 def mcmc_gan(
     *,
     genobuilder: Genobuilder,

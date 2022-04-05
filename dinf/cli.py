@@ -3,9 +3,31 @@ import argparse
 import pathlib
 import textwrap
 
+import arviz as az
 import numpy as np
 
 import dinf
+
+
+def check_output_file(path):
+    """
+    Check the file is writable and doesn't already exist.
+
+    We do this check to ensure the user doesn't spend a lot of compute
+    time on simulations, etc., only to find their results couldn't be
+    saved due to trivial problems like a typo in the filename.
+
+    Writing to the file could fail for lots of reasons, e.g. permission
+    denied, path is a directory, parent directory doesn't exist, etc.
+    Checking each of the possibilities is not practical, so we just
+    try writing to the file. Other problems could occur later when writing
+    data to the file, such as a full disk, or network filesystem
+    inaccessibility, but we should catch the most common problems early.
+    """
+    if path.exists():
+        raise ValueError(f"{path}: output file already exists, refusing to overwrite")
+    path.touch()
+    path.unlink()
 
 
 def _add_common_parser_group(parser):
@@ -371,7 +393,7 @@ class Train:
     def __call__(self, args: argparse.Namespace):
         rng = np.random.default_rng(args.seed)
         genobuilder = dinf.Genobuilder._from_file(args.genob_model)
-        self.check_output_file(args.discriminator_file)
+        check_output_file(args.discriminator_file)
         discriminator = dinf.train(
             genobuilder=genobuilder,
             training_replicates=args.training_replicates,
@@ -382,27 +404,71 @@ class Train:
         )
         discriminator.to_file(args.discriminator_file)
 
-    def check_output_file(self, path):
-        """
-        Check the file is writable and doesn't already exist.
 
-        We do this check to ensure the user doesn't spend a lot of compute
-        time on simulations, etc., only to find their results couldn't be
-        saved due to trivial problems like a typo in the filename.
+class Predict:
+    """
+    Predict.
+    """
 
-        Writing to the file could fail for lots of reasons, e.g. permission
-        denied, path is a directory, parent directory doesn't exist, etc.
-        Checking each of the possibilities is not practical, so we just
-        try writing to the file. Other problems could occur later when writing
-        data to the file, such as a full disk, or network filesystem
-        inaccessibility, but we should catch the most common problems early.
-        """
-        if path.exists():
-            raise ValueError(
-                f"{path}: output file already exists, refusing to overwrite"
-            )
-        path.touch()
-        path.unlink()
+    def __init__(self, subparsers):
+        parser = subparsers.add_parser(
+            "predict",
+            help="Predict",
+            description=textwrap.dedent(self.__doc__),
+            formatter_class=ADRDFormatter,
+        )
+        parser.set_defaults(func=self)
+
+        _add_common_parser_group(parser)
+
+        group = parser.add_argument_group(title="predict arguments")
+        group.add_argument(
+            "-r",
+            "--replicates",
+            type=int,
+            default=1_000_000,
+            help=(
+                "Number of theta replicates to generate and predict with "
+                "the discriminator. "
+            ),
+        )
+
+        group = parser.add_argument_group()
+        group.add_argument(
+            "genob_model",
+            metavar="user_model.py",
+            type=pathlib.Path,
+            help=_GENOB_MODEL_HELP,
+        )
+        group.add_argument(
+            "discriminator_file",
+            metavar="discriminator.pkl",
+            type=pathlib.Path,
+            help="Discriminator to use for predictions.",
+        )
+        group.add_argument(
+            "output_file",
+            metavar="output.ncf",
+            type=pathlib.Path,
+            help=(
+                "Output data, matching thetas to discriminator predictions"
+                "(in Arviz netcdf format)."
+            ),
+        )
+
+    def __call__(self, args: argparse.Namespace):
+        rng = np.random.default_rng(args.seed)
+        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
+        discriminator = dinf.Discriminator.from_file(args.discriminator_file)
+        check_output_file(args.output_file)
+        dataset = dinf.predict(
+            discriminator=discriminator,
+            genobuilder=genobuilder,
+            replicates=args.replicates,
+            parallelism=args.parallelism,
+            rng=rng,
+        )
+        az.to_netcdf(dataset, args.output_file)
 
 
 class Check:
@@ -447,6 +513,7 @@ def main(args_list=None):
     McmcGan(subparsers)
     PgGan(subparsers)
 
+    Predict(subparsers)
     Train(subparsers)
 
     args = top_parser.parse_args(args_list)
