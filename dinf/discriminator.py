@@ -383,7 +383,7 @@ class Discriminator(Network):
             t_prev = time.time()
             for batch in batchify(train_ds, batch_size):
                 state, batch_metrics = _train_step(state, batch)
-                actual_batch_size = len(batch["input"])
+                actual_batch_size = leading_dim_size(batch["input"])
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
                 )
@@ -401,7 +401,7 @@ class Discriminator(Network):
             n = 0
             for batch in batchify(test_ds, batch_size):
                 batch_metrics = _eval_step(state, batch)
-                actual_batch_size = len(batch["input"])
+                actual_batch_size = leading_dim_size(batch["input"])
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
                 )

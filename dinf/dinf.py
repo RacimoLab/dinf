@@ -60,7 +60,7 @@ def cleanup_process_pool_afterwards(func):
         global _pool
         terminate = False
         try:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         except KeyboardInterrupt:
             terminate = True
             raise
@@ -331,6 +331,42 @@ def _train_surrogate(
 
     alpha, beta = surrogate.predict(training_thetas)
     return train_y_pred, alpha, beta
+
+
+@cleanup_process_pool_afterwards
+def train(
+    *,
+    genobuilder: Genobuilder,
+    training_replicates: int,
+    test_replicates: int,
+    epochs: int,
+    parallelism: None | int = None,
+    rng: np.random.Generator,
+):
+    if parallelism is None:
+        parallelism = cast(int, os.cpu_count())
+
+    _process_pool_init(parallelism, genobuilder)
+
+    discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+    # print(discriminator.summary())
+
+    training_thetas = genobuilder.parameters.draw_prior(
+        num_replicates=training_replicates // 2, rng=rng
+    )
+    test_thetas = genobuilder.parameters.draw_prior(
+        num_replicates=test_replicates // 2, rng=rng
+    )
+    _train_discriminator(
+        discriminator=discriminator,
+        genobuilder=genobuilder,
+        training_thetas=training_thetas,
+        test_thetas=test_thetas,
+        epochs=epochs,
+        parallelism=parallelism,
+        rng=rng,
+    )
+    return discriminator
 
 
 @cleanup_process_pool_afterwards
