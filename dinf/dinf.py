@@ -60,7 +60,7 @@ def cleanup_process_pool_afterwards(func):
         global _pool
         terminate = False
         try:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         except KeyboardInterrupt:
             terminate = True
             raise
@@ -271,6 +271,7 @@ def _train_discriminator(
     epochs: int,
     parallelism: int,
     rng: np.random.Generator,
+    entropy_regularisation: bool = False,
 ):
     train_x, train_y, train_x_generator = _generate_training_data(
         target=genobuilder.target_func,
@@ -300,6 +301,7 @@ def _train_discriminator(
         reset_metrics=True,
         # TODO
         # tensorboard_log_dir=working_directory / "tensorboard" / "fit",
+        entropy_regularisation=entropy_regularisation,
     )
 
     return metrics, train_x_generator, val_x_generator
@@ -334,6 +336,74 @@ def _train_surrogate(
 
 
 @cleanup_process_pool_afterwards
+def train(
+    *,
+    genobuilder: Genobuilder,
+    training_replicates: int,
+    test_replicates: int,
+    epochs: int,
+    parallelism: None | int = None,
+    rng: np.random.Generator,
+):
+    if parallelism is None:
+        parallelism = cast(int, os.cpu_count())
+
+    _process_pool_init(parallelism, genobuilder)
+
+    discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+    # print(discriminator.summary())
+
+    training_thetas = genobuilder.parameters.draw_prior(
+        num_replicates=training_replicates // 2, rng=rng
+    )
+    test_thetas = genobuilder.parameters.draw_prior(
+        num_replicates=test_replicates // 2, rng=rng
+    )
+    _train_discriminator(
+        discriminator=discriminator,
+        genobuilder=genobuilder,
+        training_thetas=training_thetas,
+        test_thetas=test_thetas,
+        epochs=epochs,
+        parallelism=parallelism,
+        rng=rng,
+    )
+    return discriminator
+
+
+@cleanup_process_pool_afterwards
+def predict(
+    *,
+    discriminator: Discriminator,
+    genobuilder: Genobuilder,
+    replicates: int,
+    parallelism: None | int = None,
+    rng: np.random.Generator,
+):
+    if parallelism is None:
+        parallelism = cast(int, os.cpu_count())
+
+    _process_pool_init(parallelism, genobuilder)
+
+    thetas = genobuilder.parameters.draw_prior(num_replicates=replicates, rng=rng)
+    x = _generate_data(
+        generator=genobuilder.generator_func,
+        thetas=thetas,
+        parallelism=parallelism,
+        rng=rng,
+    )
+    y = discriminator.predict(x)
+    with np.errstate(divide="ignore"):
+        log_y = np.log(y)
+
+    dataset = az.from_dict(
+        posterior={p: thetas[..., j] for j, p in enumerate(genobuilder.parameters)},
+        sample_stats={"lp": log_y},
+    )
+    return dataset
+
+
+@cleanup_process_pool_afterwards
 def mcmc_gan(
     *,
     genobuilder: Genobuilder,
@@ -360,7 +430,7 @@ def mcmc_gan(
     In the first iteration, the parameter values given to the generator
     to produce the test/train datasets are drawn from the parameters' prior
     distribution. In subsequent iterations, the parameter values are drawn
-    by sampling with replacement from the previous iteration's MCMC chains.
+    by sampling without replacement from the previous iteration's MCMC chains.
 
     :param genobuilder:
         Genobuilder object that describes the GAN.
@@ -951,9 +1021,9 @@ def pg_gan(
 
          * "rr" (*default*):
            Round-robin proposals. Proposals are generated for one parameter
-           only, keeping the other parameters fixed.  The parameter is
-           chosen by cycling through all parameters in order. Proposals are
-           drawn from a normal distribution with standard deviation:
+           only, keeping the other parameters fixed.  A different parameter is
+           chosen in each iteration, cycling through all parameters in order.
+           Proposals are drawn from a normal distribution with standard deviation:
            temperature × ``proposal_stddev`` × (param.high - param.low).
 
          * "mvn":
@@ -968,8 +1038,9 @@ def pg_gan(
          * "pg-gan":
            Proposals like PG-GAN.
            ``num_proposals`` proposals are generated for each parameter,
-           keeping the other parameters fixed. Proposals are
-           drawn from a normal distribution with standard deviation:
+           keeping the other parameters fixed, thus producing
+           ``num_proposals`` × P total proposals (for P parameters).
+           Proposals are drawn from a normal distribution with standard deviation:
            temperature × ``proposal_stddev`` × (param.high - param.low).
 
     :param max_pretraining_iterations:
@@ -1134,6 +1205,8 @@ def pg_gan(
                 epochs=epochs,
                 parallelism=parallelism,
                 rng=rng,
+                # XXX: Is this helpful?
+                entropy_regularisation=True,
             )
             n_target_calls += num_replicates
             n_generator_calls += num_replicates

@@ -244,7 +244,8 @@ class Discriminator(Network):
     """
     A discriminator network that classifies the origin of feature matrices.
 
-    To instantiate, use the from_file() or from_input_shape() class methods.
+    To instantiate, use the :meth:`from_file()` or :meth:`from_input_shape()`
+    class methods.
     """
 
     @classmethod
@@ -303,6 +304,7 @@ class Discriminator(Network):
         # TODO: tensorboard output
         # tensorboard_log_dir=None,
         reset_metrics: bool = False,
+        entropy_regularisation: bool = False,
     ):
         """
         Fit discriminator to training data.
@@ -382,8 +384,10 @@ class Discriminator(Network):
             n = 0
             t_prev = time.time()
             for batch in batchify(train_ds, batch_size):
-                state, batch_metrics = _train_step(state, batch)
-                actual_batch_size = len(batch["input"])
+                state, batch_metrics = _train_step(
+                    state, batch, entropy_regularisation=entropy_regularisation
+                )
+                actual_batch_size = leading_dim_size(batch["input"])
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
                 )
@@ -401,7 +405,7 @@ class Discriminator(Network):
             n = 0
             for batch in batchify(test_ds, batch_size):
                 batch_metrics = _eval_step(state, batch)
-                actual_batch_size = len(batch["input"])
+                actual_batch_size = leading_dim_size(batch["input"])
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
                 )
@@ -502,8 +506,8 @@ def binary_accuracy(*, logits, labels):
     return jnp.mean(labels == (p > 0.5))
 
 
-@jax.jit
-def _train_step(state, batch):
+@functools.partial(jax.jit, static_argnums=(2,))
+def _train_step(state, batch, entropy_regularisation=False):
     """Train for a single step."""
 
     def loss_fn(params):
@@ -516,21 +520,23 @@ def _train_step(state, batch):
         loss = jnp.mean(
             optax.sigmoid_binary_cross_entropy(logits=logits, labels=batch["output"])
         )
-        # Entropy regularisation such that the network doesn't give up and
-        # predict all ones or all zeros. We weight the regularisation by a
-        # constant, c, according to how balanced the batch labels are.
-        # If the batch labels are all 0 or all 1 we don't do regularisation,
-        # but if there are equal 0 and 1 labels, then we fully apply
-        # the regularisation.
-        # Similar to PG-GAN, but see https://github.com/mathiesonlab/pg-gan/issues/3.
-        logits_entropy = jnp.mean(
-            optax.sigmoid_binary_cross_entropy(
-                logits=logits, labels=jax.nn.sigmoid(logits)
+        if entropy_regularisation:
+            # Entropy regularisation such that the network doesn't give up and
+            # predict all ones or all zeros. We weight the regularisation by a
+            # constant, c, according to how balanced the batch labels are.
+            # If the batch labels are all 0 or all 1 we don't do regularisation,
+            # but if there are equal 0 and 1 labels, then we fully apply
+            # the regularisation.
+            # Similar to PG-GAN, but see
+            #   https://github.com/mathiesonlab/pg-gan/issues/3
+            logits_entropy = jnp.mean(
+                optax.sigmoid_binary_cross_entropy(
+                    logits=logits, labels=jax.nn.sigmoid(logits)
+                )
             )
-        )
-        c = 1.0 - 2 * jnp.abs(0.5 - jnp.mean(batch["output"]))
-        regularisation = 0.01 * c * logits_entropy
-        loss -= regularisation
+            c = 1.0 - 2 * jnp.abs(0.5 - jnp.mean(batch["output"]))
+            regularisation = 0.01 * c * logits_entropy
+            loss -= regularisation
         return loss, (logits, new_model_state)
 
     grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
@@ -601,7 +607,8 @@ class Surrogate(Network):
     from a set of dinf model parameters, thus bypassing the generator.
     Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
 
-    To instantiate, use the from_file() or from_input_shape() class methods.
+    To instantiate, use the :meth:`from_file()` or :meth:`from_input_shape()`
+    class methods.
     """
 
     @classmethod
