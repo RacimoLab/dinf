@@ -8,6 +8,30 @@ import dinf.__main__
 from .test_dinf import check_discriminator, check_ncf
 
 
+@pytest.mark.usefixtures("tmp_path")
+def test_check_output_file(tmp_path):
+    file = tmp_path / "foo"
+    dinf.cli.check_output_file(file)
+    # If it succeeds, it should succeed again.
+    dinf.cli.check_output_file(file)
+
+    file.touch()
+    # The file is not allowed to exist already.
+    with pytest.raises(ValueError, match="file already exists"):
+        dinf.cli.check_output_file(file)
+
+    # Directory. Should raise an error, but we don't care what type.
+    with pytest.raises(Exception):
+        dinf.cli.check_output_file(tmp_path)
+
+    inaccessible_folder = tmp_path / "inaccessible"
+    inaccessible_folder.mkdir()
+    inaccessible_folder.chmod(0o000)
+    # Inacessible. Should raise an error, but we don't care what type.
+    with pytest.raises(Exception):
+        dinf.cli.check_output_file(inaccessible_folder / "foo")
+
+
 class TestTopLevel:
     def test_help(self):
         out1 = subprocess.run(
@@ -75,6 +99,7 @@ class TestAbcGan:
         subprocess.run(
             f"""
             python -m dinf abc-gan
+                --seed 1
                 --parallelism 2
                 --iterations 2
                 --training-replicates 16
@@ -123,6 +148,7 @@ class TestAlfiMcmcGan:
         subprocess.run(
             f"""
             python -m dinf alfi-mcmc-gan
+                --seed 1
                 --parallelism 2
                 --iterations 2
                 --training-replicates 10
@@ -167,6 +193,7 @@ class TestMcmcGan:
         subprocess.run(
             f"""
             python -m dinf mcmc-gan
+                --seed 1
                 --parallelism 2
                 --iterations 2
                 --training-replicates 10
@@ -213,6 +240,7 @@ class TestPgGan:
         subprocess.run(
             f"""
             python -m dinf pg-gan
+                --seed 1
                 --parallelism 2
                 --iterations 2
                 --training-replicates 10
@@ -239,3 +267,92 @@ class TestPgGan:
                 var_names=genobuilder.parameters,
                 check_acceptance_rate=False,
             )
+
+
+class TestTrain:
+    def test_help(self):
+        out1 = subprocess.run(
+            "python -m dinf train -h".split(), check=True, stdout=subprocess.PIPE
+        )
+        out2 = subprocess.run(
+            "python -m dinf train --help".split(), check=True, stdout=subprocess.PIPE
+        )
+        assert out1.stdout == out2.stdout
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_train_example(self, tmp_path):
+        discriminator_file = tmp_path / "discriminator.pkl"
+        ex = "examples/bottleneck/model.py"
+        subprocess.run(
+            f"""
+            python -m dinf train
+                --seed 1
+                --parallelism 2
+                --training-replicates 10
+                --test-replicates 0
+                --epochs 1
+                {ex}
+                {discriminator_file}
+            """.split(),
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        check_discriminator(discriminator_file)
+
+
+class TestPredict:
+    def test_help(self):
+        out1 = subprocess.run(
+            "python -m dinf predict -h".split(), check=True, stdout=subprocess.PIPE
+        )
+        out2 = subprocess.run(
+            "python -m dinf predict --help".split(), check=True, stdout=subprocess.PIPE
+        )
+        assert out1.stdout == out2.stdout
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_preduct_example(self, tmp_path):
+        discriminator_file = tmp_path / "discriminator.pkl"
+        ex = "examples/bottleneck/model.py"
+        subprocess.run(
+            f"""
+            python -m dinf train
+                --seed 1
+                --parallelism 2
+                --training-replicates 10
+                --test-replicates 0
+                --epochs 1
+                {ex}
+                {discriminator_file}
+            """.split(),
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        check_discriminator(discriminator_file)
+
+        output_file = tmp_path / "output.ncf"
+        subprocess.run(
+            f"""
+            python -m dinf predict
+                --seed 1
+                --parallelism 2
+                --replicates 10
+                {ex}
+                {discriminator_file}
+                {output_file}
+            """.split(),
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+        genobuilder = dinf.Genobuilder._from_file(ex)
+        check_ncf(
+            output_file,
+            chains=1,
+            draws=10,
+            var_names=genobuilder.parameters,
+            check_acceptance_rate=False,
+        )
