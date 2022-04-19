@@ -175,7 +175,7 @@ class BagOfVcf(collections.abc.Mapping):
     VCF data are sometimes contained in a single file, and sometimes split into
     multiple files by chromosome. To remove the burden of dealing with both
     of these common cases, this class maps a contig ID to a :class:`cyvcf2.VCF`
-    object for that contig. The interface is provided by via Python's
+    object for that contig. The class implements Python's
     :class:`collections.abc.Mapping` protocol. In addition, the class provides
     methods for sampling regions of the genome at random.
 

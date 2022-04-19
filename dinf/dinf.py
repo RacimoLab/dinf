@@ -430,7 +430,7 @@ def mcmc_gan(
     In the first iteration, the parameter values given to the generator
     to produce the test/train datasets are drawn from the parameters' prior
     distribution. In subsequent iterations, the parameter values are drawn
-    by sampling with replacement from the previous iteration's MCMC chains.
+    by sampling without replacement from the previous iteration's MCMC chains.
 
     :param genobuilder:
         Genobuilder object that describes the GAN.
@@ -1021,9 +1021,9 @@ def pg_gan(
 
          * "rr" (*default*):
            Round-robin proposals. Proposals are generated for one parameter
-           only, keeping the other parameters fixed.  The parameter is
-           chosen by cycling through all parameters in order. Proposals are
-           drawn from a normal distribution with standard deviation:
+           only, keeping the other parameters fixed.  A different parameter is
+           chosen in each iteration, cycling through all parameters in order.
+           Proposals are drawn from a normal distribution with standard deviation:
            temperature × ``proposal_stddev`` × (param.high - param.low).
 
          * "mvn":
@@ -1038,8 +1038,9 @@ def pg_gan(
          * "pg-gan":
            Proposals like PG-GAN.
            ``num_proposals`` proposals are generated for each parameter,
-           keeping the other parameters fixed. Proposals are
-           drawn from a normal distribution with standard deviation:
+           keeping the other parameters fixed, thus producing
+           ``num_proposals`` × P total proposals (for P parameters).
+           Proposals are drawn from a normal distribution with standard deviation:
            temperature × ``proposal_stddev`` × (param.high - param.low).
 
     :param max_pretraining_iterations:

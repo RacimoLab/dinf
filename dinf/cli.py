@@ -451,7 +451,7 @@ class Predict:
             metavar="output.ncf",
             type=pathlib.Path,
             help=(
-                "Output data, matching thetas to discriminator predictions"
+                "Output data, matching thetas to discriminator predictions "
                 "(in Arviz netcdf format)."
             ),
         )

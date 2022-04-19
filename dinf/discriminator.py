@@ -244,7 +244,7 @@ class Discriminator(Network):
     """
     A discriminator network that classifies the origin of feature matrices.
 
-    To instantiate, use the from_file() or from_input_shape() class methods.
+    To instantiate, use the :meth:`from_file()` or :meth:`from_input_shape()` class methods.
     """
 
     @classmethod
@@ -606,7 +606,7 @@ class Surrogate(Network):
     from a set of dinf model parameters, thus bypassing the generator.
     Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
 
-    To instantiate, use the from_file() or from_input_shape() class methods.
+    To instantiate, use the :meth:`from_file()` or :meth:`from_input_shape()` class methods.
     """
 
     @classmethod
