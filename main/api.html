@@ -129,7 +129,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev164
+  dinf 0.1.1.dev171
 </div>
 
 </div>
@@ -596,7 +596,7 @@ count of minor alleles in the <span class="math notranslate nohighlight">\(j\)</
 <p>VCF data are sometimes contained in a single file, and sometimes split into
 multiple files by chromosome. To remove the burden of dealing with both
 of these common cases, this class maps a contig ID to a <a class="reference external" href="http://brentp.github.io/cyvcf2/docstrings.html#cyvcf2.cyvcf2.VCF" title="(in cyvcf2 v0.30.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">cyvcf2.VCF</span></code></a>
-object for that contig. The interface is provided by via Python’s
+object for that contig. The class implements Python’s
 <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Mapping</span></code></a> protocol. In addition, the class provides
 methods for sampling regions of the genome at random.</p>
 <dl class="field-list simple">
@@ -945,7 +945,7 @@ directory will be used.</p></li>
 <p>In the first iteration, the parameter values given to the generator
 to produce the test/train datasets are drawn from the parameters’ prior
 distribution. In subsequent iterations, the parameter values are drawn
-by sampling with replacement from the previous iteration’s MCMC chains.</p>
+by sampling without replacement from the previous iteration’s MCMC chains.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -1029,9 +1029,9 @@ PG-GAN behaviour).</p>
 <div><ul>
 <li><p>”rr” (<em>default</em>):
 Round-robin proposals. Proposals are generated for one parameter
-only, keeping the other parameters fixed.  The parameter is
-chosen by cycling through all parameters in order. Proposals are
-drawn from a normal distribution with standard deviation:
+only, keeping the other parameters fixed.  A different parameter is
+chosen in each iteration, cycling through all parameters in order.
+Proposals are drawn from a normal distribution with standard deviation:
 temperature × <code class="docutils literal notranslate"><span class="pre">proposal_stddev</span></code> × (param.high - param.low).</p></li>
 <li><p>”mvn”:
 Multivariate-normal proposals.
@@ -1044,8 +1044,9 @@ are set to zero.</p></li>
 <li><p>”pg-gan”:
 Proposals like PG-GAN.
 <code class="docutils literal notranslate"><span class="pre">num_proposals</span></code> proposals are generated for each parameter,
-keeping the other parameters fixed. Proposals are
-drawn from a normal distribution with standard deviation:
+keeping the other parameters fixed, thus producing
+<code class="docutils literal notranslate"><span class="pre">num_proposals</span></code> × P total proposals (for P parameters).
+Proposals are drawn from a normal distribution with standard deviation:
 temperature × <code class="docutils literal notranslate"><span class="pre">proposal_stddev</span></code> × (param.high - param.low).</p></li>
 </ul>
 </div></blockquote>
@@ -1069,7 +1070,8 @@ directory will be used.</p></li>
 <dt class="sig sig-object py" id="dinf.Discriminator">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">Discriminator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trained</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator" title="Permalink to this definition">¶</a></dt>
 <dd><p>A discriminator network that classifies the origin of feature matrices.</p>
-<p>To instantiate, use the from_file() or from_input_shape() class methods.</p>
+<p>To instantiate, use the <code class="xref py py-meth docutils literal notranslate"><span class="pre">from_file()</span></code> or <a class="reference internal" href="#dinf.Discriminator.from_input_shape" title="dinf.Discriminator.from_input_shape"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_input_shape()</span></code></a>
+class methods.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -1112,7 +1114,7 @@ If not specified, an exchangeable CNN will be used.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.fit" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entropy_regularisation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.fit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fit discriminator to training data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1126,6 +1128,7 @@ If not specified, an exchangeable CNN will be used.</p></li>
 <li><p><strong>reset_metrics</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If true, remove loss/accuracy metrics from previous calls to
 fit() (if any). If false, loss/accuracy metrics will be appended
 to the existing metrics.</p></li>
+<li><p><strong>entropy_regularisation</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – </p></li>
 </ul>
 </dd>
 </dl>
@@ -1160,7 +1163,8 @@ to the existing metrics.</p></li>
 <p>This network predicts the output of the discriminator network
 from a set of dinf model parameters, thus bypassing the generator.
 Kim et al. 2020, <a class="reference external" href="https://arxiv.org/abs/2004.05803v1">https://arxiv.org/abs/2004.05803v1</a></p>
-<p>To instantiate, use the from_file() or from_input_shape() class methods.</p>
+<p>To instantiate, use the <code class="xref py py-meth docutils literal notranslate"><span class="pre">from_file()</span></code> or <a class="reference internal" href="#dinf.Surrogate.from_input_shape" title="dinf.Surrogate.from_input_shape"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_input_shape()</span></code></a>
+class methods.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -1293,7 +1297,7 @@ doesn’t exist.</p></li>
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev164+gea56f92
+        dinf 0.1.1.dev171+gdf8fb04
       </div>
   </p>
 </footer>

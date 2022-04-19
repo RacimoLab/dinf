@@ -125,7 +125,7 @@ const thebe_selector_output = ".output, .cell_output"
 </nav> <!-- To handle the deprecated key -->
 
 <div class="navbar_extra_footer">
-  dinf 0.1.1.dev164
+  dinf 0.1.1.dev171
 </div>
 
 </div>
@@ -449,7 +449,8 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A discriminator network that classifies the origin of feature matrices.</span>
 
-<span class="sd">    To instantiate, use the from_file() or from_input_shape() class methods.</span>
+<span class="sd">    To instantiate, use the :meth:`from_file()` or :meth:`from_input_shape()`</span>
+<span class="sd">    class methods.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Discriminator.from_input_shape"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.from_input_shape">[docs]</a>    <span class="nd">@classmethod</span>
@@ -508,6 +509,7 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="c1"># TODO: tensorboard output</span>
         <span class="c1"># tensorboard_log_dir=None,</span>
         <span class="n">reset_metrics</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">entropy_regularisation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fit discriminator to training data.</span>
@@ -587,8 +589,10 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">t_prev</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-                <span class="n">state</span><span class="p">,</span> <span class="n">batch_metrics</span> <span class="o">=</span> <span class="n">_train_step</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
-                <span class="n">actual_batch_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">])</span>
+                <span class="n">state</span><span class="p">,</span> <span class="n">batch_metrics</span> <span class="o">=</span> <span class="n">_train_step</span><span class="p">(</span>
+                    <span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">entropy_regularisation</span><span class="o">=</span><span class="n">entropy_regularisation</span>
+                <span class="p">)</span>
+                <span class="n">actual_batch_size</span> <span class="o">=</span> <span class="n">leading_dim_size</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">])</span>
                 <span class="n">n</span><span class="p">,</span> <span class="n">metrics_sum</span> <span class="o">=</span> <span class="n">running_metrics</span><span class="p">(</span>
                     <span class="n">n</span><span class="p">,</span> <span class="n">actual_batch_size</span><span class="p">,</span> <span class="n">metrics_sum</span><span class="p">,</span> <span class="n">batch_metrics</span>
                 <span class="p">)</span>
@@ -606,7 +610,7 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">test_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
                 <span class="n">batch_metrics</span> <span class="o">=</span> <span class="n">_eval_step</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
-                <span class="n">actual_batch_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">])</span>
+                <span class="n">actual_batch_size</span> <span class="o">=</span> <span class="n">leading_dim_size</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">])</span>
                 <span class="n">n</span><span class="p">,</span> <span class="n">metrics_sum</span> <span class="o">=</span> <span class="n">running_metrics</span><span class="p">(</span>
                     <span class="n">n</span><span class="p">,</span> <span class="n">actual_batch_size</span><span class="p">,</span> <span class="n">metrics_sum</span><span class="p">,</span> <span class="n">batch_metrics</span>
                 <span class="p">)</span>
@@ -707,8 +711,8 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">labels</span> <span class="o">==</span> <span class="p">(</span><span class="n">p</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">))</span>
 
 
-<span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
-<span class="k">def</span> <span class="nf">_train_step</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+<span class="nd">@functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">,</span> <span class="n">static_argnums</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,))</span>
+<span class="k">def</span> <span class="nf">_train_step</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">entropy_regularisation</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Train for a single step.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">loss_fn</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
@@ -721,21 +725,23 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">loss</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
             <span class="n">optax</span><span class="o">.</span><span class="n">sigmoid_binary_cross_entropy</span><span class="p">(</span><span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">])</span>
         <span class="p">)</span>
-        <span class="c1"># Entropy regularisation such that the network doesn&#39;t give up and</span>
-        <span class="c1"># predict all ones or all zeros. We weight the regularisation by a</span>
-        <span class="c1"># constant, c, according to how balanced the batch labels are.</span>
-        <span class="c1"># If the batch labels are all 0 or all 1 we don&#39;t do regularisation,</span>
-        <span class="c1"># but if there are equal 0 and 1 labels, then we fully apply</span>
-        <span class="c1"># the regularisation.</span>
-        <span class="c1"># Similar to PG-GAN, but see https://github.com/mathiesonlab/pg-gan/issues/3.</span>
-        <span class="n">logits_entropy</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
-            <span class="n">optax</span><span class="o">.</span><span class="n">sigmoid_binary_cross_entropy</span><span class="p">(</span>
-                <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">entropy_regularisation</span><span class="p">:</span>
+            <span class="c1"># Entropy regularisation such that the network doesn&#39;t give up and</span>
+            <span class="c1"># predict all ones or all zeros. We weight the regularisation by a</span>
+            <span class="c1"># constant, c, according to how balanced the batch labels are.</span>
+            <span class="c1"># If the batch labels are all 0 or all 1 we don&#39;t do regularisation,</span>
+            <span class="c1"># but if there are equal 0 and 1 labels, then we fully apply</span>
+            <span class="c1"># the regularisation.</span>
+            <span class="c1"># Similar to PG-GAN, but see</span>
+            <span class="c1">#   https://github.com/mathiesonlab/pg-gan/issues/3</span>
+            <span class="n">logits_entropy</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
+                <span class="n">optax</span><span class="o">.</span><span class="n">sigmoid_binary_cross_entropy</span><span class="p">(</span>
+                    <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
+                <span class="p">)</span>
             <span class="p">)</span>
-        <span class="p">)</span>
-        <span class="n">c</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">-</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]))</span>
-        <span class="n">regularisation</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">c</span> <span class="o">*</span> <span class="n">logits_entropy</span>
-        <span class="n">loss</span> <span class="o">-=</span> <span class="n">regularisation</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">-</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]))</span>
+            <span class="n">regularisation</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">c</span> <span class="o">*</span> <span class="n">logits_entropy</span>
+            <span class="n">loss</span> <span class="o">-=</span> <span class="n">regularisation</span>
         <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">new_model_state</span><span class="p">)</span>
 
     <span class="n">grad_fn</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">value_and_grad</span><span class="p">(</span><span class="n">loss_fn</span><span class="p">,</span> <span class="n">has_aux</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -806,7 +812,8 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">    from a set of dinf model parameters, thus bypassing the generator.</span>
 <span class="sd">    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1</span>
 
-<span class="sd">    To instantiate, use the from_file() or from_input_shape() class methods.</span>
+<span class="sd">    To instantiate, use the :meth:`from_file()` or :meth:`from_input_shape()`</span>
+<span class="sd">    class methods.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Surrogate.from_input_shape"><a class="viewcode-back" href="../../api.html#dinf.Surrogate.from_input_shape">[docs]</a>    <span class="nd">@classmethod</span>
@@ -994,7 +1001,7 @@ const thebe_selector_output = ".output, .cell_output"
     
         &copy; Copyright 2021.<br/>
       <div class="extra_footer">
-        dinf 0.1.1.dev164+gea56f92
+        dinf 0.1.1.dev171+gdf8fb04
       </div>
   </p>
 </footer>
