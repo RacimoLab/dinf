@@ -7,4 +7,4 @@ jaxlib==0.3.7
 flax==0.4.1
 optax==0.1.2
 msprime==1.1.1
-demes==0.2.1
+demes==0.2.2
