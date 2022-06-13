@@ -4,7 +4,7 @@ emcee==3.1.2
 numpy==1.22.4
 jax==0.3.13
 jaxlib==0.3.10
-flax==0.4.1
+flax==0.5.1
 optax==0.1.2
 msprime==1.2.0
 demes==0.2.2
