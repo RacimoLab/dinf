@@ -76,6 +76,8 @@ class HaplotypeMatrix:
             Array with shape ``(num_haplotypes, num_snps, 2)``.
             For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
             genotype of haplotype :math:`i` at the :math:`j`'th site.
+            The :math:`M[i][j][1]`'th entry is the number of basepairs
+            between sites :math:`j` and :math:`j-1`.
         """
         assert len(G) == len(positions)
         _G_sites, G_haplotypes = G.shape
@@ -144,13 +146,15 @@ class HaplotypeMatrix:
 
     def from_ts(self, ts: tskit.TreeSequence) -> np.ndarray:
         """
-        Create a pseudo-genotype matrix from a tree sequence.
+        Create a genotype matrix from a tree sequence.
 
         :param ts: The tree sequence.
         :return:
-            Array with shape ``(num_pseudo_haplotypes, num_snps, 2)``.
+            Array with shape ``(num_haplotypes, num_snps, 2)``.
             For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
             genotype of haplotype :math:`i` at the :math:`j`'th site.
+            The :math:`M[i][j][1]`'th entry is the number of basepairs
+            between sites :math:`j` and :math:`j-1`.
         """
         if ts.num_samples != self._num_haplotypes:
             raise ValueError(
@@ -172,7 +176,7 @@ class HaplotypeMatrix:
         rng: np.random.Generator,
     ) -> np.ndarray:
         """
-        Create a pseudo-genotype matrix from a region of a VCF/BCF.
+        Create a genotype matrix from a region of a VCF/BCF.
 
         The genomic window is drawn uniformly at random from the sequences
         defined in the given :class:`BagOfVcf`.
@@ -195,9 +199,11 @@ class HaplotypeMatrix:
         :param numpy.random.Generator rng:
             Numpy random number generator.
         :return:
-            Array with shape ``(num_pseudo_haplotypes, num_snps, 2)``.
+            Array with shape ``(num_haplotypes, num_snps, 2)``.
             For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
             genotype of haplotype :math:`i` at the :math:`j`'th site.
+            The :math:`M[i][j][1]`'th entry is the number of basepairs
+            between sites :math:`j` and :math:`j-1`.
         """
         G, positions = vb.sample_genotype_matrix(
             sequence_length=sequence_length,

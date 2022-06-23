@@ -181,6 +181,48 @@ class TestHaplotypeMatrix:
         assert counts[0] > 0
         assert counts[-1] == 0
 
+    @pytest.mark.parametrize("ploidy", [1, 2, 3])
+    def test_from_ts_mismatched_ts(self, ploidy):
+        hm = dinf.HaplotypeMatrix(
+            num_individuals=64,
+            num_snps=1024,
+            maf_thresh=0,
+            ploidy=ploidy,
+        )
+        ts = do_sim(num_individuals=32, ploidy=ploidy, sequence_length=100_000)
+        with pytest.raises(ValueError, match="Expected.*haplotypes"):
+            hm.from_ts(ts)
+
+    @pytest.mark.parametrize("maf_thresh", [-5, 10, np.inf])
+    def test_bad_maf_thresh(self, maf_thresh):
+        with pytest.raises(ValueError):
+            dinf.HaplotypeMatrix(
+                num_individuals=128,
+                num_snps=128,
+                maf_thresh=maf_thresh,
+                ploidy=2,
+            )
+
+    @pytest.mark.parametrize("num_individuals", [0, -5])
+    def test_bad_num_individuals(self, num_individuals):
+        with pytest.raises(ValueError, match="num_individuals"):
+            dinf.HaplotypeMatrix(
+                num_individuals=num_individuals,
+                num_snps=128,
+                maf_thresh=0,
+                ploidy=2,
+            )
+
+    @pytest.mark.parametrize("num_snps", [0, -5])
+    def test_bad_num_snps(self, num_snps):
+        with pytest.raises(ValueError, match="num_snps"):
+            dinf.HaplotypeMatrix(
+                num_individuals=128,
+                num_snps=num_snps,
+                maf_thresh=0,
+                ploidy=2,
+            )
+
     @pytest.mark.parametrize("num_individuals", [31, 64])
     @pytest.mark.parametrize("maf_thresh", [0, 0.05])
     @pytest.mark.parametrize("ploidy", [1, 3])
@@ -238,6 +280,68 @@ class TestHaplotypeMatrix:
         assert Mts.shape == Mvcf.shape
         np.testing.assert_array_equal(Hts, Hvcf)
         np.testing.assert_array_equal(Pts, Pvcf)
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_vcf_insufficient_individuals(self, tmp_path):
+        ploidy = 2
+        create_vcf_dataset(tmp_path, contig_lengths=[100_000], ploidy=ploidy)
+        vb = dinf.BagOfVcf(tmp_path.glob("*.vcf.gz"))
+        num_samples = len(vb["1"].samples)
+
+        hm = dinf.HaplotypeMatrix(
+            num_individuals=num_samples + 1,
+            num_snps=128,
+            maf_thresh=0,
+            ploidy=ploidy,
+        )
+        with pytest.raises(ValueError, match="at least .* individuals in the vcf"):
+            hm.from_vcf(
+                vb,
+                sequence_length=10_000,
+                max_missing_genotypes=0,
+                min_seg_sites=20,
+                rng=np.random.default_rng(123),
+            )
+
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_vcf_mismatched_ploidy(self, tmp_path):
+        demography = msprime.Demography()
+        demography.add_population(name="a", initial_size=10_000)
+        sequence_length = 100_000
+        ts = do_sim(
+            ploidy=None,  # per-sample values are provided
+            sequence_length=sequence_length,
+            demography=demography,
+            samples=[
+                msprime.SampleSet(20, ploidy=1),
+                msprime.SampleSet(20, ploidy=2),
+            ],
+        )
+
+        vcf_path = tmp_path / "1.vcf"
+        with open(vcf_path, "w") as f:
+            ts.write_vcf(
+                f,
+                contig_id="1",
+                position_transform=lambda x: np.floor(x) + 1,
+            )
+        bcftools_index(vcf_path)
+        vb = dinf.BagOfVcf([str(vcf_path) + ".gz"])
+
+        hm = dinf.HaplotypeMatrix(
+            num_individuals=40,
+            num_snps=128,
+            maf_thresh=0,
+            ploidy=2,
+        )
+        with pytest.raises(ValueError, match="Mismatched ploidy"):
+            hm.from_vcf(
+                vb,
+                sequence_length=sequence_length,
+                max_missing_genotypes=0,
+                min_seg_sites=1,
+                rng=np.random.default_rng(123),
+            )
 
 
 def _binned_haplotype_matrix_from_ts(
