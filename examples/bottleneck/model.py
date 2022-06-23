@@ -53,7 +53,7 @@ def generator(seed, *, N0, N1):
     )
     ts = msprime.sim_mutations(ts, rate=mutation_rate, random_seed=seed2)
 
-    feature_matrix = bh_matrix.from_ts(ts, rng=rng)
+    feature_matrix = bh_matrix.from_ts(ts)
     return feature_matrix
 
 

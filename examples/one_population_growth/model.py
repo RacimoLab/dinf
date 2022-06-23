@@ -72,7 +72,7 @@ def generator(seed, **theta):
     )
     ts = msprime.sim_mutations(ts, rate=mutation_rate, random_seed=seed2)
 
-    feature_matrix = features.from_ts(ts, rng=rng)
+    feature_matrix = features.from_ts(ts)
     return feature_matrix
 
 

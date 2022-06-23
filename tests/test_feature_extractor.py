@@ -246,7 +246,6 @@ def _binned_haplotype_matrix_from_ts(
     num_samples: int,
     num_bins: int,
     maf_thresh: int,
-    rng: np.random.Generator,
 ) -> np.ndarray:
     """
     Non-vector implementation of BinnedHaplotypeMatrix.from_ts().
@@ -261,10 +260,10 @@ def _binned_haplotype_matrix_from_ts(
     allele_count_threshold = max(1, maf_thresh * num_samples)
 
     M = np.zeros((num_samples, num_bins, 1), dtype=np.int32)
-    randbits = rng.random(ts.num_sites)
 
     for k, variant in enumerate(ts.variants()):
-        genotypes = variant.genotypes
+        # Copy genotypes as they're read only.
+        genotypes = np.copy(variant.genotypes)
         ignore = np.logical_or(genotypes < 0, genotypes > 1)
         # Filter by MAF
         ac1 = np.sum(genotypes == 1)
@@ -273,8 +272,7 @@ def _binned_haplotype_matrix_from_ts(
             continue
 
         # Polarise 0 and 1 in genotype matrix by major allele frequency.
-        # If allele counts are the same, randomly choose a major allele.
-        if ac1 > ac0 or (ac1 == ac0 and randbits[k] > 0.5):
+        if ac1 > ac0:
             genotypes ^= 1
 
         genotypes[ignore] = 0
@@ -307,24 +305,17 @@ class TestBinnedHaplotypeMatrix:
             phased=True,
         )
         assert bhm.shape == (num_haplotypes, num_bins, 1)
-        rng = np.random.default_rng(1234)
-        M = bhm.from_ts(ts, rng=rng)
+        M = bhm.from_ts(ts)
         assert M.shape == (num_haplotypes, num_bins, 1)
         # ref implementation
-        rng = np.random.default_rng(1234)
         M_ref = _binned_haplotype_matrix_from_ts(
-            ts, num_samples=num_haplotypes, num_bins=num_bins, maf_thresh=0, rng=rng
+            ts, num_samples=num_haplotypes, num_bins=num_bins, maf_thresh=0
         )
         np.testing.assert_array_equal(M, M_ref)
 
+    @pytest.mark.parametrize("num_individuals", [31, 64])
     @pytest.mark.parametrize("ploidy", [1, 3])
-    def test_from_ts_num_bins_extrema(self, ploidy):
-        # from_ts() encodes the minor allele as 1, where the minor allele is
-        # the allele with frequency < 0.5. When the frequency is exactly 0.5,
-        # the minor allele is chosen with a random number. This is awkward
-        # for testing. So to get determinstic behaviour here, we make
-        # num_haplotypes odd which avoids a frequency of 0.5.
-        num_individuals = 101
+    def test_from_ts_num_bins_extrema(self, ploidy, num_individuals):
         num_haplotypes = ploidy * num_individuals
         sequence_length = 100_000
         ts = do_sim(
@@ -348,14 +339,12 @@ class TestBinnedHaplotypeMatrix:
             ploidy=ploidy,
             phased=True,
         )
-        rng = np.random.default_rng(1234)
-        M = bhm.from_ts(ts, rng=rng)
+        M = bhm.from_ts(ts)
         assert M.shape == (num_haplotypes, 1, 1)
         np.testing.assert_array_equal(M[..., 0], np.sum(G, axis=1, keepdims=True))
         # ref implementation
-        rng = np.random.default_rng(1234)
         M_ref = _binned_haplotype_matrix_from_ts(
-            ts, num_samples=num_haplotypes, num_bins=1, maf_thresh=0, rng=rng
+            ts, num_samples=num_haplotypes, num_bins=1, maf_thresh=0
         )
         np.testing.assert_array_equal(M, M_ref)
 
@@ -367,19 +356,13 @@ class TestBinnedHaplotypeMatrix:
             ploidy=ploidy,
             phased=True,
         )
-        rng = np.random.default_rng(1234)
-        M = bhm.from_ts(ts, rng=rng)
+        M = bhm.from_ts(ts)
         has_variant = np.where(np.sum(M, axis=0) > 0)[0]
         assert len(has_variant) == ts.num_sites
         np.testing.assert_array_equal(M[:, has_variant, 0], G)
         # ref implementation
-        rng = np.random.default_rng(1234)
         M_ref = _binned_haplotype_matrix_from_ts(
-            ts,
-            num_samples=num_haplotypes,
-            num_bins=sequence_length,
-            maf_thresh=0,
-            rng=rng,
+            ts, num_samples=num_haplotypes, num_bins=sequence_length, maf_thresh=0
         )
         np.testing.assert_array_equal(M, M_ref)
 
@@ -402,8 +385,7 @@ class TestBinnedHaplotypeMatrix:
             ploidy=ploidy,
             phased=True,
         )
-        rng = np.random.default_rng(1234)
-        M = bhm.from_ts(ts, rng=rng)
+        M = bhm.from_ts(ts)
         assert M.sum() == 0
 
     @pytest.mark.parametrize("ploidy", [1, 2, 3])
@@ -416,7 +398,6 @@ class TestBinnedHaplotypeMatrix:
         thresholds = [0, 0.01, 0.05, 0.1, 1]
         M_list = []
         for maf_thresh in thresholds:
-            rng = np.random.default_rng(1234)
             bhm = dinf.BinnedHaplotypeMatrix(
                 num_individuals=num_individuals,
                 num_bins=64,
@@ -424,16 +405,11 @@ class TestBinnedHaplotypeMatrix:
                 ploidy=ploidy,
                 phased=True,
             )
-            M = bhm.from_ts(ts, rng=rng)
+            M = bhm.from_ts(ts)
             M_list.append(M)
             # ref implementation
-            rng = np.random.default_rng(1234)
             M_ref = _binned_haplotype_matrix_from_ts(
-                ts,
-                num_samples=num_haplotypes,
-                num_bins=64,
-                maf_thresh=maf_thresh,
-                rng=rng,
+                ts, num_samples=num_haplotypes, num_bins=64, maf_thresh=maf_thresh
             )
             np.testing.assert_array_equal(M, M_ref)
 
@@ -452,13 +428,12 @@ class TestBinnedHaplotypeMatrix:
             ploidy=ploidy,
             phased=True,
         )
-        rng = np.random.default_rng(1234)
         ts = do_sim(num_individuals=32, ploidy=ploidy, sequence_length=100_000)
         with pytest.raises(ValueError, match="Expected.*haplotypes"):
-            bhm.from_ts(ts, rng=rng)
+            bhm.from_ts(ts)
         ts = do_sim(num_individuals=64, ploidy=ploidy, sequence_length=100)
         with pytest.raises(ValueError, match="Sequence length"):
-            bhm.from_ts(ts, rng=rng)
+            bhm.from_ts(ts)
 
     @pytest.mark.parametrize("maf_thresh", [-5, 10, np.inf])
     def test_bad_maf_thresh(self, maf_thresh):
@@ -523,13 +498,11 @@ class TestBinnedHaplotypeMatrix:
                 dtype=dtype,
             )
 
+    @pytest.mark.parametrize("num_individuals", [31, 64])
     @pytest.mark.parametrize("phased", [True, False])
     @pytest.mark.parametrize("ploidy", [1, 3])
     @pytest.mark.usefixtures("tmp_path")
-    def test_from_vcf(self, tmp_path, ploidy, phased):
-        # Use an odd number of haplotypes to get deterministic behaviour.
-        num_individuals = 31
-        assert (num_individuals * ploidy) % 2 != 0
+    def test_from_vcf(self, tmp_path, ploidy, phased, num_individuals):
         num_bins = 8
         sequence_length = 100_000
         bhm = dinf.BinnedHaplotypeMatrix(
@@ -544,7 +517,7 @@ class TestBinnedHaplotypeMatrix:
             ploidy=ploidy,
             sequence_length=sequence_length,
         )
-        Mts = bhm.from_ts(ts, rng=np.random.default_rng(1234))
+        Mts = bhm.from_ts(ts)
 
         Gts = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
         ac0 = np.sum(Gts == 0, axis=1)
@@ -766,8 +739,7 @@ class TestMultipleBinnedHaplotypeMatrices:
             global_maf_thresh=0,
         )
 
-        rng = np.random.default_rng(1234)
-        features = feature_extractor.from_ts(ts, rng=rng, individuals=individuals)
+        features = feature_extractor.from_ts(ts, individuals=individuals)
         assert dinf.misc.tree_equal(
             feature_extractor.shape, dinf.misc.tree_shape(features)
         )
@@ -797,8 +769,7 @@ class TestMultipleBinnedHaplotypeMatrices:
             global_maf_thresh=0,
         )
 
-        rng = np.random.default_rng(1234)
-        features = feature_extractor.from_ts(ts, rng=rng, individuals=individuals)
+        features = feature_extractor.from_ts(ts, individuals=individuals)
         for M in jax.tree_leaves(features):
             assert M.sum() == 0
 
@@ -827,11 +798,10 @@ class TestMultipleBinnedHaplotypeMatrices:
             global_maf_thresh=0,
         )
 
-        rng = np.random.default_rng(1234)
         with pytest.raises(
             ValueError, match="Labels of individuals.*don't match feature labels"
         ):
-            feature_extractor.from_ts(ts, rng=rng, individuals=individuals)
+            feature_extractor.from_ts(ts, individuals=individuals)
 
     def test_from_ts_sequence_length_too_short(self):
         ploidy = 2
@@ -857,11 +827,10 @@ class TestMultipleBinnedHaplotypeMatrices:
             global_maf_thresh=0,
         )
 
-        rng = np.random.default_rng(1234)
         with pytest.raises(
             ValueError, match="sequence length.*is shorter than the number of bins"
         ):
-            feature_extractor.from_ts(ts, rng=rng, individuals=individuals)
+            feature_extractor.from_ts(ts, individuals=individuals)
 
     def test_from_ts_bad_number_of_individuals(self):
         ploidy = 2
@@ -887,9 +856,8 @@ class TestMultipleBinnedHaplotypeMatrices:
             global_maf_thresh=0,
         )
 
-        rng = np.random.default_rng(1234)
         with pytest.raises(ValueError, match="expected.*individuals, but got"):
-            feature_extractor.from_ts(ts, rng=rng, individuals=individuals)
+            feature_extractor.from_ts(ts, individuals=individuals)
 
     def test_from_ts_mismatched_ploidy(self):
         ploidy = 2
@@ -915,15 +883,13 @@ class TestMultipleBinnedHaplotypeMatrices:
             global_maf_thresh=0,
         )
 
-        rng = np.random.default_rng(1234)
         with pytest.raises(ValueError, match="not all individuals have ploidy"):
-            feature_extractor.from_ts(ts, rng=rng, individuals=individuals)
+            feature_extractor.from_ts(ts, individuals=individuals)
 
     @pytest.mark.parametrize("global_maf_thresh", [0, 0.05])
     @pytest.mark.parametrize("global_phased", [True, False])
     @pytest.mark.usefixtures("tmp_path")
     def test_from_vcf(self, tmp_path, global_phased, global_maf_thresh):
-        # Use an odd number of haplotypes to get deterministic behaviour.
         num_individuals = {"b": 31, "c": 9}
         ploidy = {"b": 1, "c": 3}
         assert all(
@@ -950,9 +916,7 @@ class TestMultipleBinnedHaplotypeMatrices:
             global_phased=global_phased,
             global_maf_thresh=global_maf_thresh,
         )
-        ts_features = feature_extractor.from_ts(
-            ts, rng=np.random.default_rng(1234), individuals=individuals
-        )
+        ts_features = feature_extractor.from_ts(ts, individuals=individuals)
         assert dinf.misc.tree_equal(
             feature_extractor.shape, dinf.misc.tree_shape(ts_features)
         )

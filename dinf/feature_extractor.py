@@ -238,8 +238,7 @@ class BinnedHaplotypeMatrix:
     Only polymorphic SNPs are considered, and for multiallelic sites,
     only the first two alleles are used.
     Alleles are polarised by choosing the most frequent allele to be encoded
-    as 0, and the other allele as 1. In the event that both alleles are equally
-    frequent, the polarisation is chosen at random.
+    as 0, and the second most frequent allele as 1.
 
     As the features are intended to be passed to a covolutional neural network,
     the output dimensions are actually :math:`n \\times m \\times 1`, where the
@@ -326,7 +325,6 @@ class BinnedHaplotypeMatrix:
         *,
         positions: np.ndarray,
         sequence_length: int,
-        rng: np.random.Generator,
     ) -> np.ndarray:
         """
         Create a pseudo-genotype matrix from a regular genotype matrix.
@@ -343,9 +341,6 @@ class BinnedHaplotypeMatrix:
             Vector of variant positions.
         :param sequence_length:
             The length of the sequence from which the matrix is derived.
-        :param rng:
-            Numpy random number generator. Used to randomly polarise alleles
-            when there are multiple alleles with the same frequency.
         :return:
             Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
             For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
@@ -372,11 +367,7 @@ class BinnedHaplotypeMatrix:
         ac1 = np.sum(G == 1, axis=1)
         keep = np.minimum(ac0, ac1) >= self._allele_count_threshold
         # Polarise 0 and 1 in genotype matrix by major allele frequency.
-        flip = np.logical_or(
-            ac1 > ac0,
-            # If allele counts are the same, randomly assign major allele.
-            np.logical_and(ac1 == ac0, rng.random(len(positions)) > 0.5),
-        )
+        flip = ac1 > ac0
         G ^= np.expand_dims(flip, -1)
 
         # Exclude missing genotypes from the sums below.
@@ -392,17 +383,11 @@ class BinnedHaplotypeMatrix:
 
         return M
 
-    def from_ts(
-        self,
-        ts: tskit.TreeSequence,
-        *,
-        rng: np.random.Generator,
-    ) -> np.ndarray:
+    def from_ts(self, ts: tskit.TreeSequence) -> np.ndarray:
         """
         Create a pseudo-genotype matrix from a tree sequence.
 
         :param ts: The tree sequence.
-        :param numpy.random.Generator rng: Numpy random number generator.
         :return:
             Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
             For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
@@ -421,7 +406,7 @@ class BinnedHaplotypeMatrix:
         G = np.reshape(G, (-1, self._num_individuals, self._ploidy))
         positions = np.array(ts.tables.sites.position)
         return self._from_genotype_matrix(
-            G, positions=positions, sequence_length=ts.sequence_length, rng=rng
+            G, positions=positions, sequence_length=ts.sequence_length
         )
 
     def from_vcf(
@@ -484,7 +469,7 @@ class BinnedHaplotypeMatrix:
             raise ValueError("Mismatched ploidy among individuals.")
 
         return self._from_genotype_matrix(
-            G, positions=positions, sequence_length=sequence_length, rng=rng
+            G, positions=positions, sequence_length=sequence_length
         )
 
 
@@ -564,7 +549,6 @@ class MultipleBinnedHaplotypeMatrices:
         self,
         ts: tskit.TreeSequence,
         *,
-        rng: np.random.Generator,
         individuals: Mapping[str, npt.NDArray[np.integer]],
     ) -> Dict[str, np.ndarray]:
         """
@@ -611,7 +595,7 @@ class MultipleBinnedHaplotypeMatrices:
             H = G[:, nodes]
             H = np.reshape(H, (-1, self._num_individuals[label], self._ploidy[label]))
             labelled_features[label] = self.bh_matrices[label]._from_genotype_matrix(
-                H, positions=positions, sequence_length=ts.sequence_length, rng=rng
+                H, positions=positions, sequence_length=ts.sequence_length
             )
 
         return labelled_features
@@ -688,6 +672,6 @@ class MultipleBinnedHaplotypeMatrices:
             if np.any(H == -2) or np.any(ploidy_pad != -2):
                 raise ValueError(f"{label}: mismatched ploidy among individuals.")
             labelled_features[label] = bh_matrix._from_genotype_matrix(
-                H, positions=positions, sequence_length=sequence_length, rng=rng
+                H, positions=positions, sequence_length=sequence_length
             )
         return labelled_features
