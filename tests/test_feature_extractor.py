@@ -41,7 +41,206 @@ def do_sim(
     return msprime.sim_mutations(ts, rate=mutation_rate, random_seed=seed2)
 
 
-def _feature_matrix_from_ts(
+class TestHaplotypeMatrix:
+    def test_get_fixed_num_snps_example(self):
+        G = np.array([[0, 0], [1, 1], [1, 0], [0, 1]], dtype=np.int8)
+        positions = np.array([5, 10, 50, 500], dtype=np.int16)
+
+        hm = dinf.HaplotypeMatrix(
+            num_individuals=2,
+            num_snps=2,
+            ploidy=1,
+            maf_thresh=0,
+        )
+        G2, positions2 = hm._get_fixed_num_snps(G, positions=positions, num_snps=2)
+        assert G2.dtype == G.dtype
+        assert positions2.dtype == positions.dtype
+        np.testing.assert_array_equal(G2, [[1, 1], [1, 0]])
+        np.testing.assert_array_equal(positions2, [10, 50])
+
+        hm = dinf.HaplotypeMatrix(
+            num_individuals=2,
+            num_snps=2,
+            ploidy=1,
+            maf_thresh=0,
+        )
+        G2, positions2 = hm._get_fixed_num_snps(G, positions=positions, num_snps=8)
+        assert G2.dtype == G.dtype
+        assert positions2.dtype == positions.dtype
+        np.testing.assert_array_equal(
+            G2, [[0, 0], [0, 0], [0, 0], [1, 1], [1, 0], [0, 1], [0, 0], [0, 0]]
+        )
+        np.testing.assert_array_equal(positions2, [0, 0, 5, 10, 50, 500, 500, 500])
+
+    @pytest.mark.parametrize("num_sites", [7, 36, 64])
+    @pytest.mark.parametrize("num_haplotypes", [20])
+    def test_get_fixed_num_snps_random(self, num_sites, num_haplotypes):
+        rng = np.random.default_rng(1234)
+        G = rng.integers(low=0, high=2, size=(num_sites, num_haplotypes))
+        positions = np.sort(rng.choice(50_000, size=num_sites, replace=False))
+
+        for num_snps in (
+            num_sites // 2,
+            num_sites - 1,
+            num_sites,
+            num_sites + 1,
+            num_sites * 2,
+        ):
+            hm = dinf.HaplotypeMatrix(
+                num_individuals=num_haplotypes,
+                num_snps=num_snps,
+                ploidy=1,
+                maf_thresh=0,
+            )
+            G2, positions2 = hm._get_fixed_num_snps(
+                G, positions=positions, num_snps=num_snps
+            )
+            assert G2.dtype == G.dtype
+            assert G2.shape == (num_snps, num_haplotypes)
+            assert positions2.dtype == positions.dtype
+            assert positions2.shape == (num_snps,)
+
+    @pytest.mark.parametrize("num_individuals", [8, 16])
+    @pytest.mark.parametrize("num_snps", [32, 64])
+    @pytest.mark.parametrize("ploidy", [1, 2, 3])
+    @pytest.mark.parametrize("sequence_length", [100_000, 1_000_000])
+    def test_from_ts(self, num_individuals, num_snps, ploidy, sequence_length):
+        num_haplotypes = ploidy * num_individuals
+        ts = do_sim(
+            num_individuals=num_individuals,
+            ploidy=ploidy,
+            sequence_length=sequence_length,
+        )
+        hm = dinf.HaplotypeMatrix(
+            num_individuals=num_individuals,
+            num_snps=num_snps,
+            maf_thresh=0,
+            ploidy=ploidy,
+        )
+        assert hm.shape == (num_haplotypes, num_snps, 2)
+        M = hm.from_ts(ts)
+        assert M.shape == (num_haplotypes, num_snps, 2)
+
+        # All genotypes should be zero or one.
+        H = M[..., 0]
+        assert np.all(H[H != 0] == 1)
+
+        # Allele 1 should be the minor allele.
+        maf = np.sum(H == 1, axis=0) / num_haplotypes
+        assert np.all(maf <= 0.5)
+
+        # Each row in the positions matrix should be identical.
+        P = M[..., 1]
+        for row in P[1:]:
+            np.testing.assert_array_equal(P[0], row)
+
+    @pytest.mark.parametrize("ploidy", [1, 2, 3])
+    def test_from_ts_maf_thresh(self, ploidy):
+        num_individuals = 128
+        num_haplotypes = ploidy * num_individuals
+        ts = do_sim(
+            num_individuals=num_individuals, ploidy=ploidy, sequence_length=100_000
+        )
+        thresholds = [0, 0.01, 0.05, 0.1, 1]
+        H_list = []
+        P_list = []
+        for maf_thresh in thresholds:
+            hm = dinf.HaplotypeMatrix(
+                num_individuals=num_individuals,
+                num_snps=64,
+                maf_thresh=maf_thresh,
+                ploidy=ploidy,
+            )
+            M = hm.from_ts(ts)
+
+            # All genotypes should be zero or one.
+            H = M[..., 0]
+            assert np.all(H[H != 0] == 1)
+
+            # Allele 1 should be the minor allele.
+            maf = np.sum(H == 1, axis=0) / num_haplotypes
+            assert np.all(maf <= 0.5)
+            # Minor allele frequency should be above the threshold.
+            assert np.all(maf[maf > 0] >= maf_thresh)
+
+            # Each row in the positions matrix should be identical.
+            P = M[..., 1]
+            for row in P[1:]:
+                np.testing.assert_array_equal(P[0], row)
+
+            H_list.append(H)
+            P_list.append(P[0])  # position array for first haplotype
+
+        non_pad = [np.sum(np.nonzero(P)[0]) for P in P_list]
+        assert non_pad[0] > 0
+        assert non_pad[-1] == 0
+        # We should get fewer and fewer non-pad positions for increasing maf_thresh.
+        assert all(np.diff(non_pad) <= 0)
+
+        counts = [np.sum(H) for H in H_list]
+        assert counts[0] > 0
+        assert counts[-1] == 0
+
+    @pytest.mark.parametrize("num_individuals", [31, 64])
+    @pytest.mark.parametrize("maf_thresh", [0, 0.05])
+    @pytest.mark.parametrize("ploidy", [1, 3])
+    @pytest.mark.usefixtures("tmp_path")
+    def test_from_vcf(self, tmp_path, ploidy, maf_thresh, num_individuals):
+        num_snps = 8
+        sequence_length = 100_000
+        hm = dinf.HaplotypeMatrix(
+            num_individuals=num_individuals,
+            num_snps=num_snps,
+            maf_thresh=maf_thresh,
+            ploidy=ploidy,
+        )
+        ts = do_sim(
+            num_individuals=num_individuals,
+            ploidy=ploidy,
+            sequence_length=sequence_length,
+        )
+        Mts = hm.from_ts(ts)
+        Hts = Mts[..., 0]
+        Pts = Mts[..., 1]
+
+        vcf_path = tmp_path / "1.vcf"
+        with open(vcf_path, "w") as f:
+            ts.write_vcf(f, contig_id="1", position_transform=lambda x: np.floor(x) + 1)
+        bcftools_index(vcf_path)
+        vb = dinf.BagOfVcf([f"{vcf_path}.gz"])
+
+        _, positions = vb.sample_genotype_matrix(
+            sequence_length=sequence_length,
+            max_missing_genotypes=0,
+            min_seg_sites=1,
+            require_phased=True,
+            rng=np.random.default_rng(1234),
+        )
+
+        Mvcf = hm.from_vcf(
+            vb,
+            sequence_length=sequence_length,
+            max_missing_genotypes=0,
+            min_seg_sites=1,
+            rng=np.random.default_rng(1234),
+        )
+        Hvcf = Mvcf[..., 0]
+        Pvcf = Mvcf[..., 1]
+
+        def row_sorted(A):
+            """Sort the rows of A."""
+            return np.array(sorted(A, key=tuple))
+
+        # Sort haplotypes because from_vcf() shuffles them.
+        Hts = row_sorted(Hts)
+        Hvcf = row_sorted(Hvcf)
+
+        assert Mts.shape == Mvcf.shape
+        np.testing.assert_array_equal(Hts, Hvcf)
+        np.testing.assert_array_equal(Pts, Pvcf)
+
+
+def _binned_haplotype_matrix_from_ts(
     ts: tskit.TreeSequence,
     *,
     num_samples: int,
@@ -113,7 +312,7 @@ class TestBinnedHaplotypeMatrix:
         assert M.shape == (num_haplotypes, num_bins, 1)
         # ref implementation
         rng = np.random.default_rng(1234)
-        M_ref = _feature_matrix_from_ts(
+        M_ref = _binned_haplotype_matrix_from_ts(
             ts, num_samples=num_haplotypes, num_bins=num_bins, maf_thresh=0, rng=rng
         )
         np.testing.assert_array_equal(M, M_ref)
@@ -155,7 +354,7 @@ class TestBinnedHaplotypeMatrix:
         np.testing.assert_array_equal(M[..., 0], np.sum(G, axis=1, keepdims=True))
         # ref implementation
         rng = np.random.default_rng(1234)
-        M_ref = _feature_matrix_from_ts(
+        M_ref = _binned_haplotype_matrix_from_ts(
             ts, num_samples=num_haplotypes, num_bins=1, maf_thresh=0, rng=rng
         )
         np.testing.assert_array_equal(M, M_ref)
@@ -175,7 +374,7 @@ class TestBinnedHaplotypeMatrix:
         np.testing.assert_array_equal(M[:, has_variant, 0], G)
         # ref implementation
         rng = np.random.default_rng(1234)
-        M_ref = _feature_matrix_from_ts(
+        M_ref = _binned_haplotype_matrix_from_ts(
             ts,
             num_samples=num_haplotypes,
             num_bins=sequence_length,
@@ -229,7 +428,7 @@ class TestBinnedHaplotypeMatrix:
             M_list.append(M)
             # ref implementation
             rng = np.random.default_rng(1234)
-            M_ref = _feature_matrix_from_ts(
+            M_ref = _binned_haplotype_matrix_from_ts(
                 ts,
                 num_samples=num_haplotypes,
                 num_bins=64,
@@ -324,11 +523,10 @@ class TestBinnedHaplotypeMatrix:
                 dtype=dtype,
             )
 
-    @pytest.mark.parametrize("maf_thresh", [0, 0.05])
     @pytest.mark.parametrize("phased", [True, False])
     @pytest.mark.parametrize("ploidy", [1, 3])
     @pytest.mark.usefixtures("tmp_path")
-    def test_from_vcf(self, tmp_path, ploidy, phased, maf_thresh):
+    def test_from_vcf(self, tmp_path, ploidy, phased):
         # Use an odd number of haplotypes to get deterministic behaviour.
         num_individuals = 31
         assert (num_individuals * ploidy) % 2 != 0

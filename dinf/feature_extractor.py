@@ -10,6 +10,220 @@ from .vcf import BagOfVcf
 from .misc import ts_ploidy_of_individuals, ts_nodes_of_individuals
 
 
+class HaplotypeMatrix:
+    """
+    A factory for feature matrices of haplotypes.
+    """
+
+    def __init__(
+        self,
+        *,
+        num_individuals: int,
+        num_snps: int,
+        ploidy: int,
+        maf_thresh: float,
+    ):
+        """
+        :param num_individuals:
+            The number of individuals to include in the feature matrix.
+        :param num_snps:
+            The number of SNP sites.
+        :param ploidy:
+            Ploidy of the individuals.
+        :param maf_thresh:
+            Minor allele frequency (MAF) threshold. Sites with MAF lower than
+            this value are ignored.
+        """
+        if num_individuals < 1:
+            raise ValueError("must have num_individuals >= 1")
+        if num_snps < 1:
+            raise ValueError("must have num_snps >= 1")
+        if maf_thresh < 0 or maf_thresh > 1:
+            raise ValueError("must have 0 <= maf_thresh <= 1")
+        self._num_individuals = num_individuals
+        self._num_snps = num_snps
+        self._ploidy = ploidy
+        self._num_haplotypes = num_individuals * ploidy
+        self._dtype = np.int32
+        # We use a minimum threshold of 1 to exclude invariant sites.
+        self._allele_count_threshold = max(1, maf_thresh * self._num_haplotypes)
+
+    @property
+    def shape(self) -> Tuple[int, int, int]:
+        """Shape of the feature matrix."""
+        return (self._num_haplotypes, self._num_snps, 2)
+
+    def _from_genotype_matrix(
+        self,
+        G: np.ndarray,
+        *,
+        positions: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Create a haplotype matrix from a regular genotype matrix.
+
+        Missing genotypes in the input are assumed to take the value -1,
+        and the first allele has genotype 0, second allele genotype 1, etc.
+        We consider only allele 0 and 1. For multiallelic sites this means
+        all but the first two alleles are ignored.
+
+        :param G:
+            Genotype matrix with shape (num_snps, num_haplotypes).
+            The genotypes must be phased.
+        :param positions:
+            Vector of variant positions.
+        :return:
+            Array with shape ``(num_haplotypes, num_snps, 2)``.
+            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
+            genotype of haplotype :math:`i` at the :math:`j`'th site.
+        """
+        assert len(G) == len(positions)
+        _G_sites, G_haplotypes = G.shape
+        assert G_haplotypes == self._num_haplotypes
+
+        # Filter sites with insufficient minor allele count.
+        ac0 = np.sum(G == 0, axis=1)
+        ac1 = np.sum(G == 1, axis=1)
+        keep = np.minimum(ac0, ac1) >= self._allele_count_threshold
+        G = G[keep]
+        positions = positions[keep]
+
+        G, positions = self._get_fixed_num_snps(
+            G, positions=positions, num_snps=self._num_snps
+        )
+
+        # Identify genotypes that aren't 0 or 1. These could be missing
+        # (encoded as -1), or high-numbered alleles at multiallelic sites.
+        missing = np.logical_or(G == -1, G >= 2)
+
+        ac0 = np.sum(G == 0, axis=1)
+        ac1 = np.sum(G == 1, axis=1)
+
+        # Polarise 0 and 1 in genotype matrix by major allele frequency.
+        flip = ac1 > ac0
+        G ^= np.expand_dims(flip, -1)
+
+        # Treat missing genotypes as the majority allele.
+        G[missing] = 0
+
+        delta_positions = np.diff(positions, prepend=positions[0])
+
+        M = np.zeros(self.shape, dtype=self._dtype)
+        M[..., 0] = G.T
+        M[..., 1] = np.tile(delta_positions, [self._num_haplotypes, 1])
+
+        return M
+
+    def _get_fixed_num_snps(self, G: np.ndarray, *, positions: np.ndarray, num_snps):
+        """
+        Trim or pad the genotype matrix and positions to be of fixed size.
+        """
+        assert len(G) == len(positions)
+        G_sites, G_haplotypes = G.shape
+        delta = G_sites - num_snps
+        if delta >= 0:
+            # trim
+            left = delta // 2
+            right = left + num_snps
+            G = G[left:right]
+            positions = positions[left:right]
+        else:
+            # pad
+            pad_left = -delta // 2
+            pad_right = num_snps - G_sites - pad_left
+            G_left = np.zeros((pad_left, G_haplotypes), dtype=G.dtype)
+            G_right = np.zeros((pad_right, G_haplotypes), dtype=G.dtype)
+            G = np.concatenate((G_left, G, G_right))
+
+            positions_left = np.zeros(pad_left, dtype=positions.dtype)
+            right_pad_value = 0 if len(positions) == 0 else positions[-1]
+            positions_right = np.full(pad_right, right_pad_value, dtype=positions.dtype)
+            positions = np.concatenate((positions_left, positions, positions_right))
+
+        return G, positions
+
+    def from_ts(self, ts: tskit.TreeSequence) -> np.ndarray:
+        """
+        Create a pseudo-genotype matrix from a tree sequence.
+
+        :param ts: The tree sequence.
+        :return:
+            Array with shape ``(num_pseudo_haplotypes, num_snps, 2)``.
+            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
+            genotype of haplotype :math:`i` at the :math:`j`'th site.
+        """
+        if ts.num_samples != self._num_haplotypes:
+            raise ValueError(
+                f"Expected {self._num_haplotypes} haplotypes, "
+                f"but ts.num_samples == {ts.num_samples}."
+            )
+
+        G = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
+        positions = np.array(ts.tables.sites.position)
+        return self._from_genotype_matrix(G, positions=positions)
+
+    def from_vcf(
+        self,
+        vb: BagOfVcf,
+        *,
+        sequence_length: int,
+        max_missing_genotypes: int,
+        min_seg_sites: int,
+        rng: np.random.Generator,
+    ) -> np.ndarray:
+        """
+        Create a pseudo-genotype matrix from a region of a VCF/BCF.
+
+        The genomic window is drawn uniformly at random from the sequences
+        defined in the given :class:`BagOfVcf`.
+
+        Individuals in the VCFs are sampled (without replacement) for
+        inclusion in the output matrix. The size of the feature space
+        can therefore be vastly increased by having more individuals
+        in the VCFs than are needed for the feature dimensions.
+
+        :param vb:
+            The BagOfVcf object that describes the VCF/BCF files.
+        :param sequence_length:
+            Length of the genomic window to be sampled.
+        :param max_missing_genotypes:
+            Consider only sites with fewer missing genotype calls than
+            this number.
+        :param min_seg_sites:
+            Sampled genotype matrix must have at least this many variable
+            sites (after filtering sites for missingness).
+        :param numpy.random.Generator rng:
+            Numpy random number generator.
+        :return:
+            Array with shape ``(num_pseudo_haplotypes, num_snps, 2)``.
+            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
+            genotype of haplotype :math:`i` at the :math:`j`'th site.
+        """
+        G, positions = vb.sample_genotype_matrix(
+            sequence_length=sequence_length,
+            max_missing_genotypes=max_missing_genotypes,
+            min_seg_sites=min_seg_sites,
+            require_phased=True,
+            rng=rng,
+        )
+
+        G_sites, G_individuals, _ = G.shape
+        if G_individuals < self._num_individuals:
+            raise ValueError(
+                f"Expected at least {self._num_individuals} individuals in "
+                f"the vcf bag, but only found {G_individuals}."
+            )
+
+        # Subsample individuals.
+        idx = rng.choice(G_individuals, size=self._num_individuals, replace=False)
+        G = G[:, idx, :]
+        if np.any(G == -2):
+            raise ValueError("Mismatched ploidy among individuals.")
+
+        G = np.reshape(G, (G_sites, -1))
+        return self._from_genotype_matrix(G, positions=positions)
+
+
 class BinnedHaplotypeMatrix:
     """
     A factory for feature matrices of pseudo-haplotypes.
@@ -148,7 +362,7 @@ class BinnedHaplotypeMatrix:
 
         G_sites, G_individuals, G_ploidy = G.shape
         assert G_individuals == self._num_individuals
-        assert G_ploidy == self._ploidy, (G_ploidy, self._ploidy)
+        assert G_ploidy == self._ploidy
         G = np.reshape(G, (G_sites, -1))
 
         # Identify genotypes that aren't 0 or 1. These will be ignored later.
