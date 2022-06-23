@@ -1,6 +1,6 @@
 from __future__ import annotations
 import collections
-from typing import Dict, Mapping, Tuple
+from typing import Callable, Dict, Mapping, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -10,23 +10,202 @@ from .vcf import BagOfVcf
 from .misc import ts_ploidy_of_individuals, ts_nodes_of_individuals
 
 
-class HaplotypeMatrix:
+class _FeatureMatrix:
     """
-    A factory for feature matrices of haplotypes.
+    Common functionality of HaplotypeMatrix and BinnedHaplotypeMatrix
     """
 
     def __init__(
         self,
         *,
         num_individuals: int,
-        num_snps: int,
+        num_loci: int,
         ploidy: int,
+        phased: bool,
         maf_thresh: float,
     ):
         """
         :param num_individuals:
             The number of individuals to include in the feature matrix.
-        :param num_snps:
+        :param num_loci:
+            Dimensionality along the sequence length. This might be the number
+            of snps, or the number of bins into which the sequence is partitioned.
+        :param ploidy:
+            Ploidy of the individuals.
+        :param phased:
+            If True, the individuals' haplotypes will each be included as
+            independent rows in the feature matrix and the shape of the
+            feature matrix will be ``(ploidy * num_individuals, num_loci, c)``.
+            If False, the allele counts for each individual will be summed
+            across their chromosome copies and the shape of the feature matrix
+            will be ``(num_individuals, num_loci, c)``.
+        :param maf_thresh:
+            Minor allele frequency (MAF) threshold. Sites with MAF lower than
+            this value are ignored.
+        """
+        if num_individuals < 1:
+            raise ValueError("must have num_individuals >= 1")
+        if num_loci < 1:
+            raise ValueError("must have num_loci >= 1")
+        if maf_thresh < 0 or maf_thresh > 1:
+            raise ValueError("must have 0 <= maf_thresh <= 1")
+        self._num_individuals = num_individuals
+        self._num_loci = num_loci
+        self._phased = phased
+        self._ploidy = ploidy
+        self._num_haplotypes = num_individuals * ploidy
+
+        # We use a minimum threshold of 1 to exclude invariant sites.
+        self._allele_count_threshold = max(1, maf_thresh * self._num_haplotypes)
+
+        # The number of rows in the feature matrix is determined by
+        # whether or not the data should be treated as phased.
+        # If the data are not phased, we sum genotypes across the
+        # chromosome copies. We call the rows "pseudo haplotypes",
+        # regardless of the phasing.
+        if phased:
+            self._num_pseudo_haplotypes = self._num_haplotypes
+        else:
+            self._num_pseudo_haplotypes = num_individuals
+
+        if self._num_pseudo_haplotypes < 2:
+            raise ValueError("must have at least two pseudo-haplotypes")
+
+    @property
+    def shape(self):
+        """Shape of the feature matrix."""
+        raise NotImplementedError
+
+    def _from_genotype_matrix(
+        self,
+        G: np.ndarray,
+        *,
+        positions: np.ndarray,
+        sequence_length: int,
+    ) -> np.ndarray:
+        """
+        Create a feature matrix from a regular genotype matrix.
+
+        Missing genotypes in the input are assumed to take the value -1,
+        and the first allele has genotype 0, second allele genotype 1, etc.
+
+        :param G:
+            Genotype matrix with shape (num_sites, num_individuals, ploidy).
+            The genotypes may be phased or unphased.
+        :param positions:
+            Vector of variant positions.
+        :param sequence_length:
+            The length of the sequence from which the matrix is derived.
+        :return:
+            Array with shape ``(num_pseudo_haplotypes, num_loci, c)``.
+        """
+        raise NotImplementedError
+
+    def from_ts(self, ts: tskit.TreeSequence) -> np.ndarray:
+        """
+        Create a feature matrix from a tree sequence.
+
+        :param ts: The tree sequence.
+        :return:
+            Array with shape ``(num_pseudo_haplotypes, num_loci, c)``.
+        """
+        if ts.num_samples != self._num_haplotypes:
+            raise ValueError(
+                f"Expected {self._num_haplotypes} haplotypes, "
+                f"but ts.num_samples == {ts.num_samples}."
+            )
+        if ts.sequence_length < self._num_loci:
+            raise ValueError("Sequence length is shorter than the number of loci")
+
+        G = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
+        G = np.reshape(G, (-1, self._num_individuals, self._ploidy))
+        positions = np.array(ts.tables.sites.position)
+        return self._from_genotype_matrix(
+            G, positions=positions, sequence_length=ts.sequence_length
+        )
+
+    def from_vcf(
+        self,
+        vb: BagOfVcf,
+        *,
+        sequence_length: int,
+        max_missing_genotypes: int,
+        min_seg_sites: int,
+        rng: np.random.Generator,
+    ) -> np.ndarray:
+        """
+        Create a feature matrix from a region of a VCF/BCF.
+
+        The genomic window is drawn uniformly at random from the sequences
+        defined in the given :class:`BagOfVcf`.
+
+        Individuals in the VCFs are sampled (without replacement) for
+        inclusion in the output matrix. The size of the feature space
+        can therefore be vastly increased by having more individuals
+        in the VCFs than are needed for the feature dimensions.
+
+        :param vb:
+            The BagOfVcf object that describes the VCF/BCF files.
+        :param sequence_length:
+            Length of the genomic window to be sampled.
+        :param max_missing_genotypes:
+            Consider only sites with fewer missing genotype calls than
+            this number.
+        :param min_seg_sites:
+            Sampled genotype matrix must have at least this many variable
+            sites (after filtering sites for missingness).
+        :param numpy.random.Generator rng:
+            Numpy random number generator.
+        :return:
+            Array with shape ``(num_pseudo_haplotypes, num_loci, c)``.
+        """
+        G, positions = vb.sample_genotype_matrix(
+            sequence_length=sequence_length,
+            max_missing_genotypes=max_missing_genotypes,
+            min_seg_sites=min_seg_sites,
+            require_phased=self._phased,
+            rng=rng,
+        )
+
+        G_individuals = G.shape[1]
+        if G_individuals < self._num_individuals:
+            raise ValueError(
+                f"Expected at least {self._num_individuals} individuals in "
+                f"the vcf bag, but only found {G_individuals}."
+            )
+
+        # Subsample individuals.
+        idx = rng.choice(G_individuals, size=self._num_individuals, replace=False)
+        G = G[:, idx, :]
+        if np.any(G == -2):
+            raise ValueError("Mismatched ploidy among individuals.")
+
+        return self._from_genotype_matrix(
+            G, positions=positions, sequence_length=sequence_length
+        )
+
+
+class HaplotypeMatrix(_FeatureMatrix):
+    """
+    A factory for feature matrices of haplotypes.
+
+    Chan et al. 2018, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/
+    Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
+    """
+
+    def __init__(
+        self,
+        *,
+        num_individuals: int,
+        num_loci: int,
+        ploidy: int,
+        maf_thresh: float,
+        phased: bool,
+    ):
+        """
+        :param num_individuals:
+            The number of individuals to include in the feature matrix.
+        :param num_loci:
             The number of SNP sites.
         :param ploidy:
             Ploidy of the individuals.
@@ -34,30 +213,26 @@ class HaplotypeMatrix:
             Minor allele frequency (MAF) threshold. Sites with MAF lower than
             this value are ignored.
         """
-        if num_individuals < 1:
-            raise ValueError("must have num_individuals >= 1")
-        if num_snps < 1:
-            raise ValueError("must have num_snps >= 1")
-        if maf_thresh < 0 or maf_thresh > 1:
-            raise ValueError("must have 0 <= maf_thresh <= 1")
-        self._num_individuals = num_individuals
-        self._num_snps = num_snps
-        self._ploidy = ploidy
-        self._num_haplotypes = num_individuals * ploidy
+        super().__init__(
+            num_individuals=num_individuals,
+            num_loci=num_loci,
+            ploidy=ploidy,
+            maf_thresh=maf_thresh,
+            phased=phased,
+        )
         self._dtype = np.int32
-        # We use a minimum threshold of 1 to exclude invariant sites.
-        self._allele_count_threshold = max(1, maf_thresh * self._num_haplotypes)
 
     @property
     def shape(self) -> Tuple[int, int, int]:
         """Shape of the feature matrix."""
-        return (self._num_haplotypes, self._num_snps, 2)
+        return (self._num_pseudo_haplotypes, self._num_loci, 2)
 
     def _from_genotype_matrix(
         self,
         G: np.ndarray,
         *,
         positions: np.ndarray,
+        sequence_length: int,
     ) -> np.ndarray:
         """
         Create a haplotype matrix from a regular genotype matrix.
@@ -68,20 +243,24 @@ class HaplotypeMatrix:
         all but the first two alleles are ignored.
 
         :param G:
-            Genotype matrix with shape (num_snps, num_haplotypes).
-            The genotypes must be phased.
+            Genotype matrix with shape (num_sites, num_individuals, ploidy).
+            The genotypes must be phased or unphased.
         :param positions:
             Vector of variant positions.
+        :param sequence_length:
+            Unused.
         :return:
-            Array with shape ``(num_haplotypes, num_snps, 2)``.
+            Array with shape ``(num_haplotypes, num_loci, 2)``.
             For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
             genotype of haplotype :math:`i` at the :math:`j`'th site.
             The :math:`M[i][j][1]`'th entry is the number of basepairs
             between sites :math:`j` and :math:`j-1`.
         """
         assert len(G) == len(positions)
-        _G_sites, G_haplotypes = G.shape
-        assert G_haplotypes == self._num_haplotypes
+        G_sites, G_individuals, G_ploidy = G.shape
+        assert G_individuals == self._num_individuals
+        assert G_ploidy == self._ploidy
+        G = np.reshape(G, (G_sites, -1))
 
         # Filter sites with insufficient minor allele count.
         ac0 = np.sum(G == 0, axis=1)
@@ -91,7 +270,7 @@ class HaplotypeMatrix:
         positions = positions[keep]
 
         G, positions = self._get_fixed_num_snps(
-            G, positions=positions, num_snps=self._num_snps
+            G, positions=positions, num_snps=self._num_loci
         )
 
         # Identify genotypes that aren't 0 or 1. These could be missing
@@ -108,11 +287,16 @@ class HaplotypeMatrix:
         # Treat missing genotypes as the majority allele.
         G[missing] = 0
 
+        if not self._phased:
+            # Collapse each individual's chromosome copies by summing counts.
+            G = np.reshape(G, (-1, self._num_individuals, self._ploidy))
+            G = np.sum(G, axis=2)
+
         delta_positions = np.diff(positions, prepend=positions[0])
 
         M = np.zeros(self.shape, dtype=self._dtype)
         M[..., 0] = G.T
-        M[..., 1] = np.tile(delta_positions, [self._num_haplotypes, 1])
+        M[..., 1] = np.tile(delta_positions, [self._num_pseudo_haplotypes, 1])
 
         return M
 
@@ -144,93 +328,8 @@ class HaplotypeMatrix:
 
         return G, positions
 
-    def from_ts(self, ts: tskit.TreeSequence) -> np.ndarray:
-        """
-        Create a genotype matrix from a tree sequence.
 
-        :param ts: The tree sequence.
-        :return:
-            Array with shape ``(num_haplotypes, num_snps, 2)``.
-            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
-            genotype of haplotype :math:`i` at the :math:`j`'th site.
-            The :math:`M[i][j][1]`'th entry is the number of basepairs
-            between sites :math:`j` and :math:`j-1`.
-        """
-        if ts.num_samples != self._num_haplotypes:
-            raise ValueError(
-                f"Expected {self._num_haplotypes} haplotypes, "
-                f"but ts.num_samples == {ts.num_samples}."
-            )
-
-        G = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
-        positions = np.array(ts.tables.sites.position)
-        return self._from_genotype_matrix(G, positions=positions)
-
-    def from_vcf(
-        self,
-        vb: BagOfVcf,
-        *,
-        sequence_length: int,
-        max_missing_genotypes: int,
-        min_seg_sites: int,
-        rng: np.random.Generator,
-    ) -> np.ndarray:
-        """
-        Create a genotype matrix from a region of a VCF/BCF.
-
-        The genomic window is drawn uniformly at random from the sequences
-        defined in the given :class:`BagOfVcf`.
-
-        Individuals in the VCFs are sampled (without replacement) for
-        inclusion in the output matrix. The size of the feature space
-        can therefore be vastly increased by having more individuals
-        in the VCFs than are needed for the feature dimensions.
-
-        :param vb:
-            The BagOfVcf object that describes the VCF/BCF files.
-        :param sequence_length:
-            Length of the genomic window to be sampled.
-        :param max_missing_genotypes:
-            Consider only sites with fewer missing genotype calls than
-            this number.
-        :param min_seg_sites:
-            Sampled genotype matrix must have at least this many variable
-            sites (after filtering sites for missingness).
-        :param numpy.random.Generator rng:
-            Numpy random number generator.
-        :return:
-            Array with shape ``(num_haplotypes, num_snps, 2)``.
-            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
-            genotype of haplotype :math:`i` at the :math:`j`'th site.
-            The :math:`M[i][j][1]`'th entry is the number of basepairs
-            between sites :math:`j` and :math:`j-1`.
-        """
-        G, positions = vb.sample_genotype_matrix(
-            sequence_length=sequence_length,
-            max_missing_genotypes=max_missing_genotypes,
-            min_seg_sites=min_seg_sites,
-            require_phased=True,
-            rng=rng,
-        )
-
-        G_sites, G_individuals, _ = G.shape
-        if G_individuals < self._num_individuals:
-            raise ValueError(
-                f"Expected at least {self._num_individuals} individuals in "
-                f"the vcf bag, but only found {G_individuals}."
-            )
-
-        # Subsample individuals.
-        idx = rng.choice(G_individuals, size=self._num_individuals, replace=False)
-        G = G[:, idx, :]
-        if np.any(G == -2):
-            raise ValueError("Mismatched ploidy among individuals.")
-
-        G = np.reshape(G, (G_sites, -1))
-        return self._from_genotype_matrix(G, positions=positions)
-
-
-class BinnedHaplotypeMatrix:
+class BinnedHaplotypeMatrix(_FeatureMatrix):
     """
     A factory for feature matrices of pseudo-haplotypes.
 
@@ -257,73 +356,50 @@ class BinnedHaplotypeMatrix:
         self,
         *,
         num_individuals: int,
-        num_bins: int,
+        num_loci: int,
         ploidy: int,
         phased: bool,
         maf_thresh: float,
-        dtype=np.int8,
     ):
         """
         :param num_individuals:
             The number of individuals to include in the feature matrix.
-        :param num_bins:
+        :param num_loci:
             The number of bins into which the sequence is partitioned.
-            Each bin spans ``sequence_length / num_bins`` base pairs.
+            Each bin spans ``sequence_length / num_loci`` base pairs.
         :param ploidy:
             Ploidy of the individuals.
         :param phased:
             If True, the individuals' haplotypes will each be included as
             independent rows in the feature matrix and the shape of the
-            feature matrix will be ``(ploidy * num_individuals, num_bins, 1)``.
+            feature matrix will be ``(ploidy * num_individuals, num_loci, 1)``.
             If False, the allele counts for each individual will be summed
             across their chromosome copies and the shape of the feature matrix
-            will be ``(num_individuals, num_bins, 1)``.
+            will be ``(num_individuals, num_loci, 1)``.
         :param maf_thresh:
             Minor allele frequency (MAF) threshold. Sites with MAF lower than
             this value are ignored.
-        :param dtype:
-            The numpy data type of the feature matrix. To save memory, we use
-            an np.int8 by default, which assumes that counts are small.
-            However, counts may overflow int8 for very large values of
-            ``mu * Ne * num_individuals * sequence_length / num_bins``,
-            in which case np.int16 might be preferred. Such cases have
-            not been tested, but it's likely that increasing ``num_bins``
-            is a better solution.
         """
-        if num_individuals < 1:
-            raise ValueError("must have num_individuals >= 1")
-        if num_bins < 1:
-            raise ValueError("must have num_bins >= 1")
-        if maf_thresh < 0 or maf_thresh > 1:
-            raise ValueError("must have 0 <= maf_thresh <= 1")
-        if dtype not in (np.int8, np.int16, np.int32):
-            raise ValueError("dtype must be np.int8, np.int16, or np.in32")
-        self._num_individuals = num_individuals
-        self._num_bins = num_bins
-        self._phased = phased
-        self._ploidy = ploidy
-        self._num_haplotypes = num_individuals * ploidy
-        self._dtype = dtype
-        # We use a minimum threshold of 1 to exclude invariant sites.
-        self._allele_count_threshold = max(1, maf_thresh * self._num_haplotypes)
+        super().__init__(
+            num_individuals=num_individuals,
+            num_loci=num_loci,
+            ploidy=ploidy,
+            maf_thresh=maf_thresh,
+            phased=phased,
+        )
 
-        # The number of rows in the feature matrix is determined by
-        # whether or not the data should be treated as phased.
-        # If the data are not phased, we sum genotypes across the
-        # chromosome copies. We call the rows "pseudo haplotypes",
-        # regardless of the phasing.
-        if phased:
-            self._num_pseudo_haplotypes = self._num_haplotypes
-        else:
-            self._num_pseudo_haplotypes = num_individuals
-
-        if self._num_pseudo_haplotypes < 2:
-            raise ValueError("must have at least two pseudo-haplotypes")
+        # The numpy data type of the feature matrix. To save memory we use
+        # an np.int8, which assumes that counts are small.
+        # However, counts may overflow int8 for very large values of
+        #   mu * Ne * num_individuals * sequence_length / num_loci,
+        # Probably num_loci could be increased in such cases.
+        # TODO: print a warning if overflow occurs during conversion.
+        self._dtype = np.int8
 
     @property
     def shape(self) -> Tuple[int, int, int]:
         """Shape of the feature matrix."""
-        return (self._num_pseudo_haplotypes, self._num_bins, 1)
+        return (self._num_pseudo_haplotypes, self._num_loci, 1)
 
     def _from_genotype_matrix(
         self,
@@ -348,7 +424,7 @@ class BinnedHaplotypeMatrix:
         :param sequence_length:
             The length of the sequence from which the matrix is derived.
         :return:
-            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
+            Array with shape ``(num_pseudo_haplotypes, num_loci, 1)``.
             For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
             count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
             :math:`i`.
@@ -357,7 +433,7 @@ class BinnedHaplotypeMatrix:
         M = np.zeros(self.shape, dtype=self._dtype)
         if len(positions) == 0:
             return M
-        bins = np.floor_divide(positions * self._num_bins, sequence_length).astype(
+        bins = np.floor_divide(positions * self._num_loci, sequence_length).astype(
             np.int32
         )
 
@@ -389,109 +465,22 @@ class BinnedHaplotypeMatrix:
 
         return M
 
-    def from_ts(self, ts: tskit.TreeSequence) -> np.ndarray:
-        """
-        Create a pseudo-genotype matrix from a tree sequence.
 
-        :param ts: The tree sequence.
-        :return:
-            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
-            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
-            count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
-            :math:`i`.
-        """
-        if ts.num_samples != self._num_haplotypes:
-            raise ValueError(
-                f"Expected {self._num_haplotypes} haplotypes, "
-                f"but ts.num_samples == {ts.num_samples}."
-            )
-        if ts.sequence_length < self._num_bins:
-            raise ValueError("Sequence length is shorter than the number of bins")
-
-        G = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
-        G = np.reshape(G, (-1, self._num_individuals, self._ploidy))
-        positions = np.array(ts.tables.sites.position)
-        return self._from_genotype_matrix(
-            G, positions=positions, sequence_length=ts.sequence_length
-        )
-
-    def from_vcf(
-        self,
-        vb: BagOfVcf,
-        *,
-        sequence_length: int,
-        max_missing_genotypes: int,
-        min_seg_sites: int,
-        rng: np.random.Generator,
-    ) -> np.ndarray:
-        """
-        Create a pseudo-genotype matrix from a region of a VCF/BCF.
-
-        The genomic window is drawn uniformly at random from the sequences
-        defined in the given :class:`BagOfVcf`.
-
-        Individuals in the VCFs are sampled (without replacement) for
-        inclusion in the output matrix. The size of the feature space
-        can therefore be vastly increased by having more individuals
-        in the VCFs than are needed for the feature dimensions.
-
-        :param vb:
-            The BagOfVcf object that describes the VCF/BCF files.
-        :param sequence_length:
-            Length of the genomic window to be sampled.
-        :param max_missing_genotypes:
-            Consider only sites with fewer missing genotype calls than
-            this number.
-        :param min_seg_sites:
-            Sampled genotype matrix must have at least this many variable
-            sites (after filtering sites for missingness).
-        :param numpy.random.Generator rng:
-            Numpy random number generator.
-        :return:
-            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.
-            For a matrix :math:`M`, the :math:`M[i][j][0]`'th entry is the
-            count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
-            :math:`i`.
-        """
-        G, positions = vb.sample_genotype_matrix(
-            sequence_length=sequence_length,
-            max_missing_genotypes=max_missing_genotypes,
-            min_seg_sites=min_seg_sites,
-            require_phased=self._phased,
-            rng=rng,
-        )
-
-        G_individuals = G.shape[1]
-        if G_individuals < self._num_individuals:
-            raise ValueError(
-                f"Expected at least {self._num_individuals} individuals in "
-                f"the vcf bag, but only found {G_individuals}."
-            )
-
-        # Subsample individuals.
-        idx = rng.choice(G_individuals, size=self._num_individuals, replace=False)
-        G = G[:, idx, :]
-        if np.any(G == -2):
-            raise ValueError("Mismatched ploidy among individuals.")
-
-        return self._from_genotype_matrix(
-            G, positions=positions, sequence_length=sequence_length
-        )
-
-
-class MultipleBinnedHaplotypeMatrices:
+class _MultipleFeatureMatrices:
     """
-    A factory for labelled collections of :class:`BinnedHaplotypeMatrix` objects.
+    A factory for labelled collections of :class:`_FeatureMatrix` objects.
 
     One feature matrix is produced for each label. Labels typically
     correspond to populations, but this need not be the case.
     """
 
+    feature_matrix_cls: Callable
+
     def __init__(
         self,
         *,
         num_individuals: Mapping[str, int],
-        num_bins: Mapping[str, int],
+        num_loci: Mapping[str, int],
         ploidy: Mapping[str, int],
         # TODO: label-specific options for phased and maf_thresh.
         # phased: dict,
@@ -503,25 +492,25 @@ class MultipleBinnedHaplotypeMatrices:
         :param num_individuals:
             A dict that maps labels to the the number of individuals
             in the feature matrix.
-        :param num_bins:
-            A dict that maps labels to the number of bins into which the
-            sequence is partitioned.
+        :param num_loci:
+            A dict that maps labels to the number of feature loci to be
+            extracted from the sequence.
         :param ploidy:
             A dict that maps labels to the ploidy of the individuals.
         :param global_phased:
             If True, the individuals' haplotypes will each be included as
             independent rows in each feature matrix and the shape of the
             feature matrix for label `l` will be
-            ``(ploidy[l] * num_individuals[l], num_bins[l], 1)``.
+            ``(ploidy[l] * num_individuals[l], num_loci[l], c)``.
             If False, the allele counts for each individual will be summed
             across their chromosome copies and the shape of the feature matrix
-            will be ``(num_individuals[l], num_bins[l], 1)``.
+            will be ``(num_individuals[l], num_loci[l], c)``.
         :param global_maf_thresh:
             Minor allele frequency (MAF) threshold. Sites with MAF lower than
             this value are ignored.
         """
-        dict_args = [num_individuals, num_bins, ploidy]
-        dict_strs = "num_individuals, num_bins, ploidy"
+        dict_args = [num_individuals, num_loci, ploidy]
+        dict_strs = "num_individuals, num_loci, ploidy"
         for d in dict_args:
             if not isinstance(d, collections.abc.Mapping):
                 raise TypeError(f"Expected dict for each of: {dict_strs}.")
@@ -531,9 +520,9 @@ class MultipleBinnedHaplotypeMatrices:
             raise ValueError(f"Must use the same dict keys for each of: {dict_strs}.")
 
         self.bh_matrices = {
-            label: BinnedHaplotypeMatrix(
+            label: self.feature_matrix_cls(
                 num_individuals=num_individuals[label],
-                num_bins=num_bins[label],
+                num_loci=num_loci[label],
                 ploidy=ploidy[label],
                 phased=global_phased,
                 maf_thresh=global_maf_thresh,
@@ -541,7 +530,7 @@ class MultipleBinnedHaplotypeMatrices:
             for label in keys
         }
         self._num_individuals = num_individuals
-        self._num_bins = num_bins
+        self._num_loci = num_loci
         self._ploidy = ploidy
         self._global_phased = global_phased
         self._global_maf_thresh = global_maf_thresh
@@ -566,7 +555,7 @@ class MultipleBinnedHaplotypeMatrices:
             A mapping from label to an array of individuals.
         :return:
             A dictionary mapping a label ``l`` to a feature array.
-            Each array has shape ``(num_pseudo_haplotypes[l], num_bins[l], 1)``.
+            Each array has shape ``(num_pseudo_haplotypes[l], num_loci[l], c)``.
             For an array :math:`M`, the :math:`M[i][j][0]`'th entry is the
             count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
             :math:`i`.
@@ -581,10 +570,10 @@ class MultipleBinnedHaplotypeMatrices:
         positions = np.array(ts.tables.sites.position)
         labelled_features = {}
         for label, l_individuals in individuals.items():
-            if ts.sequence_length < self._num_bins[label]:
+            if ts.sequence_length < self._num_loci[label]:
                 raise ValueError(
                     f"{label}: sequence length ({ts.sequence_length}) is "
-                    f"shorter than the number of bins ({self._num_bins[label]})."
+                    f"shorter than the number of loci ({self._num_loci[label]})."
                 )
             if len(l_individuals) != self._num_individuals[label]:
                 raise ValueError(
@@ -640,7 +629,7 @@ class MultipleBinnedHaplotypeMatrices:
             Numpy random number generator.
         :return:
             A dictionary mapping a label ``l`` to a feature array.
-            Each array has shape ``(num_pseudo_haplotypes[l], num_bins[l], 1)``.
+            Each array has shape ``(num_pseudo_haplotypes[l], num_loci[l], c)``.
             For an array :math:`M`, the :math:`M[i][j][0]`'th entry is the
             count of minor alleles in the :math:`j`'th bin of psdeudo-haplotype
             :math:`i`.
@@ -681,3 +670,25 @@ class MultipleBinnedHaplotypeMatrices:
                 H, positions=positions, sequence_length=sequence_length
             )
         return labelled_features
+
+
+class MultipleHaplotypeMatrices(_MultipleFeatureMatrices):
+    """
+    A factory for labelled collections of :class:`HaplotypeMatrix` objects.
+
+    One feature matrix is produced for each label. Labels typically
+    correspond to populations, but this need not be the case.
+    """
+
+    feature_matrix_cls = HaplotypeMatrix
+
+
+class MultipleBinnedHaplotypeMatrices(_MultipleFeatureMatrices):
+    """
+    A factory for labelled collections of :class:`BinnedHaplotypeMatrix` objects.
+
+    One feature matrix is produced for each label. Labels typically
+    correspond to populations, but this need not be the case.
+    """
+
+    feature_matrix_cls = BinnedHaplotypeMatrix

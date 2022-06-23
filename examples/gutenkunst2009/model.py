@@ -105,7 +105,7 @@ def demography(**theta):
 
 features = dinf.MultipleBinnedHaplotypeMatrices(
     num_individuals={pop: num_individuals for pop in populations},
-    num_bins={pop: 128 for pop in populations},
+    num_loci={pop: 128 for pop in populations},
     ploidy={pop: 2 for pop in populations},
     # The so-called "phased" 1kG vcfs also contain unphased genotypes
     # for some individuals at some sites.

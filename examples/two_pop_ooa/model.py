@@ -54,7 +54,7 @@ def demography(*, N_anc, N1, N2, N3, T1, T2, mig):
 
 features = dinf.MultipleBinnedHaplotypeMatrices(
     num_individuals={pop: num_individuals for pop in populations},
-    num_bins={pop: 128 for pop in populations},
+    num_loci={pop: 128 for pop in populations},
     ploidy={pop: 2 for pop in populations},
     global_phased=True,
     global_maf_thresh=0.05,

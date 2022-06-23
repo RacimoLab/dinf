@@ -16,7 +16,7 @@ parameters = dinf.Parameters(
 
 bh_matrix = dinf.BinnedHaplotypeMatrix(
     num_individuals=num_individuals,
-    num_bins=128,
+    num_loci=128,
     ploidy=2,
     phased=True,
     maf_thresh=0.05,
