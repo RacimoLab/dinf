@@ -146,7 +146,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev207
+            dinf 0.1.1.dev214
             </div>
             
         </div>
@@ -507,84 +507,77 @@ lead to annoying delays for the command line interface.</p>
 <section id="feature-extraction">
 <h2>Feature extraction<a class="headerlink" href="#feature-extraction" title="Permalink to this headline">#</a></h2>
 <dl class="py class">
-<dt class="sig sig-object py" id="dinf.BinnedHaplotypeMatrix">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">BinnedHaplotypeMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phased</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maf_thresh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype=&lt;class</span> <span class="pre">'numpy.int8'&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#BinnedHaplotypeMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix" title="Permalink to this definition">#</a></dt>
-<dd><p>A factory for feature matrices of pseudo-haplotypes.</p>
-<p>The binned haplotype matrix is an <span class="math notranslate nohighlight">\(n \times m\)</span> matrix,
+<dt class="sig sig-object py" id="dinf.HaplotypeMatrix">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">HaplotypeMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loci</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maf_thresh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phased</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#HaplotypeMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.HaplotypeMatrix" title="Permalink to this definition">#</a></dt>
+<dd><p>A factory for feature matrices consisting of haplotypes and relative positions.</p>
+<p>The feature is an <span class="math notranslate nohighlight">\(n \times m \times c\)</span> array, where the channel
+dimension <span class="math notranslate nohighlight">\(c\)</span> is 2. The first channel is a haplotype matrix and
+the second channel is a matrix of relative SNP positions.</p>
+<p>The haplotype matrix is an <span class="math notranslate nohighlight">\(n \times m\)</span> matrix,
 where <span class="math notranslate nohighlight">\(n\)</span> corresponds to the number of haplotypes
-(or polyploid genotypes, for unphased data) and <span class="math notranslate nohighlight">\(m\)</span> corresponds to
-a set of equally sized bins along the sequence length. Each matrix entry
-contains the count of minor alleles in an individual’s haplotype
-(or polyploid genotype) in a given bin.</p>
-<p>Only polymorphic SNPs are considered, and for multiallelic sites,
+(or number of individuals, for unphased data) and <span class="math notranslate nohighlight">\(m\)</span> corresponds to
+the number of SNPs along the sequence.
+For phased data, each entry is a 0 or 1 corresponding to
+the major or minor allele respectively. For unphased data, each entry
+is the count of minor alleles across all chromosomes in the individual.
+Only polymorphic SNPs are considered, and for multiallelic sites,
 only the first two alleles are used.
 Alleles are polarised by choosing the most frequent allele to be encoded
-as 0, and the other allele as 1. In the event that both alleles are equally
-frequent, the polarisation is chosen at random.</p>
-<p>As the features are intended to be passed to a covolutional neural network,
-the output dimensions are actually <span class="math notranslate nohighlight">\(n \times m \times 1\)</span>, where the
-final dimension is the (unused) “channels” dimension for the convolution.</p>
-<p>Gower et al. 2021, <a class="reference external" href="https://doi.org/10.7554/eLife.64669">https://doi.org/10.7554/eLife.64669</a></p>
+as 0 (the major allele), and the second most frequent allele as 1
+(the minor allele).</p>
+<p>The position matrix is an <span class="math notranslate nohighlight">\(n \times m\)</span> matrix, where the vector
+of <span class="math notranslate nohighlight">\(m\)</span> inter-SNP distances are repeated <span class="math notranslate nohighlight">\(n\)</span> times—once
+for each haplotype (or each individual, for unphased data). Each entry
+is the distance (in bp) from the previous SNP. The first inter-SNP distance
+in the vector is always zero.</p>
+<div class="line-block">
+<div class="line">Chan et al. 2018, <a class="reference external" href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/">https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/</a></div>
+<div class="line">Wang et al. 2021, <a class="reference external" href="https://doi.org/10.1111/1755-0998.13386">https://doi.org/10.1111/1755-0998.13386</a></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>num_individuals</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of individuals to include in the feature matrix.</p></li>
-<li><p><strong>num_bins</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of bins into which the sequence is partitioned.
-Each bin spans <code class="docutils literal notranslate"><span class="pre">sequence_length</span> <span class="pre">/</span> <span class="pre">num_bins</span></code> base pairs.</p></li>
+<li><p><strong>num_loci</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of SNP sites to extract.
+The central <code class="docutils literal notranslate"><span class="pre">num_loci</span></code> SNPs in the sequence will be used.
+If there are fewer than <code class="docutils literal notranslate"><span class="pre">num_loci</span></code> SNPs, the feature matrix will
+be padded on both sides with zeros.</p></li>
 <li><p><strong>ploidy</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Ploidy of the individuals.</p></li>
-<li><p><strong>phased</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, the individuals’ haplotypes will each be included as
-independent rows in the feature matrix and the shape of the
-feature matrix will be <code class="docutils literal notranslate"><span class="pre">(ploidy</span> <span class="pre">*</span> <span class="pre">num_individuals,</span> <span class="pre">num_bins,</span> <span class="pre">1)</span></code>.
-If False, the allele counts for each individual will be summed
-across their chromosome copies and the shape of the feature matrix
-will be <code class="docutils literal notranslate"><span class="pre">(num_individuals,</span> <span class="pre">num_bins,</span> <span class="pre">1)</span></code>.</p></li>
 <li><p><strong>maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
 this value are ignored.</p></li>
-<li><p><strong>dtype</strong> – The numpy data type of the feature matrix. To save memory, we use
-an np.int8 by default, which assumes that counts are small.
-However, counts may overflow int8 for very large values of
-<code class="docutils literal notranslate"><span class="pre">mu</span> <span class="pre">*</span> <span class="pre">Ne</span> <span class="pre">*</span> <span class="pre">num_individuals</span> <span class="pre">*</span> <span class="pre">sequence_length</span> <span class="pre">/</span> <span class="pre">num_bins</span></code>,
-in which case np.int16 might be preferred. Such cases have
-not been tested, but it’s likely that increasing <code class="docutils literal notranslate"><span class="pre">num_bins</span></code>
-is a better solution.</p></li>
+<li><p><strong>phased</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, the individuals’ haplotypes will each be included as
+independent rows in the feature matrix and the shape of the
+feature matrix will be <code class="docutils literal notranslate"><span class="pre">(ploidy</span> <span class="pre">*</span> <span class="pre">num_individuals,</span> <span class="pre">num_loci,</span> <span class="pre">c)</span></code>.
+If False, the allele counts for each individual will be summed
+across their chromosome copies and the shape of the feature matrix
+will be <code class="docutils literal notranslate"><span class="pre">(num_individuals,</span> <span class="pre">num_loci,</span> <span class="pre">c)</span></code>.</p></li>
 </ul>
 </dd>
 </dl>
-<dl class="py property">
-<dt class="sig sig-object py" id="dinf.BinnedHaplotypeMatrix.shape">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix.shape" title="Permalink to this definition">#</a></dt>
-<dd><p>Shape of the feature matrix.</p>
-</dd></dl>
-
 <dl class="py method">
-<dt class="sig sig-object py" id="dinf.BinnedHaplotypeMatrix.from_ts">
-<span class="sig-name descname"><span class="pre">from_ts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#BinnedHaplotypeMatrix.from_ts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix.from_ts" title="Permalink to this definition">#</a></dt>
-<dd><p>Create a pseudo-genotype matrix from a tree sequence.</p>
+<dt class="sig sig-object py" id="dinf.HaplotypeMatrix.from_ts">
+<span class="sig-name descname"><span class="pre">from_ts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.HaplotypeMatrix.from_ts" title="Permalink to this definition">#</a></dt>
+<dd><p>Create a feature matrix from a <a class="reference external" href="https://tskit.dev/tskit/docs/stable/introduction.html#sec-introduction" title="(in Python)"><span class="xref std std-ref">tskit</span></a>
+tree sequence.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ts</strong> (<a class="reference external" href="https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence" title="(in Python)"><em>tskit.trees.TreeSequence</em></a>) – The tree sequence.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>ts</strong> (<a class="reference external" href="https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence" title="(in Python)"><em>tskit.trees.TreeSequence</em></a>) – The tree sequence.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Array with shape <code class="docutils literal notranslate"><span class="pre">(num_pseudo_haplotypes,</span> <span class="pre">num_bins,</span> <span class="pre">1)</span></code>.
-For a matrix <span class="math notranslate nohighlight">\(M\)</span>, the <span class="math notranslate nohighlight">\(M[i][j][0]\)</span>’th entry is the
-count of minor alleles in the <span class="math notranslate nohighlight">\(j\)</span>’th bin of psdeudo-haplotype
-<span class="math notranslate nohighlight">\(i\)</span>.</p>
+<dd class="field-even"><p>Array with shape <code class="docutils literal notranslate"><span class="pre">(num_pseudo_haplotypes,</span> <span class="pre">num_loci,</span> <span class="pre">c)</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="dinf.BinnedHaplotypeMatrix.from_vcf">
-<span class="sig-name descname"><span class="pre">from_vcf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vb</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_missing_genotypes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_seg_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#BinnedHaplotypeMatrix.from_vcf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix.from_vcf" title="Permalink to this definition">#</a></dt>
-<dd><p>Create a pseudo-genotype matrix from a region of a VCF/BCF.</p>
-<p>The genomic window is drawn uniformly at random from the sequences
-defined in the given <a class="reference internal" href="#dinf.BagOfVcf" title="dinf.BagOfVcf"><code class="xref py py-class docutils literal notranslate"><span class="pre">BagOfVcf</span></code></a>.</p>
+<dt class="sig sig-object py" id="dinf.HaplotypeMatrix.from_vcf">
+<span class="sig-name descname"><span class="pre">from_vcf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vb</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_missing_genotypes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_seg_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.HaplotypeMatrix.from_vcf" title="Permalink to this definition">#</a></dt>
+<dd><p>Create a feature matrix from a region of a VCF/BCF.</p>
+<p>The genomic window for a feature matrix is drawn uniformly at random
+from the contigs defined in the given <a class="reference internal" href="#dinf.BagOfVcf" title="dinf.BagOfVcf"><code class="xref py py-class docutils literal notranslate"><span class="pre">BagOfVcf</span></code></a>, <code class="docutils literal notranslate"><span class="pre">vb</span></code>.</p>
 <p>Individuals in the VCFs are sampled (without replacement) for
 inclusion in the output matrix. The size of the feature space
 can therefore be vastly increased by having more individuals
@@ -598,83 +591,81 @@ in the VCFs than are needed for the feature dimensions.</p>
 this number.</p></li>
 <li><p><strong>min_seg_sites</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Sampled genotype matrix must have at least this many variable
 sites (after filtering sites for missingness).</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Array with shape <code class="docutils literal notranslate"><span class="pre">(num_pseudo_haplotypes,</span> <span class="pre">num_bins,</span> <span class="pre">1)</span></code>.
-For a matrix <span class="math notranslate nohighlight">\(M\)</span>, the <span class="math notranslate nohighlight">\(M[i][j][0]\)</span>’th entry is the
-count of minor alleles in the <span class="math notranslate nohighlight">\(j\)</span>’th bin of psdeudo-haplotype
-<span class="math notranslate nohighlight">\(i\)</span>.</p>
+<dd class="field-even"><p>Array with shape <code class="docutils literal notranslate"><span class="pre">(num_pseudo_haplotypes,</span> <span class="pre">num_loci,</span> <span class="pre">c)</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="dinf.HaplotypeMatrix.shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.HaplotypeMatrix.shape" title="Permalink to this definition">#</a></dt>
+<dd><p>Shape of the feature matrix.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="dinf.MultipleBinnedHaplotypeMatrices">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">MultipleBinnedHaplotypeMatrices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_bins</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_phased</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_maf_thresh</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#MultipleBinnedHaplotypeMatrices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.MultipleBinnedHaplotypeMatrices" title="Permalink to this definition">#</a></dt>
-<dd><p>A factory for labelled collections of <a class="reference internal" href="#dinf.BinnedHaplotypeMatrix" title="dinf.BinnedHaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinnedHaplotypeMatrix</span></code></a> objects.</p>
-<p>One feature matrix is produced for each label. Labels typically
-correspond to populations, but this need not be the case.</p>
+<dt class="sig sig-object py" id="dinf.MultipleHaplotypeMatrices">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">MultipleHaplotypeMatrices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loci</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_maf_thresh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_phased</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#MultipleHaplotypeMatrices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.MultipleHaplotypeMatrices" title="Permalink to this definition">#</a></dt>
+<dd><p>A factory for labelled collections of <a class="reference internal" href="#dinf.HaplotypeMatrix" title="dinf.HaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">HaplotypeMatrix</span></code></a> objects.</p>
+<p>One feature matrix is produced for each label. Labels correspond to
+collections of individuals that will be treated as exchangeable
+(e.g. populations).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>num_individuals</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – A dict that maps labels to the the number of individuals
+<li><p><strong>num_individuals</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – A dict that maps labels to the number of individuals
 in the feature matrix.</p></li>
-<li><p><strong>num_bins</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – A dict that maps labels to the number of bins into which the
-sequence is partitioned.</p></li>
+<li><p><strong>num_loci</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – A dict that maps labels to the number of feature loci to be
+extracted from the sequence.</p></li>
 <li><p><strong>ploidy</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – A dict that maps labels to the ploidy of the individuals.</p></li>
+<li><p><strong>global_maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
+this value are ignored. MAF is calculated across all individuals.</p></li>
 <li><p><strong>global_phased</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, the individuals’ haplotypes will each be included as
 independent rows in each feature matrix and the shape of the
-feature matrix for label <cite>l</cite> will be
-<code class="docutils literal notranslate"><span class="pre">(ploidy[l]</span> <span class="pre">*</span> <span class="pre">num_individuals[l],</span> <span class="pre">num_bins[l],</span> <span class="pre">1)</span></code>.
+feature matrix for label <code class="docutils literal notranslate"><span class="pre">l</span></code> will be
+<code class="docutils literal notranslate"><span class="pre">(ploidy[l]</span> <span class="pre">*</span> <span class="pre">num_individuals[l],</span> <span class="pre">num_loci[l],</span> <span class="pre">c)</span></code>.
 If False, the allele counts for each individual will be summed
 across their chromosome copies and the shape of the feature matrix
-will be <code class="docutils literal notranslate"><span class="pre">(num_individuals[l],</span> <span class="pre">num_bins[l],</span> <span class="pre">1)</span></code>.</p></li>
-<li><p><strong>global_maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
-this value are ignored.</p></li>
+will be <code class="docutils literal notranslate"><span class="pre">(num_individuals[l],</span> <span class="pre">num_loci[l],</span> <span class="pre">c)</span></code>.</p></li>
 </ul>
 </dd>
 </dl>
-<dl class="py property">
-<dt class="sig sig-object py" id="dinf.MultipleBinnedHaplotypeMatrices.shape">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.MultipleBinnedHaplotypeMatrices.shape" title="Permalink to this definition">#</a></dt>
-<dd><p>Shape of the feature matrix.</p>
-</dd></dl>
-
 <dl class="py method">
-<dt class="sig sig-object py" id="dinf.MultipleBinnedHaplotypeMatrices.from_ts">
-<span class="sig-name descname"><span class="pre">from_ts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">individuals</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#MultipleBinnedHaplotypeMatrices.from_ts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.MultipleBinnedHaplotypeMatrices.from_ts" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="dinf.MultipleHaplotypeMatrices.from_ts">
+<span class="sig-name descname"><span class="pre">from_ts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">individuals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.MultipleHaplotypeMatrices.from_ts" title="Permalink to this definition">#</a></dt>
 <dd><p>Create pseudo-genotype matrices from a tree sequence.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ts</strong> (<a class="reference external" href="https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence" title="(in Python)"><em>tskit.trees.TreeSequence</em></a>) – The tree sequence.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
-<li><p><strong>individuals</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.10)"><em>Mapping</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.22)"><em>numpy.dtype</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.integer" title="(in NumPy v1.22)"><em>numpy.integer</em></a><em>]</em><em>]</em><em>]</em>) – A mapping from label to an array of individuals.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
+<li><p><strong>individuals</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.10)"><em>Mapping</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.23)"><em>numpy.dtype</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.integer" title="(in NumPy v1.23)"><em>numpy.integer</em></a><em>]</em><em>]</em><em>]</em>) – A mapping from label to an array of individuals.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A dictionary mapping a label <code class="docutils literal notranslate"><span class="pre">l</span></code> to a feature array.
-Each array has shape <code class="docutils literal notranslate"><span class="pre">(num_pseudo_haplotypes[l],</span> <span class="pre">num_bins[l],</span> <span class="pre">1)</span></code>.
+Each array has shape <code class="docutils literal notranslate"><span class="pre">(num_pseudo_haplotypes[l],</span> <span class="pre">num_loci[l],</span> <span class="pre">c)</span></code>.
 For an array <span class="math notranslate nohighlight">\(M\)</span>, the <span class="math notranslate nohighlight">\(M[i][j][0]\)</span>’th entry is the
 count of minor alleles in the <span class="math notranslate nohighlight">\(j\)</span>’th bin of psdeudo-haplotype
 <span class="math notranslate nohighlight">\(i\)</span>.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.10)"><em>Dict</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)">str</a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a>]</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.10)"><em>Dict</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)">str</a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a>]</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="dinf.MultipleBinnedHaplotypeMatrices.from_vcf">
-<span class="sig-name descname"><span class="pre">from_vcf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vb</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_missing_genotypes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_seg_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#MultipleBinnedHaplotypeMatrices.from_vcf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.MultipleBinnedHaplotypeMatrices.from_vcf" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="dinf.MultipleHaplotypeMatrices.from_vcf">
+<span class="sig-name descname"><span class="pre">from_vcf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vb</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_missing_genotypes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_seg_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.MultipleHaplotypeMatrices.from_vcf" title="Permalink to this definition">#</a></dt>
 <dd><p>Create pseudo-genotype matrices from a region of a VCF/BCF.</p>
 <p>The genomic window is drawn uniformly at random from the sequences
 defined in the given <a class="reference internal" href="#dinf.BagOfVcf" title="dinf.BagOfVcf"><code class="xref py py-class docutils literal notranslate"><span class="pre">BagOfVcf</span></code></a>.</p>
@@ -685,26 +676,220 @@ in the VCFs than are needed for the feature dimensions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>vb</strong> (<a class="reference internal" href="#dinf.BagOfVcf" title="dinf.vcf.BagOfVcf"><em>dinf.vcf.BagOfVcf</em></a>) – A collection of indexed VCF/BCF files.</p></li>
+<li><p><strong>sequence_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Length of the genomic window to be sampled.</p></li>
+<li><p><strong>max_missing_genotypes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Consider only sites with fewer missing genotype calls than
+this number.</p></li>
+<li><p><strong>min_seg_sites</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Sampled genotype matrix must have at least this many variable
+sites (after filtering sites for missingness).</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary mapping a label <code class="docutils literal notranslate"><span class="pre">l</span></code> to a feature array.
+Each array has shape <code class="docutils literal notranslate"><span class="pre">(num_pseudo_haplotypes[l],</span> <span class="pre">num_loci[l],</span> <span class="pre">c)</span></code>.
+For an array <span class="math notranslate nohighlight">\(M\)</span>, the <span class="math notranslate nohighlight">\(M[i][j][0]\)</span>’th entry is the
+count of minor alleles in the <span class="math notranslate nohighlight">\(j\)</span>’th bin of psdeudo-haplotype
+<span class="math notranslate nohighlight">\(i\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.10)"><em>Dict</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)">str</a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="dinf.MultipleHaplotypeMatrices.shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.MultipleHaplotypeMatrices.shape" title="Permalink to this definition">#</a></dt>
+<dd><p>Shape of the feature matrices.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="dinf.BinnedHaplotypeMatrix">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">BinnedHaplotypeMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loci</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phased</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maf_thresh</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#BinnedHaplotypeMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix" title="Permalink to this definition">#</a></dt>
+<dd><p>A factory for feature matrices of pseudo-haplotypes.</p>
+<p>The binned haplotype matrix is an <span class="math notranslate nohighlight">\(n \times m\)</span> matrix,
+where <span class="math notranslate nohighlight">\(n\)</span> corresponds to the number of haplotypes
+(or polyploid genotypes, for unphased data) and <span class="math notranslate nohighlight">\(m\)</span> corresponds to
+a set of equally sized bins along the sequence length. Each matrix entry
+contains the count of minor alleles in an individual’s haplotype
+(or polyploid genotype) in a given bin.</p>
+<p>Only polymorphic SNPs are considered, and for multiallelic sites,
+only the first two alleles are used.
+Alleles are polarised by choosing the most frequent allele to be encoded
+as 0, and the second most frequent allele as 1.</p>
+<p>As the features are intended to be passed to a covolutional neural network,
+the output dimensions are actually <span class="math notranslate nohighlight">\(n \times m \times 1\)</span>, where the
+final dimension is the (unused) “channels” dimension for the convolution.</p>
+<p>Gower et al. 2021, <a class="reference external" href="https://doi.org/10.7554/eLife.64669">https://doi.org/10.7554/eLife.64669</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_individuals</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of individuals to include in the feature matrix.</p></li>
+<li><p><strong>num_loci</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of bins into which the sequence is partitioned.
+Each bin spans <code class="docutils literal notranslate"><span class="pre">sequence_length</span> <span class="pre">/</span> <span class="pre">num_loci</span></code> base pairs.</p></li>
+<li><p><strong>ploidy</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Ploidy of the individuals.</p></li>
+<li><p><strong>phased</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, the individuals’ haplotypes will each be included as
+independent rows in the feature matrix and the shape of the
+feature matrix will be <code class="docutils literal notranslate"><span class="pre">(ploidy</span> <span class="pre">*</span> <span class="pre">num_individuals,</span> <span class="pre">num_loci,</span> <span class="pre">1)</span></code>.
+If False, the allele counts for each individual will be summed
+across their chromosome copies and the shape of the feature matrix
+will be <code class="docutils literal notranslate"><span class="pre">(num_individuals,</span> <span class="pre">num_loci,</span> <span class="pre">1)</span></code>.</p></li>
+<li><p><strong>maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
+this value are ignored.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="dinf.BinnedHaplotypeMatrix.from_ts">
+<span class="sig-name descname"><span class="pre">from_ts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix.from_ts" title="Permalink to this definition">#</a></dt>
+<dd><p>Create a feature matrix from a <a class="reference external" href="https://tskit.dev/tskit/docs/stable/introduction.html#sec-introduction" title="(in Python)"><span class="xref std std-ref">tskit</span></a>
+tree sequence.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ts</strong> (<a class="reference external" href="https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence" title="(in Python)"><em>tskit.trees.TreeSequence</em></a>) – The tree sequence.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Array with shape <code class="docutils literal notranslate"><span class="pre">(num_pseudo_haplotypes,</span> <span class="pre">num_loci,</span> <span class="pre">c)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dinf.BinnedHaplotypeMatrix.from_vcf">
+<span class="sig-name descname"><span class="pre">from_vcf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vb</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_missing_genotypes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_seg_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix.from_vcf" title="Permalink to this definition">#</a></dt>
+<dd><p>Create a feature matrix from a region of a VCF/BCF.</p>
+<p>The genomic window for a feature matrix is drawn uniformly at random
+from the contigs defined in the given <a class="reference internal" href="#dinf.BagOfVcf" title="dinf.BagOfVcf"><code class="xref py py-class docutils literal notranslate"><span class="pre">BagOfVcf</span></code></a>, <code class="docutils literal notranslate"><span class="pre">vb</span></code>.</p>
+<p>Individuals in the VCFs are sampled (without replacement) for
+inclusion in the output matrix. The size of the feature space
+can therefore be vastly increased by having more individuals
+in the VCFs than are needed for the feature dimensions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
 <li><p><strong>vb</strong> (<a class="reference internal" href="#dinf.BagOfVcf" title="dinf.vcf.BagOfVcf"><em>dinf.vcf.BagOfVcf</em></a>) – The BagOfVcf object that describes the VCF/BCF files.</p></li>
 <li><p><strong>sequence_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Length of the genomic window to be sampled.</p></li>
 <li><p><strong>max_missing_genotypes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Consider only sites with fewer missing genotype calls than
 this number.</p></li>
 <li><p><strong>min_seg_sites</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Sampled genotype matrix must have at least this many variable
 sites (after filtering sites for missingness).</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Array with shape <code class="docutils literal notranslate"><span class="pre">(num_pseudo_haplotypes,</span> <span class="pre">num_loci,</span> <span class="pre">c)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="dinf.BinnedHaplotypeMatrix.shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix.shape" title="Permalink to this definition">#</a></dt>
+<dd><p>Shape of the feature matrix.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="dinf.MultipleBinnedHaplotypeMatrices">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">MultipleBinnedHaplotypeMatrices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loci</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_maf_thresh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_phased</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#MultipleBinnedHaplotypeMatrices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.MultipleBinnedHaplotypeMatrices" title="Permalink to this definition">#</a></dt>
+<dd><p>A factory for labelled collections of <a class="reference internal" href="#dinf.BinnedHaplotypeMatrix" title="dinf.BinnedHaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinnedHaplotypeMatrix</span></code></a> objects.</p>
+<p>One feature matrix is produced for each label. Labels correspond to
+collections of individuals that will be treated as exchangeable
+(e.g. populations).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_individuals</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – A dict that maps labels to the number of individuals
+in the feature matrix.</p></li>
+<li><p><strong>num_loci</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – A dict that maps labels to the number of feature loci to be
+extracted from the sequence.</p></li>
+<li><p><strong>ploidy</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – A dict that maps labels to the ploidy of the individuals.</p></li>
+<li><p><strong>global_maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
+this value are ignored. MAF is calculated across all individuals.</p></li>
+<li><p><strong>global_phased</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, the individuals’ haplotypes will each be included as
+independent rows in each feature matrix and the shape of the
+feature matrix for label <code class="docutils literal notranslate"><span class="pre">l</span></code> will be
+<code class="docutils literal notranslate"><span class="pre">(ploidy[l]</span> <span class="pre">*</span> <span class="pre">num_individuals[l],</span> <span class="pre">num_loci[l],</span> <span class="pre">c)</span></code>.
+If False, the allele counts for each individual will be summed
+across their chromosome copies and the shape of the feature matrix
+will be <code class="docutils literal notranslate"><span class="pre">(num_individuals[l],</span> <span class="pre">num_loci[l],</span> <span class="pre">c)</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="dinf.MultipleBinnedHaplotypeMatrices.from_ts">
+<span class="sig-name descname"><span class="pre">from_ts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">individuals</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.MultipleBinnedHaplotypeMatrices.from_ts" title="Permalink to this definition">#</a></dt>
+<dd><p>Create pseudo-genotype matrices from a tree sequence.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ts</strong> (<a class="reference external" href="https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence" title="(in Python)"><em>tskit.trees.TreeSequence</em></a>) – The tree sequence.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
+<li><p><strong>individuals</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.10)"><em>Mapping</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a><em>, </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.23)"><em>numpy.dtype</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.integer" title="(in NumPy v1.23)"><em>numpy.integer</em></a><em>]</em><em>]</em><em>]</em>) – A mapping from label to an array of individuals.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A dictionary mapping a label <code class="docutils literal notranslate"><span class="pre">l</span></code> to a feature array.
-Each array has shape <code class="docutils literal notranslate"><span class="pre">(num_pseudo_haplotypes[l],</span> <span class="pre">num_bins[l],</span> <span class="pre">1)</span></code>.
+Each array has shape <code class="docutils literal notranslate"><span class="pre">(num_pseudo_haplotypes[l],</span> <span class="pre">num_loci[l],</span> <span class="pre">c)</span></code>.
 For an array <span class="math notranslate nohighlight">\(M\)</span>, the <span class="math notranslate nohighlight">\(M[i][j][0]\)</span>’th entry is the
 count of minor alleles in the <span class="math notranslate nohighlight">\(j\)</span>’th bin of psdeudo-haplotype
 <span class="math notranslate nohighlight">\(i\)</span>.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.10)"><em>Dict</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)">str</a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a>]</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.10)"><em>Dict</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)">str</a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a>]</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dinf.MultipleBinnedHaplotypeMatrices.from_vcf">
+<span class="sig-name descname"><span class="pre">from_vcf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vb</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sequence_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_missing_genotypes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_seg_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.MultipleBinnedHaplotypeMatrices.from_vcf" title="Permalink to this definition">#</a></dt>
+<dd><p>Create pseudo-genotype matrices from a region of a VCF/BCF.</p>
+<p>The genomic window is drawn uniformly at random from the sequences
+defined in the given <a class="reference internal" href="#dinf.BagOfVcf" title="dinf.BagOfVcf"><code class="xref py py-class docutils literal notranslate"><span class="pre">BagOfVcf</span></code></a>.</p>
+<p>Individuals in the VCFs are sampled (without replacement) for
+inclusion in the output matrix. The size of the feature space
+can therefore be vastly increased by having more individuals
+in the VCFs than are needed for the feature dimensions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vb</strong> (<a class="reference internal" href="#dinf.BagOfVcf" title="dinf.vcf.BagOfVcf"><em>dinf.vcf.BagOfVcf</em></a>) – A collection of indexed VCF/BCF files.</p></li>
+<li><p><strong>sequence_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Length of the genomic window to be sampled.</p></li>
+<li><p><strong>max_missing_genotypes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Consider only sites with fewer missing genotype calls than
+this number.</p></li>
+<li><p><strong>min_seg_sites</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Sampled genotype matrix must have at least this many variable
+sites (after filtering sites for missingness).</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dictionary mapping a label <code class="docutils literal notranslate"><span class="pre">l</span></code> to a feature array.
+Each array has shape <code class="docutils literal notranslate"><span class="pre">(num_pseudo_haplotypes[l],</span> <span class="pre">num_loci[l],</span> <span class="pre">c)</span></code>.
+For an array <span class="math notranslate nohighlight">\(M\)</span>, the <span class="math notranslate nohighlight">\(M[i][j][0]\)</span>’th entry is the
+count of minor alleles in the <span class="math notranslate nohighlight">\(j\)</span>’th bin of psdeudo-haplotype
+<span class="math notranslate nohighlight">\(i\)</span>.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.10)"><em>Dict</em></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)">str</a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="dinf.MultipleBinnedHaplotypeMatrices.shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.MultipleBinnedHaplotypeMatrices.shape" title="Permalink to this definition">#</a></dt>
+<dd><p>Shape of the feature matrices.</p>
 </dd></dl>
 
 </dd></dl>
@@ -790,7 +975,7 @@ for which genotypes will be sampled.</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of genomic windows to sample.</p></li>
 <li><p><strong>sequence_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Length of the sequence to sample.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -817,7 +1002,7 @@ this number.</p></li>
 <li><p><strong>min_seg_sites</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Sampled genotype matrix must have at least this many variable
 sites (after filtering sites for missingness).</p></li>
 <li><p><strong>require_phased</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, raise an error if genotypes are not phased.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
 <li><p><strong>retries</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Maximum number of attempts allowed to find a genomic window with
 the required number of segregating sites.</p></li>
 </ul>
@@ -834,7 +1019,7 @@ the start of the genomic window.</p></li>
 </p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.10)"><em>Tuple</em></a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a>]</p>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.10)"><em>Tuple</em></a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a>]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -861,7 +1046,7 @@ the start of the genomic window.</p></li>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>num_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The sample size.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -869,7 +1054,7 @@ the start of the genomic window.</p></li>
 j’th draw for the k’th parameter.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.22)">numpy.dtype</a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.floating" title="(in NumPy v1.22)">numpy.floating</a>]]</p>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.23)">numpy.dtype</a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.floating" title="(in NumPy v1.23)">numpy.floating</a>]]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -880,7 +1065,7 @@ j’th draw for the k’th parameter.</p>
 <dd><p>Test if values are within in the parameter bounds.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a>) – A 2d numpy array, where x[j][k] is the j’th coordinate for the
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – A 2d numpy array, where x[j][k] is the j’th coordinate for the
 k’th parameter.</p>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -888,7 +1073,7 @@ k’th parameter.</p>
 j’th coordinate is within the parameter space, and False otherwise.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.22)">numpy.dtype</a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool_" title="(in NumPy v1.22)">numpy.bool_</a>]]</p>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.23)">numpy.dtype</a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool_" title="(in NumPy v1.23)">numpy.bool_</a>]]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -941,14 +1126,14 @@ None, this value may be used as the truth in a simulation study.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The sample size.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A numpy array of parameter values.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.22)">numpy.dtype</a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.floating" title="(in NumPy v1.22)">numpy.floating</a>]]</p>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.23)">numpy.dtype</a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.floating" title="(in NumPy v1.23)">numpy.floating</a>]]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -959,14 +1144,14 @@ None, this value may be used as the truth in a simulation study.</p>
 <dd><p>Test if values are within in the parameter bounds.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)"><em>numpy.ndarray</em></a>) – The value(s) that will be bounds checked.</p>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The value(s) that will be bounds checked.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A boolean value, or array of booleans with the same shape as
 the input. ret[j] is True if x[j] is in bounds, False otherwise.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.22)">numpy.dtype</a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool_" title="(in NumPy v1.22)">numpy.bool_</a>]]</p>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v1.23)">numpy.dtype</a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool_" title="(in NumPy v1.23)">numpy.bool_</a>]]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1010,7 +1195,7 @@ directory will be used.</p></li>
 <li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
 <a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.generator_func()</span></code></a> and
 <a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.target_func()</span></code></a>.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1044,7 +1229,7 @@ directory will be used.</p></li>
 <li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
 <a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.generator_func()</span></code></a> and
 <a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.target_func()</span></code></a>.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1085,7 +1270,7 @@ directory will be used.</p></li>
 <li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
 <a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.generator_func()</span></code></a> and
 <a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.target_func()</span></code></a>.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1177,7 +1362,7 @@ directory will be used.</p></li>
 <li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
 <a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.generator_func()</span></code></a> and
 <a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.target_func()</span></code></a>.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1221,7 +1406,7 @@ that maps a label to a feature array. Each feature array has shape
 n &gt;= 2 is the number of (pseudo)haplotypes,
 m &gt;= 4 is the length of the (pseudo)haplotypes,
 and c &lt;= 4 is the number of channels.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
 <li><p><strong>network</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.10)"><em>Optional</em></a><em>[</em><em>flax.linen.module.Module</em><em>]</em>) – A flax neural network.
 If not specified, an exchangeable CNN will be used.</p></li>
 </ul>
@@ -1269,7 +1454,7 @@ to the existing metrics.</p></li>
 <dd class="field-even"><p>A vector of predictions, one for each input instance.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.22)">numpy.ndarray</a></p>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1309,7 +1494,7 @@ class methods.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_shape</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The shape of the input data for the network.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.22)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
 <li><p><strong>network</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.10)"><em>Optional</em></a><em>[</em><em>flax.linen.module.Module</em><em>]</em>) – A neural network. If not specified, a simple MLP will be used.</p></li>
 </ul>
 </dd>
@@ -1419,7 +1604,7 @@ doesn’t exist.</p></li>
   
       &copy; Copyright 2021.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev207+ga1fbce6
+      dinf 0.1.1.dev214+ga7cd1ce
     </div>
 </p>
         </footer>

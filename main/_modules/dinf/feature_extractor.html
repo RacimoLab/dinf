@@ -141,7 +141,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev207
+            dinf 0.1.1.dev214
             </div>
             
         </div>
@@ -269,7 +269,7 @@ title="Open an issue"
   <h1>Source code for dinf.feature_extractor</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">collections</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">numpy.typing</span> <span class="k">as</span> <span class="nn">npt</span>
@@ -279,83 +279,56 @@ title="Open an issue"
 <span class="kn">from</span> <span class="nn">.misc</span> <span class="kn">import</span> <span class="n">ts_ploidy_of_individuals</span><span class="p">,</span> <span class="n">ts_nodes_of_individuals</span>
 
 
-<div class="viewcode-block" id="BinnedHaplotypeMatrix"><a class="viewcode-back" href="../../api.html#dinf.BinnedHaplotypeMatrix">[docs]</a><span class="k">class</span> <span class="nc">BinnedHaplotypeMatrix</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">_FeatureMatrix</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A factory for feature matrices of pseudo-haplotypes.</span>
-
-<span class="sd">    The binned haplotype matrix is an :math:`n \\times m` matrix,</span>
-<span class="sd">    where :math:`n` corresponds to the number of haplotypes</span>
-<span class="sd">    (or polyploid genotypes, for unphased data) and :math:`m` corresponds to</span>
-<span class="sd">    a set of equally sized bins along the sequence length. Each matrix entry</span>
-<span class="sd">    contains the count of minor alleles in an individual&#39;s haplotype</span>
-<span class="sd">    (or polyploid genotype) in a given bin.</span>
-
-<span class="sd">    Only polymorphic SNPs are considered, and for multiallelic sites,</span>
-<span class="sd">    only the first two alleles are used.</span>
-<span class="sd">    Alleles are polarised by choosing the most frequent allele to be encoded</span>
-<span class="sd">    as 0, and the other allele as 1. In the event that both alleles are equally</span>
-<span class="sd">    frequent, the polarisation is chosen at random.</span>
-
-<span class="sd">    As the features are intended to be passed to a covolutional neural network,</span>
-<span class="sd">    the output dimensions are actually :math:`n \\times m \\times 1`, where the</span>
-<span class="sd">    final dimension is the (unused) &quot;channels&quot; dimension for the convolution.</span>
-
-<span class="sd">    Gower et al. 2021, https://doi.org/10.7554/eLife.64669</span>
+<span class="sd">    Common functionality of HaplotypeMatrix and BinnedHaplotypeMatrix</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">num_individuals</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">num_bins</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">num_loci</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">ploidy</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-        <span class="n">maf_thresh</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">,</span>
+        <span class="n">maf_thresh</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param num_individuals:</span>
 <span class="sd">            The number of individuals to include in the feature matrix.</span>
-<span class="sd">        :param num_bins:</span>
-<span class="sd">            The number of bins into which the sequence is partitioned.</span>
-<span class="sd">            Each bin spans ``sequence_length / num_bins`` base pairs.</span>
+<span class="sd">        :param num_loci:</span>
+<span class="sd">            Dimensionality along the sequence length. This might be the number</span>
+<span class="sd">            of snps, or the number of bins into which the sequence is partitioned.</span>
 <span class="sd">        :param ploidy:</span>
 <span class="sd">            Ploidy of the individuals.</span>
 <span class="sd">        :param phased:</span>
 <span class="sd">            If True, the individuals&#39; haplotypes will each be included as</span>
 <span class="sd">            independent rows in the feature matrix and the shape of the</span>
-<span class="sd">            feature matrix will be ``(ploidy * num_individuals, num_bins, 1)``.</span>
+<span class="sd">            feature matrix will be ``(ploidy * num_individuals, num_loci, c)``.</span>
 <span class="sd">            If False, the allele counts for each individual will be summed</span>
 <span class="sd">            across their chromosome copies and the shape of the feature matrix</span>
-<span class="sd">            will be ``(num_individuals, num_bins, 1)``.</span>
+<span class="sd">            will be ``(num_individuals, num_loci, c)``.</span>
 <span class="sd">        :param maf_thresh:</span>
 <span class="sd">            Minor allele frequency (MAF) threshold. Sites with MAF lower than</span>
-<span class="sd">            this value are ignored.</span>
-<span class="sd">        :param dtype:</span>
-<span class="sd">            The numpy data type of the feature matrix. To save memory, we use</span>
-<span class="sd">            an np.int8 by default, which assumes that counts are small.</span>
-<span class="sd">            However, counts may overflow int8 for very large values of</span>
-<span class="sd">            ``mu * Ne * num_individuals * sequence_length / num_bins``,</span>
-<span class="sd">            in which case np.int16 might be preferred. Such cases have</span>
-<span class="sd">            not been tested, but it&#39;s likely that increasing ``num_bins``</span>
-<span class="sd">            is a better solution.</span>
+<span class="sd">            this value are ignored. If None, only invariant sites will be excluded.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">num_individuals</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;must have num_individuals &gt;= 1&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">num_bins</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;must have num_bins &gt;= 1&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">maf_thresh</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">maf_thresh</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;must have 0 &lt;= maf_thresh &lt;= 1&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;dtype must be np.int8, np.int16, or np.in32&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">num_loci</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;must have num_loci &gt;= 1&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span> <span class="o">=</span> <span class="n">num_individuals</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_num_bins</span> <span class="o">=</span> <span class="n">num_bins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span> <span class="o">=</span> <span class="n">num_loci</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_phased</span> <span class="o">=</span> <span class="n">phased</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span> <span class="o">=</span> <span class="n">ploidy</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_num_haplotypes</span> <span class="o">=</span> <span class="n">num_individuals</span> <span class="o">*</span> <span class="n">ploidy</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">dtype</span>
-        <span class="c1"># We use a minimum threshold of 1 to exclude invariant sites.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_allele_count_threshold</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">maf_thresh</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_haplotypes</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">maf_thresh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Exclude invariant sites.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_allele_count_threshold</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">maf_thresh</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">maf_thresh</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;must have 0 &lt;= maf_thresh &lt;= 1&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_allele_count_threshold</span> <span class="o">=</span> <span class="n">maf_thresh</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_haplotypes</span>
 
         <span class="c1"># The number of rows in the feature matrix is determined by</span>
         <span class="c1"># whether or not the data should be treated as phased.</span>
@@ -371,9 +344,9 @@ title="Open an issue"
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;must have at least two pseudo-haplotypes&quot;</span><span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_pseudo_haplotypes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_bins</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
     <span class="k">def</span> <span class="nf">_from_genotype_matrix</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -381,15 +354,12 @@ title="Open an issue"
         <span class="o">*</span><span class="p">,</span>
         <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">sequence_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Create a pseudo-genotype matrix from a regular genotype matrix.</span>
+<span class="sd">        Create a feature matrix from a regular genotype matrix.</span>
 
 <span class="sd">        Missing genotypes in the input are assumed to take the value -1,</span>
 <span class="sd">        and the first allele has genotype 0, second allele genotype 1, etc.</span>
-<span class="sd">        We consider only allele 0 and 1. For multiallelic sites this means</span>
-<span class="sd">        all but the first two alleles are ignored.</span>
 
 <span class="sd">        :param G:</span>
 <span class="sd">            Genotype matrix with shape (num_sites, num_individuals, ploidy).</span>
@@ -398,88 +368,36 @@ title="Open an issue"
 <span class="sd">            Vector of variant positions.</span>
 <span class="sd">        :param sequence_length:</span>
 <span class="sd">            The length of the sequence from which the matrix is derived.</span>
-<span class="sd">        :param rng:</span>
-<span class="sd">            Numpy random number generator. Used to randomly polarise alleles</span>
-<span class="sd">            when there are multiple alleles with the same frequency.</span>
 <span class="sd">        :return:</span>
-<span class="sd">            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.</span>
-<span class="sd">            For a matrix :math:`M`, the :math:`M[i][j][0]`&#39;th entry is the</span>
-<span class="sd">            count of minor alleles in the :math:`j`&#39;th bin of psdeudo-haplotype</span>
-<span class="sd">            :math:`i`.</span>
+<span class="sd">            Array with shape ``(num_pseudo_haplotypes, num_loci, c)``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
-        <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">M</span>
-        <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor_divide</span><span class="p">(</span><span class="n">positions</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_bins</span><span class="p">,</span> <span class="n">sequence_length</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
-        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
-        <span class="n">G_sites</span><span class="p">,</span> <span class="n">G_individuals</span><span class="p">,</span> <span class="n">G_ploidy</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">shape</span>
-        <span class="k">assert</span> <span class="n">G_individuals</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span>
-        <span class="k">assert</span> <span class="n">G_ploidy</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">,</span> <span class="p">(</span><span class="n">G_ploidy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">)</span>
-        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="n">G_sites</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-
-        <span class="c1"># Identify genotypes that aren&#39;t 0 or 1. These will be ignored later.</span>
-        <span class="n">missing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">G</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">)</span>
-
-        <span class="n">ac0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">ac1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">ac0</span><span class="p">,</span> <span class="n">ac1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_allele_count_threshold</span>
-        <span class="c1"># Polarise 0 and 1 in genotype matrix by major allele frequency.</span>
-        <span class="n">flip</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-            <span class="n">ac1</span> <span class="o">&gt;</span> <span class="n">ac0</span><span class="p">,</span>
-            <span class="c1"># If allele counts are the same, randomly assign major allele.</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">ac1</span> <span class="o">==</span> <span class="n">ac0</span><span class="p">,</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">),</span>
-        <span class="p">)</span>
-        <span class="n">G</span> <span class="o">^=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">flip</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-
-        <span class="c1"># Exclude missing genotypes from the sums below.</span>
-        <span class="n">G</span><span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_phased</span><span class="p">:</span>
-            <span class="c1"># Collapse each individual&#39;s chromosome copies by summing counts.</span>
-            <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">))</span>
-            <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">genotypes</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">bins</span><span class="p">[</span><span class="n">keep</span><span class="p">],</span> <span class="n">G</span><span class="p">[</span><span class="n">keep</span><span class="p">]):</span>
-            <span class="n">M</span><span class="p">[:,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">genotypes</span>
-
-        <span class="k">return</span> <span class="n">M</span>
-
-<div class="viewcode-block" id="BinnedHaplotypeMatrix.from_ts"><a class="viewcode-back" href="../../api.html#dinf.BinnedHaplotypeMatrix.from_ts">[docs]</a>    <span class="k">def</span> <span class="nf">from_ts</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">ts</span><span class="p">:</span> <span class="n">tskit</span><span class="o">.</span><span class="n">TreeSequence</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">from_ts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ts</span><span class="p">:</span> <span class="n">tskit</span><span class="o">.</span><span class="n">TreeSequence</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Create a pseudo-genotype matrix from a tree sequence.</span>
+<span class="sd">        Create a feature matrix from a :ref:`tskit &lt;tskit:sec_introduction&gt;`</span>
+<span class="sd">        tree sequence.</span>
 
 <span class="sd">        :param ts: The tree sequence.</span>
-<span class="sd">        :param numpy.random.Generator rng: Numpy random number generator.</span>
 <span class="sd">        :return:</span>
-<span class="sd">            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.</span>
-<span class="sd">            For a matrix :math:`M`, the :math:`M[i][j][0]`&#39;th entry is the</span>
-<span class="sd">            count of minor alleles in the :math:`j`&#39;th bin of psdeudo-haplotype</span>
-<span class="sd">            :math:`i`.</span>
+<span class="sd">            Array with shape ``(num_pseudo_haplotypes, num_loci, c)``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">ts</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_haplotypes</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_haplotypes</span><span class="si">}</span><span class="s2"> haplotypes, &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;but ts.num_samples == </span><span class="si">{</span><span class="n">ts</span><span class="o">.</span><span class="n">num_samples</span><span class="si">}</span><span class="s2">.&quot;</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="n">ts</span><span class="o">.</span><span class="n">sequence_length</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_bins</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Sequence length is shorter than the number of bins&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ts</span><span class="o">.</span><span class="n">sequence_length</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Sequence length is shorter than the number of loci&quot;</span><span class="p">)</span>
 
         <span class="n">G</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">genotype_matrix</span><span class="p">()</span>  <span class="c1"># shape is (num_sites, num_haplotypes)</span>
         <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">))</span>
         <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">tables</span><span class="o">.</span><span class="n">sites</span><span class="o">.</span><span class="n">position</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_genotype_matrix</span><span class="p">(</span>
-            <span class="n">G</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">sequence_length</span><span class="o">=</span><span class="n">ts</span><span class="o">.</span><span class="n">sequence_length</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
-        <span class="p">)</span></div>
+            <span class="n">G</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">sequence_length</span><span class="o">=</span><span class="n">ts</span><span class="o">.</span><span class="n">sequence_length</span>
+        <span class="p">)</span>
 
-<div class="viewcode-block" id="BinnedHaplotypeMatrix.from_vcf"><a class="viewcode-back" href="../../api.html#dinf.BinnedHaplotypeMatrix.from_vcf">[docs]</a>    <span class="k">def</span> <span class="nf">from_vcf</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">from_vcf</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vb</span><span class="p">:</span> <span class="n">BagOfVcf</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -489,10 +407,10 @@ title="Open an issue"
         <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Create a pseudo-genotype matrix from a region of a VCF/BCF.</span>
+<span class="sd">        Create a feature matrix from a region of a VCF/BCF.</span>
 
-<span class="sd">        The genomic window is drawn uniformly at random from the sequences</span>
-<span class="sd">        defined in the given :class:`BagOfVcf`.</span>
+<span class="sd">        The genomic window for a feature matrix is drawn uniformly at random</span>
+<span class="sd">        from the contigs defined in the given :class:`BagOfVcf`, ``vb``.</span>
 
 <span class="sd">        Individuals in the VCFs are sampled (without replacement) for</span>
 <span class="sd">        inclusion in the output matrix. The size of the feature space</span>
@@ -512,10 +430,7 @@ title="Open an issue"
 <span class="sd">        :param numpy.random.Generator rng:</span>
 <span class="sd">            Numpy random number generator.</span>
 <span class="sd">        :return:</span>
-<span class="sd">            Array with shape ``(num_pseudo_haplotypes, num_bins, 1)``.</span>
-<span class="sd">            For a matrix :math:`M`, the :math:`M[i][j][0]`&#39;th entry is the</span>
-<span class="sd">            count of minor alleles in the :math:`j`&#39;th bin of psdeudo-haplotype</span>
-<span class="sd">            :math:`i`.</span>
+<span class="sd">            Array with shape ``(num_pseudo_haplotypes, num_loci, c)``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">G</span><span class="p">,</span> <span class="n">positions</span> <span class="o">=</span> <span class="n">vb</span><span class="o">.</span><span class="n">sample_genotype_matrix</span><span class="p">(</span>
             <span class="n">sequence_length</span><span class="o">=</span><span class="n">sequence_length</span><span class="p">,</span>
@@ -539,87 +454,411 @@ title="Open an issue"
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Mismatched ploidy among individuals.&quot;</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_genotype_matrix</span><span class="p">(</span>
-            <span class="n">G</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">sequence_length</span><span class="o">=</span><span class="n">sequence_length</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
-        <span class="p">)</span></div></div>
+            <span class="n">G</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">sequence_length</span><span class="o">=</span><span class="n">sequence_length</span>
+        <span class="p">)</span>
 
 
-<div class="viewcode-block" id="MultipleBinnedHaplotypeMatrices"><a class="viewcode-back" href="../../api.html#dinf.MultipleBinnedHaplotypeMatrices">[docs]</a><span class="k">class</span> <span class="nc">MultipleBinnedHaplotypeMatrices</span><span class="p">:</span>
+<div class="viewcode-block" id="HaplotypeMatrix"><a class="viewcode-back" href="../../api.html#dinf.HaplotypeMatrix">[docs]</a><span class="k">class</span> <span class="nc">HaplotypeMatrix</span><span class="p">(</span><span class="n">_FeatureMatrix</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A factory for labelled collections of :class:`BinnedHaplotypeMatrix` objects.</span>
+<span class="sd">    A factory for feature matrices consisting of haplotypes and relative positions.</span>
 
-<span class="sd">    One feature matrix is produced for each label. Labels typically</span>
-<span class="sd">    correspond to populations, but this need not be the case.</span>
+<span class="sd">    The feature is an :math:`n \\times m \\times c` array, where the channel</span>
+<span class="sd">    dimension :math:`c` is 2. The first channel is a haplotype matrix and</span>
+<span class="sd">    the second channel is a matrix of relative SNP positions.</span>
+
+<span class="sd">    The haplotype matrix is an :math:`n \\times m` matrix,</span>
+<span class="sd">    where :math:`n` corresponds to the number of haplotypes</span>
+<span class="sd">    (or number of individuals, for unphased data) and :math:`m` corresponds to</span>
+<span class="sd">    the number of SNPs along the sequence.</span>
+<span class="sd">    For phased data, each entry is a 0 or 1 corresponding to</span>
+<span class="sd">    the major or minor allele respectively. For unphased data, each entry</span>
+<span class="sd">    is the count of minor alleles across all chromosomes in the individual.</span>
+<span class="sd">    Only polymorphic SNPs are considered, and for multiallelic sites,</span>
+<span class="sd">    only the first two alleles are used.</span>
+<span class="sd">    Alleles are polarised by choosing the most frequent allele to be encoded</span>
+<span class="sd">    as 0 (the major allele), and the second most frequent allele as 1</span>
+<span class="sd">    (the minor allele).</span>
+
+<span class="sd">    The position matrix is an :math:`n \\times m` matrix, where the vector</span>
+<span class="sd">    of :math:`m` inter-SNP distances are repeated :math:`n` times---once</span>
+<span class="sd">    for each haplotype (or each individual, for unphased data). Each entry</span>
+<span class="sd">    is the distance (in bp) from the previous SNP. The first inter-SNP distance</span>
+<span class="sd">    in the vector is always zero.</span>
+
+<span class="sd">    | Chan et al. 2018, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/</span>
+<span class="sd">    | Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">num_individuals</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">num_bins</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="n">ploidy</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-        <span class="c1"># TODO: label-specific options for phased and maf_thresh.</span>
-        <span class="c1"># phased: dict,</span>
-        <span class="c1"># maf_thresh: dict,</span>
-        <span class="n">global_phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-        <span class="n">global_maf_thresh</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">num_individuals</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">num_loci</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ploidy</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">maf_thresh</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param num_individuals:</span>
-<span class="sd">            A dict that maps labels to the the number of individuals</span>
-<span class="sd">            in the feature matrix.</span>
-<span class="sd">        :param num_bins:</span>
-<span class="sd">            A dict that maps labels to the number of bins into which the</span>
-<span class="sd">            sequence is partitioned.</span>
+<span class="sd">            The number of individuals to include in the feature matrix.</span>
+<span class="sd">        :param num_loci:</span>
+<span class="sd">            The number of SNP sites to extract.</span>
+<span class="sd">            The central ``num_loci`` SNPs in the sequence will be used.</span>
+<span class="sd">            If there are fewer than ``num_loci`` SNPs, the feature matrix will</span>
+<span class="sd">            be padded on both sides with zeros.</span>
 <span class="sd">        :param ploidy:</span>
-<span class="sd">            A dict that maps labels to the ploidy of the individuals.</span>
-<span class="sd">        :param global_phased:</span>
+<span class="sd">            Ploidy of the individuals.</span>
+<span class="sd">        :param maf_thresh:</span>
+<span class="sd">            Minor allele frequency (MAF) threshold. Sites with MAF lower than</span>
+<span class="sd">            this value are ignored.</span>
+<span class="sd">        :param phased:</span>
 <span class="sd">            If True, the individuals&#39; haplotypes will each be included as</span>
-<span class="sd">            independent rows in each feature matrix and the shape of the</span>
-<span class="sd">            feature matrix for label `l` will be</span>
-<span class="sd">            ``(ploidy[l] * num_individuals[l], num_bins[l], 1)``.</span>
+<span class="sd">            independent rows in the feature matrix and the shape of the</span>
+<span class="sd">            feature matrix will be ``(ploidy * num_individuals, num_loci, c)``.</span>
 <span class="sd">            If False, the allele counts for each individual will be summed</span>
 <span class="sd">            across their chromosome copies and the shape of the feature matrix</span>
-<span class="sd">            will be ``(num_individuals[l], num_bins[l], 1)``.</span>
-<span class="sd">        :param global_maf_thresh:</span>
+<span class="sd">            will be ``(num_individuals, num_loci, c)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">num_individuals</span><span class="o">=</span><span class="n">num_individuals</span><span class="p">,</span>
+            <span class="n">num_loci</span><span class="o">=</span><span class="n">num_loci</span><span class="p">,</span>
+            <span class="n">ploidy</span><span class="o">=</span><span class="n">ploidy</span><span class="p">,</span>
+            <span class="n">maf_thresh</span><span class="o">=</span><span class="n">maf_thresh</span><span class="p">,</span>
+            <span class="n">phased</span><span class="o">=</span><span class="n">phased</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_pseudo_haplotypes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_from_genotype_matrix</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">G</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">sequence_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create feature matrix from a regular genotype matrix.</span>
+
+<span class="sd">        Missing genotypes in the input are assumed to take the value -1,</span>
+<span class="sd">        and the first allele has genotype 0, second allele genotype 1, etc.</span>
+<span class="sd">        We consider only allele 0 and 1. For multiallelic sites this means</span>
+<span class="sd">        all but the first two alleles are ignored.</span>
+
+<span class="sd">        :param G:</span>
+<span class="sd">            Genotype matrix with shape (num_sites, num_individuals, ploidy).</span>
+<span class="sd">            The genotypes must be phased or unphased.</span>
+<span class="sd">        :param positions:</span>
+<span class="sd">            Vector of variant positions.</span>
+<span class="sd">        :param sequence_length:</span>
+<span class="sd">            Unused.</span>
+<span class="sd">        :return:</span>
+<span class="sd">            Array with shape ``(num_haplotypes, num_loci, 2)``.</span>
+<span class="sd">            For a matrix :math:`M`, the :math:`M[i][j][0]`&#39;th entry is the</span>
+<span class="sd">            genotype of haplotype :math:`i` at the :math:`j`&#39;th site.</span>
+<span class="sd">            The :math:`M[i][j][1]`&#39;th entry is the number of basepairs</span>
+<span class="sd">            between sites :math:`j` and :math:`j-1`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+        <span class="n">G_sites</span><span class="p">,</span> <span class="n">G_individuals</span><span class="p">,</span> <span class="n">G_ploidy</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">G_individuals</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span>
+        <span class="k">assert</span> <span class="n">G_ploidy</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="n">G_sites</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># Filter sites with insufficient minor allele count.</span>
+        <span class="n">ac0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ac1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">ac0</span><span class="p">,</span> <span class="n">ac1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_allele_count_threshold</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">G</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">positions</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+
+        <span class="n">G</span><span class="p">,</span> <span class="n">positions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_fixed_num_snps</span><span class="p">(</span>
+            <span class="n">G</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">num_snps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Identify genotypes that aren&#39;t 0 or 1. These could be missing</span>
+        <span class="c1"># (encoded as -1), or high-numbered alleles at multiallelic sites.</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">G</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">ac0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ac1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Polarise 0 and 1 in genotype matrix by major allele frequency.</span>
+        <span class="n">flip</span> <span class="o">=</span> <span class="n">ac1</span> <span class="o">&gt;</span> <span class="n">ac0</span>
+        <span class="n">G</span> <span class="o">^=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">flip</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Treat missing genotypes as the majority allele.</span>
+        <span class="n">G</span><span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_phased</span><span class="p">:</span>
+            <span class="c1"># Collapse each individual&#39;s chromosome copies by summing counts.</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">))</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">delta_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="n">prepend</span><span class="o">=</span><span class="n">positions</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span>
+        <span class="n">M</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">M</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">delta_positions</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_pseudo_haplotypes</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">M</span>
+
+    <span class="k">def</span> <span class="nf">_get_fixed_num_snps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">num_snps</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Trim or pad the genotype matrix and positions to be of fixed size.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+        <span class="n">G_sites</span><span class="p">,</span> <span class="n">G_haplotypes</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">G_sites</span> <span class="o">-</span> <span class="n">num_snps</span>
+        <span class="k">if</span> <span class="n">delta</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># trim</span>
+            <span class="n">left</span> <span class="o">=</span> <span class="n">delta</span> <span class="o">//</span> <span class="mi">2</span>
+            <span class="n">right</span> <span class="o">=</span> <span class="n">left</span> <span class="o">+</span> <span class="n">num_snps</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">G</span><span class="p">[</span><span class="n">left</span><span class="p">:</span><span class="n">right</span><span class="p">]</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="n">positions</span><span class="p">[</span><span class="n">left</span><span class="p">:</span><span class="n">right</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># pad</span>
+            <span class="n">pad_left</span> <span class="o">=</span> <span class="o">-</span><span class="n">delta</span> <span class="o">//</span> <span class="mi">2</span>
+            <span class="n">pad_right</span> <span class="o">=</span> <span class="n">num_snps</span> <span class="o">-</span> <span class="n">G_sites</span> <span class="o">-</span> <span class="n">pad_left</span>
+            <span class="n">G_left</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">pad_left</span><span class="p">,</span> <span class="n">G_haplotypes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">G</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">G_right</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">pad_right</span><span class="p">,</span> <span class="n">G_haplotypes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">G</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">G_left</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">G_right</span><span class="p">))</span>
+
+            <span class="n">positions_left</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">pad_left</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">positions</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">right_pad_value</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">positions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">positions_right</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">pad_right</span><span class="p">,</span> <span class="n">right_pad_value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">positions</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">positions_left</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">positions_right</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">G</span><span class="p">,</span> <span class="n">positions</span></div>
+
+
+<div class="viewcode-block" id="BinnedHaplotypeMatrix"><a class="viewcode-back" href="../../api.html#dinf.BinnedHaplotypeMatrix">[docs]</a><span class="k">class</span> <span class="nc">BinnedHaplotypeMatrix</span><span class="p">(</span><span class="n">_FeatureMatrix</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A factory for feature matrices of pseudo-haplotypes.</span>
+
+<span class="sd">    The binned haplotype matrix is an :math:`n \\times m` matrix,</span>
+<span class="sd">    where :math:`n` corresponds to the number of haplotypes</span>
+<span class="sd">    (or polyploid genotypes, for unphased data) and :math:`m` corresponds to</span>
+<span class="sd">    a set of equally sized bins along the sequence length. Each matrix entry</span>
+<span class="sd">    contains the count of minor alleles in an individual&#39;s haplotype</span>
+<span class="sd">    (or polyploid genotype) in a given bin.</span>
+
+<span class="sd">    Only polymorphic SNPs are considered, and for multiallelic sites,</span>
+<span class="sd">    only the first two alleles are used.</span>
+<span class="sd">    Alleles are polarised by choosing the most frequent allele to be encoded</span>
+<span class="sd">    as 0, and the second most frequent allele as 1.</span>
+
+<span class="sd">    As the features are intended to be passed to a covolutional neural network,</span>
+<span class="sd">    the output dimensions are actually :math:`n \\times m \\times 1`, where the</span>
+<span class="sd">    final dimension is the (unused) &quot;channels&quot; dimension for the convolution.</span>
+
+<span class="sd">    Gower et al. 2021, https://doi.org/10.7554/eLife.64669</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">num_individuals</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">num_loci</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">ploidy</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">maf_thresh</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param num_individuals:</span>
+<span class="sd">            The number of individuals to include in the feature matrix.</span>
+<span class="sd">        :param num_loci:</span>
+<span class="sd">            The number of bins into which the sequence is partitioned.</span>
+<span class="sd">            Each bin spans ``sequence_length / num_loci`` base pairs.</span>
+<span class="sd">        :param ploidy:</span>
+<span class="sd">            Ploidy of the individuals.</span>
+<span class="sd">        :param phased:</span>
+<span class="sd">            If True, the individuals&#39; haplotypes will each be included as</span>
+<span class="sd">            independent rows in the feature matrix and the shape of the</span>
+<span class="sd">            feature matrix will be ``(ploidy * num_individuals, num_loci, 1)``.</span>
+<span class="sd">            If False, the allele counts for each individual will be summed</span>
+<span class="sd">            across their chromosome copies and the shape of the feature matrix</span>
+<span class="sd">            will be ``(num_individuals, num_loci, 1)``.</span>
+<span class="sd">        :param maf_thresh:</span>
 <span class="sd">            Minor allele frequency (MAF) threshold. Sites with MAF lower than</span>
 <span class="sd">            this value are ignored.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">dict_args</span> <span class="o">=</span> <span class="p">[</span><span class="n">num_individuals</span><span class="p">,</span> <span class="n">num_bins</span><span class="p">,</span> <span class="n">ploidy</span><span class="p">]</span>
-        <span class="n">dict_strs</span> <span class="o">=</span> <span class="s2">&quot;num_individuals, num_bins, ploidy&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">num_individuals</span><span class="o">=</span><span class="n">num_individuals</span><span class="p">,</span>
+            <span class="n">num_loci</span><span class="o">=</span><span class="n">num_loci</span><span class="p">,</span>
+            <span class="n">ploidy</span><span class="o">=</span><span class="n">ploidy</span><span class="p">,</span>
+            <span class="n">maf_thresh</span><span class="o">=</span><span class="n">maf_thresh</span><span class="p">,</span>
+            <span class="n">phased</span><span class="o">=</span><span class="n">phased</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># The numpy data type of the feature matrix. To save memory we use</span>
+        <span class="c1"># an np.int8, which assumes that counts are small.</span>
+        <span class="c1"># However, counts may overflow int8 for very large values of</span>
+        <span class="c1">#   mu * Ne * num_individuals * sequence_length / num_loci,</span>
+        <span class="c1"># Probably num_loci could be increased in such cases.</span>
+        <span class="c1"># TODO: print a warning if overflow occurs during conversion.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int8</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_pseudo_haplotypes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_from_genotype_matrix</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">G</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">sequence_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a pseudo-genotype matrix from a regular genotype matrix.</span>
+
+<span class="sd">        Missing genotypes in the input are assumed to take the value -1,</span>
+<span class="sd">        and the first allele has genotype 0, second allele genotype 1, etc.</span>
+<span class="sd">        We consider only allele 0 and 1. For multiallelic sites this means</span>
+<span class="sd">        all but the first two alleles are ignored.</span>
+
+<span class="sd">        :param G:</span>
+<span class="sd">            Genotype matrix with shape (num_sites, num_individuals, ploidy).</span>
+<span class="sd">            The genotypes may be phased or unphased.</span>
+<span class="sd">        :param positions:</span>
+<span class="sd">            Vector of variant positions.</span>
+<span class="sd">        :param sequence_length:</span>
+<span class="sd">            The length of the sequence from which the matrix is derived.</span>
+<span class="sd">        :return:</span>
+<span class="sd">            Array with shape ``(num_pseudo_haplotypes, num_loci, 1)``.</span>
+<span class="sd">            For a matrix :math:`M`, the :math:`M[i][j][0]`&#39;th entry is the</span>
+<span class="sd">            count of minor alleles in the :math:`j`&#39;th bin of psdeudo-haplotype</span>
+<span class="sd">            :math:`i`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+        <span class="n">M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">M</span>
+        <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor_divide</span><span class="p">(</span><span class="n">positions</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span><span class="p">,</span> <span class="n">sequence_length</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+        <span class="p">)</span>
+
+        <span class="n">G_sites</span><span class="p">,</span> <span class="n">G_individuals</span><span class="p">,</span> <span class="n">G_ploidy</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">G_individuals</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span>
+        <span class="k">assert</span> <span class="n">G_ploidy</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="n">G_sites</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># Identify genotypes that aren&#39;t 0 or 1. These will be ignored later.</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">G</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">ac0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ac1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">ac0</span><span class="p">,</span> <span class="n">ac1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_allele_count_threshold</span>
+        <span class="c1"># Polarise 0 and 1 in genotype matrix by major allele frequency.</span>
+        <span class="n">flip</span> <span class="o">=</span> <span class="n">ac1</span> <span class="o">&gt;</span> <span class="n">ac0</span>
+        <span class="n">G</span> <span class="o">^=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">flip</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Exclude missing genotypes from the sums below.</span>
+        <span class="n">G</span><span class="p">[</span><span class="n">missing</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_phased</span><span class="p">:</span>
+            <span class="c1"># Collapse each individual&#39;s chromosome copies by summing counts.</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">))</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">genotypes</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">bins</span><span class="p">[</span><span class="n">keep</span><span class="p">],</span> <span class="n">G</span><span class="p">[</span><span class="n">keep</span><span class="p">]):</span>
+            <span class="n">M</span><span class="p">[:,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">genotypes</span>
+
+        <span class="k">return</span> <span class="n">M</span></div>
+
+
+<span class="k">class</span> <span class="nc">_MultipleFeatureMatrices</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A factory for labelled collections of :class:`_FeatureMatrix` objects.</span>
+
+<span class="sd">    One feature matrix is produced for each label. Labels correspond to</span>
+<span class="sd">    collections of individuals that will be treated as exchangeable</span>
+<span class="sd">    (e.g. populations).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_feature_matrix_cls</span><span class="p">:</span> <span class="n">Callable</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">num_individuals</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+        <span class="n">num_loci</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+        <span class="n">ploidy</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+        <span class="c1"># TODO: label-specific option for maf_thresh</span>
+        <span class="c1"># maf_thresh: Mapping[str, float] | None = None,</span>
+        <span class="n">global_maf_thresh</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="c1"># TODO: label-specific option for phased.</span>
+        <span class="c1"># phased: Mapping[str, bool] | None = None,</span>
+        <span class="n">global_phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param num_individuals:</span>
+<span class="sd">            A dict that maps labels to the number of individuals</span>
+<span class="sd">            in the feature matrix.</span>
+<span class="sd">        :param num_loci:</span>
+<span class="sd">            A dict that maps labels to the number of feature loci to be</span>
+<span class="sd">            extracted from the sequence.</span>
+<span class="sd">        :param ploidy:</span>
+<span class="sd">            A dict that maps labels to the ploidy of the individuals.</span>
+<span class="sd">        :param global_maf_thresh:</span>
+<span class="sd">            Minor allele frequency (MAF) threshold. Sites with MAF lower than</span>
+<span class="sd">            this value are ignored. MAF is calculated across all individuals.</span>
+<span class="sd">        :param global_phased:</span>
+<span class="sd">            If True, the individuals&#39; haplotypes will each be included as</span>
+<span class="sd">            independent rows in each feature matrix and the shape of the</span>
+<span class="sd">            feature matrix for label ``l`` will be</span>
+<span class="sd">            ``(ploidy[l] * num_individuals[l], num_loci[l], c)``.</span>
+<span class="sd">            If False, the allele counts for each individual will be summed</span>
+<span class="sd">            across their chromosome copies and the shape of the feature matrix</span>
+<span class="sd">            will be ``(num_individuals[l], num_loci[l], c)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dict_args</span> <span class="o">=</span> <span class="p">[</span><span class="n">num_individuals</span><span class="p">,</span> <span class="n">num_loci</span><span class="p">,</span> <span class="n">ploidy</span><span class="p">]</span>
+        <span class="n">dict_strs</span> <span class="o">=</span> <span class="s2">&quot;num_individuals, num_loci, ploidy&quot;</span>
         <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dict_args</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected dict for each of: </span><span class="si">{</span><span class="n">dict_strs</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
         <span class="n">keys_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dict_args</span><span class="p">]</span>
-        <span class="n">keys</span> <span class="o">=</span> <span class="n">keys_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">keys</span> <span class="o">!=</span> <span class="n">other</span> <span class="k">for</span> <span class="n">other</span> <span class="ow">in</span> <span class="n">keys_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">keys_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">labels</span> <span class="o">!=</span> <span class="n">other</span> <span class="k">for</span> <span class="n">other</span> <span class="ow">in</span> <span class="n">keys_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Must use the same dict keys for each of: </span><span class="si">{</span><span class="n">dict_strs</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">bh_matrices</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">label</span><span class="p">:</span> <span class="n">BinnedHaplotypeMatrix</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">label</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_feature_matrix_cls</span><span class="p">(</span>
                 <span class="n">num_individuals</span><span class="o">=</span><span class="n">num_individuals</span><span class="p">[</span><span class="n">label</span><span class="p">],</span>
-                <span class="n">num_bins</span><span class="o">=</span><span class="n">num_bins</span><span class="p">[</span><span class="n">label</span><span class="p">],</span>
+                <span class="n">num_loci</span><span class="o">=</span><span class="n">num_loci</span><span class="p">[</span><span class="n">label</span><span class="p">],</span>
                 <span class="n">ploidy</span><span class="o">=</span><span class="n">ploidy</span><span class="p">[</span><span class="n">label</span><span class="p">],</span>
+                <span class="n">maf_thresh</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                 <span class="n">phased</span><span class="o">=</span><span class="n">global_phased</span><span class="p">,</span>
-                <span class="n">maf_thresh</span><span class="o">=</span><span class="n">global_maf_thresh</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">keys</span>
+            <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span>
         <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span> <span class="o">=</span> <span class="n">num_individuals</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_num_bins</span> <span class="o">=</span> <span class="n">num_bins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span> <span class="o">=</span> <span class="n">num_loci</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span> <span class="o">=</span> <span class="n">ploidy</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_global_phased</span> <span class="o">=</span> <span class="n">global_phased</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_global_maf_thresh</span> <span class="o">=</span> <span class="n">global_maf_thresh</span>
+
+        <span class="c1"># We use a minimum threshold of 1 to exclude invariant sites.</span>
+        <span class="n">total_haplotypes</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="n">num_individuals</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">*</span> <span class="n">ploidy</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_allele_count_threshold</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="mi">1</span><span class="p">,</span> <span class="n">global_maf_thresh</span> <span class="o">*</span> <span class="n">total_haplotypes</span>
+        <span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="n">bhm</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">bhm</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bh_matrices</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="sd">&quot;&quot;&quot;Shape of the feature matrices.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="n">bhm</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">bhm</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
-<div class="viewcode-block" id="MultipleBinnedHaplotypeMatrices.from_ts"><a class="viewcode-back" href="../../api.html#dinf.MultipleBinnedHaplotypeMatrices.from_ts">[docs]</a>    <span class="k">def</span> <span class="nf">from_ts</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">from_ts</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">ts</span><span class="p">:</span> <span class="n">tskit</span><span class="o">.</span><span class="n">TreeSequence</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
         <span class="n">individuals</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">]],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -631,25 +870,28 @@ title="Open an issue"
 <span class="sd">            A mapping from label to an array of individuals.</span>
 <span class="sd">        :return:</span>
 <span class="sd">            A dictionary mapping a label ``l`` to a feature array.</span>
-<span class="sd">            Each array has shape ``(num_pseudo_haplotypes[l], num_bins[l], 1)``.</span>
+<span class="sd">            Each array has shape ``(num_pseudo_haplotypes[l], num_loci[l], c)``.</span>
 <span class="sd">            For an array :math:`M`, the :math:`M[i][j][0]`&#39;th entry is the</span>
 <span class="sd">            count of minor alleles in the :math:`j`&#39;th bin of psdeudo-haplotype</span>
 <span class="sd">            :math:`i`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">if</span> <span class="n">individuals</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bh_matrices</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">individuals</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Labels of individuals </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">individuals</span><span class="p">)</span><span class="si">}</span><span class="s2"> don&#39;t match &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;feature labels </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bh_matrices</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;feature labels </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
             <span class="p">)</span>
         <span class="n">G</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">genotype_matrix</span><span class="p">()</span>  <span class="c1"># shape is (num_sites, num_haplotypes)</span>
         <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">tables</span><span class="o">.</span><span class="n">sites</span><span class="o">.</span><span class="n">position</span><span class="p">)</span>
-        <span class="n">labelled_features</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">labelled_nodes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">ac0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">))</span>
+        <span class="n">ac1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">l_individuals</span> <span class="ow">in</span> <span class="n">individuals</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="n">ts</span><span class="o">.</span><span class="n">sequence_length</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_bins</span><span class="p">[</span><span class="n">label</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">ts</span><span class="o">.</span><span class="n">sequence_length</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span><span class="p">[</span><span class="n">label</span><span class="p">]:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: sequence length (</span><span class="si">{</span><span class="n">ts</span><span class="o">.</span><span class="n">sequence_length</span><span class="si">}</span><span class="s2">) is &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;shorter than the number of bins (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_bins</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="si">}</span><span class="s2">).&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;shorter than the number of loci (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="si">}</span><span class="s2">).&quot;</span>
                 <span class="p">)</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">l_individuals</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">[</span><span class="n">label</span><span class="p">]:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -663,15 +905,27 @@ title="Open an issue"
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> ploidies: </span><span class="si">{</span><span class="n">ploidy</span><span class="si">}</span><span class="s2">.&quot;</span>
                 <span class="p">)</span>
             <span class="n">nodes</span> <span class="o">=</span> <span class="n">ts_nodes_of_individuals</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">l_individuals</span><span class="p">)</span>
-            <span class="n">H</span> <span class="o">=</span> <span class="n">G</span><span class="p">[:,</span> <span class="n">nodes</span><span class="p">]</span>
+            <span class="n">labelled_nodes</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span>
+            <span class="n">H</span> <span class="o">=</span> <span class="n">G</span><span class="p">[:,</span> <span class="n">labelled_nodes</span><span class="p">[</span><span class="n">label</span><span class="p">]]</span>
+            <span class="n">ac0</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">H</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ac1</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">H</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Filter sites with insufficient minor allele count.</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">ac0</span><span class="p">,</span> <span class="n">ac1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_allele_count_threshold</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">G</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">positions</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+
+        <span class="n">labelled_features</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">l_individuals</span> <span class="ow">in</span> <span class="n">individuals</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">H</span> <span class="o">=</span> <span class="n">G</span><span class="p">[:,</span> <span class="n">labelled_nodes</span><span class="p">[</span><span class="n">label</span><span class="p">]]</span>
             <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">[</span><span class="n">label</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">[</span><span class="n">label</span><span class="p">]))</span>
-            <span class="n">labelled_features</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bh_matrices</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">_from_genotype_matrix</span><span class="p">(</span>
-                <span class="n">H</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">sequence_length</span><span class="o">=</span><span class="n">ts</span><span class="o">.</span><span class="n">sequence_length</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
+            <span class="n">labelled_features</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">_from_genotype_matrix</span><span class="p">(</span>
+                <span class="n">H</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">sequence_length</span><span class="o">=</span><span class="n">ts</span><span class="o">.</span><span class="n">sequence_length</span>
             <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">labelled_features</span></div>
+        <span class="k">return</span> <span class="n">labelled_features</span>
 
-<div class="viewcode-block" id="MultipleBinnedHaplotypeMatrices.from_vcf"><a class="viewcode-back" href="../../api.html#dinf.MultipleBinnedHaplotypeMatrices.from_vcf">[docs]</a>    <span class="k">def</span> <span class="nf">from_vcf</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">from_vcf</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vb</span><span class="p">:</span> <span class="n">BagOfVcf</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
@@ -692,7 +946,7 @@ title="Open an issue"
 <span class="sd">        in the VCFs than are needed for the feature dimensions.</span>
 
 <span class="sd">        :param vb:</span>
-<span class="sd">            The BagOfVcf object that describes the VCF/BCF files.</span>
+<span class="sd">            A collection of indexed VCF/BCF files.</span>
 <span class="sd">        :param sequence_length:</span>
 <span class="sd">            Length of the genomic window to be sampled.</span>
 <span class="sd">        :param max_missing_genotypes:</span>
@@ -705,15 +959,15 @@ title="Open an issue"
 <span class="sd">            Numpy random number generator.</span>
 <span class="sd">        :return:</span>
 <span class="sd">            A dictionary mapping a label ``l`` to a feature array.</span>
-<span class="sd">            Each array has shape ``(num_pseudo_haplotypes[l], num_bins[l], 1)``.</span>
+<span class="sd">            Each array has shape ``(num_pseudo_haplotypes[l], num_loci[l], c)``.</span>
 <span class="sd">            For an array :math:`M`, the :math:`M[i][j][0]`&#39;th entry is the</span>
 <span class="sd">            count of minor alleles in the :math:`j`&#39;th bin of psdeudo-haplotype</span>
 <span class="sd">            :math:`i`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">vb</span><span class="o">.</span><span class="n">samples</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">bh_matrices</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">!=</span> <span class="n">vb</span><span class="o">.</span><span class="n">samples</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">vb</span><span class="o">.</span><span class="n">samples</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">!=</span> <span class="n">vb</span><span class="o">.</span><span class="n">samples</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="n">sample_labels</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">vb</span><span class="o">.</span><span class="n">samples</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">vb</span><span class="o">.</span><span class="n">samples</span><span class="p">)</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Feature labels </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bh_matrices</span><span class="p">)</span><span class="si">}</span><span class="s2"> don&#39;t match the &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Feature labels </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">)</span><span class="si">}</span><span class="s2"> don&#39;t match the &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;vcf bag&#39;s sample labels: </span><span class="si">{</span><span class="n">sample_labels</span><span class="si">}</span><span class="s2">.&quot;</span>
             <span class="p">)</span>
         <span class="n">G</span><span class="p">,</span> <span class="n">positions</span> <span class="o">=</span> <span class="n">vb</span><span class="o">.</span><span class="n">sample_genotype_matrix</span><span class="p">(</span>
@@ -726,8 +980,10 @@ title="Open an issue"
         <span class="n">num_samples</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vb</span><span class="o">.</span><span class="n">samples</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
         <span class="n">offsets</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">num_samples</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
-        <span class="n">labelled_features</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">bh_matrix</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bh_matrices</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="n">labelled_indexes</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">ac0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">))</span>
+        <span class="n">ac1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vb</span><span class="o">.</span><span class="n">samples</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="k">if</span> <span class="n">num_samples</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">[</span><span class="n">label</span><span class="p">]:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: Expected at least </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span>
@@ -738,14 +994,52 @@ title="Open an issue"
             <span class="n">idx</span> <span class="o">=</span> <span class="n">offsets</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
                 <span class="n">num_samples</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">[</span><span class="n">label</span><span class="p">],</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span>
             <span class="p">)</span>
+            <span class="n">labelled_indexes</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">idx</span>
+            <span class="n">H</span> <span class="o">=</span> <span class="n">G</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">[</span><span class="n">label</span><span class="p">]]</span>
+            <span class="n">ac0</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">H</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="n">ac1</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">H</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># Filter sites with insufficient minor allele count.</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">ac0</span><span class="p">,</span> <span class="n">ac1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_allele_count_threshold</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">G</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">positions</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span>
+
+        <span class="n">labelled_features</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">feature_matrix</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">labelled_indexes</span><span class="p">[</span><span class="n">label</span><span class="p">]</span>
             <span class="n">H</span> <span class="o">=</span> <span class="n">G</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">[</span><span class="n">label</span><span class="p">]]</span>
             <span class="n">ploidy_pad</span> <span class="o">=</span> <span class="n">G</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="p">:]</span>
             <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">H</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">ploidy_pad</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">2</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: mismatched ploidy among individuals.&quot;</span><span class="p">)</span>
-            <span class="n">labelled_features</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">bh_matrix</span><span class="o">.</span><span class="n">_from_genotype_matrix</span><span class="p">(</span>
-                <span class="n">H</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">sequence_length</span><span class="o">=</span><span class="n">sequence_length</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
+
+            <span class="n">labelled_features</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">feature_matrix</span><span class="o">.</span><span class="n">_from_genotype_matrix</span><span class="p">(</span>
+                <span class="n">H</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">sequence_length</span><span class="o">=</span><span class="n">sequence_length</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">labelled_features</span></div></div>
+        <span class="k">return</span> <span class="n">labelled_features</span>
+
+
+<div class="viewcode-block" id="MultipleHaplotypeMatrices"><a class="viewcode-back" href="../../api.html#dinf.MultipleHaplotypeMatrices">[docs]</a><span class="k">class</span> <span class="nc">MultipleHaplotypeMatrices</span><span class="p">(</span><span class="n">_MultipleFeatureMatrices</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A factory for labelled collections of :class:`HaplotypeMatrix` objects.</span>
+
+<span class="sd">    One feature matrix is produced for each label. Labels correspond to</span>
+<span class="sd">    collections of individuals that will be treated as exchangeable</span>
+<span class="sd">    (e.g. populations).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_feature_matrix_cls</span> <span class="o">=</span> <span class="n">HaplotypeMatrix</span></div>
+
+
+<div class="viewcode-block" id="MultipleBinnedHaplotypeMatrices"><a class="viewcode-back" href="../../api.html#dinf.MultipleBinnedHaplotypeMatrices">[docs]</a><span class="k">class</span> <span class="nc">MultipleBinnedHaplotypeMatrices</span><span class="p">(</span><span class="n">_MultipleFeatureMatrices</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A factory for labelled collections of :class:`BinnedHaplotypeMatrix` objects.</span>
+
+<span class="sd">    One feature matrix is produced for each label. Labels correspond to</span>
+<span class="sd">    collections of individuals that will be treated as exchangeable</span>
+<span class="sd">    (e.g. populations).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_feature_matrix_cls</span> <span class="o">=</span> <span class="n">BinnedHaplotypeMatrix</span></div>
 </pre></div>
 
               </div>
@@ -766,7 +1060,7 @@ title="Open an issue"
   
       &copy; Copyright 2021.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev207+ga1fbce6
+      dinf 0.1.1.dev214+ga7cd1ce
     </div>
 </p>
         </footer>
