@@ -27,6 +27,7 @@ from .dinf import abc_gan, alfi_mcmc_gan, mcmc_gan, pg_gan, predict, train
 from .discriminator import Discriminator, Surrogate
 from .feature_extractor import (
     HaplotypeMatrix,
+    MultipleHaplotypeMatrices,
     BinnedHaplotypeMatrix,
     MultipleBinnedHaplotypeMatrices,
 )
@@ -39,8 +40,9 @@ __all__ = [
     "__version__",
     "BagOfVcf",
     "BinnedHaplotypeMatrix",
-    "MultipleBinnedHaplotypeMatrices",
     "Discriminator",
+    "MultipleBinnedHaplotypeMatrices",
+    "MultipleHaplotypeMatrices",
     "Genobuilder",
     "HaplotypeMatrix",
     "Param",

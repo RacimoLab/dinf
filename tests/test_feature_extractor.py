@@ -140,8 +140,10 @@ class TestHaplotypeMatrix:
         maf = np.sum(H, axis=0) / num_haplotypes
         assert np.all(maf <= 0.5)
 
-        # Each row in the positions matrix should be identical.
         P = M[..., 1]
+        # The first inter-SNP distance should always be 0.
+        assert np.all(P[:, 0] == 0)
+        # Each row in the positions matrix should be identical.
         for row in P[1:]:
             np.testing.assert_array_equal(P[0], row)
 
@@ -180,8 +182,10 @@ class TestHaplotypeMatrix:
             # Minor allele frequency should be above the threshold.
             assert np.all(maf[maf > 0] >= maf_thresh)
 
-            # Each row in the positions matrix should be identical.
             P = M[..., 1]
+            # The first inter-SNP distance should always be 0.
+            assert np.all(P[:, 0] == 0)
+            # Each row in the positions matrix should be identical.
             for row in P[1:]:
                 np.testing.assert_array_equal(P[0], row)
 
