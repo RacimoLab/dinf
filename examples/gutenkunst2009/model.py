@@ -105,7 +105,7 @@ def demography(**theta):
 
 features = dinf.MultipleBinnedHaplotypeMatrices(
     num_individuals={pop: num_individuals for pop in populations},
-    num_bins={pop: 128 for pop in populations},
+    num_loci={pop: 128 for pop in populations},
     ploidy={pop: 2 for pop in populations},
     # The so-called "phased" 1kG vcfs also contain unphased genotypes
     # for some individuals at some sites.
@@ -131,7 +131,7 @@ def generator(seed, **theta):
     )
     ts = msprime.sim_mutations(ts, rate=mutation_rate, random_seed=seed2)
     individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
-    labelled_matrices = features.from_ts(ts, rng=rng, individuals=individuals)
+    labelled_matrices = features.from_ts(ts, individuals=individuals)
     return labelled_matrices
 
 

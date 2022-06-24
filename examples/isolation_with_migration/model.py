@@ -40,7 +40,7 @@ def demography(*, N_anc, N1, N2, T_split, mig):
 
 features = dinf.MultipleBinnedHaplotypeMatrices(
     num_individuals={pop: num_individuals for pop in populations},
-    num_bins={pop: 128 for pop in populations},
+    num_loci={pop: 128 for pop in populations},
     ploidy={pop: 1 for pop in populations},
     global_phased=True,
     global_maf_thresh=0,
@@ -66,7 +66,7 @@ def generator(seed, **params):
     )
     ts = msprime.sim_mutations(ts, rate=mutation_rate, random_seed=seed2)
     individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
-    labelled_matrices = features.from_ts(ts, rng=rng, individuals=individuals)
+    labelled_matrices = features.from_ts(ts, individuals=individuals)
     return labelled_matrices
 
 

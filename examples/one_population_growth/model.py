@@ -33,7 +33,7 @@ parameters = dinf.Parameters(
 
 features = dinf.BinnedHaplotypeMatrix(
     num_individuals=num_individuals,
-    num_bins=128,
+    num_loci=128,
     maf_thresh=0.05,
     phased=True,
     ploidy=2,
@@ -72,7 +72,7 @@ def generator(seed, **theta):
     )
     ts = msprime.sim_mutations(ts, rate=mutation_rate, random_seed=seed2)
 
-    feature_matrix = features.from_ts(ts, rng=rng)
+    feature_matrix = features.from_ts(ts)
     return feature_matrix
 
 

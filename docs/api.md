@@ -10,17 +10,33 @@
 ## Feature extraction
 
 ```{eval-rst}
+.. autoclass:: dinf.HaplotypeMatrix
+   :members:
+
+   .. automethod:: from_ts
+   .. automethod:: from_vcf
+
+.. autoclass:: dinf.MultipleHaplotypeMatrices
+   :members:
+
+   .. automethod:: from_ts
+   .. automethod:: from_vcf
+   .. autoproperty:: shape
+
 .. autoclass:: dinf.BinnedHaplotypeMatrix
    :members:
-```
 
+   .. automethod:: from_ts
+   .. automethod:: from_vcf
 
-```{eval-rst}
 .. autoclass:: dinf.MultipleBinnedHaplotypeMatrices
    :members:
-```
 
-```{eval-rst}
+   .. automethod:: from_ts
+   .. automethod:: from_vcf
+   .. autoproperty:: shape
+
+
 .. autoclass:: dinf.BagOfVcf
    :members:
 
@@ -34,9 +50,7 @@
 ```{eval-rst}
 .. autoclass:: dinf.Parameters
    :members:
-```
 
-```{eval-rst}
 .. autoclass:: dinf.Param
    :members:
 ```
@@ -45,17 +59,11 @@
 
 ```{eval-rst}
 .. autofunction:: dinf.abc_gan
-```
 
-```{eval-rst}
 .. autofunction:: dinf.alfi_mcmc_gan
-```
 
-```{eval-rst}
 .. autofunction:: dinf.mcmc_gan
-```
 
-```{eval-rst}
 .. autofunction:: dinf.pg_gan
 ```
 
@@ -64,14 +72,10 @@
 ```{eval-rst}
 .. autoclass:: dinf.Discriminator
    :members:
-```
 
-```{eval-rst}
 .. autoclass:: dinf.Surrogate
    :members:
-```
 
-```{eval-rst}
 .. autoclass:: dinf.Store
    :members:
 
