@@ -529,7 +529,7 @@ class _MultipleFeatureMatrices:
     ):
         """
         :param num_individuals:
-            A dict that maps labels to the the number of individuals
+            A dict that maps labels to the number of individuals
             in the feature matrix.
         :param num_loci:
             A dict that maps labels to the number of feature loci to be
@@ -677,7 +677,7 @@ class _MultipleFeatureMatrices:
         in the VCFs than are needed for the feature dimensions.
 
         :param vb:
-            The BagOfVcf object that describes the VCF/BCF files.
+            A collection of indexed VCF/BCF files.
         :param sequence_length:
             Length of the genomic window to be sampled.
         :param max_missing_genotypes:
@@ -714,7 +714,7 @@ class _MultipleFeatureMatrices:
         labelled_indexes = {}
         ac0 = np.zeros(len(positions))
         ac1 = np.zeros(len(positions))
-        for j, label in enumerate(self.features.keys()):
+        for j, label in enumerate(vb.samples.keys()):
             if num_samples[j] < self._num_individuals[label]:
                 raise ValueError(
                     f"{label}: Expected at least {self._num_individuals[label]} "
