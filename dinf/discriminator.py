@@ -72,7 +72,15 @@ class ExchangeableCNN(nn.Module):
     """
     An exchangeable CNN for the discriminator.
 
-    Chan et al. 2018, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/
+    Supports both labelled and unlabelled feature matrices:
+    :class:`HaplotypeMatrix`, :class:`BinnedHaplotypeMatrix`,
+    :class:`MultipleHaplotypeMatrices`, :class:`MultipleBinnedHaplotypeMatrices`.
+    Each (pseudo)haplotype is treated as exchangeable with any other
+    (pseudo)haplotype within the same feature matrix (i.e. exchangeability
+    applies within labelled groups).
+
+    | Chan et al. 2018, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/
+    | Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
     """
 
     @nn.compact
@@ -269,7 +277,7 @@ class Discriminator(Network):
             The numpy random number generator.
         :param network:
             A flax neural network.
-            If not specified, an exchangeable CNN will be used.
+            If not specified, :class:`ExchangeableCNN` will be used.
         """
         if network is None:
             network = ExchangeableCNN()
@@ -301,6 +309,7 @@ class Discriminator(Network):
         val_y=None,
         batch_size: int = 64,
         epochs: int = 1,
+        rng: np.random.Generator,
         # TODO: tensorboard output
         # tensorboard_log_dir=None,
         reset_metrics: bool = False,
@@ -315,6 +324,8 @@ class Discriminator(Network):
         :param val_y: Labels for validation data.
         :param batch_size: Size of minibatch for gradient update step.
         :param epochs: The number of full passes over the training data.
+        :param numpy.random.Generator rng:
+            The numpy random number generator.
         :param reset_metrics:
             If true, remove loss/accuracy metrics from previous calls to
             fit() (if any). If false, loss/accuracy metrics will be appended
@@ -367,7 +378,7 @@ class Discriminator(Network):
             )
             return n + batch_size, new_metrics
 
-        def train_epoch(state, train_ds, batch_size, epoch):
+        def train_epoch(state, train_ds, batch_size, epoch, dropout_rng):
             """Train for a single epoch."""
 
             def print_metrics(n, metrics_sum, end):
@@ -385,7 +396,10 @@ class Discriminator(Network):
             t_prev = time.time()
             for batch in batchify(train_ds, batch_size):
                 state, batch_metrics = _train_step(
-                    state, batch, entropy_regularisation=entropy_regularisation
+                    state,
+                    batch,
+                    dropout_rng,
+                    entropy_regularisation=entropy_regularisation,
                 )
                 actual_batch_size = leading_dim_size(batch["input"])
                 n, metrics_sum = running_metrics(
@@ -438,9 +452,12 @@ class Discriminator(Network):
                     test_accuracy=[],
                 )
 
+        dropout_rng1 = jax.random.PRNGKey(rng.integers(2**63))
+
         for epoch in range(1, epochs + 1):
+            dropout_rng1, dropout_rng2 = jax.random.split(dropout_rng1)
             train_loss, train_accuracy, state = train_epoch(
-                state, train_ds, batch_size, epoch
+                state, train_ds, batch_size, epoch, dropout_rng2
             )
             self.train_metrics["train_loss"].append(train_loss)
             self.train_metrics["train_accuracy"].append(train_accuracy)
@@ -506,9 +523,11 @@ def binary_accuracy(*, logits, labels):
     return jnp.mean(labels == (p > 0.5))
 
 
-@functools.partial(jax.jit, static_argnums=(2,))
-def _train_step(state, batch, entropy_regularisation=False):
+@functools.partial(jax.jit, static_argnums=(3,))
+def _train_step(state, batch, dropout_rng, entropy_regularisation=False):
     """Train for a single step."""
+
+    dropout_rng = jax.random.fold_in(dropout_rng, state.step)
 
     def loss_fn(params):
         logits, new_model_state = state.apply_fn(
@@ -516,6 +535,7 @@ def _train_step(state, batch, entropy_regularisation=False):
             batch["input"],
             mutable=["batch_stats"],
             train=True,
+            rngs={"dropout": dropout_rng},
         )
         loss = jnp.mean(
             optax.sigmoid_binary_cross_entropy(logits=logits, labels=batch["output"])

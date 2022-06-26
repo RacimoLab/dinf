@@ -24,7 +24,7 @@ if "KMP_AFFINITY" not in os.environ:
 
 
 from .dinf import abc_gan, alfi_mcmc_gan, mcmc_gan, pg_gan, predict, train
-from .discriminator import Discriminator, Surrogate
+from .discriminator import Discriminator, Surrogate, ExchangeableCNN
 from .feature_extractor import (
     HaplotypeMatrix,
     MultipleHaplotypeMatrices,
@@ -41,6 +41,7 @@ __all__ = [
     "BagOfVcf",
     "BinnedHaplotypeMatrix",
     "Discriminator",
+    "ExchangeableCNN",
     "MultipleBinnedHaplotypeMatrices",
     "MultipleHaplotypeMatrices",
     "Genobuilder",

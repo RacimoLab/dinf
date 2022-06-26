@@ -67,15 +67,24 @@
 .. autofunction:: dinf.pg_gan
 ```
 
-## Miscellaneous
+## Classification
 
 ```{eval-rst}
 .. autoclass:: dinf.Discriminator
-   :members:
 
-.. autoclass:: dinf.Surrogate
-   :members:
+    .. automethod:: from_input_shape
+    .. automethod:: from_file
+    .. automethod:: to_file
+    .. automethod:: fit
+    .. automethod:: predict
+    .. automethod:: summary
 
+.. autoclass:: dinf.ExchangeableCNN
+```
+
+## Miscellaneous
+
+```{eval-rst}
 .. autoclass:: dinf.Store
    :members:
 
