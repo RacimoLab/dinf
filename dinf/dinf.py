@@ -297,6 +297,7 @@ def _train_discriminator(
         val_x=val_x,
         val_y=val_y,
         epochs=epochs,
+        rng=rng,
         # Clear the training loss/accuracy metrics from last iteration.
         reset_metrics=True,
         # TODO
@@ -350,8 +351,10 @@ def train(
 
     _process_pool_init(parallelism, genobuilder)
 
-    discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
-    # print(discriminator.summary())
+    discriminator = Discriminator.from_input_shape(
+        genobuilder.feature_shape, rng, genobuilder.discriminator_network
+    )
+    # discriminator.summary()
 
     training_thetas = genobuilder.parameters.draw_prior(
         num_replicates=training_replicates // 2, rng=rng
@@ -504,7 +507,9 @@ def mcmc_gan(
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
-        discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+        discriminator = Discriminator.from_input_shape(
+            genobuilder.feature_shape, rng, genobuilder.discriminator_network
+        )
         # Starting point for the mcmc chain.
         start = genobuilder.parameters.draw_prior(num_replicates=walkers, rng=rng)
 
@@ -690,7 +695,9 @@ def abc_gan(
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
-        discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+        discriminator = Discriminator.from_input_shape(
+            genobuilder.feature_shape, rng, genobuilder.discriminator_network
+        )
 
         training_thetas = genobuilder.parameters.draw_prior(
             num_replicates=training_replicates // 2, rng=rng
@@ -763,7 +770,9 @@ def pretraining_pg_gan(
     max_pretraining_iterations times, each with training_replicates reps.
     """
 
-    discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+    discriminator = Discriminator.from_input_shape(
+        genobuilder.feature_shape, rng, genobuilder.discriminator_network
+    )
     acc_best = 0
     theta_best = None
 
@@ -818,7 +827,9 @@ def pretraining_dinf(
     drawn from the prior.
     """
 
-    discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+    discriminator = Discriminator.from_input_shape(
+        genobuilder.feature_shape, rng, genobuilder.discriminator_network
+    )
 
     for k in range(max_pretraining_iterations):
         training_thetas = genobuilder.parameters.draw_prior(
@@ -1317,7 +1328,9 @@ def alfi_mcmc_gan(
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
-        discriminator = Discriminator.from_input_shape(genobuilder.feature_shape, rng)
+        discriminator = Discriminator.from_input_shape(
+            genobuilder.feature_shape, rng, genobuilder.discriminator_network
+        )
         surrogate = Surrogate.from_input_shape(len(genobuilder.parameters), rng)
         # Starting point for the mcmc chain.
         start = genobuilder.parameters.draw_prior(num_replicates=walkers, rng=rng)

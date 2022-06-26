@@ -7,6 +7,7 @@ import pathlib
 import sys
 from typing import Callable, Tuple
 
+from flax import linen as nn
 import numpy as np
 
 from .parameters import Parameters
@@ -78,6 +79,10 @@ class Genobuilder:
     :param feature_shape:
         The shape of the n-dimensional arrays produced by :attr:`.target_func`
         and :attr:`.generator_func`.
+
+    :param discriminator_network:
+        A flax neural network module. If not specified, :class:`ExchangeableCNN`
+        will be used.
     """
 
     target_func: Callable  # Callable[[int], np.ndarray]
@@ -99,6 +104,11 @@ class Genobuilder:
     """
     Shape of the n-dimensional arrays produced by :attr:`.target_func`
     and :attr:`.generator_func`.
+    """
+
+    discriminator_network: nn.Module | None = None
+    """
+    A flax neural network module. May be ``None``.
     """
 
     def __post_init__(self):
@@ -128,7 +138,7 @@ class Genobuilder:
         self._orig_generator_func = f
         self._filename = None
 
-    def check(self, seed=1234):
+    def check(self, seed=None):
         """
         Basic health checks: draw parameters and call the functions.
 
@@ -136,6 +146,8 @@ class Genobuilder:
         :meth:`.generator_func()` is potentially time consuming, which could
         lead to annoying delays for the command line interface.
         """
+        if seed is None:
+            seed = 1234
         rng = np.random.default_rng(seed)
         thetas = self.parameters.draw_prior(num_replicates=5, rng=rng)
         if thetas.shape != (5, len(self.parameters)):
