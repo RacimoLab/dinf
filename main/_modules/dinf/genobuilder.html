@@ -153,7 +153,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev216
+            dinf 0.1.1.dev218
             </div>
             
         </div>
@@ -288,6 +288,7 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span>
 
+<span class="kn">from</span> <span class="nn">flax</span> <span class="kn">import</span> <span class="n">linen</span> <span class="k">as</span> <span class="n">nn</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">.parameters</span> <span class="kn">import</span> <span class="n">Parameters</span>
@@ -359,6 +360,10 @@ title="Open an issue"
 <span class="sd">    :param feature_shape:</span>
 <span class="sd">        The shape of the n-dimensional arrays produced by :attr:`.target_func`</span>
 <span class="sd">        and :attr:`.generator_func`.</span>
+
+<span class="sd">    :param discriminator_network:</span>
+<span class="sd">        A flax neural network module. If not specified, :class:`ExchangeableCNN`</span>
+<span class="sd">        will be used.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">target_func</span><span class="p">:</span> <span class="n">Callable</span>  <span class="c1"># Callable[[int], np.ndarray]</span>
@@ -380,6 +385,11 @@ title="Open an issue"
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Shape of the n-dimensional arrays produced by :attr:`.target_func`</span>
 <span class="sd">    and :attr:`.generator_func`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">discriminator_network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A flax neural network module. May be ``None``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -409,7 +419,7 @@ title="Open an issue"
         <span class="bp">self</span><span class="o">.</span><span class="n">_orig_generator_func</span> <span class="o">=</span> <span class="n">f</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="Genobuilder.check"><a class="viewcode-back" href="../../api.html#dinf.Genobuilder.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1234</span><span class="p">):</span>
+<div class="viewcode-block" id="Genobuilder.check"><a class="viewcode-back" href="../../api.html#dinf.Genobuilder.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Basic health checks: draw parameters and call the functions.</span>
 
@@ -417,6 +427,8 @@ title="Open an issue"
 <span class="sd">        :meth:`.generator_func()` is potentially time consuming, which could</span>
 <span class="sd">        lead to annoying delays for the command line interface.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">seed</span> <span class="o">=</span> <span class="mi">1234</span>
         <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
         <span class="n">thetas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">num_replicates</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)):</span>
@@ -487,7 +499,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev216+g3deb073
+      dinf 0.1.1.dev218+gba99a62
     </div>
 </p>
         </footer>
