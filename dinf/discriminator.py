@@ -52,48 +52,141 @@ class Symmetric(nn.Module):
     """
     Network layer that summarises over a given axis in a way that is invariant
     to permutations of the input along that axis.
+
+    | Chan et al. 2018, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/
     """
 
     axis: int
+    func: str
 
     @nn.compact
     def __call__(self, x):
+        assert self.func in ("var", "sum")
         # TODO: Assess choice of symmetric function more formally.
-        # One-shot tests indicated that sum and variance work well very well,
-        # but variance trains quicker; mean and median work less well.
+        # Sum and variance work well, mean and median seem to work less well.
         # Chan et al. suggest some alternatives which I haven't tried:
         #  - max
         #  - mean of the top decile
         #  - higher moments
-        return jnp.var(x, axis=self.axis, keepdims=True)
+        if self.func == "sum":
+            return jnp.sum(x, axis=self.axis, keepdims=True)
+        elif self.func == "var":
+            return jnp.var(x, axis=self.axis, keepdims=True)
 
 
-class ExchangeableCNN(nn.Module):
+class ExchangeablePGGAN(nn.Module):
     """
-    An exchangeable CNN for the discriminator.
+    An exchangeable CNN for the discriminator using the PG-GAN architecture.
 
-    Supports both labelled and unlabelled feature matrices:
-    :class:`HaplotypeMatrix`, :class:`BinnedHaplotypeMatrix`,
-    :class:`MultipleHaplotypeMatrices`, :class:`MultipleBinnedHaplotypeMatrices`.
-    Each (pseudo)haplotype is treated as exchangeable with any other
-    (pseudo)haplotype within the same feature matrix (i.e. exchangeability
+    This is a faithful translation of the network implemented in PG-GAN [1],
+    with the addition of batch normalisation.
+    Each haplotype is treated as exchangeable with any other
+    haplotype within the same feature matrix (i.e. exchangeability
     applies within labelled groups).
 
-    | Chan et al. 2018, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/
-    | Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
+    Each feature matrix in the input has shape
+    (batch_size, num_haplotypes, num_loci, channels).
+    Two 1-d convolution layers are applied along haplotypes, and feature
+    size is reduced following each convolution using 1-d max pooling with
+    size and stride of 2. The sum function is then used to collapse
+    features across the num_haplotypes dimension. Two fully connected layers
+    with dropout follow.
+    Relu activation is used throughout, except for the final output which has
+    no activation.
+
+    | [1] Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
     """
 
     @nn.compact
     def __call__(  # type: ignore[override]
         self, inputs: Pytree, *, train: bool
     ) -> Pytree:
-        # flax uses channels-last (NHWC) convention
+        kernel_init = nn.initializers.glorot_uniform()
+        # Flax uses channels-last (NHWC) convention.
+        conv = functools.partial(
+            nn.Conv, kernel_size=(1, 5), use_bias=True, kernel_init=kernel_init
+        )
+        # Convolution weights are shared across feature matrices.
+        conv1 = conv(features=32, strides=(1, 1))
+        conv2 = conv(features=64, strides=(1, 1))
+        pool = functools.partial(nn.max_pool, window_shape=(1, 2), strides=(1, 2))
+        # https://flax.readthedocs.io/en/latest/howtos/state_params.html
+        norm = functools.partial(nn.BatchNorm, use_running_average=not train)
+        activation = nn.relu
+
+        xs = []
+        for input_feature in jax.tree_leaves(inputs):
+            x = input_feature
+            x = norm()(x)
+
+            x = conv1(x)
+            x = activation(x)
+            x = pool(x)
+            x = norm()(x)
+
+            x = conv2(x)
+            x = activation(x)
+            x = pool(x)
+            x = norm()(x)
+
+            # collapse haplotypes
+            x = Symmetric(axis=1, func="sum")(x)
+
+            # flatten
+            x = jnp.reshape(x, (x.shape[0], -1))
+
+            xs.append(x)
+
+        x = jnp.concatenate(xs, axis=-1)
+
+        x = nn.Dense(features=128, kernel_init=kernel_init)(x)
+        x = activation(x)
+        x = norm()(x)
+        x = nn.Dropout(rate=0.5)(x, deterministic=not train)
+
+        x = nn.Dense(features=128, kernel_init=kernel_init)(x)
+        x = activation(x)
+        x = norm()(x)
+        x = nn.Dropout(rate=0.5)(x, deterministic=not train)
+
+        y = nn.Dense(features=1)(x)
+
+        # flatten
+        y = jnp.reshape(y, (-1,))
+
+        # We output logits on (-inf, inf), rather than a probability on [0, 1].
+        # So remember to call jax.nn.sigmoid(x) on the output when
+        # probabilities are needed.
+        return y
+
+
+class ExchangeableCNN(nn.Module):
+    """
+    An exchangeable CNN for the discriminator.
+
+    Each feature matrix in the input has shape
+    (batch_size, num_haplotypes, num_loci, channels).
+    Two 1-d convolution layers are applied along haplotypes and
+    feature size is reduced in each convolution using a stride of 2.
+    Then the variance function is used to collapse
+    features across the num_haplotypes dimension. A third 1-d convolution
+    follows (with stride of 1), and the variance function is used to
+    collapse features across the num_loci dimension.
+    Elu activation is used throughout, except for the final output which has
+    no activation.
+    """
+
+    @nn.compact
+    def __call__(  # type: ignore[override]
+        self, inputs: Pytree, *, train: bool
+    ) -> Pytree:
+        # Flax uses channels-last (NHWC) convention.
         conv = functools.partial(nn.Conv, kernel_size=(1, 5), use_bias=False)
         # https://flax.readthedocs.io/en/latest/howtos/state_params.html
         norm = functools.partial(nn.BatchNorm, use_running_average=not train)
         activation = nn.elu
 
-        combined = []
+        xs = []
         for input_feature in jax.tree_leaves(inputs):
             x = norm()(input_feature)
 
@@ -106,25 +199,22 @@ class ExchangeableCNN(nn.Module):
             x = norm()(x)
 
             # collapse haplotypes
-            x = Symmetric(axis=1)(x)
+            x = Symmetric(axis=1, func="var")(x)
 
             x = conv(features=64)(x)
             x = activation(x)
             x = norm()(x)
 
             # collapse genomic bins
-            x = Symmetric(axis=2)(x)
-            combined.append(x)
+            x = Symmetric(axis=2, func="var")(x)
+            xs.append(x)
 
-        ys = jnp.concatenate(combined, axis=-1)
-        y = nn.Dense(features=1)(ys)
-
+        x = jnp.concatenate(xs, axis=-1)
+        y = nn.Dense(features=1)(x)
         # flatten
-        y = y.reshape((-1,))
+        y = jnp.reshape(y, (-1,))
 
-        # We output logits on (-inf, inf), rather than a probability on [0, 1],
-        # because the jax ecosystem provides better API support for working
-        # with logits, e.g. loss functions in optax.
+        # We output logits on (-inf, inf), rather than a probability on [0, 1].
         # So remember to call jax.nn.sigmoid(x) on the output when
         # probabilities are needed.
         return y
@@ -175,7 +265,7 @@ class Network:
         # Add leading batch dimension.
         input_shape = tree_cons(1, input_shape)
         dummy_input = jax.tree_map(
-            lambda x: jnp.zeros(x, dtype=np.int8),
+            lambda x: jnp.zeros(x, dtype=np.float32),
             input_shape,
             is_leaf=lambda x: isinstance(x, tuple),
         )
@@ -223,7 +313,7 @@ class Network:
     def summary(self):
         """Print a summary of the neural network."""
         a = jax.tree_map(
-            lambda x: jnp.zeros(x, dtype=np.int8),
+            lambda x: jnp.zeros(x, dtype=np.float32),
             self.input_shape,
             is_leaf=lambda x: isinstance(x, tuple),
         )
@@ -432,7 +522,10 @@ class Discriminator(Network):
         if state is None:
             state = TrainState.create(
                 apply_fn=self.network.apply,
-                tx=optax.adam(learning_rate=0.001),
+                tx=optax.chain(
+                    optax.clip(1.0),
+                    optax.adam(learning_rate=0.001),
+                ),
                 params=self.variables["params"],
                 batch_stats=self.variables.get("batch_stats", {}),
             )

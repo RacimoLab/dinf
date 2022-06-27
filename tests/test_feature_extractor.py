@@ -103,6 +103,7 @@ class TestHaplotypeMatrix:
             assert G2.shape == (num_loci, num_haplotypes)
             assert positions2.dtype == positions.dtype
             assert positions2.shape == (num_loci,)
+            assert np.any(positions2 > 0)
 
     @pytest.mark.parametrize("phased", [True, False])
     @pytest.mark.parametrize("num_individuals", [8, 16])
@@ -130,8 +131,8 @@ class TestHaplotypeMatrix:
 
         H = M[..., 0]
         if phased:
-            # All genotypes should be zero or one.
-            assert np.all(H[H != 0] == 1)
+            # All genotypes should be 0 or 1.
+            assert np.all(np.logical_or(H == 0, H == 1))
         else:
             # All genotypes should be less than the allele count.
             assert np.all(H[H != 0] <= ploidy)
@@ -143,6 +144,9 @@ class TestHaplotypeMatrix:
         P = M[..., 1]
         # The first inter-SNP distance should always be 0.
         assert np.all(P[:, 0] == 0)
+        # Pretty unlikely to have all zeros---we can safely assume this
+        # would constitute a bug.
+        assert not np.all(P[0] == 0)
         # Each row in the positions matrix should be identical.
         for row in P[1:]:
             np.testing.assert_array_equal(P[0], row)
@@ -170,8 +174,8 @@ class TestHaplotypeMatrix:
 
             H = M[..., 0]
             if phased:
-                # All genotypes should be zero or one.
-                assert np.all(H[H != 0] == 1)
+                # All genotypes should be 0 or 1.
+                assert np.all(np.logical_or(H == 0, H == 1))
             else:
                 # All genotypes should be less than the allele count.
                 assert np.all(H[H != 0] <= ploidy)
@@ -185,6 +189,10 @@ class TestHaplotypeMatrix:
             P = M[..., 1]
             # The first inter-SNP distance should always be 0.
             assert np.all(P[:, 0] == 0)
+            if maf_thresh < 1:
+                # Pretty unlikely to have all zeros---we can safely assume this
+                # would constitute a bug.
+                assert not np.all(P[0] == 0)
             # Each row in the positions matrix should be identical.
             for row in P[1:]:
                 np.testing.assert_array_equal(P[0], row)

@@ -8,8 +8,8 @@ import dinf
 
 populations = ["deme1", "deme2"]
 mutation_rate = 1.25e-8
-num_individuals = 96  # per population
-sequence_length = 100_000
+num_individuals = 48  # per population
+sequence_length = 50_000
 parameters = dinf.Parameters(
     # Recombination rate.
     reco=dinf.Param(low=1e-9, high=1e-7, truth=1.25e-8),
@@ -40,8 +40,8 @@ def demography(*, N_anc, N1, N2, T_split, mig):
 
 features = dinf.MultipleBinnedHaplotypeMatrices(
     num_individuals={pop: num_individuals for pop in populations},
-    num_loci={pop: 128 for pop in populations},
-    ploidy={pop: 1 for pop in populations},
+    num_loci={pop: 36 for pop in populations},
+    ploidy={pop: 2 for pop in populations},
     global_phased=True,
     global_maf_thresh=0,
 )
@@ -62,9 +62,15 @@ def generator(seed, **params):
         recombination_rate=recombination_rate,
         random_seed=seed1,
         record_provenance=False,
-        ploidy=1,
+        discrete_genome=False,
     )
-    ts = msprime.sim_mutations(ts, rate=mutation_rate, random_seed=seed2)
+    ts = msprime.sim_mutations(
+        ts,
+        rate=mutation_rate,
+        model=msprime.BinaryMutationModel(),
+        discrete_genome=False,
+        random_seed=seed2,
+    )
     individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
     labelled_matrices = features.from_ts(ts, individuals=individuals)
     return labelled_matrices
