@@ -1,5 +1,7 @@
+(sec_api)=
 # API reference
 
+(sec_api_defining_a_dinf_model)=
 ## Defining a Dinf model
 
 ```{eval-rst}
@@ -7,6 +9,7 @@
    :members:
 ```
 
+(sec_api_feature_extraction)=
 ## Feature extraction
 
 ```{eval-rst}
@@ -45,6 +48,7 @@
    .. automethod:: __len__
 ```
 
+(sec_api_parameters)=
 ## Specifying parameters
 
 ```{eval-rst}
@@ -55,6 +59,7 @@
    :members:
 ```
 
+(sec_api_inference)=
 ## Inference
 
 ```{eval-rst}
@@ -67,6 +72,7 @@
 .. autofunction:: dinf.pg_gan
 ```
 
+(sec_api_classification)=
 ## Classification
 
 ```{eval-rst}
@@ -78,13 +84,25 @@
     .. automethod:: fit
     .. automethod:: predict
     .. automethod:: summary
-
-.. autoclass:: dinf.ExchangeableCNN
 ```
 
+(sec_api_discriminator_networks)=
+### Discriminator networks
+
+```{eval-rst}
+.. autoclass:: dinf.ExchangeableCNN
+
+.. autoclass:: dinf.ExchangeablePGGAN
+```
+
+(sec_api_misc)=
 ## Miscellaneous
 
 ```{eval-rst}
+
+.. automodule:: dinf.misc
+   :members: ts_individuals
+
 .. autoclass:: dinf.Store
    :members:
 

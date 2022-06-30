@@ -101,6 +101,10 @@ class ExchangeablePGGAN(nn.Module):
     Relu activation is used throughout, except for the final output which has
     no activation.
 
+    The number of trainable parameters in the network is dependent on the
+    number of feature matrices in the input, and dependent on the num_loci
+    dimension of the feature matrices.
+
     | [1] Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
     """
 
@@ -181,6 +185,10 @@ class ExchangeableCNN(nn.Module):
     collapse features across the num_loci dimension.
     Elu activation is used throughout, except for the final output which has
     no activation.
+
+    The number of trainable parameters in the network is dependent on the
+    number of feature matrices in the input, but independent of the size of
+    the feature matrices.
     """
 
     @nn.compact
@@ -373,7 +381,7 @@ class Discriminator(Network):
         :param numpy.random.Generator rng:
             The numpy random number generator.
         :param network:
-            A flax neural network.
+            A :doc:`flax <flax:index>` neural network.
             If not specified, :class:`ExchangeableCNN` will be used.
         """
         if network is None:

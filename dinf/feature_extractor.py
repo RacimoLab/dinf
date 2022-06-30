@@ -213,8 +213,8 @@ class HaplotypeMatrix(_FeatureMatrix):
     The position matrix is an :math:`n \\times m` matrix, where the vector
     of :math:`m` inter-SNP distances are repeated :math:`n` times---once
     for each haplotype (or each individual, for unphased data). Each entry
-    is the distance (in bp) from the previous SNP. The first inter-SNP distance
-    in the vector is always zero.
+    is the distance from the previous SNP (as a proportion of the sequence
+    length). The first inter-SNP distance in the vector is always zero.
 
     | Chan et al. 2018, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/
     | Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386

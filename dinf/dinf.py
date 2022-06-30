@@ -350,7 +350,7 @@ def train(
     discriminator = Discriminator.from_input_shape(
         genobuilder.feature_shape, rng, genobuilder.discriminator_network
     )
-    discriminator.summary()
+    # discriminator.summary()
 
     training_thetas = genobuilder.parameters.draw_prior(
         num_replicates=training_replicates // 2, rng=rng

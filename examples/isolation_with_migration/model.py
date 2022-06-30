@@ -1,5 +1,7 @@
 # IM model from PG-GAN.
 # Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
+import string
+
 import demes
 import msprime
 import numpy as np
@@ -23,19 +25,51 @@ parameters = dinf.Parameters(
 
 
 def demography(*, N_anc, N1, N2, T_split, mig):
-    b = demes.Builder(description="Isolation with Migration")
-    b.add_deme("anc", epochs=[dict(start_size=N_anc, end_time=T_split)])
-    b.add_deme("deme1", ancestors=["anc"], epochs=[dict(start_size=N1)])
-    b.add_deme("deme2", ancestors=["anc"], epochs=[dict(start_size=N2)])
-
     T_mig = T_split / 2
     source = "deme1"
     dest = "deme2"
     if mig < 0:
+        # negative migration rate means the opposite direction
         source, dest = dest, source
-    b.add_pulse(sources=[source], dest=dest, time=T_mig, proportions=[abs(mig)])
-    graph = b.resolve()
-    return graph
+        mig = -mig
+
+    template = string.Template(
+        """
+        description: Isolation with Migration
+        time_units: generations
+        doi:
+          - Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
+        demes:
+          - name: ancestral
+            epochs:
+              - start_size: $N_anc
+                end_time: $T_split
+          - name: deme1
+            ancestors: [ancestral]
+            epochs:
+              - start_size: $N1
+          - name: deme2
+            ancestors: [ancestral]
+            epochs:
+              - start_size: $N2
+        pulses:
+          - sources: [$source]
+            dest: $dest
+            time: $T_mig
+            proportions: [$mig]
+        """
+    )
+    model = template.substitute(
+        N_anc=N_anc,
+        N1=N1,
+        N2=N2,
+        T_split=T_split,
+        mig=mig,
+        source=source,
+        dest=dest,
+        T_mig=T_mig,
+    )
+    return demes.loads(model)
 
 
 features = dinf.MultipleBinnedHaplotypeMatrices(
