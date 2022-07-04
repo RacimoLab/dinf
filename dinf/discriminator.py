@@ -34,15 +34,22 @@ class TrainState(flax.training.train_state.TrainState):
     batch_stats: Pytree
 
 
-def batchify(dataset, batch_size):
+def batchify(dataset, batch_size, random=False, rng=None):
     """Generate batch_size chunks of the dataset."""
     assert batch_size >= 1
     size = leading_dim_size(dataset)
     assert size >= 1
 
+    if random:
+        assert rng is not None
+        indices = rng.permutation(size)
+
     i, j = 0, batch_size
     while i < size:
-        batch = jax.tree_map(lambda x: x[i:j, ...], dataset)
+        if random:
+            batch = jax.tree_map(lambda x: x[indices[i:j], ...], dataset)
+        else:
+            batch = jax.tree_map(lambda x: x[i:j, ...], dataset)
         yield batch
         i = j
         j += batch_size
@@ -484,7 +491,7 @@ class Discriminator(Network):
             metrics_sum = dict(loss=0, accuracy=0)
             n = 0
             t_prev = time.time()
-            for batch in batchify(train_ds, batch_size):
+            for batch in batchify(train_ds, batch_size, random=True, rng=rng):
                 state, batch_metrics = _train_step(
                     state,
                     batch,

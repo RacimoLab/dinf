@@ -146,11 +146,7 @@ def _generate_training_data(*, target, generator, thetas, parallelism, rng):
     x = jax.tree_map(lambda *l: np.concatenate(l), x_generator, x_target)
     del x_target
     y = np.concatenate((np.zeros(num_replicates), np.ones(num_replicates)))
-    # shuffle
-    indices = rng.permutation(len(y))
-    # XXX: Large copy doubles peak memory.
-    x = jax.tree_map(lambda l: l[indices], x)
-    y = y[indices]
+    # Note: training data is not shuffled
     return x, y, x_generator
 
 
