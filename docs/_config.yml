@@ -8,6 +8,9 @@ only_build_toc_files: true
 
 execute:
   execute_notebooks: cache
+  exclude_patterns:
+    - 'abc.ipynb'
+    - 'accuracy.ipynb'
   timeout: 100
 
 repository:

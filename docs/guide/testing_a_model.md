@@ -2,7 +2,7 @@
 # Testing a Dinf model
 
 This page explains how to test a Dinf model.
-See the section on {ref}`creating a Dinf model <sec_guide_creating_a_dinf_model>`
+See the [](sec_guide_creating_a_dinf_model) page
 for how to write a model file.
 
 ## Dinf model files
@@ -61,5 +61,5 @@ of learning from the model.
 ```
 
 To obtain more impressive accuracy, additional replicates will be needed.
-Other ways to improve the accuracy are discussed in the
-{ref}`sec_guide_accuracy` section.
+Other ways to improve the accuracy are discussed on the
+[](sec_guide_accuracy) page.

@@ -204,9 +204,9 @@ Note that Dinf has no explicit requirement to use `demes`
 for the demographic model, nor to use `msprime` as the simulator.
 It would even be possible to write a generator function with a
 simulator that doesn't output a `tskit.TreeSequence`.
-Dinf provides {ref}`discriminator networks <sec_api_discriminator_networks>`
+Dinf provides [discriminator networks](sec_api_discriminator_networks)
 that work well with the provided
-{ref}`feature extraction classes <sec_api_feature_extraction>`,
+[feature extraction classes](sec_api_feature_extraction),
 so substituting custom features will likely require additional effort
 and testing.
 
