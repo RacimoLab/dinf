@@ -77,12 +77,11 @@ features = dinf.MultipleBinnedHaplotypeMatrices(
     num_loci={pop: 36 for pop in populations},
     ploidy={pop: 2 for pop in populations},
     global_phased=True,
-    global_maf_thresh=0,
 )
 
 
 def generator(seed, **params):
-    """Simulate with the parameters provided to us."""
+    """Simulate two-deme isolation-with-migration model with msprime."""
     rng = np.random.default_rng(seed)
     recombination_rate = params.pop("reco")
     graph = demography(**params)
@@ -96,15 +95,8 @@ def generator(seed, **params):
         recombination_rate=recombination_rate,
         random_seed=seed1,
         record_provenance=False,
-        discrete_genome=False,
     )
-    ts = msprime.sim_mutations(
-        ts,
-        rate=mutation_rate,
-        model=msprime.BinaryMutationModel(),
-        discrete_genome=False,
-        random_seed=seed2,
-    )
+    ts = msprime.sim_mutations(ts, rate=mutation_rate, random_seed=seed2)
     individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
     labelled_matrices = features.from_ts(ts, individuals=individuals)
     return labelled_matrices
