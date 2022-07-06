@@ -208,7 +208,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev236
+            dinf 0.1.1.dev238
             </div>
             
         </div>
@@ -645,7 +645,7 @@ line interface.</p>
 <span id="sec-api-feature-extraction"></span><h2>Feature extraction<a class="headerlink" href="#feature-extraction" title="Permalink to this headline">#</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="dinf.HaplotypeMatrix">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">HaplotypeMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loci</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maf_thresh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phased</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#HaplotypeMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.HaplotypeMatrix" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">HaplotypeMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loci</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phased</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maf_thresh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#HaplotypeMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.HaplotypeMatrix" title="Permalink to this definition">#</a></dt>
 <dd><p>A factory for feature matrices consisting of haplotypes and relative positions.</p>
 <p>The feature is an <span class="math notranslate nohighlight">\(n \times m \times c\)</span> array, where the channel
 dimension <span class="math notranslate nohighlight">\(c\)</span> is 2. The first channel is a haplotype matrix and
@@ -680,8 +680,8 @@ The central <code class="docutils literal notranslate"><span class="pre">num_loc
 If there are fewer than <code class="docutils literal notranslate"><span class="pre">num_loci</span></code> SNPs, the feature matrix will
 be padded on both sides with zeros.</p></li>
 <li><p><strong>ploidy</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Ploidy of the individuals.</p></li>
-<li><p><strong>maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
-this value are ignored.</p></li>
+<li><p><strong>maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> | </em><em>None</em>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
+this value are ignored. If None, only invariant sites will be excluded.</p></li>
 <li><p><strong>phased</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, the individuals’ haplotypes will each be included as
 independent rows in the feature matrix and the shape of the
 feature matrix will be <code class="docutils literal notranslate"><span class="pre">(ploidy</span> <span class="pre">*</span> <span class="pre">num_individuals,</span> <span class="pre">num_loci,</span> <span class="pre">c)</span></code>.
@@ -724,8 +724,7 @@ in the VCFs than are needed for the feature dimensions.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>vb</strong> (<a class="reference internal" href="#dinf.BagOfVcf" title="dinf.vcf.BagOfVcf"><em>dinf.vcf.BagOfVcf</em></a>) – The BagOfVcf object that describes the VCF/BCF files.</p></li>
 <li><p><strong>sequence_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Length of the genomic window to be sampled.</p></li>
-<li><p><strong>max_missing_genotypes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Consider only sites with fewer missing genotype calls than
-this number.</p></li>
+<li><p><strong>max_missing_genotypes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Consider only sites with at most this many missing genotype calls.</p></li>
 <li><p><strong>min_seg_sites</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Sampled genotype matrix must have at least this many variable
 sites (after filtering sites for missingness).</p></li>
 <li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
@@ -750,7 +749,7 @@ sites (after filtering sites for missingness).</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="dinf.MultipleHaplotypeMatrices">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">MultipleHaplotypeMatrices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loci</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_maf_thresh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_phased</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#MultipleHaplotypeMatrices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.MultipleHaplotypeMatrices" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">MultipleHaplotypeMatrices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loci</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_maf_thresh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_phased</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#MultipleHaplotypeMatrices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.MultipleHaplotypeMatrices" title="Permalink to this definition">#</a></dt>
 <dd><p>A factory for labelled collections of <a class="reference internal" href="#dinf.HaplotypeMatrix" title="dinf.HaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">HaplotypeMatrix</span></code></a> objects.</p>
 <p>One feature matrix is produced for each label. Labels correspond to
 collections of individuals that will be treated as exchangeable
@@ -763,8 +762,9 @@ in the feature matrix.</p></li>
 <li><p><strong>num_loci</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – A dict that maps labels to the number of feature loci to be
 extracted from the sequence.</p></li>
 <li><p><strong>ploidy</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – A dict that maps labels to the ploidy of the individuals.</p></li>
-<li><p><strong>global_maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
-this value are ignored. MAF is calculated across all individuals.</p></li>
+<li><p><strong>global_maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> | </em><em>None</em>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
+this value are ignored. MAF is calculated across all individuals.
+If None, only invariant sites will be excluded.</p></li>
 <li><p><strong>global_phased</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, the individuals’ haplotypes will each be included as
 independent rows in each feature matrix and the shape of the
 feature matrix for label <code class="docutils literal notranslate"><span class="pre">l</span></code> will be
@@ -845,7 +845,7 @@ count of minor alleles in the <span class="math notranslate nohighlight">\(j\)</
 
 <dl class="py class">
 <dt class="sig sig-object py" id="dinf.BinnedHaplotypeMatrix">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">BinnedHaplotypeMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loci</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phased</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maf_thresh</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#BinnedHaplotypeMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">BinnedHaplotypeMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loci</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phased</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maf_thresh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#BinnedHaplotypeMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.BinnedHaplotypeMatrix" title="Permalink to this definition">#</a></dt>
 <dd><p>A factory for feature matrices of pseudo-haplotypes.</p>
 <p>The binned haplotype matrix is an <span class="math notranslate nohighlight">\(n \times m\)</span> matrix,
 where <span class="math notranslate nohighlight">\(n\)</span> corresponds to the number of haplotypes
@@ -874,8 +874,8 @@ feature matrix will be <code class="docutils literal notranslate"><span class="p
 If False, the allele counts for each individual will be summed
 across their chromosome copies and the shape of the feature matrix
 will be <code class="docutils literal notranslate"><span class="pre">(num_individuals,</span> <span class="pre">num_loci,</span> <span class="pre">1)</span></code>.</p></li>
-<li><p><strong>maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
-this value are ignored.</p></li>
+<li><p><strong>maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> | </em><em>None</em>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
+this value are ignored. If None, only invariant sites will be excluded.</p></li>
 </ul>
 </dd>
 </dl>
@@ -912,8 +912,7 @@ in the VCFs than are needed for the feature dimensions.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>vb</strong> (<a class="reference internal" href="#dinf.BagOfVcf" title="dinf.vcf.BagOfVcf"><em>dinf.vcf.BagOfVcf</em></a>) – The BagOfVcf object that describes the VCF/BCF files.</p></li>
 <li><p><strong>sequence_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Length of the genomic window to be sampled.</p></li>
-<li><p><strong>max_missing_genotypes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Consider only sites with fewer missing genotype calls than
-this number.</p></li>
+<li><p><strong>max_missing_genotypes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Consider only sites with at most this many missing genotype calls.</p></li>
 <li><p><strong>min_seg_sites</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Sampled genotype matrix must have at least this many variable
 sites (after filtering sites for missingness).</p></li>
 <li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random number generator.</p></li>
@@ -938,7 +937,7 @@ sites (after filtering sites for missingness).</p></li>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="dinf.MultipleBinnedHaplotypeMatrices">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">MultipleBinnedHaplotypeMatrices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loci</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_maf_thresh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_phased</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#MultipleBinnedHaplotypeMatrices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.MultipleBinnedHaplotypeMatrices" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">MultipleBinnedHaplotypeMatrices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_individuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loci</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ploidy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_maf_thresh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_phased</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/feature_extractor.html#MultipleBinnedHaplotypeMatrices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.MultipleBinnedHaplotypeMatrices" title="Permalink to this definition">#</a></dt>
 <dd><p>A factory for labelled collections of <a class="reference internal" href="#dinf.BinnedHaplotypeMatrix" title="dinf.BinnedHaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinnedHaplotypeMatrix</span></code></a> objects.</p>
 <p>One feature matrix is produced for each label. Labels correspond to
 collections of individuals that will be treated as exchangeable
@@ -951,8 +950,9 @@ in the feature matrix.</p></li>
 <li><p><strong>num_loci</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – A dict that maps labels to the number of feature loci to be
 extracted from the sequence.</p></li>
 <li><p><strong>ploidy</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – A dict that maps labels to the ploidy of the individuals.</p></li>
-<li><p><strong>global_maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
-this value are ignored. MAF is calculated across all individuals.</p></li>
+<li><p><strong>global_maf_thresh</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em> | </em><em>None</em>) – Minor allele frequency (MAF) threshold. Sites with MAF lower than
+this value are ignored. MAF is calculated across all individuals.
+If None, only invariant sites will be excluded.</p></li>
 <li><p><strong>global_phased</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, the individuals’ haplotypes will each be included as
 independent rows in each feature matrix and the shape of the
 feature matrix for label <code class="docutils literal notranslate"><span class="pre">l</span></code> will be
@@ -1134,8 +1134,7 @@ the usual convention for ‘chrom:start-end’, e.g. in bcftools.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sequence_length</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Length of the sequence to sample.</p></li>
-<li><p><strong>max_missing_genotypes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Consider only sites with fewer missing genotype calls than
-this number.</p></li>
+<li><p><strong>max_missing_genotypes</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Consider only sites with at most this many missing genotype calls.</p></li>
 <li><p><strong>min_seg_sites</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Sampled genotype matrix must have at least this many variable
 sites (after filtering sites for missingness).</p></li>
 <li><p><strong>require_phased</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, raise an error if genotypes are not phased.</p></li>
@@ -1802,6 +1801,49 @@ If not specified, all sampled individuals will be returned.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="dinf.get_samples_from_1kgp_metadata">
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">get_samples_from_1kgp_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">populations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/vcf.html#get_samples_from_1kgp_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.get_samples_from_1kgp_metadata" title="Permalink to this definition">#</a></dt>
+<dd><p>Get sample IDs for 1000 Genomes Project populations.
+Related individuals are removed based on the FatherID and MotherID.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – Path to the file “20130606_g1k_3202_samples_ped_population.txt”
+This file can be downloaded from
+<a class="reference external" href="http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/">http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/</a></p></li>
+<li><p><strong>populations</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.10)"><em>list</em></a>) – List of populations to extract.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dict mapping population names to a list of sample IDs.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="dinf.get_contig_lengths">
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">get_contig_lengths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_contigs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/vcf.html#get_contig_lengths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.get_contig_lengths" title="Permalink to this definition">#</a></dt>
+<dd><p>Load contig lengths from a space-separated file like an fai (fasta index).</p>
+<p>The file must have (at least) two columns, the first specifies the
+contig ID, and the second is the contig length. Additional columns
+are ignored.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – The path to the file.</p></li>
+<li><p><strong>keep_contigs</strong> (<em>Iterable</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>] </em><em>| </em><em>None</em>) – Use only the specified contigs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="dinf.Store">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">Store</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/store.html#Store"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Store" title="Permalink to this definition">#</a></dt>
@@ -1900,7 +1942,7 @@ doesn’t exist.</p></li>
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev236+gb576afb
+      dinf 0.1.1.dev238+g378793d
     </div>
 </p>
         </footer>

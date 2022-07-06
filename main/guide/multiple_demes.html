@@ -206,7 +206,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev236
+            dinf 0.1.1.dev238
             </div>
             
         </div>
@@ -531,12 +531,11 @@ title="Print to PDF"
     <span class="n">num_loci</span><span class="o">=</span><span class="p">{</span><span class="n">pop</span><span class="p">:</span> <span class="mi">36</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="n">populations</span><span class="p">},</span>
     <span class="n">ploidy</span><span class="o">=</span><span class="p">{</span><span class="n">pop</span><span class="p">:</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="n">populations</span><span class="p">},</span>
     <span class="n">global_phased</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">global_maf_thresh</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
 <span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Simulate with the parameters provided to us.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Simulate two-deme isolation-with-migration model with msprime.&quot;&quot;&quot;</span>
     <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">recombination_rate</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;reco&quot;</span><span class="p">)</span>
     <span class="n">graph</span> <span class="o">=</span> <span class="n">demography</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
@@ -550,15 +549,8 @@ title="Print to PDF"
         <span class="n">recombination_rate</span><span class="o">=</span><span class="n">recombination_rate</span><span class="p">,</span>
         <span class="n">random_seed</span><span class="o">=</span><span class="n">seed1</span><span class="p">,</span>
         <span class="n">record_provenance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">discrete_genome</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">ts</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">sim_mutations</span><span class="p">(</span>
-        <span class="n">ts</span><span class="p">,</span>
-        <span class="n">rate</span><span class="o">=</span><span class="n">mutation_rate</span><span class="p">,</span>
-        <span class="n">model</span><span class="o">=</span><span class="n">msprime</span><span class="o">.</span><span class="n">BinaryMutationModel</span><span class="p">(),</span>
-        <span class="n">discrete_genome</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">random_seed</span><span class="o">=</span><span class="n">seed2</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">ts</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">sim_mutations</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">mutation_rate</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="n">seed2</span><span class="p">)</span>
     <span class="n">individuals</span> <span class="o">=</span> <span class="p">{</span><span class="n">pop</span><span class="p">:</span> <span class="n">dinf</span><span class="o">.</span><span class="n">misc</span><span class="o">.</span><span class="n">ts_individuals</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">pop</span><span class="p">)</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="n">populations</span><span class="p">}</span>
     <span class="n">labelled_matrices</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">from_ts</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">individuals</span><span class="o">=</span><span class="n">individuals</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">labelled_matrices</span>
@@ -627,7 +619,7 @@ title="Print to PDF"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev236+gb576afb
+      dinf 0.1.1.dev238+g378793d
     </div>
 </p>
         </footer>

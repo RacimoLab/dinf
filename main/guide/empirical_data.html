@@ -206,7 +206,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev236
+            dinf 0.1.1.dev238
             </div>
             
         </div>
@@ -495,6 +495,7 @@ E.g. SNP ascertainment.</p></li>
 <section id="complete-example">
 <h2><span class="section-number">8.3. </span>Complete example<a class="headerlink" href="#complete-example" title="Permalink to this headline">#</a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">string</span>
 
 <span class="kn">import</span> <span class="nn">demes</span>
 <span class="kn">import</span> <span class="nn">msprime</span>
@@ -514,7 +515,7 @@ E.g. SNP ascertainment.</p></li>
 <span class="n">num_individuals</span> <span class="o">=</span> <span class="mi">64</span>
 <span class="n">recombination_rate</span> <span class="o">=</span> <span class="mf">1.25e-8</span>
 <span class="n">mutation_rate</span> <span class="o">=</span> <span class="mf">1.25e-8</span>
-<span class="n">sequence_length</span> <span class="o">=</span> <span class="mi">100_000</span>
+<span class="n">sequence_length</span> <span class="o">=</span> <span class="mi">5_000_000</span>
 
 <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Parameters</span><span class="p">(</span>
     <span class="c1"># population sizes</span>
@@ -526,7 +527,7 @@ E.g. SNP ascertainment.</p></li>
     <span class="n">N_CEU_end</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">100_000</span><span class="p">),</span>
     <span class="n">N_CHB_start</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">10_000</span><span class="p">),</span>
     <span class="n">N_CHB_end</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">100_000</span><span class="p">),</span>
-    <span class="c1"># Time units match the demography, which we specified in &quot;years&quot;.</span>
+    <span class="c1"># Time units match the demography, which are specified in &quot;years&quot;.</span>
     <span class="c1"># To avoid explicitly defining constraints such as</span>
     <span class="c1">#   &quot;CEU/CHB split more recently than the OOA event&quot;,</span>
     <span class="c1"># we parameterise times as time spans, rather than absolute times.</span>
@@ -545,57 +546,54 @@ E.g. SNP ascertainment.</p></li>
 
 
 <span class="k">def</span> <span class="nf">demography</span><span class="p">(</span><span class="o">**</span><span class="n">theta</span><span class="p">):</span>
-    <span class="c1"># There are lots of parameters here, so its simpler to just pluck them</span>
-    <span class="c1"># directly from the &quot;theta&quot; kwargs dict. But these should definitely</span>
-    <span class="c1"># match the parameter names.</span>
+    <span class="c1"># Arguments are expected to match the parameter names.</span>
     <span class="k">assert</span> <span class="n">theta</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">==</span> <span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 
-    <span class="n">b</span> <span class="o">=</span> <span class="n">demes</span><span class="o">.</span><span class="n">Builder</span><span class="p">(</span>
-        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Gutenkunst et al. (2009) three-population model.&quot;</span><span class="p">,</span>
-        <span class="n">doi</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;10.1371/journal.pgen.1000695&quot;</span><span class="p">],</span>
-        <span class="n">time_units</span><span class="o">=</span><span class="s2">&quot;years&quot;</span><span class="p">,</span>
-        <span class="n">generation_time</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">b</span><span class="o">.</span><span class="n">add_deme</span><span class="p">(</span>
-        <span class="s2">&quot;ancestral&quot;</span><span class="p">,</span>
-        <span class="n">epochs</span><span class="o">=</span><span class="p">[</span>
-            <span class="nb">dict</span><span class="p">(</span>
-                <span class="n">end_time</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;dT_CEU_CHB&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">theta</span><span class="p">[</span><span class="s2">&quot;dT_OOA&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">theta</span><span class="p">[</span><span class="s2">&quot;dT_AMH&quot;</span><span class="p">],</span>
-                <span class="n">start_size</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;N_anc&quot;</span><span class="p">],</span>
-            <span class="p">)</span>
-        <span class="p">],</span>
-    <span class="p">)</span>
-    <span class="n">b</span><span class="o">.</span><span class="n">add_deme</span><span class="p">(</span>
-        <span class="s2">&quot;AMH&quot;</span><span class="p">,</span>
-        <span class="n">ancestors</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ancestral&quot;</span><span class="p">],</span>
-        <span class="n">epochs</span><span class="o">=</span><span class="p">[</span>
-            <span class="nb">dict</span><span class="p">(</span>
-                <span class="n">end_time</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;dT_CEU_CHB&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">theta</span><span class="p">[</span><span class="s2">&quot;dT_OOA&quot;</span><span class="p">],</span>
-                <span class="n">start_size</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;N_AMH&quot;</span><span class="p">],</span>
-            <span class="p">)</span>
-        <span class="p">],</span>
-    <span class="p">)</span>
-    <span class="n">b</span><span class="o">.</span><span class="n">add_deme</span><span class="p">(</span>
-        <span class="s2">&quot;OOA&quot;</span><span class="p">,</span>
-        <span class="n">ancestors</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;AMH&quot;</span><span class="p">],</span>
-        <span class="n">epochs</span><span class="o">=</span><span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="n">end_time</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;dT_CEU_CHB&quot;</span><span class="p">],</span> <span class="n">start_size</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;N_OOA&quot;</span><span class="p">])],</span>
-    <span class="p">)</span>
-    <span class="n">b</span><span class="o">.</span><span class="n">add_deme</span><span class="p">(</span><span class="s2">&quot;YRI&quot;</span><span class="p">,</span> <span class="n">ancestors</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;AMH&quot;</span><span class="p">],</span> <span class="n">epochs</span><span class="o">=</span><span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="n">start_size</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;N_YRI&quot;</span><span class="p">])])</span>
-    <span class="n">b</span><span class="o">.</span><span class="n">add_deme</span><span class="p">(</span>
-        <span class="s2">&quot;CEU&quot;</span><span class="p">,</span>
-        <span class="n">ancestors</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;OOA&quot;</span><span class="p">],</span>
-        <span class="n">epochs</span><span class="o">=</span><span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="n">start_size</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;N_CEU_start&quot;</span><span class="p">],</span> <span class="n">end_size</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;N_CEU_end&quot;</span><span class="p">])],</span>
-    <span class="p">)</span>
-    <span class="n">b</span><span class="o">.</span><span class="n">add_deme</span><span class="p">(</span>
-        <span class="s2">&quot;CHB&quot;</span><span class="p">,</span>
-        <span class="n">ancestors</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;OOA&quot;</span><span class="p">],</span>
-        <span class="n">epochs</span><span class="o">=</span><span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="n">start_size</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;N_CHB_start&quot;</span><span class="p">],</span> <span class="n">end_size</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;N_CHB_end&quot;</span><span class="p">])],</span>
-    <span class="p">)</span>
-    <span class="n">b</span><span class="o">.</span><span class="n">add_migration</span><span class="p">(</span><span class="n">demes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;YRI&quot;</span><span class="p">,</span> <span class="s2">&quot;OOA&quot;</span><span class="p">],</span> <span class="n">rate</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;m_YRI_OOA&quot;</span><span class="p">])</span>
-    <span class="n">b</span><span class="o">.</span><span class="n">add_migration</span><span class="p">(</span><span class="n">demes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;YRI&quot;</span><span class="p">,</span> <span class="s2">&quot;CEU&quot;</span><span class="p">],</span> <span class="n">rate</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;m_YRI_CEU&quot;</span><span class="p">])</span>
-    <span class="n">b</span><span class="o">.</span><span class="n">add_migration</span><span class="p">(</span><span class="n">demes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;YRI&quot;</span><span class="p">,</span> <span class="s2">&quot;CHB&quot;</span><span class="p">],</span> <span class="n">rate</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;m_YRI_CHB&quot;</span><span class="p">])</span>
-    <span class="n">b</span><span class="o">.</span><span class="n">add_migration</span><span class="p">(</span><span class="n">demes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;CEU&quot;</span><span class="p">,</span> <span class="s2">&quot;CHB&quot;</span><span class="p">],</span> <span class="n">rate</span><span class="o">=</span><span class="n">theta</span><span class="p">[</span><span class="s2">&quot;m_CEU_CHB&quot;</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">b</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">theta</span><span class="p">[</span><span class="s2">&quot;T_OOA_end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dT_CEU_CHB&quot;</span><span class="p">)</span>
+    <span class="n">theta</span><span class="p">[</span><span class="s2">&quot;T_AMH_end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="s2">&quot;T_OOA_end&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dT_OOA&quot;</span><span class="p">)</span>
+    <span class="n">theta</span><span class="p">[</span><span class="s2">&quot;T_anc_end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="s2">&quot;T_AMH_end&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dT_AMH&quot;</span><span class="p">)</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">Template</span><span class="p">(</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        description: The Gutenkunst et al. (2009) out-of-Africa model.</span>
+<span class="sd">        doi:</span>
+<span class="sd">          - https://doi.org/10.1371/journal.pgen.1000695</span>
+<span class="sd">        time_units: years</span>
+<span class="sd">        generation_time: 25</span>
+
+<span class="sd">        demes:</span>
+<span class="sd">          - name: ancestral</span>
+<span class="sd">            epochs:</span>
+<span class="sd">              - {end_time: $T_anc_end, start_size: $N_anc}</span>
+<span class="sd">          - name: AMH</span>
+<span class="sd">            ancestors: [ancestral]</span>
+<span class="sd">            epochs:</span>
+<span class="sd">              - {end_time: $T_AMH_end, start_size: $N_AMH}</span>
+<span class="sd">          - name: OOA</span>
+<span class="sd">            ancestors: [AMH]</span>
+<span class="sd">            epochs:</span>
+<span class="sd">              - {end_time: $T_OOA_end, start_size: $N_OOA}</span>
+<span class="sd">          - name: YRI</span>
+<span class="sd">            ancestors: [AMH]</span>
+<span class="sd">            epochs:</span>
+<span class="sd">              - start_size: 12300</span>
+<span class="sd">          - name: CEU</span>
+<span class="sd">            ancestors: [OOA]</span>
+<span class="sd">            epochs:</span>
+<span class="sd">              - {start_size: $N_CEU_start, end_size: $N_CEU_end}</span>
+<span class="sd">          - name: CHB</span>
+<span class="sd">            ancestors: [OOA]</span>
+<span class="sd">            epochs:</span>
+<span class="sd">              - {start_size: $N_CHB_start, end_size: $N_CHB_end}</span>
+
+<span class="sd">        migrations:</span>
+<span class="sd">          - {demes: [YRI, OOA], rate: $m_YRI_OOA}</span>
+<span class="sd">          - {demes: [YRI, CEU], rate: $m_YRI_CEU}</span>
+<span class="sd">          - {demes: [YRI, CHB], rate: $m_YRI_CHB}</span>
+<span class="sd">          - {demes: [CEU, CHB], rate: $m_CEU_CHB}</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">substitute</span><span class="p">(</span><span class="o">**</span><span class="n">theta</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">demes</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 
 
 <span class="n">features</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">MultipleBinnedHaplotypeMatrices</span><span class="p">(</span>
@@ -610,7 +608,7 @@ E.g. SNP ascertainment.</p></li>
 
 
 <span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="o">**</span><span class="n">theta</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Simulate with the parameters provided to us.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Simulate the Gutenkunst out-of-Africa model with msprime.&quot;&quot;&quot;</span>
     <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">graph</span> <span class="o">=</span> <span class="n">demography</span><span class="p">(</span><span class="o">**</span><span class="n">theta</span><span class="p">)</span>
     <span class="n">demog</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">Demography</span><span class="o">.</span><span class="n">from_demes</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
@@ -712,7 +710,7 @@ E.g. SNP ascertainment.</p></li>
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev236+gb576afb
+      dinf 0.1.1.dev238+g378793d
     </div>
 </p>
         </footer>

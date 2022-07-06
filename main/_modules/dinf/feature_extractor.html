@@ -203,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev236
+            dinf 0.1.1.dev238
             </div>
             
         </div>
@@ -484,8 +484,7 @@ title="Open an issue"
 <span class="sd">        :param sequence_length:</span>
 <span class="sd">            Length of the genomic window to be sampled.</span>
 <span class="sd">        :param max_missing_genotypes:</span>
-<span class="sd">            Consider only sites with fewer missing genotype calls than</span>
-<span class="sd">            this number.</span>
+<span class="sd">            Consider only sites with at most this many missing genotype calls.</span>
 <span class="sd">        :param min_seg_sites:</span>
 <span class="sd">            Sampled genotype matrix must have at least this many variable</span>
 <span class="sd">            sites (after filtering sites for missingness).</span>
@@ -557,8 +556,8 @@ title="Open an issue"
         <span class="n">num_individuals</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">num_loci</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">ploidy</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">maf_thresh</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">maf_thresh</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param num_individuals:</span>
@@ -572,7 +571,7 @@ title="Open an issue"
 <span class="sd">            Ploidy of the individuals.</span>
 <span class="sd">        :param maf_thresh:</span>
 <span class="sd">            Minor allele frequency (MAF) threshold. Sites with MAF lower than</span>
-<span class="sd">            this value are ignored.</span>
+<span class="sd">            this value are ignored. If None, only invariant sites will be excluded.</span>
 <span class="sd">        :param phased:</span>
 <span class="sd">            If True, the individuals&#39; haplotypes will each be included as</span>
 <span class="sd">            independent rows in the feature matrix and the shape of the</span>
@@ -729,7 +728,7 @@ title="Open an issue"
         <span class="n">num_loci</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">ploidy</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-        <span class="n">maf_thresh</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">maf_thresh</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param num_individuals:</span>
@@ -748,7 +747,7 @@ title="Open an issue"
 <span class="sd">            will be ``(num_individuals, num_loci, 1)``.</span>
 <span class="sd">        :param maf_thresh:</span>
 <span class="sd">            Minor allele frequency (MAF) threshold. Sites with MAF lower than</span>
-<span class="sd">            this value are ignored.</span>
+<span class="sd">            this value are ignored. If None, only invariant sites will be excluded.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">num_individuals</span><span class="o">=</span><span class="n">num_individuals</span><span class="p">,</span>
@@ -855,7 +854,7 @@ title="Open an issue"
         <span class="n">ploidy</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
         <span class="c1"># TODO: label-specific option for maf_thresh</span>
         <span class="c1"># maf_thresh: Mapping[str, float] | None = None,</span>
-        <span class="n">global_maf_thresh</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">global_maf_thresh</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="c1"># TODO: label-specific option for phased.</span>
         <span class="c1"># phased: Mapping[str, bool] | None = None,</span>
         <span class="n">global_phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
@@ -872,6 +871,7 @@ title="Open an issue"
 <span class="sd">        :param global_maf_thresh:</span>
 <span class="sd">            Minor allele frequency (MAF) threshold. Sites with MAF lower than</span>
 <span class="sd">            this value are ignored. MAF is calculated across all individuals.</span>
+<span class="sd">            If None, only invariant sites will be excluded.</span>
 <span class="sd">        :param global_phased:</span>
 <span class="sd">            If True, the individuals&#39; haplotypes will each be included as</span>
 <span class="sd">            independent rows in each feature matrix and the shape of the</span>
@@ -907,6 +907,8 @@ title="Open an issue"
         <span class="bp">self</span><span class="o">.</span><span class="n">_global_phased</span> <span class="o">=</span> <span class="n">global_phased</span>
 
         <span class="c1"># We use a minimum threshold of 1 to exclude invariant sites.</span>
+        <span class="k">if</span> <span class="n">global_maf_thresh</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">global_maf_thresh</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">total_haplotypes</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
             <span class="n">num_individuals</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">*</span> <span class="n">ploidy</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span>
         <span class="p">)</span>
@@ -1124,7 +1126,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev236+gb576afb
+      dinf 0.1.1.dev238+g378793d
     </div>
 </p>
         </footer>

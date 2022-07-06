@@ -203,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev236
+            dinf 0.1.1.dev238
             </div>
             
         </div>
@@ -344,7 +344,7 @@ title="Open an issue"
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">get_samples_from_1kgp_metadata</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">populations</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<div class="viewcode-block" id="get_samples_from_1kgp_metadata"><a class="viewcode-back" href="../../api.html#dinf.get_samples_from_1kgp_metadata">[docs]</a><span class="k">def</span> <span class="nf">get_samples_from_1kgp_metadata</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">populations</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get sample IDs for 1000 Genomes Project populations.</span>
 <span class="sd">    Related individuals are removed based on the FatherID and MotherID.</span>
@@ -362,10 +362,10 @@ title="Open an issue"
     <span class="c1"># Remove related individuals.</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">FatherID</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span><span class="p">]</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">MotherID</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span><span class="p">]</span>
-    <span class="k">return</span> <span class="p">{</span><span class="n">pop</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">SampleID</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Population</span> <span class="o">==</span> <span class="n">pop</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="n">populations</span><span class="p">}</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">pop</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">SampleID</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Population</span> <span class="o">==</span> <span class="n">pop</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="n">populations</span><span class="p">}</span></div>
 
 
-<span class="k">def</span> <span class="nf">get_contig_lengths</span><span class="p">(</span>
+<div class="viewcode-block" id="get_contig_lengths"><a class="viewcode-back" href="../../api.html#dinf.get_contig_lengths">[docs]</a><span class="k">def</span> <span class="nf">get_contig_lengths</span><span class="p">(</span>
     <span class="n">filename</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">keep_contigs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -399,7 +399,7 @@ title="Open an issue"
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Requested contigs not found: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">contigs_not_found</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
-    <span class="k">return</span> <span class="n">data</span>
+    <span class="k">return</span> <span class="n">data</span></div>
 
 
 <span class="k">def</span> <span class="nf">filter_missingness</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">max_missing_genotypes</span><span class="p">):</span>
@@ -444,7 +444,7 @@ title="Open an issue"
 <span class="sd">    :param end:</span>
 <span class="sd">        1-based end coordinate of the genomic window.</span>
 <span class="sd">    :param max_missing_genotypes:</span>
-<span class="sd">        Only retain sites with fewer missing genotype calls than this number.</span>
+<span class="sd">        Only retain sites with at most this many missing genotype calls.</span>
 <span class="sd">    :param require_phased:</span>
 <span class="sd">        If True, raise an error if genotypes are not phased.</span>
 <span class="sd">    :return:</span>
@@ -766,8 +766,7 @@ title="Open an issue"
 <span class="sd">        :param sequence_length:</span>
 <span class="sd">            Length of the sequence to sample.</span>
 <span class="sd">        :param max_missing_genotypes:</span>
-<span class="sd">            Consider only sites with fewer missing genotype calls than</span>
-<span class="sd">            this number.</span>
+<span class="sd">            Consider only sites with at most this many missing genotype calls.</span>
 <span class="sd">        :param min_seg_sites:</span>
 <span class="sd">            Sampled genotype matrix must have at least this many variable</span>
 <span class="sd">            sites (after filtering sites for missingness).</span>
@@ -826,7 +825,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev236+gb576afb
+      dinf 0.1.1.dev238+g378793d
     </div>
 </p>
         </footer>
