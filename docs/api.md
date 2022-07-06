@@ -103,6 +103,9 @@
 .. automodule:: dinf.misc
    :members: ts_individuals
 
+.. autofunction:: dinf.get_samples_from_1kgp_metadata
+.. autofunction:: dinf.get_contig_lengths
+
 .. autoclass:: dinf.Store
    :members:
 

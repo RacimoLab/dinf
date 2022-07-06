@@ -153,8 +153,7 @@ class _FeatureMatrix:
         :param sequence_length:
             Length of the genomic window to be sampled.
         :param max_missing_genotypes:
-            Consider only sites with fewer missing genotype calls than
-            this number.
+            Consider only sites with at most this many missing genotype calls.
         :param min_seg_sites:
             Sampled genotype matrix must have at least this many variable
             sites (after filtering sites for missingness).
@@ -226,8 +225,8 @@ class HaplotypeMatrix(_FeatureMatrix):
         num_individuals: int,
         num_loci: int,
         ploidy: int,
-        maf_thresh: float,
         phased: bool,
+        maf_thresh: float | None = None,
     ):
         """
         :param num_individuals:
@@ -241,7 +240,7 @@ class HaplotypeMatrix(_FeatureMatrix):
             Ploidy of the individuals.
         :param maf_thresh:
             Minor allele frequency (MAF) threshold. Sites with MAF lower than
-            this value are ignored.
+            this value are ignored. If None, only invariant sites will be excluded.
         :param phased:
             If True, the individuals' haplotypes will each be included as
             independent rows in the feature matrix and the shape of the
@@ -398,7 +397,7 @@ class BinnedHaplotypeMatrix(_FeatureMatrix):
         num_loci: int,
         ploidy: int,
         phased: bool,
-        maf_thresh: float,
+        maf_thresh: float | None = None,
     ):
         """
         :param num_individuals:
@@ -417,7 +416,7 @@ class BinnedHaplotypeMatrix(_FeatureMatrix):
             will be ``(num_individuals, num_loci, 1)``.
         :param maf_thresh:
             Minor allele frequency (MAF) threshold. Sites with MAF lower than
-            this value are ignored.
+            this value are ignored. If None, only invariant sites will be excluded.
         """
         super().__init__(
             num_individuals=num_individuals,
@@ -524,7 +523,7 @@ class _MultipleFeatureMatrices:
         ploidy: Mapping[str, int],
         # TODO: label-specific option for maf_thresh
         # maf_thresh: Mapping[str, float] | None = None,
-        global_maf_thresh: float,
+        global_maf_thresh: float | None = None,
         # TODO: label-specific option for phased.
         # phased: Mapping[str, bool] | None = None,
         global_phased: bool,
@@ -541,6 +540,7 @@ class _MultipleFeatureMatrices:
         :param global_maf_thresh:
             Minor allele frequency (MAF) threshold. Sites with MAF lower than
             this value are ignored. MAF is calculated across all individuals.
+            If None, only invariant sites will be excluded.
         :param global_phased:
             If True, the individuals' haplotypes will each be included as
             independent rows in each feature matrix and the shape of the
@@ -576,6 +576,8 @@ class _MultipleFeatureMatrices:
         self._global_phased = global_phased
 
         # We use a minimum threshold of 1 to exclude invariant sites.
+        if global_maf_thresh is None:
+            global_maf_thresh = 0
         total_haplotypes = sum(
             num_individuals[label] * ploidy[label] for label in labels
         )

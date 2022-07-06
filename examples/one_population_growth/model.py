@@ -1,6 +1,7 @@
 # EXP model from PG-GAN.
 # Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
 import pathlib
+import string
 
 import demes
 import msprime
@@ -19,8 +20,8 @@ contig_lengths = dinf.get_contig_lengths(
 )
 recombination_rate = 1.25e-8
 mutation_rate = 1.25e-8
-num_individuals = 64
-sequence_length = 100_000
+num_individuals = 99
+sequence_length = 50_000
 parameters = dinf.Parameters(
     N1=dinf.Param(low=1_000, high=30_000, truth=9_000),
     N2=dinf.Param(low=1_000, high=30_000, truth=5_000),
@@ -32,27 +33,31 @@ parameters = dinf.Parameters(
 )
 
 features = dinf.BinnedHaplotypeMatrix(
-    num_individuals=num_individuals,
-    num_loci=128,
-    maf_thresh=0.05,
-    phased=True,
-    ploidy=2,
+    num_individuals=num_individuals, num_loci=36, phased=True, ploidy=2
 )
 
 
 def demography(*, N1, N2, growth, T1, T2):
     N3 = N2 * np.exp(T2 * growth)
-    b = demes.Builder(description="One population with recent exponential growth")
-    b.add_deme(
-        population_name,
-        epochs=[
-            dict(start_size=N1, end_time=T1),
-            dict(start_size=N2, end_time=T2),
-            dict(start_size=N2, end_size=N3, end_time=0),
-        ],
-    )
-    graph = b.resolve()
-    return graph
+    model = string.Template(
+        """
+        description: One deme with recent exponential growth.
+        time_units: generations
+        doi:
+          - Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
+        demes:
+          - name: A
+            epochs:
+              - start_size: $N1
+                end_time: $T1
+              - start_size: $N2
+                end_time: $T2
+              - start_size: $N2
+                end_size: $N3
+                end_time: 0
+        """
+    ).substitute(N1=N1, N2=N2, N3=N3, T1=T1, T2=T2)
+    return demes.loads(model)
 
 
 def generator(seed, **theta):

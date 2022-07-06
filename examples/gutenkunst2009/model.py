@@ -1,4 +1,5 @@
 import pathlib
+import string
 
 import demes
 import msprime
@@ -18,7 +19,7 @@ contig_lengths = dinf.get_contig_lengths(
 num_individuals = 64
 recombination_rate = 1.25e-8
 mutation_rate = 1.25e-8
-sequence_length = 100_000
+sequence_length = 5_000_000
 
 parameters = dinf.Parameters(
     # population sizes
@@ -30,7 +31,7 @@ parameters = dinf.Parameters(
     N_CEU_end=dinf.Param(low=1000, high=100_000),
     N_CHB_start=dinf.Param(low=100, high=10_000),
     N_CHB_end=dinf.Param(low=1000, high=100_000),
-    # Time units match the demography, which we specified in "years".
+    # Time units match the demography, which are specified in "years".
     # To avoid explicitly defining constraints such as
     #   "CEU/CHB split more recently than the OOA event",
     # we parameterise times as time spans, rather than absolute times.
@@ -49,57 +50,54 @@ parameters = dinf.Parameters(
 
 
 def demography(**theta):
-    # There are lots of parameters here, so its simpler to just pluck them
-    # directly from the "theta" kwargs dict. But these should definitely
-    # match the parameter names.
+    # Arguments are expected to match the parameter names.
     assert theta.keys() == parameters.keys()
 
-    b = demes.Builder(
-        description="Gutenkunst et al. (2009) three-population model.",
-        doi=["10.1371/journal.pgen.1000695"],
-        time_units="years",
-        generation_time=25,
-    )
-    b.add_deme(
-        "ancestral",
-        epochs=[
-            dict(
-                end_time=theta["dT_CEU_CHB"] + theta["dT_OOA"] + theta["dT_AMH"],
-                start_size=theta["N_anc"],
-            )
-        ],
-    )
-    b.add_deme(
-        "AMH",
-        ancestors=["ancestral"],
-        epochs=[
-            dict(
-                end_time=theta["dT_CEU_CHB"] + theta["dT_OOA"],
-                start_size=theta["N_AMH"],
-            )
-        ],
-    )
-    b.add_deme(
-        "OOA",
-        ancestors=["AMH"],
-        epochs=[dict(end_time=theta["dT_CEU_CHB"], start_size=theta["N_OOA"])],
-    )
-    b.add_deme("YRI", ancestors=["AMH"], epochs=[dict(start_size=theta["N_YRI"])])
-    b.add_deme(
-        "CEU",
-        ancestors=["OOA"],
-        epochs=[dict(start_size=theta["N_CEU_start"], end_size=theta["N_CEU_end"])],
-    )
-    b.add_deme(
-        "CHB",
-        ancestors=["OOA"],
-        epochs=[dict(start_size=theta["N_CHB_start"], end_size=theta["N_CHB_end"])],
-    )
-    b.add_migration(demes=["YRI", "OOA"], rate=theta["m_YRI_OOA"])
-    b.add_migration(demes=["YRI", "CEU"], rate=theta["m_YRI_CEU"])
-    b.add_migration(demes=["YRI", "CHB"], rate=theta["m_YRI_CHB"])
-    b.add_migration(demes=["CEU", "CHB"], rate=theta["m_CEU_CHB"])
-    return b.resolve()
+    theta["T_OOA_end"] = theta.pop("dT_CEU_CHB")
+    theta["T_AMH_end"] = theta["T_OOA_end"] + theta.pop("dT_OOA")
+    theta["T_anc_end"] = theta["T_AMH_end"] + theta.pop("dT_AMH")
+
+    model = string.Template(
+        """
+        description: The Gutenkunst et al. (2009) out-of-Africa model.
+        doi:
+          - https://doi.org/10.1371/journal.pgen.1000695
+        time_units: years
+        generation_time: 25
+
+        demes:
+          - name: ancestral
+            epochs:
+              - {end_time: $T_anc_end, start_size: $N_anc}
+          - name: AMH
+            ancestors: [ancestral]
+            epochs:
+              - {end_time: $T_AMH_end, start_size: $N_AMH}
+          - name: OOA
+            ancestors: [AMH]
+            epochs:
+              - {end_time: $T_OOA_end, start_size: $N_OOA}
+          - name: YRI
+            ancestors: [AMH]
+            epochs:
+              - start_size: 12300
+          - name: CEU
+            ancestors: [OOA]
+            epochs:
+              - {start_size: $N_CEU_start, end_size: $N_CEU_end}
+          - name: CHB
+            ancestors: [OOA]
+            epochs:
+              - {start_size: $N_CHB_start, end_size: $N_CHB_end}
+
+        migrations:
+          - {demes: [YRI, OOA], rate: $m_YRI_OOA}
+          - {demes: [YRI, CEU], rate: $m_YRI_CEU}
+          - {demes: [YRI, CHB], rate: $m_YRI_CHB}
+          - {demes: [CEU, CHB], rate: $m_CEU_CHB}
+        """
+    ).substitute(**theta)
+    return demes.loads(model)
 
 
 features = dinf.MultipleBinnedHaplotypeMatrices(
@@ -114,7 +112,7 @@ features = dinf.MultipleBinnedHaplotypeMatrices(
 
 
 def generator(seed, **theta):
-    """Simulate with the parameters provided to us."""
+    """Simulate the Gutenkunst out-of-Africa model with msprime."""
     rng = np.random.default_rng(seed)
     graph = demography(**theta)
     demog = msprime.Demography.from_demes(graph)

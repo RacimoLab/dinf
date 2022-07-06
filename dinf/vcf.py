@@ -113,7 +113,7 @@ def get_genotype_matrix(
     :param end:
         1-based end coordinate of the genomic window.
     :param max_missing_genotypes:
-        Only retain sites with fewer missing genotype calls than this number.
+        Only retain sites with at most this many missing genotype calls.
     :param require_phased:
         If True, raise an error if genotypes are not phased.
     :return:
@@ -435,8 +435,7 @@ class BagOfVcf(collections.abc.Mapping):
         :param sequence_length:
             Length of the sequence to sample.
         :param max_missing_genotypes:
-            Consider only sites with fewer missing genotype calls than
-            this number.
+            Consider only sites with at most this many missing genotype calls.
         :param min_seg_sites:
             Sampled genotype matrix must have at least this many variable
             sites (after filtering sites for missingness).

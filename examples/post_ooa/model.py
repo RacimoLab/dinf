@@ -1,6 +1,7 @@
 # POST model from PG-GAN.
 # Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
 import pathlib
+import string
 
 import demes
 import msprime
@@ -19,8 +20,8 @@ contig_lengths = dinf.get_contig_lengths(
 )
 recombination_rate = 1.25e-8
 mutation_rate = 1.25e-8
-num_individuals = 64  # per population
-sequence_length = 100_000
+num_individuals = 48  # per population
+sequence_length = 50_000
 parameters = dinf.Parameters(
     N_anc=dinf.Param(low=1_000, high=25_000),
     N1=dinf.Param(low=1_000, high=30_000),
@@ -33,39 +34,61 @@ parameters = dinf.Parameters(
 
 
 def demography(*, N_anc, N1, N2, N3, T1, T2, mig):
-    b = demes.Builder(
-        description="Post out-of-Africa model with two extant populations (CHB/CEU)"
-    )
-    b.add_deme(
-        "anc",
-        epochs=[
-            dict(start_size=N_anc, end_time=T1),
-            dict(start_size=N1, end_time=T2),
-        ],
-    )
-    b.add_deme(
-        populations[0], ancestors=["anc"], epochs=[dict(start_size=N3, end_time=0)]
-    )
-    b.add_deme(
-        populations[1], ancestors=["anc"], epochs=[dict(start_size=N2, end_time=0)]
-    )
-
     T_mig = T2 / 2
     source = populations[0]
     dest = populations[1]
     if mig < 0:
         source, dest = dest, source
-    b.add_pulse(sources=[source], dest=dest, time=T_mig, proportions=[abs(mig)])
-    graph = b.resolve()
-    return graph
+        mig = -mig
+
+    model = string.Template(
+        """
+        description:
+          Post out-of-Africa model with two extant populations (CHB/CEU).
+        time_units: generations
+        doi:
+          - Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
+        demes:
+          - name: anc
+            epochs:
+              - start_size: $N_anc
+                end_time: $T1
+              - start_size: $N1
+                end_time: $T2
+          - name: CEU
+            ancestors: [anc]
+            epochs:
+              - start_size: $N3
+          - name: CHB
+            ancestors: [anc]
+            epochs:
+              - start_size: $N2
+        pulses:
+          - sources: [$source]
+            dest: $dest
+            time: $T_mig
+            proportions: [$mig]
+        """
+    ).substitute(
+        N_anc=N_anc,
+        N1=N1,
+        N2=N2,
+        N3=N3,
+        T1=T1,
+        T2=T2,
+        source=source,
+        dest=dest,
+        T_mig=T_mig,
+        mig=mig,
+    )
+    return demes.loads(model)
 
 
 features = dinf.MultipleBinnedHaplotypeMatrices(
     num_individuals={pop: num_individuals for pop in populations},
-    num_loci={pop: 128 for pop in populations},
+    num_loci={pop: 36 for pop in populations},
     ploidy={pop: 2 for pop in populations},
     global_phased=True,
-    global_maf_thresh=0.05,
 )
 
 
