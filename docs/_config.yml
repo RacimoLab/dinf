@@ -8,6 +8,9 @@ only_build_toc_files: true
 
 execute:
   execute_notebooks: cache
+  exclude_patterns:
+    - 'abc.ipynb'
+    - 'accuracy.ipynb'
   timeout: 100
 
 repository:
@@ -46,6 +49,7 @@ sphinx:
       tskit: ["https://tskit.dev/tskit/docs/stable", null]
       cyvcf2: ["http://brentp.github.io/cyvcf2/", null]
       flax: ["https://flax.readthedocs.io/en/latest/", null]
+      arviz: ["https://python.arviz.org/en/latest/", null]
     #issues_github_path: RacimoLab/dinf
 
     # TODO: enable this and fix a bunch of problems.

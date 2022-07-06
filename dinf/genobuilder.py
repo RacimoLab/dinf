@@ -29,19 +29,40 @@ class Genobuilder:
     """
     User-defined parts of the GAN.
 
-    :param target_func:
-        A function that samples a feature from the target distribution.
-        Typically this would be drawn from empirical data, but simulations with
-        fixed parameter values can be used instead.
+    .. note::
+        Type annotations are shown below in the function signatures for clarity,
+        but type annotations are not required in user-defined functions.
 
-        This function accepts a single (positional) argument, an integer seed,
+    :param target_func:
+        A function that samples a feature from the target dataset.
+        If ``None`` (which must be specified explicitly),
+        the :attr:`.generator_func` will be used to simulate
+        the target dataset using each parameter's ``truth`` value.
+
+        Otherwise, this function should draw data features from an empirical
+        dataset such as a vcf file.
+        The function accepts a single (positional) argument, an integer seed,
         and returns an n-dimensional feature array, whose shape is given in
-        :attr:`.feature_shape`. The signature of the function should be:
+        :attr:`.feature_shape`.
+        To return a single feature array (e.g. for one population),
+        the signature of the function should be:
 
         .. code::
 
-            def target_func(seed: int) -> np.ndarray:
+            def target_func(seed: int, /) -> np.ndarray:
                 ...
+
+        To return multiple feature arrays
+        (e.g. one feature array for each population),
+        the signature of the function should be:
+
+        .. code::
+
+            def target_func(seed: int, /) -> dict[str, np.ndarray]:
+                ...
+
+        where the dictionary keys in the returned value are human-readable
+        labels for the distinct feature arrays.
 
     :param generator_func:
         A function that generates features using the given parameter values.
@@ -55,17 +76,35 @@ class Genobuilder:
         follow the pattern below, where ``p0``, ``p1``, etc. are the
         names of the parameters in :attr:`.parameters`.
 
+        To return a single feature array (e.g. for one population),
+        the signature of the function should be:
+
         .. code::
 
-            def generator_func(seed: int, *, p0: float, p1: float, ...) -> np.ndarray:
+            def generator_func(
+                seed: int, /, *, p0: float, p1: float, ...
+            ) -> np.ndarray:
                 ...
 
-        For generator functions accepting large numbers of parameters,
-        the following pattern may be preferred instead.
+        To return multiple feature arrays
+        (e.g. one feature array for each population),
+        the signature of the function should be:
 
         .. code::
 
-            def generator_func(seed: int, **kwargs)-> np.ndarray:
+            def generator_func(
+                seed: int, /, *, p0: float, p1: float, ...
+            ) -> dict[str, np.ndarray]:
+                ...
+
+        where the dictionary keys in the returned value are human-readable
+        labels for the distinct feature arrays.
+        For generator functions accepting large numbers of parameters,
+        the following pattern using ``**kwargs`` may be preferred instead:
+
+        .. code::
+
+            def generator_func(seed: int, **kwargs)-> dict[str, np.ndarray]:
                 assert kwargs.keys() == parameters.keys()
                 # do something with p0
                 do_something(kwargs["p0"])
@@ -77,20 +116,24 @@ class Genobuilder:
         provided to the :attr:`.generator_func`.
 
     :param feature_shape:
-        The shape of the n-dimensional arrays produced by :attr:`.target_func`
+        The shape of the n-dimensional array(s) produced by :attr:`.target_func`
         and :attr:`.generator_func`.
+        This is either a tuple of array dimensions (c.f. :attr:`numpy.ndarray.shape`),
+        or a dictionary mapping labels to tuples.
+        The former indicates a single feature array, while the latter indicates
+        a collection of feature arrays.
 
     :param discriminator_network:
         A flax neural network module. If not specified, :class:`ExchangeableCNN`
         will be used.
     """
 
-    target_func: Callable  # Callable[[int], np.ndarray]
+    target_func: Callable | None
     """
     Function that samples a feature from the target distribution.
     """
 
-    generator_func: Callable  # Callable[[int, ...], np.ndarray]
+    generator_func: Callable
     """
     Function that generates features using the given parameter values.
     """
@@ -100,10 +143,14 @@ class Genobuilder:
     The inferrable parameters.
     """
 
-    feature_shape: collections.abc.Mapping[str, Tuple]
+    feature_shape: Tuple | collections.abc.Mapping[str, Tuple]
     """
     Shape of the n-dimensional arrays produced by :attr:`.target_func`
     and :attr:`.generator_func`.
+    This is either a tuple of array dimensions (c.f. :attr:`numpy.ndarray.shape`),
+    or a dictionary mapping labels to tuples.
+    The former indicates a single feature array, while the latter indicates
+    a collection of feature arrays.
     """
 
     discriminator_network: nn.Module | None = None
@@ -122,7 +169,8 @@ class Genobuilder:
             truth_missing = [k for k, truth in theta_truth.items() if truth is None]
             if len(truth_missing) > 0:
                 raise ValueError(
-                    "For a simulation study (with genobuilder.target_func=None), "
+                    "For a simulation-only model "
+                    "(with genobuilder.target_func=None), "
                     "all parameters must have `truth' values defined.\n"
                     f"Truth values missing for: {', '.join(truth_missing)}."
                 )
@@ -143,8 +191,9 @@ class Genobuilder:
         Basic health checks: draw parameters and call the functions.
 
         We don't do this when initialising the Genobuilder, because calling
-        :meth:`.generator_func()` is potentially time consuming, which could
-        lead to annoying delays for the command line interface.
+        :attr:`.generator_func()` and :attr:`.target_func()` are potentially
+        time consuming, which could lead to annoying delays for the command
+        line interface.
         """
         if seed is None:
             seed = 1234

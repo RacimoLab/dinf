@@ -1,3 +1,4 @@
+(sec_installation)=
 # Installation
 
 Dinf can be installed via `pip` or via `conda` (or `mamba`).

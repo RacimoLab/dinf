@@ -4,10 +4,20 @@ parts:
 - caption: Getting started
   chapters:
   - file: installation
-- caption: Tutorials
+- caption: User guide
   numbered: true
   chapters:
-  - file: tutorial/01
+  - file: guide/creating_a_model
+  - file: guide/testing_a_model
+  - file: guide/abc
+  - file: guide/accuracy
+  - file: guide/features
+  - file: guide/performance
+  - file: guide/multiple_demes
+  - file: guide/empirical_data
+  - file: guide/mcmc-gan
+  - file: guide/pg-gan
+  - file: guide/gfo
 - caption: Reference
   chapters:
   - file: api

@@ -213,8 +213,8 @@ class HaplotypeMatrix(_FeatureMatrix):
     The position matrix is an :math:`n \\times m` matrix, where the vector
     of :math:`m` inter-SNP distances are repeated :math:`n` times---once
     for each haplotype (or each individual, for unphased data). Each entry
-    is the distance (in bp) from the previous SNP. The first inter-SNP distance
-    in the vector is always zero.
+    is the distance from the previous SNP (as a proportion of the sequence
+    length). The first inter-SNP distance in the vector is always zero.
 
     | Chan et al. 2018, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/
     | Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
@@ -257,7 +257,7 @@ class HaplotypeMatrix(_FeatureMatrix):
             maf_thresh=maf_thresh,
             phased=phased,
         )
-        self._dtype = np.int32
+        self._dtype = np.float32
 
     @property
     def shape(self) -> Tuple[int, int, int]:
@@ -324,12 +324,14 @@ class HaplotypeMatrix(_FeatureMatrix):
         # Treat missing genotypes as the majority allele.
         G[missing] = 0
 
-        if not self._phased:
+        if not self._phased and self._ploidy > 1:
             # Collapse each individual's chromosome copies by summing counts.
             G = np.reshape(G, (-1, self._num_individuals, self._ploidy))
             G = np.sum(G, axis=2)
 
+        positions = np.around(positions)
         delta_positions = np.diff(positions, prepend=positions[0])
+        delta_positions = delta_positions.astype(self._dtype) / sequence_length
 
         M = np.zeros(self.shape, dtype=self._dtype)
         M[..., 0] = G.T

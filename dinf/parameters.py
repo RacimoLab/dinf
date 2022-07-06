@@ -7,6 +7,14 @@ import numpy as np
 import numpy.typing as npt
 
 
+def logit(x):
+    return np.log(x / (1 - x))
+
+
+def expit(x):
+    return 1 / (1 + np.exp(-x))
+
+
 @dataclasses.dataclass
 class Param:
     """
@@ -67,6 +75,31 @@ class Param:
         x = np.atleast_1d(x)
         return np.logical_and(self.low <= x, x <= self.high)
 
+    @np.errstate(divide="ignore")
+    def transform(self, x: np.ndarray) -> np.ndarray:
+        """
+        Transform bounded values on [low, high] to unbounded values on [-inf, inf].
+
+        Performs a logit transformation.
+
+        :param x: The values to be transformed.
+        :return: Transformed parameter values.
+        """
+        x = np.atleast_1d(x)
+        return logit((x - self.low) / (self.high - self.low))
+
+    @np.errstate(over="ignore")
+    def itransform(self, x: np.ndarray) -> np.ndarray:
+        """
+        Transform unbounded values on [-inf, inf] to bounded values on [low, high].
+
+        Performs an inverse logit transformation (aka expit, aka sigmoid).
+
+        :param x: The values to be transformed.
+        :return: Transformed parameter values.
+        """
+        return self.low + expit(x * (self.high - self.low))
+
 
 class Parameters(collections.abc.Mapping):
     """
@@ -126,3 +159,34 @@ class Parameters(collections.abc.Mapping):
             axis=0,
         )
         return ret
+
+    @np.errstate(divide="ignore")
+    def transform(self, xs: np.ndarray) -> np.ndarray:
+        """
+        Transform values bounded by [param.low, param.high] to [-inf, inf].
+
+        See :meth:`.itransform` for the inverse transformation.
+
+        :param xs: The values to be transformed.
+        :return: Transformed parameter values.
+        """
+        xs = np.atleast_2d(xs)
+        assert xs.shape[-1] == len(self)
+        return np.transpose(
+            [p.transform(xs[:, k]) for k, p in enumerate(self.values())]
+        )
+
+    def itransform(self, xs: np.ndarray) -> np.ndarray:
+        """
+        Transform values on [-inf, inf] to be bounded by [param.low, param.high].
+
+        Performs the inverse of :meth:`.transform`.
+
+        :param xs: The values to be transformed.
+        :return: Transformed parameter values.
+        """
+        xs = np.atleast_2d(xs)
+        assert xs.shape[-1] == len(self)
+        return np.transpose(
+            [p.itransform(xs[:, k]) for k, p in enumerate(self.values())]
+        )

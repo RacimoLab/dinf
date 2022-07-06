@@ -1,3 +1,5 @@
+import string
+
 import demes
 import msprime
 import numpy as np
@@ -7,37 +9,42 @@ import dinf
 
 recombination_rate = 1.25e-8
 mutation_rate = 1.25e-8
-num_individuals = 64
-sequence_length = 100_000
+num_individuals = 16
+sequence_length = 1_000_000
 parameters = dinf.Parameters(
     N0=dinf.Param(low=10, high=30_000, truth=10_000),
     N1=dinf.Param(low=10, high=30_000, truth=200),
 )
 
-bh_matrix = dinf.BinnedHaplotypeMatrix(
+
+def demography(*, N0, N1):
+    model = string.Template(
+        """
+        description: Two-epoch model with recent bottleneck.
+        time_units: generations
+        demes:
+          - name: A
+            epochs:
+              - start_size: $N0
+                end_time: 100
+              - start_size: $N1
+                end_time: 0
+        """
+    ).substitute(N0=N0, N1=N1)
+    return demes.loads(model)
+
+
+features = dinf.BinnedHaplotypeMatrix(
     num_individuals=num_individuals,
-    num_loci=128,
+    num_loci=64,
     ploidy=2,
-    phased=True,
+    phased=False,
     maf_thresh=0.05,
 )
 
 
-def demography(*, N0, N1):
-    b = demes.Builder(description="bottleneck")
-    b.add_deme(
-        "A",
-        epochs=[
-            dict(start_size=N0, end_time=100),
-            dict(start_size=N1, end_time=0),
-        ],
-    )
-    graph = b.resolve()
-    return graph
-
-
 def generator(seed, *, N0, N1):
-    """Simulate with the parameters provided to us."""
+    """Simulate a two-epoch model with msprime."""
     rng = np.random.default_rng(seed)
     graph = demography(N0=N0, N1=N1)
     demog = msprime.Demography.from_demes(graph)
@@ -53,7 +60,7 @@ def generator(seed, *, N0, N1):
     )
     ts = msprime.sim_mutations(ts, rate=mutation_rate, random_seed=seed2)
 
-    feature_matrix = bh_matrix.from_ts(ts)
+    feature_matrix = features.from_ts(ts)
     return feature_matrix
 
 
@@ -61,5 +68,5 @@ genobuilder = dinf.Genobuilder(
     target_func=None,
     generator_func=generator,
     parameters=parameters,
-    feature_shape=bh_matrix.shape,
+    feature_shape=features.shape,
 )
