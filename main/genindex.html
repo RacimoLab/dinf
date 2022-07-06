@@ -119,13 +119,63 @@ const thebe_selector_output = ".output, .cell_output"
 </ul>
 <p aria-level="2" class="caption" role="heading">
  <span class="caption-text">
-  Tutorials
+  User guide
  </span>
 </p>
 <ul class="nav bd-sidenav">
  <li class="toctree-l1">
-  <a class="reference internal" href="tutorial/01.html">
-   1. Create a Dinf model
+  <a class="reference internal" href="guide/creating_a_model.html">
+   1. Creating a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/testing_a_model.html">
+   2. Testing a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/abc.html">
+   3. An ABC analysis
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/accuracy.html">
+   4. Improving discriminator accuracy
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/features.html">
+   5. Feature matrices
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/performance.html">
+   6. Performance characteristics
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/multiple_demes.html">
+   7. Models with multiple demes
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/empirical_data.html">
+   8. Empirical data
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/mcmc-gan.html">
+   9. MCMC-GAN
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/pg-gan.html">
+   10. PG-GAN (simulated annealing)
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/gfo.html">
+   11. Gradient-free optimisation
   </a>
  </li>
 </ul>
@@ -153,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev227
+            dinf 0.1.1.dev236
             </div>
             
         </div>
@@ -362,12 +412,19 @@ title="Open an issue"
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#dinf.Discriminator">Discriminator (class in dinf)</a>
+      <li>
+    dinf.misc
+
+      <ul>
+        <li><a href="api.html#module-dinf.misc">module</a>
 </li>
-      <li><a href="api.html#dinf.Genobuilder.discriminator_network">discriminator_network (dinf.Genobuilder attribute)</a>
+      </ul></li>
+      <li><a href="api.html#dinf.Discriminator">Discriminator (class in dinf)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#dinf.Genobuilder.discriminator_network">discriminator_network (dinf.Genobuilder attribute)</a>
+</li>
       <li><a href="api.html#dinf.Param.draw_prior">draw_prior() (dinf.Param method)</a>
 
       <ul>
@@ -381,6 +438,10 @@ title="Open an issue"
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.ExchangeableCNN">ExchangeableCNN (class in dinf)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#dinf.ExchangeablePGGAN">ExchangeablePGGAN (class in dinf)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -451,6 +512,14 @@ title="Open an issue"
       <li><a href="api.html#dinf.Store.increment">increment() (dinf.Store method)</a>
 </li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#dinf.Param.itransform">itransform() (dinf.Param method)</a>
+
+      <ul>
+        <li><a href="api.html#dinf.Parameters.itransform">(dinf.Parameters method)</a>
+</li>
+      </ul></li>
+  </ul></td>
 </tr></table>
 
 <h2 id="L">L</h2>
@@ -466,6 +535,13 @@ title="Open an issue"
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.mcmc_gan">mcmc_gan() (in module dinf)</a>
 </li>
+      <li>
+    module
+
+      <ul>
+        <li><a href="api.html#module-dinf.misc">dinf.misc</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.MultipleBinnedHaplotypeMatrices">MultipleBinnedHaplotypeMatrices (class in dinf)</a>
@@ -524,11 +600,19 @@ title="Open an issue"
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.Genobuilder.target_func">target_func (dinf.Genobuilder attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.Discriminator.to_file">to_file() (dinf.Discriminator method)</a>
 </li>
+      <li><a href="api.html#dinf.Param.transform">transform() (dinf.Param method)</a>
+
+      <ul>
+        <li><a href="api.html#dinf.Parameters.transform">(dinf.Parameters method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.Param.truth">truth (dinf.Param attribute)</a>
+</li>
+      <li><a href="api.html#dinf.misc.ts_individuals">ts_individuals() (in module dinf.misc)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -553,7 +637,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev227+g09d742f
+      dinf 0.1.1.dev236+gb576afb
     </div>
 </p>
         </footer>

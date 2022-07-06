@@ -119,13 +119,63 @@ const thebe_selector_output = ".output, .cell_output"
 </ul>
 <p aria-level="2" class="caption" role="heading">
  <span class="caption-text">
-  Tutorials
+  User guide
  </span>
 </p>
 <ul class="nav bd-sidenav">
  <li class="toctree-l1">
-  <a class="reference internal" href="../../tutorial/01.html">
-   1. Create a Dinf model
+  <a class="reference internal" href="../../guide/creating_a_model.html">
+   1. Creating a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/testing_a_model.html">
+   2. Testing a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/abc.html">
+   3. An ABC analysis
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/accuracy.html">
+   4. Improving discriminator accuracy
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/features.html">
+   5. Feature matrices
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/performance.html">
+   6. Performance characteristics
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/multiple_demes.html">
+   7. Models with multiple demes
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/empirical_data.html">
+   8. Empirical data
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/mcmc-gan.html">
+   9. MCMC-GAN
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/pg-gan.html">
+   10. PG-GAN (simulated annealing)
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/gfo.html">
+   11. Gradient-free optimisation
   </a>
  </li>
 </ul>
@@ -153,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev227
+            dinf 0.1.1.dev236
             </div>
             
         </div>
@@ -315,15 +365,22 @@ title="Open an issue"
     <span class="n">batch_stats</span><span class="p">:</span> <span class="n">Pytree</span>
 
 
-<span class="k">def</span> <span class="nf">batchify</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">batchify</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">random</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generate batch_size chunks of the dataset.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">batch_size</span> <span class="o">&gt;=</span> <span class="mi">1</span>
     <span class="n">size</span> <span class="o">=</span> <span class="n">leading_dim_size</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">size</span> <span class="o">&gt;=</span> <span class="mi">1</span>
 
+    <span class="k">if</span> <span class="n">random</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">rng</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+
     <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">batch_size</span>
     <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">:</span>
-        <span class="n">batch</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">dataset</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">random</span><span class="p">:</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span> <span class="n">dataset</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">dataset</span><span class="p">)</span>
         <span class="k">yield</span> <span class="n">batch</span>
         <span class="n">i</span> <span class="o">=</span> <span class="n">j</span>
         <span class="n">j</span> <span class="o">+=</span> <span class="n">batch_size</span>
@@ -333,48 +390,149 @@ title="Open an issue"
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Network layer that summarises over a given axis in a way that is invariant</span>
 <span class="sd">    to permutations of the input along that axis.</span>
+
+<span class="sd">    | Chan et al. 2018, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">func</span><span class="p">:</span> <span class="nb">str</span>
 
     <span class="nd">@nn</span><span class="o">.</span><span class="n">compact</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;var&quot;</span><span class="p">,</span> <span class="s2">&quot;sum&quot;</span><span class="p">)</span>
         <span class="c1"># TODO: Assess choice of symmetric function more formally.</span>
-        <span class="c1"># One-shot tests indicated that sum and variance work well very well,</span>
-        <span class="c1"># but variance trains quicker; mean and median work less well.</span>
+        <span class="c1"># Sum and variance work well, mean and median seem to work less well.</span>
         <span class="c1"># Chan et al. suggest some alternatives which I haven&#39;t tried:</span>
         <span class="c1">#  - max</span>
         <span class="c1">#  - mean of the top decile</span>
         <span class="c1">#  - higher moments</span>
-        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span> <span class="o">==</span> <span class="s2">&quot;sum&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span> <span class="o">==</span> <span class="s2">&quot;var&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axis</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="ExchangeableCNN"><a class="viewcode-back" href="../../api.html#dinf.ExchangeableCNN">[docs]</a><span class="k">class</span> <span class="nc">ExchangeableCNN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="ExchangeablePGGAN"><a class="viewcode-back" href="../../api.html#dinf.ExchangeablePGGAN">[docs]</a><span class="k">class</span> <span class="nc">ExchangeablePGGAN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    An exchangeable CNN for the discriminator.</span>
+<span class="sd">    An exchangeable CNN for the discriminator using the PG-GAN architecture.</span>
 
-<span class="sd">    Supports both labelled and unlabelled feature matrices:</span>
-<span class="sd">    :class:`HaplotypeMatrix`, :class:`BinnedHaplotypeMatrix`,</span>
-<span class="sd">    :class:`MultipleHaplotypeMatrices`, :class:`MultipleBinnedHaplotypeMatrices`.</span>
-<span class="sd">    Each (pseudo)haplotype is treated as exchangeable with any other</span>
-<span class="sd">    (pseudo)haplotype within the same feature matrix (i.e. exchangeability</span>
+<span class="sd">    This is a faithful translation of the network implemented in PG-GAN [1],</span>
+<span class="sd">    with the addition of batch normalisation.</span>
+<span class="sd">    Each haplotype is treated as exchangeable with any other</span>
+<span class="sd">    haplotype within the same feature matrix (i.e. exchangeability</span>
 <span class="sd">    applies within labelled groups).</span>
 
-<span class="sd">    | Chan et al. 2018, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/</span>
-<span class="sd">    | Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386</span>
+<span class="sd">    Each feature matrix in the input has shape</span>
+<span class="sd">    (batch_size, num_haplotypes, num_loci, channels).</span>
+<span class="sd">    Two 1-d convolution layers are applied along haplotypes, and feature</span>
+<span class="sd">    size is reduced following each convolution using 1-d max pooling with</span>
+<span class="sd">    size and stride of 2. The sum function is then used to collapse</span>
+<span class="sd">    features across the num_haplotypes dimension. Two fully connected layers</span>
+<span class="sd">    with dropout follow.</span>
+<span class="sd">    Relu activation is used throughout, except for the final output which has</span>
+<span class="sd">    no activation.</span>
+
+<span class="sd">    The number of trainable parameters in the network is dependent on the</span>
+<span class="sd">    number of feature matrices in the input, and dependent on the num_loci</span>
+<span class="sd">    dimension of the feature matrices.</span>
+
+<span class="sd">    | [1] Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@nn</span><span class="o">.</span><span class="n">compact</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>  <span class="c1"># type: ignore[override]</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
-        <span class="c1"># flax uses channels-last (NHWC) convention</span>
+        <span class="n">kernel_init</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">glorot_uniform</span><span class="p">()</span>
+        <span class="c1"># Flax uses channels-last (NHWC) convention.</span>
+        <span class="n">conv</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">use_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kernel_init</span><span class="o">=</span><span class="n">kernel_init</span>
+        <span class="p">)</span>
+        <span class="c1"># Convolution weights are shared across feature matrices.</span>
+        <span class="n">conv1</span> <span class="o">=</span> <span class="n">conv</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">conv2</span> <span class="o">=</span> <span class="n">conv</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">pool</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">max_pool</span><span class="p">,</span> <span class="n">window_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="c1"># https://flax.readthedocs.io/en/latest/howtos/state_params.html</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm</span><span class="p">,</span> <span class="n">use_running_average</span><span class="o">=</span><span class="ow">not</span> <span class="n">train</span><span class="p">)</span>
+        <span class="n">activation</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">relu</span>
+
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">input_feature</span> <span class="ow">in</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">input_feature</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
+
+            <span class="n">x</span> <span class="o">=</span> <span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">activation</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">pool</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
+
+            <span class="n">x</span> <span class="o">=</span> <span class="n">conv2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">activation</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">pool</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
+
+            <span class="c1"># collapse haplotypes</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">Symmetric</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="s2">&quot;sum&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+
+            <span class="c1"># flatten</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+            <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">kernel_init</span><span class="o">=</span><span class="n">kernel_init</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">activation</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">rate</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)(</span><span class="n">x</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="ow">not</span> <span class="n">train</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">kernel_init</span><span class="o">=</span><span class="n">kernel_init</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">activation</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">rate</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)(</span><span class="n">x</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="ow">not</span> <span class="n">train</span><span class="p">)</span>
+
+        <span class="n">y</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="mi">1</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># flatten</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+
+        <span class="c1"># We output logits on (-inf, inf), rather than a probability on [0, 1].</span>
+        <span class="c1"># So remember to call jax.nn.sigmoid(x) on the output when</span>
+        <span class="c1"># probabilities are needed.</span>
+        <span class="k">return</span> <span class="n">y</span></div>
+
+
+<div class="viewcode-block" id="ExchangeableCNN"><a class="viewcode-back" href="../../api.html#dinf.ExchangeableCNN">[docs]</a><span class="k">class</span> <span class="nc">ExchangeableCNN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    An exchangeable CNN for the discriminator.</span>
+
+<span class="sd">    Each feature matrix in the input has shape</span>
+<span class="sd">    (batch_size, num_haplotypes, num_loci, channels).</span>
+<span class="sd">    Two 1-d convolution layers are applied along haplotypes and</span>
+<span class="sd">    feature size is reduced in each convolution using a stride of 2.</span>
+<span class="sd">    Then the variance function is used to collapse</span>
+<span class="sd">    features across the num_haplotypes dimension. A third 1-d convolution</span>
+<span class="sd">    follows (with stride of 1), and the variance function is used to</span>
+<span class="sd">    collapse features across the num_loci dimension.</span>
+<span class="sd">    Elu activation is used throughout, except for the final output which has</span>
+<span class="sd">    no activation.</span>
+
+<span class="sd">    The number of trainable parameters in the network is dependent on the</span>
+<span class="sd">    number of feature matrices in the input, but independent of the size of</span>
+<span class="sd">    the feature matrices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@nn</span><span class="o">.</span><span class="n">compact</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>  <span class="c1"># type: ignore[override]</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
+        <span class="c1"># Flax uses channels-last (NHWC) convention.</span>
         <span class="n">conv</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="c1"># https://flax.readthedocs.io/en/latest/howtos/state_params.html</span>
         <span class="n">norm</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm</span><span class="p">,</span> <span class="n">use_running_average</span><span class="o">=</span><span class="ow">not</span> <span class="n">train</span><span class="p">)</span>
         <span class="n">activation</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">elu</span>
 
-        <span class="n">combined</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">input_feature</span> <span class="ow">in</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">input_feature</span><span class="p">)</span>
 
@@ -387,25 +545,22 @@ title="Open an issue"
             <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
 
             <span class="c1"># collapse haplotypes</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">Symmetric</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">Symmetric</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="s2">&quot;var&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
 
             <span class="n">x</span> <span class="o">=</span> <span class="n">conv</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="mi">64</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">activation</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
 
             <span class="c1"># collapse genomic bins</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">Symmetric</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
-            <span class="n">combined</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">Symmetric</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="s2">&quot;var&quot;</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
-        <span class="n">ys</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">combined</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="mi">1</span><span class="p">)(</span><span class="n">ys</span><span class="p">)</span>
-
+        <span class="n">x</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="mi">1</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
         <span class="c1"># flatten</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
 
-        <span class="c1"># We output logits on (-inf, inf), rather than a probability on [0, 1],</span>
-        <span class="c1"># because the jax ecosystem provides better API support for working</span>
-        <span class="c1"># with logits, e.g. loss functions in optax.</span>
+        <span class="c1"># We output logits on (-inf, inf), rather than a probability on [0, 1].</span>
         <span class="c1"># So remember to call jax.nn.sigmoid(x) on the output when</span>
         <span class="c1"># probabilities are needed.</span>
         <span class="k">return</span> <span class="n">y</span></div>
@@ -456,7 +611,7 @@ title="Open an issue"
         <span class="c1"># Add leading batch dimension.</span>
         <span class="n">input_shape</span> <span class="o">=</span> <span class="n">tree_cons</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)</span>
         <span class="n">dummy_input</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
-            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">),</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
             <span class="n">input_shape</span><span class="p">,</span>
             <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
         <span class="p">)</span>
@@ -504,7 +659,7 @@ title="Open an issue"
     <span class="k">def</span> <span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Print a summary of the neural network.&quot;&quot;&quot;</span>
         <span class="n">a</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
-            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">),</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span>
             <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
         <span class="p">)</span>
@@ -557,7 +712,7 @@ title="Open an issue"
 <span class="sd">        :param numpy.random.Generator rng:</span>
 <span class="sd">            The numpy random number generator.</span>
 <span class="sd">        :param network:</span>
-<span class="sd">            A flax neural network.</span>
+<span class="sd">            A :doc:`flax &lt;flax:index&gt;` neural network.</span>
 <span class="sd">            If not specified, :class:`ExchangeableCNN` will be used.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">network</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -675,7 +830,7 @@ title="Open an issue"
             <span class="n">metrics_sum</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">accuracy</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">t_prev</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">random</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">):</span>
                 <span class="n">state</span><span class="p">,</span> <span class="n">batch_metrics</span> <span class="o">=</span> <span class="n">_train_step</span><span class="p">(</span>
                     <span class="n">state</span><span class="p">,</span>
                     <span class="n">batch</span><span class="p">,</span>
@@ -713,7 +868,10 @@ title="Open an issue"
         <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">state</span> <span class="o">=</span> <span class="n">TrainState</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
                 <span class="n">apply_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">,</span>
-                <span class="n">tx</span><span class="o">=</span><span class="n">optax</span><span class="o">.</span><span class="n">adam</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.001</span><span class="p">),</span>
+                <span class="n">tx</span><span class="o">=</span><span class="n">optax</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span>
+                    <span class="n">optax</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
+                    <span class="n">optax</span><span class="o">.</span><span class="n">adam</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.001</span><span class="p">),</span>
+                <span class="p">),</span>
                 <span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">],</span>
                 <span class="n">batch_stats</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;batch_stats&quot;</span><span class="p">,</span> <span class="p">{}),</span>
             <span class="p">)</span>
@@ -1099,7 +1257,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev227+g09d742f
+      dinf 0.1.1.dev236+gb576afb
     </div>
 </p>
         </footer>

@@ -119,13 +119,63 @@ const thebe_selector_output = ".output, .cell_output"
 </ul>
 <p aria-level="2" class="caption" role="heading">
  <span class="caption-text">
-  Tutorials
+  User guide
  </span>
 </p>
 <ul class="nav bd-sidenav">
  <li class="toctree-l1">
-  <a class="reference internal" href="../../tutorial/01.html">
-   1. Create a Dinf model
+  <a class="reference internal" href="../../guide/creating_a_model.html">
+   1. Creating a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/testing_a_model.html">
+   2. Testing a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/abc.html">
+   3. An ABC analysis
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/accuracy.html">
+   4. Improving discriminator accuracy
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/features.html">
+   5. Feature matrices
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/performance.html">
+   6. Performance characteristics
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/multiple_demes.html">
+   7. Models with multiple demes
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/empirical_data.html">
+   8. Empirical data
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/mcmc-gan.html">
+   9. MCMC-GAN
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/pg-gan.html">
+   10. PG-GAN (simulated annealing)
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/gfo.html">
+   11. Gradient-free optimisation
   </a>
  </li>
 </ul>
@@ -153,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev227
+            dinf 0.1.1.dev236
             </div>
             
         </div>
@@ -288,6 +338,14 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">numpy.typing</span> <span class="k">as</span> <span class="nn">npt</span>
 
 
+<span class="k">def</span> <span class="nf">logit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">expit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">))</span>
+
+
 <div class="viewcode-block" id="Param"><a class="viewcode-back" href="../../api.html#dinf.Param">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
 <span class="k">class</span> <span class="nc">Param</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -346,7 +404,32 @@ title="Open an issue"
 <span class="sd">            the input. ret[j] is True if x[j] is in bounds, False otherwise.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">low</span> <span class="o">&lt;=</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">low</span> <span class="o">&lt;=</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Param.transform"><a class="viewcode-back" href="../../api.html#dinf.Param.transform">[docs]</a>    <span class="nd">@np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transform bounded values on [low, high] to unbounded values on [-inf, inf].</span>
+
+<span class="sd">        Performs a logit transformation.</span>
+
+<span class="sd">        :param x: The values to be transformed.</span>
+<span class="sd">        :return: Transformed parameter values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">logit</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Param.itransform"><a class="viewcode-back" href="../../api.html#dinf.Param.itransform">[docs]</a>    <span class="nd">@np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">itransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transform unbounded values on [-inf, inf] to bounded values on [low, high].</span>
+
+<span class="sd">        Performs an inverse logit transformation (aka expit, aka sigmoid).</span>
+
+<span class="sd">        :param x: The values to be transformed.</span>
+<span class="sd">        :return: Transformed parameter values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span> <span class="o">+</span> <span class="n">expit</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="Parameters"><a class="viewcode-back" href="../../api.html#dinf.Parameters">[docs]</a><span class="k">class</span> <span class="nc">Parameters</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
@@ -406,7 +489,38 @@ title="Open an issue"
             <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())],</span>
             <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">ret</span></div></div>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="Parameters.transform"><a class="viewcode-back" href="../../api.html#dinf.Parameters.transform">[docs]</a>    <span class="nd">@np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transform values bounded by [param.low, param.high] to [-inf, inf].</span>
+
+<span class="sd">        See :meth:`.itransform` for the inverse transformation.</span>
+
+<span class="sd">        :param xs: The values to be transformed.</span>
+<span class="sd">        :return: Transformed parameter values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">xs</span><span class="p">[:,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())]</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parameters.itransform"><a class="viewcode-back" href="../../api.html#dinf.Parameters.itransform">[docs]</a>    <span class="k">def</span> <span class="nf">itransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transform values on [-inf, inf] to be bounded by [param.low, param.high].</span>
+
+<span class="sd">        Performs the inverse of :meth:`.transform`.</span>
+
+<span class="sd">        :param xs: The values to be transformed.</span>
+<span class="sd">        :return: Transformed parameter values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">itransform</span><span class="p">(</span><span class="n">xs</span><span class="p">[:,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())]</span>
+        <span class="p">)</span></div></div>
 </pre></div>
 
               </div>
@@ -427,7 +541,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev227+g09d742f
+      dinf 0.1.1.dev236+gb576afb
     </div>
 </p>
         </footer>

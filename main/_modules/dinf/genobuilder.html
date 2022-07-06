@@ -119,13 +119,63 @@ const thebe_selector_output = ".output, .cell_output"
 </ul>
 <p aria-level="2" class="caption" role="heading">
  <span class="caption-text">
-  Tutorials
+  User guide
  </span>
 </p>
 <ul class="nav bd-sidenav">
  <li class="toctree-l1">
-  <a class="reference internal" href="../../tutorial/01.html">
-   1. Create a Dinf model
+  <a class="reference internal" href="../../guide/creating_a_model.html">
+   1. Creating a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/testing_a_model.html">
+   2. Testing a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/abc.html">
+   3. An ABC analysis
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/accuracy.html">
+   4. Improving discriminator accuracy
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/features.html">
+   5. Feature matrices
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/performance.html">
+   6. Performance characteristics
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/multiple_demes.html">
+   7. Models with multiple demes
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/empirical_data.html">
+   8. Empirical data
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/mcmc-gan.html">
+   9. MCMC-GAN
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/pg-gan.html">
+   10. PG-GAN (simulated annealing)
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../../guide/gfo.html">
+   11. Gradient-free optimisation
   </a>
  </li>
 </ul>
@@ -153,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev227
+            dinf 0.1.1.dev236
             </div>
             
         </div>
@@ -310,19 +360,40 @@ title="Open an issue"
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    User-defined parts of the GAN.</span>
 
-<span class="sd">    :param target_func:</span>
-<span class="sd">        A function that samples a feature from the target distribution.</span>
-<span class="sd">        Typically this would be drawn from empirical data, but simulations with</span>
-<span class="sd">        fixed parameter values can be used instead.</span>
+<span class="sd">    .. note::</span>
+<span class="sd">        Type annotations are shown below in the function signatures for clarity,</span>
+<span class="sd">        but type annotations are not required in user-defined functions.</span>
 
-<span class="sd">        This function accepts a single (positional) argument, an integer seed,</span>
+<span class="sd">    :param target_func:</span>
+<span class="sd">        A function that samples a feature from the target dataset.</span>
+<span class="sd">        If ``None`` (which must be specified explicitly),</span>
+<span class="sd">        the :attr:`.generator_func` will be used to simulate</span>
+<span class="sd">        the target dataset using each parameter&#39;s ``truth`` value.</span>
+
+<span class="sd">        Otherwise, this function should draw data features from an empirical</span>
+<span class="sd">        dataset such as a vcf file.</span>
+<span class="sd">        The function accepts a single (positional) argument, an integer seed,</span>
 <span class="sd">        and returns an n-dimensional feature array, whose shape is given in</span>
-<span class="sd">        :attr:`.feature_shape`. The signature of the function should be:</span>
+<span class="sd">        :attr:`.feature_shape`.</span>
+<span class="sd">        To return a single feature array (e.g. for one population),</span>
+<span class="sd">        the signature of the function should be:</span>
 
 <span class="sd">        .. code::</span>
 
-<span class="sd">            def target_func(seed: int) -&gt; np.ndarray:</span>
+<span class="sd">            def target_func(seed: int, /) -&gt; np.ndarray:</span>
 <span class="sd">                ...</span>
+
+<span class="sd">        To return multiple feature arrays</span>
+<span class="sd">        (e.g. one feature array for each population),</span>
+<span class="sd">        the signature of the function should be:</span>
+
+<span class="sd">        .. code::</span>
+
+<span class="sd">            def target_func(seed: int, /) -&gt; dict[str, np.ndarray]:</span>
+<span class="sd">                ...</span>
+
+<span class="sd">        where the dictionary keys in the returned value are human-readable</span>
+<span class="sd">        labels for the distinct feature arrays.</span>
 
 <span class="sd">    :param generator_func:</span>
 <span class="sd">        A function that generates features using the given parameter values.</span>
@@ -336,17 +407,35 @@ title="Open an issue"
 <span class="sd">        follow the pattern below, where ``p0``, ``p1``, etc. are the</span>
 <span class="sd">        names of the parameters in :attr:`.parameters`.</span>
 
+<span class="sd">        To return a single feature array (e.g. for one population),</span>
+<span class="sd">        the signature of the function should be:</span>
+
 <span class="sd">        .. code::</span>
 
-<span class="sd">            def generator_func(seed: int, *, p0: float, p1: float, ...) -&gt; np.ndarray:</span>
+<span class="sd">            def generator_func(</span>
+<span class="sd">                seed: int, /, *, p0: float, p1: float, ...</span>
+<span class="sd">            ) -&gt; np.ndarray:</span>
 <span class="sd">                ...</span>
 
-<span class="sd">        For generator functions accepting large numbers of parameters,</span>
-<span class="sd">        the following pattern may be preferred instead.</span>
+<span class="sd">        To return multiple feature arrays</span>
+<span class="sd">        (e.g. one feature array for each population),</span>
+<span class="sd">        the signature of the function should be:</span>
 
 <span class="sd">        .. code::</span>
 
-<span class="sd">            def generator_func(seed: int, **kwargs)-&gt; np.ndarray:</span>
+<span class="sd">            def generator_func(</span>
+<span class="sd">                seed: int, /, *, p0: float, p1: float, ...</span>
+<span class="sd">            ) -&gt; dict[str, np.ndarray]:</span>
+<span class="sd">                ...</span>
+
+<span class="sd">        where the dictionary keys in the returned value are human-readable</span>
+<span class="sd">        labels for the distinct feature arrays.</span>
+<span class="sd">        For generator functions accepting large numbers of parameters,</span>
+<span class="sd">        the following pattern using ``**kwargs`` may be preferred instead:</span>
+
+<span class="sd">        .. code::</span>
+
+<span class="sd">            def generator_func(seed: int, **kwargs)-&gt; dict[str, np.ndarray]:</span>
 <span class="sd">                assert kwargs.keys() == parameters.keys()</span>
 <span class="sd">                # do something with p0</span>
 <span class="sd">                do_something(kwargs[&quot;p0&quot;])</span>
@@ -358,20 +447,24 @@ title="Open an issue"
 <span class="sd">        provided to the :attr:`.generator_func`.</span>
 
 <span class="sd">    :param feature_shape:</span>
-<span class="sd">        The shape of the n-dimensional arrays produced by :attr:`.target_func`</span>
+<span class="sd">        The shape of the n-dimensional array(s) produced by :attr:`.target_func`</span>
 <span class="sd">        and :attr:`.generator_func`.</span>
+<span class="sd">        This is either a tuple of array dimensions (c.f. :attr:`numpy.ndarray.shape`),</span>
+<span class="sd">        or a dictionary mapping labels to tuples.</span>
+<span class="sd">        The former indicates a single feature array, while the latter indicates</span>
+<span class="sd">        a collection of feature arrays.</span>
 
 <span class="sd">    :param discriminator_network:</span>
 <span class="sd">        A flax neural network module. If not specified, :class:`ExchangeableCNN`</span>
 <span class="sd">        will be used.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">target_func</span><span class="p">:</span> <span class="n">Callable</span>  <span class="c1"># Callable[[int], np.ndarray]</span>
+    <span class="n">target_func</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Function that samples a feature from the target distribution.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">generator_func</span><span class="p">:</span> <span class="n">Callable</span>  <span class="c1"># Callable[[int, ...], np.ndarray]</span>
+    <span class="n">generator_func</span><span class="p">:</span> <span class="n">Callable</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Function that generates features using the given parameter values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -381,10 +474,14 @@ title="Open an issue"
 <span class="sd">    The inferrable parameters.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">feature_shape</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">]</span>
+    <span class="n">feature_shape</span><span class="p">:</span> <span class="n">Tuple</span> <span class="o">|</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">]</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Shape of the n-dimensional arrays produced by :attr:`.target_func`</span>
 <span class="sd">    and :attr:`.generator_func`.</span>
+<span class="sd">    This is either a tuple of array dimensions (c.f. :attr:`numpy.ndarray.shape`),</span>
+<span class="sd">    or a dictionary mapping labels to tuples.</span>
+<span class="sd">    The former indicates a single feature array, while the latter indicates</span>
+<span class="sd">    a collection of feature arrays.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">discriminator_network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -403,7 +500,8 @@ title="Open an issue"
             <span class="n">truth_missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">truth</span> <span class="ow">in</span> <span class="n">theta_truth</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">truth</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">truth_missing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;For a simulation study (with genobuilder.target_func=None), &quot;</span>
+                    <span class="s2">&quot;For a simulation-only model &quot;</span>
+                    <span class="s2">&quot;(with genobuilder.target_func=None), &quot;</span>
                     <span class="s2">&quot;all parameters must have `truth&#39; values defined.</span><span class="se">\n</span><span class="s2">&quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;Truth values missing for: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">truth_missing</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
                 <span class="p">)</span>
@@ -424,8 +522,9 @@ title="Open an issue"
 <span class="sd">        Basic health checks: draw parameters and call the functions.</span>
 
 <span class="sd">        We don&#39;t do this when initialising the Genobuilder, because calling</span>
-<span class="sd">        :meth:`.generator_func()` is potentially time consuming, which could</span>
-<span class="sd">        lead to annoying delays for the command line interface.</span>
+<span class="sd">        :attr:`.generator_func()` and :attr:`.target_func()` are potentially</span>
+<span class="sd">        time consuming, which could lead to annoying delays for the command</span>
+<span class="sd">        line interface.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">seed</span> <span class="o">=</span> <span class="mi">1234</span>
@@ -499,7 +598,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev227+g09d742f
+      dinf 0.1.1.dev236+gb576afb
     </div>
 </p>
         </footer>
