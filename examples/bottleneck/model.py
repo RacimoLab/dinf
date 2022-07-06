@@ -9,8 +9,8 @@ import dinf
 
 recombination_rate = 1.25e-8
 mutation_rate = 1.25e-8
-num_individuals = 64
-sequence_length = 50_000
+num_individuals = 16
+sequence_length = 1_000_000
 parameters = dinf.Parameters(
     N0=dinf.Param(low=10, high=30_000, truth=10_000),
     N1=dinf.Param(low=10, high=30_000, truth=200),
@@ -36,15 +36,15 @@ def demography(*, N0, N1):
 
 features = dinf.BinnedHaplotypeMatrix(
     num_individuals=num_individuals,
-    num_loci=36,
+    num_loci=64,
     ploidy=2,
-    phased=True,
+    phased=False,
     maf_thresh=0.05,
 )
 
 
 def generator(seed, *, N0, N1):
-    """Simulate with the parameters provided to us."""
+    """Simulate a two-epoch model with msprime."""
     rng = np.random.default_rng(seed)
     graph = demography(N0=N0, N1=N1)
     demog = msprime.Demography.from_demes(graph)
