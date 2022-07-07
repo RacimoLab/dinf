@@ -3,7 +3,7 @@ import functools
 import itertools
 import logging
 import math
-import multiprocessing
+import multiprocess as multiprocessing
 import os
 import pathlib
 import signal

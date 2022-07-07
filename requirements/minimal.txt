@@ -8,3 +8,4 @@ flax==0.4.1
 optax==0.1.2
 msprime==1.2.0
 demes==0.2.2
+multiprocess==0.70.12.2
