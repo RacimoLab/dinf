@@ -115,7 +115,7 @@ class TestAbcGan:
             stderr=subprocess.PIPE,
         )
         assert working_directory.exists()
-        genobuilder = dinf.Genobuilder._from_file(ex)
+        genobuilder = dinf.Genobuilder.from_file(ex)
         for i in range(2):
             check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
             check_ncf(
@@ -164,7 +164,7 @@ class TestAlfiMcmcGan:
             stderr=subprocess.PIPE,
         )
         assert working_directory.exists()
-        genobuilder = dinf.Genobuilder._from_file(ex)
+        genobuilder = dinf.Genobuilder.from_file(ex)
         for i in range(2):
             check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
             check_ncf(
@@ -210,7 +210,7 @@ class TestMcmcGan:
             stderr=subprocess.PIPE,
         )
         assert working_directory.exists()
-        genobuilder = dinf.Genobuilder._from_file(ex)
+        genobuilder = dinf.Genobuilder.from_file(ex)
         for i in range(2):
             check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
             check_ncf(
@@ -256,7 +256,7 @@ class TestPgGan:
             stderr=subprocess.PIPE,
         )
         assert working_directory.exists()
-        genobuilder = dinf.Genobuilder._from_file(ex)
+        genobuilder = dinf.Genobuilder.from_file(ex)
         num_parameters = len(genobuilder.parameters)
         for i in range(2):
             check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
@@ -348,7 +348,7 @@ class TestPredict:
             stderr=subprocess.PIPE,
         )
 
-        genobuilder = dinf.Genobuilder._from_file(ex)
+        genobuilder = dinf.Genobuilder.from_file(ex)
         check_ncf(
             output_file,
             chains=1,

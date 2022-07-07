@@ -30,7 +30,7 @@ def _initializer(filename):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     # Ensure symbols from the user's genobuilder are avilable to workers.
     if filename is not None:
-        Genobuilder._from_file(filename)
+        Genobuilder.from_file(filename)
 
 
 def _process_pool_init(parallelism, genobuilder):
@@ -341,7 +341,27 @@ def train(
     epochs: int,
     parallelism: None | int = None,
     rng: np.random.Generator,
-):
+) -> Discriminator:
+    """
+    :param genobuilder:
+        Genobuilder object that describes the GAN.
+    :param training_replicates:
+        Size of the dataset used to train the discriminator.
+    :param test_replicates:
+        Size of the test dataset used to evaluate the discriminator after
+        each training epoch.
+    :param epochs:
+        Number of full passes over the training dataset when training
+        the discriminator.
+    :param parallelism:
+        Number of processes to use for parallelising calls to the
+        :meth:`Genobuilder.generator_func` and
+        :meth:`Genobuilder.target_func`.
+    :param numpy.random.Generator rng:
+        Numpy random number generator.
+    :return:
+        The trained discriminator.
+    """
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 

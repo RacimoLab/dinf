@@ -220,7 +220,7 @@ class Genobuilder:
             )
 
     @staticmethod
-    def _from_file(filename: str | pathlib.Path) -> Genobuilder:
+    def from_file(filename: str | pathlib.Path) -> Genobuilder:
         """
         Load the symbol "genobuilder" from a file.
 

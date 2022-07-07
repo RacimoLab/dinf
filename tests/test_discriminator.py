@@ -1,3 +1,5 @@
+from typing import Callable
+
 import numpy as np
 import jax
 import chex
@@ -26,20 +28,138 @@ def random_dataset(size=None, shape=None, seed=1234):
     return x, y, input_shape
 
 
-class TestExchangeableCNN:
+class TestSymmetric:
+    @pytest.mark.parametrize("axis", [1, 2])
+    @pytest.mark.parametrize(
+        "func,k,squash",
+        [
+            ("max", None, 1),
+            ("mean", None, 1),
+            ("sum", None, 1),
+            ("var", None, 1),
+            ("moments", 2, 2),
+            ("moments", 3, 3),
+            ("moments", 4, 4),
+            ("central-moments", 2, 2),
+            ("central-moments", 3, 3),
+            ("central-moments", 4, 4),
+        ],
+    )
+    def test_shape(self, func, k, squash, axis):
+        shape = (4, 4, 4, 4)
+        sym = discriminator.Symmetric(func=func, k=k)
+        x, _, _ = random_dataset(shape=shape)
+        variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
+        y = sym.apply(variables, x, axis=axis)
+
+        expected_shape = list(shape)
+        expected_shape[axis] = squash
+        assert y.shape == tuple(expected_shape)
+
+    @pytest.mark.parametrize("axis", [1, 2])
+    def test_max(self, axis):
+        shape = (4, 4, 4, 1)
+        sym = discriminator.Symmetric(func="max")
+        x, _, _ = random_dataset(shape=shape)
+        variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
+        y = sym.apply(variables, x, axis=axis)
+        np.testing.assert_allclose(y, np.max(x, axis=axis, keepdims=True))
+
+    @pytest.mark.parametrize("axis", [1, 2])
+    def test_mean(self, axis):
+        shape = (4, 4, 4, 1)
+        sym = discriminator.Symmetric(func="mean")
+        x, _, _ = random_dataset(shape=shape)
+        variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
+        y = sym.apply(variables, x, axis=axis)
+        np.testing.assert_allclose(y, np.mean(x, axis=axis, keepdims=True))
+
+    @pytest.mark.parametrize("axis", [1, 2])
+    def test_sum(self, axis):
+        shape = (4, 4, 4, 1)
+        sym = discriminator.Symmetric(func="sum")
+        x, _, _ = random_dataset(shape=shape)
+        variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
+        y = sym.apply(variables, x, axis=axis)
+        np.testing.assert_allclose(y, np.sum(x, axis=axis, keepdims=True))
+
+    @pytest.mark.parametrize("axis", [1, 2])
+    def test_var(self, axis):
+        shape = (4, 4, 4, 1)
+        sym = discriminator.Symmetric(func="var")
+        x, _, _ = random_dataset(shape=shape)
+        variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
+        y = sym.apply(variables, x, axis=axis)
+        np.testing.assert_allclose(y, np.var(x, axis=axis, keepdims=True))
+
+    @pytest.mark.parametrize("axis", [1, 2])
+    @pytest.mark.parametrize("k", [2, 3, 4])
+    def test_moments(self, axis, k):
+        shape = (4, 4, 4, 1)
+        sym = discriminator.Symmetric(func="moments", k=k)
+        x, _, _ = random_dataset(shape=shape)
+        variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
+        y = sym.apply(variables, x, axis=axis)
+
+        m1 = np.mean(x, axis=axis, keepdims=True)
+        m2 = np.mean(x**2, axis=axis, keepdims=True)
+        m3 = np.mean(x**3, axis=axis, keepdims=True)
+        m4 = np.mean(x**4, axis=axis, keepdims=True)
+        expected = np.concatenate([m1, m2, m3, m4][:k], axis=axis)
+        np.testing.assert_allclose(y, expected)
+
+    @pytest.mark.parametrize("axis", [1, 2])
+    @pytest.mark.parametrize("k", [2, 3, 4])
+    def test_central_moments(self, axis, k):
+        shape = (4, 4, 4, 1)
+        sym = discriminator.Symmetric(func="central-moments", k=k)
+        x, _, _ = random_dataset(shape=shape)
+        variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
+        y = sym.apply(variables, x, axis=axis)
+
+        m1 = np.mean(x, axis=axis, keepdims=True)
+        m2 = np.var(x, axis=axis, keepdims=True)
+        m3 = np.mean((x - m1) ** 3, axis=axis, keepdims=True)
+        m4 = np.mean((x - m1) ** 4, axis=axis, keepdims=True)
+        expected = np.concatenate([m1, m2, m3, m4][:k], axis=axis)
+        np.testing.assert_allclose(y, expected, rtol=1e-6)
+
+    @pytest.mark.parametrize("func", [None, "not-a-func"])
+    def test_bad_func(self, func):
+        sym = discriminator.Symmetric(func=func)
+        x, _, _ = random_dataset(50)
+        with pytest.raises(ValueError, match="Unexpected func"):
+            sym.init(jax.random.PRNGKey(0), x)
+
+    @pytest.mark.parametrize("k", [-1, 0, 1])
+    @pytest.mark.parametrize("func", ["moments", "central-moments"])
+    def test_bad_k(self, func, k):
+        sym = discriminator.Symmetric(func=func, k=k)
+        x, _, _ = random_dataset(50)
+        with pytest.raises(ValueError, match="Must have k >= 2"):
+            sym.init(jax.random.PRNGKey(0), x)
+
+
+class _TestCNN:
+    cnn: Callable  # nn.Module class
+
     @pytest.mark.parametrize("train", [True, False])
     def test_cnn(self, train: bool):
-        cnn = discriminator.ExchangeableCNN()
+        cnn = self.cnn()
         x, _, _ = random_dataset(50)
         variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
         y, new_variables = cnn.apply(
-            variables, x, train=train, mutable=["batch_stats"] if train else []
+            variables,
+            x,
+            train=train,
+            mutable=["batch_stats"] if train else [],
+            rngs={"dropout": jax.random.PRNGKey(0)} if train else {},
         )
         assert np.shape(y) == (50,)
 
     @pytest.mark.parametrize("seed", (1, 2, 3, 4))
     def test_individual_exchangeability(self, seed):
-        cnn = discriminator.ExchangeableCNN()
+        cnn = self.cnn()
         x1, _, _ = random_dataset(50, seed=seed)
         variables = cnn.init(jax.random.PRNGKey(0), x1, train=False)
         y1 = cnn.apply(variables, x1, train=False)
@@ -54,7 +174,7 @@ class TestExchangeableCNN:
 
     @pytest.mark.parametrize("seed", (1, 2, 3, 4))
     def test_batch_dimension_exchangeability(self, seed):
-        cnn = discriminator.ExchangeableCNN()
+        cnn = self.cnn()
         size = 50
         x1, _, _ = random_dataset(size, seed=seed)
         variables = cnn.init(jax.random.PRNGKey(0), x1, train=False)
@@ -68,6 +188,84 @@ class TestExchangeableCNN:
             y2 = cnn.apply(variables, x2, train=False)
             # Set a generous tolerance here, as the CNN is using 32 bit floats.
             np.testing.assert_allclose(y1[idx], y2, rtol=1e-2)
+
+
+class TestExchangeableCNN(_TestCNN):
+    cnn = discriminator.ExchangeableCNN
+
+    def test_sizes(self):
+        x, _, _ = random_dataset(50)
+
+        cnn = self.cnn(sizes1=(1,), sizes2=(1,))
+        variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
+        _ = cnn.apply(variables, x, train=False)
+        assert sum(1 for k in variables["params"].keys() if "Conv" in k) == 2
+        assert sum(1 for k in variables["params"].keys() if "Dense" in k) == 1
+
+        cnn = self.cnn(sizes1=(1, 1), sizes2=())
+        variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
+        _ = cnn.apply(variables, x, train=False)
+        assert sum(1 for k in variables["params"].keys() if "Conv" in k) == 2
+        assert sum(1 for k in variables["params"].keys() if "Dense" in k) == 1
+
+        cnn = self.cnn(sizes1=(), sizes2=(1, 1))
+        variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
+        _ = cnn.apply(variables, x, train=False)
+        assert sum(1 for k in variables["params"].keys() if "Conv" in k) == 2
+        assert sum(1 for k in variables["params"].keys() if "Dense" in k) == 1
+
+        cnn = self.cnn(sizes1=(1, 2, 3), sizes2=(1, 2, 3, 4))
+        variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
+        _ = cnn.apply(variables, x, train=False)
+        assert sum(1 for k in variables["params"].keys() if "Conv" in k) == 7
+        assert sum(1 for k in variables["params"].keys() if "Dense" in k) == 1
+
+        # two labels
+        x2, _, _ = random_dataset(shape={"x": (1, 10, 20, 1), "y": (1, 20, 10, 1)})
+        cnn = self.cnn(sizes1=(1, 2, 3), sizes2=(1, 2, 3, 4))
+        variables = cnn.init(jax.random.PRNGKey(0), x2, train=False)
+        _ = cnn.apply(variables, x2, train=False)
+        assert sum(1 for k in variables["params"].keys() if "Conv" in k) == 2 * 7
+        assert sum(1 for k in variables["params"].keys() if "Dense" in k) == 1
+
+
+class TestExchangeablePGGAN(_TestCNN):
+    cnn = discriminator.ExchangeablePGGAN
+
+    def test_sizes(self):
+        x, _, _ = random_dataset(50)
+
+        cnn = self.cnn(sizes1=(1,), sizes2=(1,))
+        variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
+        _ = cnn.apply(variables, x, train=False)
+        assert sum(1 for k in variables["params"].keys() if "Conv" in k) == 1
+        assert sum(1 for k in variables["params"].keys() if "Dense" in k) == 1 + 1
+
+        cnn = self.cnn(sizes1=(1, 1), sizes2=())
+        variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
+        _ = cnn.apply(variables, x, train=False)
+        assert sum(1 for k in variables["params"].keys() if "Conv" in k) == 2
+        assert sum(1 for k in variables["params"].keys() if "Dense" in k) == 0 + 1
+
+        cnn = self.cnn(sizes1=(), sizes2=(1, 1))
+        variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
+        _ = cnn.apply(variables, x, train=False)
+        assert sum(1 for k in variables["params"].keys() if "Conv" in k) == 0
+        assert sum(1 for k in variables["params"].keys() if "Dense" in k) == 2 + 1
+
+        cnn = self.cnn(sizes1=(1, 2, 3), sizes2=(1, 2, 3, 4))
+        variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
+        _ = cnn.apply(variables, x, train=False)
+        assert sum(1 for k in variables["params"].keys() if "Conv" in k) == 3
+        assert sum(1 for k in variables["params"].keys() if "Dense" in k) == 4 + 1
+
+        # two labels
+        x2, _, _ = random_dataset(shape={"x": (1, 10, 20, 1), "y": (1, 20, 10, 1)})
+        cnn = self.cnn(sizes1=(1, 2, 3), sizes2=(1, 2, 3, 4))
+        variables = cnn.init(jax.random.PRNGKey(0), x2, train=False)
+        _ = cnn.apply(variables, x2, train=False)
+        assert sum(1 for k in variables["params"].keys() if "Conv" in k) == 3
+        assert sum(1 for k in variables["params"].keys() if "Dense" in k) == 4 + 1
 
 
 class TestDiscriminator:

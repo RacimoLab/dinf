@@ -59,16 +59,21 @@
    :members:
 ```
 
+(sec_api_train)=
+## Training
+
+```{eval-rst}
+.. autofunction:: dinf.train
+```
+
 (sec_api_inference)=
 ## Inference
 
 ```{eval-rst}
+.. autofunction:: dinf.predict
 .. autofunction:: dinf.abc_gan
-
 .. autofunction:: dinf.alfi_mcmc_gan
-
 .. autofunction:: dinf.mcmc_gan
-
 .. autofunction:: dinf.pg_gan
 ```
 
@@ -91,8 +96,8 @@
 
 ```{eval-rst}
 .. autoclass:: dinf.ExchangeableCNN
-
 .. autoclass:: dinf.ExchangeablePGGAN
+.. autoclass:: dinf.Symmetric
 ```
 
 (sec_api_misc)=
@@ -100,9 +105,7 @@
 
 ```{eval-rst}
 
-.. automodule:: dinf.misc
-   :members: ts_individuals
-
+.. autofunction:: dinf.misc.ts_individuals
 .. autofunction:: dinf.get_samples_from_1kgp_metadata
 .. autofunction:: dinf.get_contig_lengths
 
