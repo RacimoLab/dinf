@@ -50,6 +50,7 @@ sphinx:
       cyvcf2: ["http://brentp.github.io/cyvcf2/", null]
       flax: ["https://flax.readthedocs.io/en/latest/", null]
       arviz: ["https://python.arviz.org/en/latest/", null]
+      matplotlib: ["https://matplotlib.org/stable/", null]
     #issues_github_path: RacimoLab/dinf
 
     # TODO: enable this and fix a bunch of problems.

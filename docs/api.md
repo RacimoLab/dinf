@@ -115,3 +115,11 @@
    .. automethod:: __len__
    .. automethod:: __getitem__
 ```
+
+(sec_api_plotting)=
+## Plotting
+
+```{eval-rst}
+.. automodule:: dinf.plot
+    :members:
+```

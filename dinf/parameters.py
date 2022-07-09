@@ -43,12 +43,22 @@ class Param:
     None, this value may be used as the truth in a simulation study.
     """
 
+    name: str | None = None
+    """
+    Name of the parameter.
+    """
+
     def __post_init__(self):
         if not np.isfinite(self.low) or not np.isfinite(self.high):
             raise ValueError("Bounds must be finite.")
         if self.truth is not None and not self.bounds_contain(self.truth):
             raise ValueError(
                 f"True value ({self.truth}) not in bounds [{self.low}, {self.high}]"
+            )
+        if self.name is not None:
+            raise ValueError(
+                "Param name should not be set via the constructor. "
+                "Please use dinf.Parameters(name=Param(...)) instead."
             )
 
     def draw_prior(
@@ -116,6 +126,8 @@ class Parameters(collections.abc.Mapping):
         for k, v in self._params.items():
             if not isinstance(v, Param):
                 raise TypeError(f"{k} must be a (sub)class of Param")
+            # XXX: set the name field on the Param.
+            v.name = k
 
     def __getitem__(self, key):
         return self._params[key]
