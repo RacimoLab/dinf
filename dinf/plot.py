@@ -6,7 +6,6 @@ import textwrap
 from typing import Dict
 
 from adjustText import adjust_text
-import arviz as az
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -257,8 +256,10 @@ def hist2d(
     y: np.ndarray,
     /,
     *,
-    px: dinf.Param,
-    py: dinf.Param,
+    x_label: float | None = None,
+    y_label: float | None = None,
+    x_truth: float | None = None,
+    y_truth: float | None = None,
     ax: matplotlib.axes.Axis | None = None,
     hist2d_kw: dict | None = None,
 ):
@@ -269,10 +270,14 @@ def hist2d(
         Values for the horizontal axis.
     :param y:
         Values for the vertical axis.
-    :param px:
-        Parameter corresponding to the horizontal axis.
-    :param py:
-        Parameter corresponding to the vertical axis.
+    :param x_label:
+        Name of the parameter on the horizontal axis.
+    :param y_label:
+        Name of the parameter on the vertical axis.
+    :param x_truth:
+        True value of the parameter on the horizontal axis.
+    :param y_truth:
+        True value of the parameter on the vertical axis.
     :param ax:
         Axes onto which the histogram will be drawn.
         If None, an axes will be created with :func:`matplotlib.pyplot.subplots`.
@@ -296,23 +301,28 @@ def hist2d(
     _, _, _, h = ax.hist2d(x, y, **kw)
     ax.figure.colorbar(h, ax=ax)
 
-    if px.truth is not None and py.truth is not None:
-        colour = "red"
-        line_kwargs = dict(c=colour, ls="-")
-        ax.axvline(px.truth, **line_kwargs)
-        ax.axhline(py.truth, **line_kwargs)
+    colour = "red"
+    line_kw = dict(c=colour, ls="-")
+    if x_truth is not None:
+        ax.axvline(x_truth, **line_kw)
+    if y_truth is not None:
+        ax.axhline(y_truth, **line_kw)
 
+    if x_truth is not None and y_truth is not None:
         ax.scatter(
-            px.truth,
-            py.truth,
+            x_truth,
+            y_truth,
             marker="s",
             c=colour,
             label="truth",
         )
+    if x_truth is not None or y_truth is not None:
         ax.legend()
 
-        ax.set_xlabel(px.name)
-        ax.set_ylabel(py.name)
+    if x_label is not None:
+        ax.set_xlabel(x_label)
+    if y_label is not None:
+        ax.set_ylabel(y_label)
 
     return ax.figure, ax
 
@@ -354,6 +364,7 @@ def hist(
     *,
     ax: matplotlib.axes.Axes | None = None,
     ci: bool = False,
+    truth: float | None = None,
     hist_kw: dict | None = None,
 ):
     """
@@ -366,6 +377,8 @@ def hist(
         If None, an axes will be created with :func:`matplotlib.pyplot.subplots`.
     :param ci:
         If True, draw a 95% credible interval at the bottom.
+    :param truth:
+        If not None, draw a red vertical line at this location.
     :param hist_kw:
         Further parameters passed to :func:`matplotlib.axes.Axes.hist`.
     :rtype: tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
@@ -384,6 +397,9 @@ def hist(
     if kw["histtype"] == "step":
         # Remove vertical lines at left and right edges.
         patches[0].set_xy(patches[0].get_xy()[1:-1])
+
+    if truth is not None:
+        ax.axvline(truth, c="red", ls="-")
 
     if ci:
         # Get median and 95% credible interval.
@@ -410,7 +426,13 @@ def hist(
             t2 = ax.text(xq[j], ys[4], _num2str(xq[j]), **txt_kw)
             texts.extend([t1, t2])
         # Fix text items from overlapping. Maybe!
-        adjust_text(texts, ax=ax, only_move=dict(text="x"), avoid_points=False)
+        adjust_text(
+            texts,
+            ax=ax,
+            only_move=dict(points="", objects="", text="x"),
+            avoid_points=False,
+            avoid_self=False,
+        )
 
     return ax.figure, ax
 
@@ -479,7 +501,7 @@ class _SubCommand:
     def add_argument_data_file(self):
         self.parser.add_argument(
             "data_file",
-            metavar="data.ncf",
+            metavar="data.npz",
             type=pathlib.Path,
             help="The datafile containing discriminator predictions.",
         )
@@ -511,23 +533,20 @@ class _SubCommand:
 
     def get_abc_dataset(self, args):
         """Load data file and filter by top-n or by probability."""
-        dataset = az.from_netcdf(args.data_file)
-        # Log probability from discriminator.
-        logprob = np.array(dataset.sample_stats.lp).squeeze()
+        data = dinf.load_results(args.data_file)
+        shape = data["_Pr"].shape
+        if len(shape) != 1:
+            # Bail for MCMC-GAN datasets.
+            raise ValueError(f"I don't understand GAN datasets (shape={shape}).")
 
         assert None in (args.top_n, args.probability_threshold)
         if args.top_n is not None:
-            # Get the indices that sort the log-probs in descending order.
-            idx = np.flip(np.argsort(logprob))
-            # Select top n.
-            dataset = dataset.isel(draw=idx[: args.top_n])
-            logprob = np.array(dataset.sample_stats.lp).squeeze()
+            idx = np.flip(np.argsort(data["_Pr"]))
+            data = data[idx[: args.top_n]]
         elif args.probability_threshold is not None:
-            t = np.log(args.probability_threshold)
-            dataset = dataset.isel(draw=np.where(logprob > t)[0])
-            logprob = np.array(dataset.sample_stats.lp).squeeze()
+            data = data[np.where(data["_Pr"] > args.probability_threshold)]
 
-        return dataset, logprob
+        return data
 
 
 class _Features(_SubCommand):
@@ -652,21 +671,28 @@ class _Hist2d(_SubCommand):
             action="append",
             help="Name of parameter to plot on vertical axis.",
         )
-        self.add_argument_genob_model()
+        self.add_argument_genob_model_optional()
         self.add_argument_data_file()
 
     def __call__(self, args: argparse.Namespace):
-        parameters = dinf.Genobuilder.from_file(args.genob_model).parameters
-        dataset, logprob = self.get_abc_dataset(args)
+        parameters = None
+        if args.model is not None:
+            parameters = dinf.Genobuilder.from_file(args.model).parameters
+        data = self.get_abc_dataset(args)
+        param_names = data.dtype.names[1:]
 
         if args.x_param is None:
-            args.x_param = list(parameters.keys())
+            args.x_param = param_names
         if len(set(args.x_param)) != len(args.x_param):
             raise ValueError(f"--x-param values are not unique: {args.x_param}")
         if args.y_param is None:
-            args.y_param = list(parameters.keys())
+            args.y_param = param_names
         if len(set(args.y_param)) != len(args.y_param):
             raise ValueError(f"--y-param values are not unique: {args.y_param}")
+
+        for param in args.x_param + args.y_param:
+            if param not in param_names:
+                raise ValueError(f"{args.data_file}: parameter {param} not found")
 
         if args.output_file:
             cm = lambda: PdfPages(args.output_file)  # noqa: E731
@@ -676,28 +702,46 @@ class _Hist2d(_SubCommand):
 
         hist2d_kw = {}
         if args.weighted:
-            hist2d_kw["weights"] = np.exp(logprob)
+            hist2d_kw["weights"] = data["_Pr"]
 
         done = set()
         with cm() as pdf:
             for x_param in args.x_param:
-                px = parameters.get(x_param)
-                if px is None:
-                    raise ValueError(f"Unknown parameter `{x_param}'")
-                x = np.array(dataset.posterior[px.name]).squeeze()
+                x = data[x_param]
+                x_truth = None
+                if parameters is not None:
+                    if x_param not in parameters:
+                        raise ValueError(
+                            f"{args.model}: expected parameter `{x_param}'"
+                        )
+                    x_truth = parameters[x_param].truth
                 for y_param in args.y_param:
                     if x_param == y_param or (y_param, x_param) in done:
                         continue
                     done.add((x_param, y_param))
-                    py = parameters.get(y_param)
-                    if py is None:
-                        raise ValueError(f"Unknown parameter `{y_param}'")
-                    y = np.array(dataset.posterior[py.name]).squeeze()
+
+                    y = data[y_param]
+                    y_truth = None
+                    if parameters is not None:
+                        if y_param not in parameters:
+                            raise ValueError(
+                                f"{args.model}: expected parameter `{y_param}'"
+                            )
+                        y_truth = parameters[y_param].truth
 
                     fig, ax = plt.subplots(
                         figsize=plt.figaspect(9 / 16), constrained_layout=True
                     )
-                    hist2d(x, y, ax=ax, px=px, py=py, hist2d_kw=hist2d_kw)
+                    hist2d(
+                        x,
+                        y,
+                        ax=ax,
+                        x_label=x_param,
+                        y_label=y_param,
+                        x_truth=x_truth,
+                        y_truth=y_truth,
+                        hist2d_kw=hist2d_kw,
+                    )
                     if pdf is None:
                         plt.show()
                     else:
@@ -712,7 +756,7 @@ class _Hist(_SubCommand):
     One plot is produced for the discriminator probabilities,
     plus one plot for each model parameter. The choice of which
     parameter to plot can be specified using the -x option,
-    with the special value "_p" indicating the discriminator
+    with the special value "_Pr" indicating the discriminator
     probabilities.
 
     The resulting figure is a histogram. If the data correspond
@@ -747,7 +791,7 @@ class _Hist(_SubCommand):
             action="append",
             help=(
                 "Name of parameter to plot. "
-                'The special name "_p" is recognised to plot the probabilities '
+                'The special name "_Pr" is recognised to plot the probabilities '
                 "obtained from the discriminator."
             ),
         )
@@ -758,13 +802,16 @@ class _Hist(_SubCommand):
         parameters = None
         if args.model is not None:
             parameters = dinf.Genobuilder.from_file(args.model).parameters
-        dataset, logprob = self.get_abc_dataset(args)
-        p = np.exp(logprob)
+        data = self.get_abc_dataset(args)
 
         if args.x_param is None:
-            args.x_param = ["_p"] + list(dataset.posterior.data_vars)
+            args.x_param = data.dtype.names
         if len(set(args.x_param)) != len(args.x_param):
             raise ValueError(f"--x-param values are not unique: {args.x_param}")
+
+        for param in args.x_param:
+            if param not in data.dtype.names:
+                raise ValueError(f"{args.data_file}: parameter {param} not found")
 
         if args.output_file:
             cm = lambda: PdfPages(args.output_file)  # noqa: E731
@@ -779,10 +826,9 @@ class _Hist(_SubCommand):
                 )
                 truth = None
                 hist_kw = dict(cumulative=args.cumulative)
-                if x_param == "_p":
+                if x_param == "_Pr":
                     # Plot discriminator probabilities.
-                    x = p
-                    ax.set_xlabel("$p$")
+                    ax.set_xlabel("Pr")
                     hist_kw["log"] = True
                     ci = False
                 else:
@@ -792,16 +838,14 @@ class _Hist(_SubCommand):
                         if px is None:
                             raise ValueError(f"{args.model}: couldn't find `{x_param}`")
                         truth = px.truth
-                    x = np.array(dataset.posterior[x_param]).squeeze()
+                    x = data[x_param]
                     ax.set_xlabel(x_param)
                     if args.weighted:
-                        hist_kw["weights"] = p
+                        hist_kw["weights"] = data["_Pr"]
                     ci = True
 
-                hist(x, ax=ax, ci=ci, hist_kw=hist_kw)
-
-                if truth is not None:
-                    ax.axvline(truth, c="red", ls="-")
+                x = data[x_param]
+                hist(x, ax=ax, ci=ci, truth=truth, hist_kw=hist_kw)
 
                 if args.cumulative:
                     ax.set_ylabel("cumulative density")

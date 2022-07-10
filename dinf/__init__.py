@@ -23,7 +23,16 @@ if "KMP_AFFINITY" not in os.environ:
 #    os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
 
 
-from .dinf import abc_gan, alfi_mcmc_gan, mcmc_gan, pg_gan, predict, train
+from .dinf import (
+    abc_gan,
+    alfi_mcmc_gan,
+    mcmc_gan,
+    pg_gan,
+    predict,
+    train,
+    save_results,
+    load_results,
+)
 from .discriminator import (
     Discriminator,
     Surrogate,
@@ -63,7 +72,9 @@ __all__ = [
     "abc_gan",
     "alfi_mcmc_gan",
     "mcmc_gan",
+    "load_results",
     "pg_gan",
     "predict",
+    "save_results",
     "train",
 ]

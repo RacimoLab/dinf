@@ -4,12 +4,11 @@ import functools
 import itertools
 import os
 import pathlib
-from typing import Callable, Iterable
+from typing import Callable
 
-import arviz as az
 import numpy as np
+from numpy.lib.recfunctions import structured_to_unstructured
 import pytest
-
 
 import dinf
 import examples.bottleneck.model  # type: ignore[import]
@@ -23,22 +22,18 @@ def check_discriminator(filename: str | pathlib.Path):
     dinf.Discriminator.from_file(filename)
 
 
-def check_ncf(
+def check_npz(
     filename: str | pathlib.Path,
     *,
     chains: int,
     draws: int,
-    var_names: Iterable[str],
-    check_acceptance_rate: bool,
+    parameters: dinf.Parameters,
 ):
-    ds = az.from_netcdf(filename)
-    assert len(ds.posterior.chain) == chains
-    assert len(ds.posterior.draw) == draws
-    np.testing.assert_array_equal(list(ds.posterior.data_vars.keys()), list(var_names))
-    assert len(ds.sample_stats.lp.chain) == chains
-    assert len(ds.sample_stats.lp.draw) == draws
-    if check_acceptance_rate:
-        assert "acceptance_rate" in ds.sample_stats
+    data = dinf.load_results(filename, parameters=parameters)
+    if chains == 1:
+        assert data.shape == (draws,)
+    else:
+        assert data.shape == (draws, chains)
 
 
 @pytest.mark.usefixtures("tmp_path")
@@ -61,12 +56,11 @@ def test_abc_gan(tmp_path):
     assert working_directory.exists()
     for i in range(2):
         check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-        check_ncf(
-            working_directory / f"{i}" / "abc.ncf",
+        check_npz(
+            working_directory / f"{i}" / "abc.npz",
             chains=1,
             draws=7,
-            var_names=genobuilder.parameters,
-            check_acceptance_rate=False,
+            parameters=genobuilder.parameters,
         )
 
     # resume
@@ -83,12 +77,11 @@ def test_abc_gan(tmp_path):
     )
     for i in range(3):
         check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-        check_ncf(
-            working_directory / f"{i}" / "abc.ncf",
+        check_npz(
+            working_directory / f"{i}" / "abc.npz",
             chains=1,
             draws=7,
-            var_names=genobuilder.parameters,
-            check_acceptance_rate=False,
+            parameters=genobuilder.parameters,
         )
 
     with pytest.raises(
@@ -110,7 +103,7 @@ def test_abc_gan(tmp_path):
     backup = working_directory / "bak"
     for file in [
         working_directory / f"{i}" / "discriminator.pkl",
-        working_directory / f"{i}" / "abc.ncf",
+        working_directory / f"{i}" / "abc.npz",
     ]:
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
@@ -150,12 +143,11 @@ def test_mcmc_gan(tmp_path):
     assert working_directory.exists()
     for i in range(2):
         check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-        check_ncf(
-            working_directory / f"{i}" / "mcmc.ncf",
+        check_npz(
+            working_directory / f"{i}" / "mcmc.npz",
             chains=6,
             draws=1,
-            var_names=genobuilder.parameters,
-            check_acceptance_rate=True,
+            parameters=genobuilder.parameters,
         )
 
     # resume
@@ -173,12 +165,11 @@ def test_mcmc_gan(tmp_path):
     )
     for i in range(3):
         check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-        check_ncf(
-            working_directory / f"{i}" / "mcmc.ncf",
+        check_npz(
+            working_directory / f"{i}" / "mcmc.npz",
             chains=6,
             draws=1,
-            var_names=genobuilder.parameters,
-            check_acceptance_rate=True,
+            parameters=genobuilder.parameters,
         )
 
     with pytest.raises(ValueError, match="resuming from .* which used .* walkers"):
@@ -214,7 +205,7 @@ def test_mcmc_gan(tmp_path):
     backup = working_directory / "bak"
     for file in [
         working_directory / f"{i}" / "discriminator.pkl",
-        working_directory / f"{i}" / "mcmc.ncf",
+        working_directory / f"{i}" / "mcmc.npz",
     ]:
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
@@ -255,12 +246,11 @@ def test_alfi_mcmc_gan(tmp_path):
     assert working_directory.exists()
     for i in range(2):
         check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-        check_ncf(
-            working_directory / f"{i}" / "mcmc.ncf",
+        check_npz(
+            working_directory / f"{i}" / "mcmc.npz",
             chains=6,
             draws=2 * steps,
-            var_names=genobuilder.parameters,
-            check_acceptance_rate=True,
+            parameters=genobuilder.parameters,
         )
 
     # resume
@@ -277,12 +267,11 @@ def test_alfi_mcmc_gan(tmp_path):
     )
     for i in range(3):
         check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-        check_ncf(
-            working_directory / f"{i}" / "mcmc.ncf",
+        check_npz(
+            working_directory / f"{i}" / "mcmc.npz",
             chains=6,
             draws=2 * steps,
-            var_names=genobuilder.parameters,
-            check_acceptance_rate=True,
+            parameters=genobuilder.parameters,
         )
 
     with pytest.raises(ValueError, match="resuming from .* which used .* walkers"):
@@ -317,7 +306,7 @@ def test_alfi_mcmc_gan(tmp_path):
     for file in [
         working_directory / f"{i}" / "discriminator.pkl",
         working_directory / f"{i}" / "surrogate.pkl",
-        working_directory / f"{i}" / "mcmc.ncf",
+        working_directory / f"{i}" / "mcmc.npz",
     ]:
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
@@ -359,12 +348,11 @@ def test_pg_gan(tmp_path):
     assert working_directory.exists()
     for i in range(2):
         check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-        check_ncf(
-            working_directory / f"{i}" / "pg-gan-proposals.ncf",
-            chains=num_params * num_proposals + 1,
-            draws=1,
-            var_names=genobuilder.parameters,
-            check_acceptance_rate=False,
+        check_npz(
+            working_directory / f"{i}" / "pg-gan-proposals.npz",
+            chains=1,
+            draws=num_params * num_proposals + 1,
+            parameters=genobuilder.parameters,
         )
 
     # resume
@@ -381,18 +369,17 @@ def test_pg_gan(tmp_path):
     )
     for i in range(3):
         check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-        check_ncf(
-            working_directory / f"{i}" / "pg-gan-proposals.ncf",
-            chains=num_params * num_proposals + 1,
-            draws=1,
-            var_names=genobuilder.parameters,
-            check_acceptance_rate=False,
+        check_npz(
+            working_directory / f"{i}" / "pg-gan-proposals.npz",
+            chains=1,
+            draws=num_params * num_proposals + 1,
+            parameters=genobuilder.parameters,
         )
 
     backup = working_directory / "bak"
     for file in [
         working_directory / f"{i}" / "discriminator.pkl",
-        working_directory / f"{i}" / "pg-gan-proposals.ncf",
+        working_directory / f"{i}" / "pg-gan-proposals.npz",
     ]:
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
@@ -678,3 +665,86 @@ class TestLogProb:
         for j in range(len(thetas)):
             log_D_1 = log_prob_1(thetas[j])
             assert np.isinf(log_D_1)
+
+
+@pytest.mark.usefixtures("tmp_path")
+def test_save_load_results(tmp_path):
+    size = 100
+    params = dinf.Parameters(
+        p0=dinf.Param(low=0, high=10), p1=dinf.Param(low=10, high=20)
+    )
+    thetas = params.draw_prior(size, rng=np.random.default_rng(123))
+    y = np.zeros(size)
+    file = tmp_path / "a.npz"
+    dinf.save_results(file, thetas=thetas, probs=y, parameters=params)
+    assert file.exists()
+
+    data = dinf.load_results(file, parameters=params)
+    names = list(data.dtype.names)
+    assert names[0] == "_Pr"
+    np.testing.assert_array_equal(y, data["_Pr"])
+
+    thetas2 = structured_to_unstructured(data[names[1:]])
+    np.testing.assert_array_equal(thetas, thetas2)
+
+
+@pytest.mark.usefixtures("tmp_path")
+def test_save_load_results_3d(tmp_path):
+    size = 100
+    params = dinf.Parameters(
+        p0=dinf.Param(low=0, high=10), p1=dinf.Param(low=10, high=20)
+    )
+    thetas = params.draw_prior(size, rng=np.random.default_rng(123))
+    y = np.zeros(size)
+
+    # Reshape to 3 dims.
+    thetas = thetas.reshape((-1, 5, len(params)))
+    y = y.reshape((-1, 5))
+
+    file = tmp_path / "a.npz"
+    dinf.save_results(file, thetas=thetas, probs=y, parameters=params)
+    assert file.exists()
+
+    data = dinf.load_results(file, parameters=params)
+    names = list(data.dtype.names)
+    assert names[0] == "_Pr"
+    np.testing.assert_array_equal(y, data["_Pr"])
+
+    thetas2 = structured_to_unstructured(data[names[1:]])
+    np.testing.assert_array_equal(thetas, thetas2)
+
+
+@pytest.mark.usefixtures("tmp_path")
+def test_save_results_bad_shape(tmp_path):
+    size = 100
+    params = dinf.Parameters(
+        p0=dinf.Param(low=0, high=10), p1=dinf.Param(low=10, high=20)
+    )
+    thetas = params.draw_prior(size, rng=np.random.default_rng(123))
+    y = np.zeros(size)
+    file = tmp_path / "a.npz"
+    with pytest.raises(ValueError, match="thetas.shape.*parameters"):
+        dinf.save_results(file, thetas=thetas, probs=y, parameters=[])
+    with pytest.raises(ValueError, match="thetas.shape.*probs.shape"):
+        dinf.save_results(file, thetas=thetas, probs=y[:50], parameters=params)
+
+
+@pytest.mark.usefixtures("tmp_path")
+def test_load_results_bad_shape(tmp_path):
+    size = 100
+    params = dinf.Parameters(
+        p0=dinf.Param(low=0, high=10), p1=dinf.Param(low=10, high=20)
+    )
+    thetas = params.draw_prior(size, rng=np.random.default_rng(123))
+    y = np.zeros(size)
+    file = tmp_path / "a.npz"
+    dinf.save_results(file, thetas=thetas, probs=y, parameters=params)
+    assert file.exists()
+
+    with pytest.raises(ValueError, match="expected arrays.*my_param"):
+        dinf.load_results(file, parameters=["my_param"])
+
+    file2 = tmp_path / "b.npz"
+    np.savez(file2, p0=thetas[..., 0], p1=thetas[..., 1])
+    with pytest.raises(ValueError, match="expected array '_Pr'"):
+        dinf.load_results(file2)

@@ -5,7 +5,7 @@ import pytest
 import dinf
 import dinf.__main__
 
-from .test_dinf import check_discriminator, check_ncf
+from .test_dinf import check_discriminator, check_npz
 
 
 @pytest.mark.usefixtures("tmp_path")
@@ -118,12 +118,11 @@ class TestAbcGan:
         genobuilder = dinf.Genobuilder.from_file(ex)
         for i in range(2):
             check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-            check_ncf(
-                working_directory / f"{i}" / "abc.ncf",
+            check_npz(
+                working_directory / f"{i}" / "abc.npz",
                 chains=1,
                 draws=7,
-                var_names=genobuilder.parameters,
-                check_acceptance_rate=False,
+                parameters=genobuilder.parameters,
             )
 
 
@@ -167,12 +166,11 @@ class TestAlfiMcmcGan:
         genobuilder = dinf.Genobuilder.from_file(ex)
         for i in range(2):
             check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-            check_ncf(
-                working_directory / f"{i}" / "mcmc.ncf",
+            check_npz(
+                working_directory / f"{i}" / "mcmc.npz",
                 chains=6,
                 draws=2,
-                var_names=genobuilder.parameters,
-                check_acceptance_rate=True,
+                parameters=genobuilder.parameters,
             )
 
 
@@ -213,12 +211,11 @@ class TestMcmcGan:
         genobuilder = dinf.Genobuilder.from_file(ex)
         for i in range(2):
             check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-            check_ncf(
-                working_directory / f"{i}" / "mcmc.ncf",
+            check_npz(
+                working_directory / f"{i}" / "mcmc.npz",
                 chains=6,
                 draws=1,
-                var_names=genobuilder.parameters,
-                check_acceptance_rate=True,
+                parameters=genobuilder.parameters,
             )
 
 
@@ -260,12 +257,11 @@ class TestPgGan:
         num_parameters = len(genobuilder.parameters)
         for i in range(2):
             check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
-            check_ncf(
-                working_directory / f"{i}" / "pg-gan-proposals.ncf",
-                chains=num_parameters * num_proposals + 1,
-                draws=1,
-                var_names=genobuilder.parameters,
-                check_acceptance_rate=False,
+            check_npz(
+                working_directory / f"{i}" / "pg-gan-proposals.npz",
+                chains=1,
+                draws=num_parameters * num_proposals + 1,
+                parameters=genobuilder.parameters,
             )
 
 
@@ -312,7 +308,7 @@ class TestPredict:
         assert out1.stdout == out2.stdout
 
     @pytest.mark.usefixtures("tmp_path")
-    def test_preduct_example(self, tmp_path):
+    def test_predict_example(self, tmp_path):
         discriminator_file = tmp_path / "discriminator.pkl"
         ex = "examples/bottleneck/model.py"
         subprocess.run(
@@ -332,7 +328,7 @@ class TestPredict:
         )
         check_discriminator(discriminator_file)
 
-        output_file = tmp_path / "output.ncf"
+        output_file = tmp_path / "output.npz"
         subprocess.run(
             f"""
             python -m dinf predict
@@ -349,10 +345,9 @@ class TestPredict:
         )
 
         genobuilder = dinf.Genobuilder.from_file(ex)
-        check_ncf(
+        check_npz(
             output_file,
             chains=1,
             draws=10,
-            var_names=genobuilder.parameters,
-            check_acceptance_rate=False,
+            parameters=genobuilder.parameters,
         )
