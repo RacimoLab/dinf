@@ -31,11 +31,13 @@ class TestGetSamplesFrom1KgpMetadata:
         filename = tmp_path / "1kgp_metadata.txt"
         with open(filename, "w") as f:
             f.write(_1kgp_test_metadata)
-        gbr = dinf.get_samples_from_1kgp_metadata(filename, ["GBR"])
+        gbr = dinf.get_samples_from_1kgp_metadata(filename, populations=["GBR"])
         assert gbr == {"GBR": ["HG00096", "HG00097"]}
-        chs = dinf.get_samples_from_1kgp_metadata(filename, ["CHS"])
+        chs = dinf.get_samples_from_1kgp_metadata(filename, populations=["CHS"])
         assert chs == {"CHS": ["HG00403", "HG00404"]}
-        samples = dinf.get_samples_from_1kgp_metadata(filename, ["GBR", "CHS"])
+        samples = dinf.get_samples_from_1kgp_metadata(
+            filename, populations=["GBR", "CHS"]
+        )
         assert samples == dict(**gbr, **chs)
 
 

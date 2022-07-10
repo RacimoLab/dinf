@@ -13,7 +13,7 @@ import cyvcf2
 logger = logging.getLogger(__name__)
 
 
-def get_samples_from_1kgp_metadata(filename: str, populations: list) -> dict:
+def get_samples_from_1kgp_metadata(filename: str, /, *, populations: list) -> dict:
     """
     Get sample IDs for 1000 Genomes Project populations.
     Related individuals are removed based on the FatherID and MotherID.
@@ -35,10 +35,10 @@ def get_samples_from_1kgp_metadata(filename: str, populations: list) -> dict:
 
 
 def get_contig_lengths(
-    filename: pathlib.Path | str, keep_contigs: Iterable[str] | None = None
+    filename: pathlib.Path | str, /, keep_contigs: Iterable[str] | None = None
 ) -> dict:
     """
-    Load contig lengths from a space-separated file like an fai (fasta index).
+    Load contig lengths from a whitespace-separated file like an fai (fasta index).
 
     The file must have (at least) two columns, the first specifies the
     contig ID, and the second is the contig length. Additional columns
@@ -175,26 +175,47 @@ class BagOfVcf(collections.abc.Mapping):
     VCF data are sometimes contained in a single file, and sometimes split into
     multiple files by chromosome. To remove the burden of dealing with both
     of these common cases, this class maps a contig ID to a :class:`cyvcf2.VCF`
-    object for that contig. The class implements Python's
-    :class:`collections.abc.Mapping` protocol. In addition, the class provides
-    methods for sampling regions of the genome at random.
+    object for that contig. The class implements Python's :term:`python:mapping`
+    protocol, plus methods for sampling regions of the genome at random.
 
-    :ivar lengths:
-        Lengths of the contigs in the bag. The order matches the contig order
-        obtained by iterating over the bag.
-    :vartype lengths: np.ndarray
-    :ivar samples:
-        A dictionary that maps a label to a list of individual names,
-        where the individual names correspond to the VCF columns
-        for which genotypes will be sampled.
-        This is a bookkeeping device that records which genotypes belong
-        to which label (e.g. which population). If None, it is assumed
-        that all individuals in the VCF will be treated as exchangeable.
+    .. code::
+
+        import dinf
+
+        vcfs = dinf.BagOfVcf(["chr1.bcf", "chr2.bcf", "chr3.bcf"])
+
+        # Iterate over contig IDs.
+        assert len(vcfs) == 3
+        assert list(vcfs) == ["chr1", "chr2", "chr3"]
+
+        # Lookup a cyvcf2.VCF object by contig ID.
+        chr1 = vcfs["chr1"]
+        assert chr1.fname == "chr1.bcf"
+        first_variant = next(chr1)
+        assert first_variant.CHROM == "chr1"
+    """
+
+    lengths: np.ndarray
+    """
+    Lengths of the contigs in the bag.
+
+    The order matches the contig order obtained when iterating.
+    """
+
+    samples: collections.abc.Mapping[str, List[str]] | None
+    """
+    A dictionary that maps a label to a list of individual names.
+
+    The individual names correspond to the VCF columns for which genotypes
+    will be sampled. This is a bookkeeping device that records which genotypes
+    belong to which label (e.g. which population). If None, it is assumed
+    that all individuals in the VCF will be treated as exchangeable.
     """
 
     def __init__(
         self,
         files: Iterable[str | pathlib.Path],
+        /,
         *,
         samples: collections.abc.Mapping[str, List[str]] | None = None,
         contig_lengths: collections.abc.Mapping[str, int] | None = None,
@@ -202,7 +223,7 @@ class BagOfVcf(collections.abc.Mapping):
         """
         :param files:
             An iterable of filenames. Each file must be an indexed VCF or BCF,
-            and contain the FORMAT/GT field.
+            and must contain the FORMAT/GT field.
         :param contig_lengths:
             A dict mapping a contig name to contig length. Only the contigs in
             this dict will be used.
@@ -369,7 +390,7 @@ class BagOfVcf(collections.abc.Mapping):
 
     def __len__(self) -> int:
         """
-        The number of distinct VCF and/or BCF files in the bag.
+        The number of contigs in the mapping.
 
         :return:
             The size of the bag.
@@ -383,9 +404,12 @@ class BagOfVcf(collections.abc.Mapping):
         self._needs_reopen = True
 
     def _reopen(self):
+        file2vcf = {
+            file: cyvcf2.VCF(file, samples=self._individuals, lazy=True, threads=1)
+            for file in set(self._contig2file.values())
+        }
         self._contig2vcf = {
-            contig_id: cyvcf2.VCF(file, samples=self._individuals, lazy=True, threads=1)
-            for contig_id, file in self._contig2file.items()
+            contig_id: file2vcf[file] for contig_id, file in self._contig2file.items()
         }
         self._needs_reopen = False
 
@@ -395,9 +419,12 @@ class BagOfVcf(collections.abc.Mapping):
         """
         Sample a list of (chrom, start, end) triplets.
 
-        :param size: Number of genomic windows to sample.
-        :param sequence_length: Length of the sequence to sample.
-        :param numpy.random.Generator rng: The numpy random number generator.
+        :param size:
+            Number of genomic windows to sample.
+        :param sequence_length:
+            Length of the sequence to sample.
+        :param numpy.random.Generator rng:
+            The numpy random number generator.
         :return:
             List of 3-tuples: (chrom, start, end).
             The start and end coordinates are 1-based and inclusive, to match

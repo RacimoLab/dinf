@@ -5,7 +5,7 @@ import pathlib
 import pickle
 import sys
 import time
-from typing import Sequence
+from typing import Callable, Tuple
 
 from flax import linen as nn
 import flax.training.train_state
@@ -61,24 +61,68 @@ class Symmetric(nn.Module):
     to permutations of the input along that axis.
 
     | Chan et al. 2018, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7687905/
+
+    :param func:
+        The permutation-invariant function to apply.
+        Must be one of:
+
+         * "max": maximum value.
+         * "mean": mean value.
+         * "sum": sum of the values.
+         * "var": variance of the values.
+         * "moments": first ``k`` moments, :math:`E[x], E[x^2], ..., E[x^k]`.
+         * "central-moments": first ``k`` central moments,
+           :math:`E[x], E[(x - E[x])^2], ..., E[(x - E[x])^k]`.
+
+    :param k:
+        The number of moments to take when ``func`` is "moments" or "central-moments".
     """
 
-    axis: int
     func: str
+    k: int | None = None
+
+    def setup(self):
+        choices = ("max", "mean", "sum", "var", "moments", "central-moments")
+        if self.func not in choices:
+            raise ValueError(
+                f"Unexpected func `{self.func}'. Must be one of {choices}."
+            )
+        needs_k = ("moments", "central-moments")
+        if self.func in needs_k and (self.k is None or self.k < 2):
+            raise ValueError(f"Must have k >= 2 when func is one of {needs_k}.")
 
     @nn.compact
-    def __call__(self, x):
-        assert self.func in ("var", "sum")
-        # TODO: Assess choice of symmetric function more formally.
-        # Sum and variance work well, mean and median seem to work less well.
-        # Chan et al. suggest some alternatives which I haven't tried:
-        #  - max
-        #  - mean of the top decile
-        #  - higher moments
-        if self.func == "sum":
-            return jnp.sum(x, axis=self.axis, keepdims=True)
+    def __call__(self, x, *, axis):
+        # Chan et al. also suggests trying (1) the top k,
+        # and (2) the mean of the top decile, which I've not tried implementing.
+        if self.func == "max":
+            return jnp.max(x, axis=axis, keepdims=True)
+        elif self.func == "mean":
+            return jnp.mean(x, axis=axis, keepdims=True)
+        elif self.func == "sum":
+            return jnp.sum(x, axis=axis, keepdims=True)
         elif self.func == "var":
-            return jnp.var(x, axis=self.axis, keepdims=True)
+            return jnp.var(x, axis=axis, keepdims=True)
+        elif self.func == "moments":
+            assert self.k is not None and self.k >= 2
+            return jnp.concatenate(
+                [
+                    jnp.mean(x**i, axis=axis, keepdims=True)
+                    for i in range(1, self.k + 1)
+                ],
+                axis=axis,
+            )
+        elif self.func == "central-moments":
+            assert self.k is not None and self.k >= 2
+            mean = jnp.mean(x, axis=axis, keepdims=True)
+            return jnp.concatenate(
+                [mean]
+                + [
+                    jnp.mean((x - mean) ** i, axis=axis, keepdims=True)
+                    for i in range(2, self.k + 1)
+                ],
+                axis=axis,
+            )
 
 
 class ExchangeablePGGAN(nn.Module):
@@ -106,20 +150,39 @@ class ExchangeablePGGAN(nn.Module):
     dimension of the feature matrices.
 
     | [1] Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
+
+    :param sizes1:
+        A tuple of feature sizes for the convolution layers before the
+        symmetric function. Convolution weights are tied between convolution
+        layers of the distinct labelled feature matrices.
+    :param symmetric:
+        The symmetric network layer.
+    :param sizes2:
+        A tuple of feature sizes for the dense (fully connected) layers
+        afer the symmetric function.
     """
+
+    sizes1: Tuple[int, ...] = (32, 64)
+    symmetric: nn.Module = Symmetric(func="sum")
+    sizes2: Tuple[int, ...] = (128, 128)
 
     @nn.compact
     def __call__(  # type: ignore[override]
         self, inputs: Pytree, *, train: bool
     ) -> Pytree:
         kernel_init = nn.initializers.glorot_uniform()
-        # Flax uses channels-last (NHWC) convention.
-        conv = functools.partial(
-            nn.Conv, kernel_size=(1, 5), use_bias=True, kernel_init=kernel_init
-        )
         # Convolution weights are shared across feature matrices.
-        conv1 = conv(features=32, strides=(1, 1))
-        conv2 = conv(features=64, strides=(1, 1))
+        # Flax uses channels-last (NHWC) convention.
+        conv_layers = [
+            nn.Conv(
+                features=features,
+                strides=(1, 1),
+                kernel_size=(1, 5),
+                use_bias=True,
+                kernel_init=kernel_init,
+            )
+            for features in self.sizes1
+        ]
         pool = functools.partial(nn.max_pool, window_shape=(1, 2), strides=(1, 2))
         # https://flax.readthedocs.io/en/latest/howtos/state_params.html
         norm = functools.partial(nn.BatchNorm, use_running_average=not train)
@@ -130,41 +193,29 @@ class ExchangeablePGGAN(nn.Module):
             x = input_feature
             x = norm()(x)
 
-            x = conv1(x)
-            x = activation(x)
-            x = pool(x)
-            x = norm()(x)
-
-            x = conv2(x)
-            x = activation(x)
-            x = pool(x)
-            x = norm()(x)
+            for conv in conv_layers:
+                x = conv(x)
+                x = activation(x)
+                x = pool(x)
+                x = norm()(x)
 
             # collapse haplotypes
-            x = Symmetric(axis=1, func="sum")(x)
-
+            x = self.symmetric(x, axis=1)
             # flatten
             x = jnp.reshape(x, (x.shape[0], -1))
-
             xs.append(x)
 
         x = jnp.concatenate(xs, axis=-1)
 
-        x = nn.Dense(features=128, kernel_init=kernel_init)(x)
-        x = activation(x)
-        x = norm()(x)
-        x = nn.Dropout(rate=0.5)(x, deterministic=not train)
-
-        x = nn.Dense(features=128, kernel_init=kernel_init)(x)
-        x = activation(x)
-        x = norm()(x)
-        x = nn.Dropout(rate=0.5)(x, deterministic=not train)
+        for features in self.sizes2:
+            x = nn.Dense(features=features, kernel_init=kernel_init)(x)
+            x = activation(x)
+            x = norm()(x)
+            x = nn.Dropout(rate=0.5)(x, deterministic=not train)
 
         y = nn.Dense(features=1)(x)
-
         # flatten
         y = jnp.reshape(y, (-1,))
-
         # We output logits on (-inf, inf), rather than a probability on [0, 1].
         # So remember to call jax.nn.sigmoid(x) on the output when
         # probabilities are needed.
@@ -179,9 +230,9 @@ class ExchangeableCNN(nn.Module):
     (batch_size, num_haplotypes, num_loci, channels).
     Two 1-d convolution layers are applied along haplotypes and
     feature size is reduced in each convolution using a stride of 2.
-    Then the variance function is used to collapse
+    Then the max function is used to collapse
     features across the num_haplotypes dimension. A third 1-d convolution
-    follows (with stride of 1), and the variance function is used to
+    follows (with stride of 1), and the max function is used to
     collapse features across the num_loci dimension.
     Elu activation is used throughout, except for the final output which has
     no activation.
@@ -189,7 +240,20 @@ class ExchangeableCNN(nn.Module):
     The number of trainable parameters in the network is dependent on the
     number of feature matrices in the input, but independent of the size of
     the feature matrices.
+
+    :param sizes1:
+        A tuple of feature sizes for the convolution layers before the
+        symmetric function.
+    :param symmetric:
+        The symmetric network layer.
+    :param sizes2:
+        A tuple of feature sizes for the convolution layers afer the
+        symmetric function.
     """
+
+    sizes1: Tuple[int, ...] = (32, 64)
+    symmetric: nn.Module = Symmetric(func="max")
+    sizes2: Tuple[int, ...] = (64,)
 
     @nn.compact
     def __call__(  # type: ignore[override]
@@ -199,36 +263,41 @@ class ExchangeableCNN(nn.Module):
         conv = functools.partial(nn.Conv, kernel_size=(1, 5), use_bias=False)
         # https://flax.readthedocs.io/en/latest/howtos/state_params.html
         norm = functools.partial(nn.BatchNorm, use_running_average=not train)
-        activation = nn.elu
+        activation: Callable = nn.elu
 
         xs = []
         for input_feature in jax.tree_leaves(inputs):
             x = norm()(input_feature)
 
-            x = conv(features=32, strides=(1, 2))(x)
-            x = activation(x)
-            x = norm()(x)
-
-            x = conv(features=64, strides=(1, 2))(x)
-            x = activation(x)
-            x = norm()(x)
+            for features in self.sizes1:
+                x = conv(features=features, strides=(1, 2))(x)
+                x = activation(x)
+                x = norm()(x)
 
             # collapse haplotypes
-            x = Symmetric(axis=1, func="var")(x)
+            x = self.symmetric(x, axis=1)
 
-            x = conv(features=64)(x)
-            x = activation(x)
-            x = norm()(x)
+            for features in self.sizes2:
+                x = conv(features=features, strides=(1, 1))(x)
+                x = activation(x)
+                x = norm()(x)
 
-            # collapse genomic bins
-            x = Symmetric(axis=2, func="var")(x)
+            # collapse loci
+            x = self.symmetric(x, axis=2)
             xs.append(x)
 
         x = jnp.concatenate(xs, axis=-1)
+        # flatten
+        x = jnp.reshape(
+            x,
+            (
+                x.shape[0],
+                -1,
+            ),
+        )
         y = nn.Dense(features=1)(x)
         # flatten
         y = jnp.reshape(y, (-1,))
-
         # We output logits on (-inf, inf), rather than a probability on [0, 1].
         # So remember to call jax.nn.sigmoid(x) on the output when
         # probabilities are needed.
@@ -707,7 +776,7 @@ def _predict_batch(batch, variables, apply_func):
 
 
 class SurrogateMLP(nn.Module):
-    layers: Sequence[int] = (64, 64, 32)
+    layers: Tuple[int, ...] = (64, 64, 32)
 
     @nn.compact
     def __call__(self, inputs, *, train: bool):  # type: ignore[override]

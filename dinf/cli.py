@@ -163,7 +163,7 @@ class AbcGan:
 
     def __call__(self, args: argparse.Namespace):
         rng = np.random.default_rng(args.seed)
-        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
+        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         dinf.dinf.abc_gan(
             genobuilder=genobuilder,
             iterations=args.iterations,
@@ -218,7 +218,7 @@ class AlfiMcmcGan:
 
     def __call__(self, args: argparse.Namespace):
         rng = np.random.default_rng(args.seed)
-        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
+        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         dinf.alfi_mcmc_gan(
             genobuilder=genobuilder,
             iterations=args.iterations,
@@ -286,7 +286,7 @@ class McmcGan:
 
     def __call__(self, args: argparse.Namespace):
         rng = np.random.default_rng(args.seed)
-        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
+        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         dinf.mcmc_gan(
             genobuilder=genobuilder,
             iterations=args.iterations,
@@ -343,7 +343,7 @@ class PgGan:
 
     def __call__(self, args: argparse.Namespace):
         rng = np.random.default_rng(args.seed)
-        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
+        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         dinf.pg_gan(
             genobuilder=genobuilder,
             iterations=args.iterations,
@@ -392,7 +392,7 @@ class Train:
 
     def __call__(self, args: argparse.Namespace):
         rng = np.random.default_rng(args.seed)
-        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
+        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         check_output_file(args.discriminator_file)
         discriminator = dinf.train(
             genobuilder=genobuilder,
@@ -458,7 +458,7 @@ class Predict:
 
     def __call__(self, args: argparse.Namespace):
         rng = np.random.default_rng(args.seed)
-        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
+        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         discriminator = dinf.Discriminator.from_file(args.discriminator_file)
         check_output_file(args.output_file)
         dataset = dinf.predict(
@@ -493,7 +493,7 @@ class Check:
         )
 
     def __call__(self, args: argparse.Namespace):
-        genobuilder = dinf.Genobuilder._from_file(args.genob_model)
+        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         genobuilder.check()
 
 

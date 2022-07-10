@@ -10,7 +10,7 @@ import dinf
 
 populations = ["YRI", "CEU", "CHB"]
 samples = dinf.get_samples_from_1kgp_metadata(
-    "20130606_g1k_3202_samples_ped_population.txt", populations
+    "20130606_g1k_3202_samples_ped_population.txt", populations=populations
 )
 contig_lengths = dinf.get_contig_lengths(
     "GRCh38_full_analysis_set_plus_decoy_hla.fa.fai",
@@ -132,7 +132,7 @@ def generator(seed, **theta):
     return labelled_matrices
 
 
-vb = dinf.BagOfVcf(
+vcfs = dinf.BagOfVcf(
     pathlib.Path("bcf/").glob("*.bcf"),
     samples=samples,
     contig_lengths=contig_lengths,
@@ -142,7 +142,7 @@ vb = dinf.BagOfVcf(
 def target(seed):
     rng = np.random.default_rng(seed)
     labelled_matrices = features.from_vcf(
-        vb,
+        vcfs,
         sequence_length=sequence_length,
         min_seg_sites=20,
         max_missing_genotypes=0,

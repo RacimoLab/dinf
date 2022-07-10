@@ -499,7 +499,7 @@ def test_sanneal_proposals_pg_gan():
     num_proposals = 10
 
     for i in range(100):
-        theta = genobuilder.parameters.draw_prior(num_replicates=1, rng=rng)[0]
+        theta = genobuilder.parameters.draw_prior(1, rng=rng)[0]
         proposal_thetas = dinf.dinf.sanneal_proposals_pg_gan(
             theta=theta,
             temperature=1,
@@ -521,7 +521,7 @@ def test_sanneal_proposals_rr():
 
     iteration = itertools.count()
     for i in range(100):
-        theta = genobuilder.parameters.draw_prior(num_replicates=1, rng=rng)[0]
+        theta = genobuilder.parameters.draw_prior(1, rng=rng)[0]
         proposal_thetas = dinf.dinf.sanneal_proposals_rr(
             theta=theta,
             temperature=1,
@@ -547,7 +547,7 @@ def test_sanneal_proposals_mvn():
     num_proposals = 10
 
     for i in range(100):
-        theta = genobuilder.parameters.draw_prior(num_replicates=1, rng=rng)[0]
+        theta = genobuilder.parameters.draw_prior(1, rng=rng)[0]
         proposal_thetas = dinf.dinf.sanneal_proposals_mvn(
             theta=theta,
             temperature=1,
@@ -601,10 +601,8 @@ class TestLogProb:
         cls.discriminator = dinf.Discriminator.from_input_shape(
             cls.genobuilder.feature_shape, rng
         )
-        training_thetas = cls.genobuilder.parameters.draw_prior(
-            num_replicates=100, rng=rng
-        )
-        test_thetas = cls.genobuilder.parameters.draw_prior(num_replicates=0, rng=rng)
+        training_thetas = cls.genobuilder.parameters.draw_prior(100, rng=rng)
+        test_thetas = cls.genobuilder.parameters.draw_prior(0, rng=rng)
         dinf.dinf._train_discriminator(
             discriminator=cls.discriminator,
             genobuilder=cls.genobuilder,

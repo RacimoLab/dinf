@@ -1,4 +1,4 @@
 [run]
 omit =
-    # This file isn't used.
-    dinf/report.py
+    # Not worth writing tests for this.
+    dinf/plot.py

@@ -1,3 +1,5 @@
+from typing import Callable
+
 import numpy as np
 import msprime
 import pytest
@@ -150,6 +152,31 @@ class TestHaplotypeMatrix:
         # Each row in the positions matrix should be identical.
         for row in P[1:]:
             np.testing.assert_array_equal(P[0], row)
+
+    @pytest.mark.parametrize("phased", [True, False])
+    @pytest.mark.parametrize("ploidy", [1, 2, 3])
+    def test_from_ts_no_seg_sites(self, ploidy, phased):
+        num_loci = 32
+        num_individuals = 8
+        num_haplotypes = ploidy * num_individuals
+        num_pseudo_haplotypes = num_haplotypes if phased else num_individuals
+        ts = do_sim(
+            num_individuals=num_individuals,
+            ploidy=ploidy,
+            sequence_length=100_000,
+            mutation_rate=0,
+        )
+        hm = dinf.HaplotypeMatrix(
+            num_individuals=num_individuals,
+            num_loci=num_loci,
+            maf_thresh=0,
+            ploidy=ploidy,
+            phased=phased,
+        )
+        assert hm.shape == (num_pseudo_haplotypes, num_loci, 2)
+        M = hm.from_ts(ts)
+        assert M.shape == (num_pseudo_haplotypes, num_loci, 2)
+        assert np.all(M == 0)
 
     @pytest.mark.parametrize("phased", [True, False])
     @pytest.mark.parametrize("ploidy", [1, 2, 3])
@@ -527,7 +554,7 @@ class TestBinnedHaplotypeMatrix:
             phased=True,
         )
         M = bhm.from_ts(ts)
-        assert M.sum() == 0
+        assert np.all(M == 0)
 
     @pytest.mark.parametrize("ploidy", [1, 2, 3])
     def test_from_ts_maf_thresh(self, ploidy):
@@ -754,7 +781,9 @@ class TestBinnedHaplotypeMatrix:
             )
 
 
-class TestMultipleBinnedHaplotypeMatrices:
+class _TestMultiple:
+    cls: Callable  # The multiple feature matrices class
+
     def setup_class(cls):
         demography = msprime.Demography()
         demography.add_population(name="a", initial_size=10_000)
@@ -772,7 +801,7 @@ class TestMultipleBinnedHaplotypeMatrices:
         self, global_phased, global_maf_thresh, ploidy, num_loci, num_individuals
     ):
         populations = ["b", "c"]
-        dinf.MultipleBinnedHaplotypeMatrices(
+        self.cls(
             num_individuals={pop: num_individuals for pop in populations},
             num_loci={pop: num_loci for pop in populations},
             ploidy={pop: ploidy for pop in populations},
@@ -788,7 +817,7 @@ class TestMultipleBinnedHaplotypeMatrices:
         global_maf_thresh = 0
         populations = ["b", "c"]
         with pytest.raises(TypeError, match="Expected dict"):
-            dinf.MultipleBinnedHaplotypeMatrices(
+            self.cls(
                 num_individuals=num_individuals,
                 num_loci={pop: num_loci for pop in populations},
                 ploidy={pop: ploidy for pop in populations},
@@ -796,7 +825,7 @@ class TestMultipleBinnedHaplotypeMatrices:
                 global_maf_thresh=global_maf_thresh,
             )
         with pytest.raises(TypeError, match="Expected dict"):
-            dinf.MultipleBinnedHaplotypeMatrices(
+            self.cls(
                 num_individuals={pop: num_individuals for pop in populations},
                 num_loci=num_loci,
                 ploidy={pop: ploidy for pop in populations},
@@ -804,7 +833,7 @@ class TestMultipleBinnedHaplotypeMatrices:
                 global_maf_thresh=global_maf_thresh,
             )
         with pytest.raises(TypeError, match="Expected dict"):
-            dinf.MultipleBinnedHaplotypeMatrices(
+            self.cls(
                 num_individuals={pop: num_individuals for pop in populations},
                 num_loci={pop: num_loci for pop in populations},
                 ploidy=ploidy,
@@ -820,7 +849,7 @@ class TestMultipleBinnedHaplotypeMatrices:
         global_maf_thresh = 0
         populations = ["b", "c"]
         with pytest.raises(ValueError, match="Must use the same dict keys"):
-            dinf.MultipleBinnedHaplotypeMatrices(
+            self.cls(
                 num_individuals={pop: num_individuals for pop in ["a", "c"]},
                 num_loci={pop: num_loci for pop in populations},
                 ploidy={pop: ploidy for pop in populations},
@@ -828,7 +857,7 @@ class TestMultipleBinnedHaplotypeMatrices:
                 global_maf_thresh=global_maf_thresh,
             )
         with pytest.raises(ValueError, match="Must use the same dict keys"):
-            dinf.MultipleBinnedHaplotypeMatrices(
+            self.cls(
                 num_individuals={pop: num_individuals for pop in populations},
                 num_loci={pop: num_loci for pop in ["a", "c"]},
                 ploidy={pop: ploidy for pop in populations},
@@ -836,7 +865,7 @@ class TestMultipleBinnedHaplotypeMatrices:
                 global_maf_thresh=global_maf_thresh,
             )
         with pytest.raises(ValueError, match="Must use the same dict keys"):
-            dinf.MultipleBinnedHaplotypeMatrices(
+            self.cls(
                 num_individuals={pop: num_individuals for pop in populations},
                 num_loci={pop: num_loci for pop in populations},
                 ploidy={pop: ploidy for pop in ["a", "c"]},
@@ -860,7 +889,7 @@ class TestMultipleBinnedHaplotypeMatrices:
         )
         individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
 
-        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+        feature_extractor = self.cls(
             num_individuals={pop: num_individuals for pop in populations},
             num_loci={pop: 24 for pop in populations},
             ploidy={pop: ploidy for pop in populations},
@@ -890,7 +919,7 @@ class TestMultipleBinnedHaplotypeMatrices:
         )
         individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
 
-        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+        feature_extractor = self.cls(
             num_individuals={pop: num_individuals for pop in populations},
             num_loci={pop: 24 for pop in populations},
             ploidy={pop: ploidy for pop in populations},
@@ -900,7 +929,7 @@ class TestMultipleBinnedHaplotypeMatrices:
 
         features = feature_extractor.from_ts(ts, individuals=individuals)
         for M in jax.tree_leaves(features):
-            assert M.sum() == 0
+            assert np.all(M == 0)
 
     def test_from_ts_mismatched_individuals_labels(self):
         ploidy = 2
@@ -919,7 +948,7 @@ class TestMultipleBinnedHaplotypeMatrices:
         individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
 
         wrong_populations = ["a", "c"]
-        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+        feature_extractor = self.cls(
             num_individuals={pop: num_individuals for pop in wrong_populations},
             num_loci={pop: 24 for pop in wrong_populations},
             ploidy={pop: ploidy for pop in wrong_populations},
@@ -948,7 +977,7 @@ class TestMultipleBinnedHaplotypeMatrices:
         )
         individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
 
-        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+        feature_extractor = self.cls(
             num_individuals={pop: num_individuals for pop in populations},
             num_loci={"b": 24, "c": 10**6},
             ploidy={pop: ploidy for pop in populations},
@@ -977,7 +1006,7 @@ class TestMultipleBinnedHaplotypeMatrices:
         )
         individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
 
-        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+        feature_extractor = self.cls(
             num_individuals={"b": num_individuals, "c": num_individuals + 1},
             num_loci={pop: 24 for pop in populations},
             ploidy={pop: ploidy for pop in populations},
@@ -1004,7 +1033,7 @@ class TestMultipleBinnedHaplotypeMatrices:
         )
         individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
 
-        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+        feature_extractor = self.cls(
             num_individuals={pop: num_individuals for pop in populations},
             num_loci={pop: 24 for pop in populations},
             ploidy={"b": ploidy, "c": ploidy + 1},
@@ -1038,7 +1067,7 @@ class TestMultipleBinnedHaplotypeMatrices:
         )
         individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
 
-        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+        feature_extractor = self.cls(
             num_individuals=num_individuals,
             num_loci={pop: num_loci for pop in populations},
             ploidy=ploidy,
@@ -1080,8 +1109,13 @@ class TestMultipleBinnedHaplotypeMatrices:
         )
 
         def row_sorted(A):
-            """Sort the rows of A."""
-            return np.array(sorted(A, key=tuple))
+            """
+            Sort the rows of A. Rows in each channel are sorted independently.
+            """
+            return np.concatenate(
+                [np.array(sorted(A[..., j], key=tuple)) for j in range(A.shape[-1])],
+                axis=-1,
+            )
 
         for pop in populations:
             Mts = ts_features[pop]
@@ -1130,7 +1164,7 @@ class TestMultipleBinnedHaplotypeMatrices:
             },
         )
 
-        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+        feature_extractor = self.cls(
             num_individuals=num_individuals,
             num_loci={pop: num_loci for pop in populations},
             ploidy=wrong_ploidy,
@@ -1164,7 +1198,7 @@ class TestMultipleBinnedHaplotypeMatrices:
             ],
         )
 
-        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+        feature_extractor = self.cls(
             num_individuals=num_individuals,
             num_loci={pop: num_loci for pop in populations},
             ploidy=ploidy,
@@ -1234,7 +1268,7 @@ class TestMultipleBinnedHaplotypeMatrices:
             ],
         )
 
-        feature_extractor = dinf.MultipleBinnedHaplotypeMatrices(
+        feature_extractor = self.cls(
             num_individuals=num_individuals,
             num_loci={pop: num_loci for pop in populations},
             ploidy=ploidy,
@@ -1272,3 +1306,11 @@ class TestMultipleBinnedHaplotypeMatrices:
                 min_seg_sites=1,
                 rng=np.random.default_rng(1234),
             )
+
+
+class TestMultipleHaplotypeMatrices(_TestMultiple):
+    cls = dinf.MultipleHaplotypeMatrices
+
+
+class TestMultipleBinnedHaplotypeMatrices(_TestMultiple):
+    cls = dinf.MultipleBinnedHaplotypeMatrices

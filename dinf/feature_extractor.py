@@ -122,7 +122,7 @@ class _FeatureMatrix:
             raise ValueError("Sequence length is shorter than the number of loci")
 
         G = ts.genotype_matrix()  # shape is (num_sites, num_haplotypes)
-        G = np.reshape(G, (-1, self._num_individuals, self._ploidy))
+        G = np.reshape(G, (G.shape[0], self._num_individuals, self._ploidy))
         positions = np.array(ts.tables.sites.position)
         return self._from_genotype_matrix(
             G, positions=positions, sequence_length=ts.sequence_length
@@ -259,7 +259,7 @@ class HaplotypeMatrix(_FeatureMatrix):
         self._dtype = np.float32
 
     @property
-    def shape(self) -> Tuple[int, int, int]:
+    def shape(self) -> Tuple[int, ...]:
         """Shape of the feature matrix."""
         return (self._num_pseudo_haplotypes, self._num_loci, 2)
 
@@ -296,7 +296,7 @@ class HaplotypeMatrix(_FeatureMatrix):
         G_sites, G_individuals, G_ploidy = G.shape
         assert G_individuals == self._num_individuals
         assert G_ploidy == self._ploidy
-        G = np.reshape(G, (G_sites, -1))
+        G = np.reshape(G, (G_sites, G_individuals * G_ploidy))
 
         # Filter sites with insufficient minor allele count.
         ac0 = np.sum(G == 0, axis=1)
@@ -325,7 +325,7 @@ class HaplotypeMatrix(_FeatureMatrix):
 
         if not self._phased and self._ploidy > 1:
             # Collapse each individual's chromosome copies by summing counts.
-            G = np.reshape(G, (-1, self._num_individuals, self._ploidy))
+            G = np.reshape(G, (G.shape[0], self._num_individuals, self._ploidy))
             G = np.sum(G, axis=2)
 
         positions = np.around(positions)
@@ -435,7 +435,7 @@ class BinnedHaplotypeMatrix(_FeatureMatrix):
         self._dtype = np.int8
 
     @property
-    def shape(self) -> Tuple[int, int, int]:
+    def shape(self) -> Tuple[int, ...]:
         """Shape of the feature matrix."""
         return (self._num_pseudo_haplotypes, self._num_loci, 1)
 
@@ -478,7 +478,7 @@ class BinnedHaplotypeMatrix(_FeatureMatrix):
         G_sites, G_individuals, G_ploidy = G.shape
         assert G_individuals == self._num_individuals
         assert G_ploidy == self._ploidy
-        G = np.reshape(G, (G_sites, -1))
+        G = np.reshape(G, (G_sites, G_individuals * G_ploidy))
 
         # Identify genotypes that aren't 0 or 1. These will be ignored later.
         missing = np.logical_or(G == -1, G >= 2)
@@ -495,7 +495,7 @@ class BinnedHaplotypeMatrix(_FeatureMatrix):
 
         if not self._phased:
             # Collapse each individual's chromosome copies by summing counts.
-            G = np.reshape(G, (-1, self._num_individuals, self._ploidy))
+            G = np.reshape(G, (G_sites, self._num_individuals, self._ploidy))
             G = np.sum(G, axis=2)
 
         for j, genotypes in zip(bins[keep], G[keep]):
@@ -586,7 +586,7 @@ class _MultipleFeatureMatrices:
         )
 
     @property
-    def shape(self) -> Dict[str, Tuple[int, int, int]]:
+    def shape(self) -> Dict[str, Tuple[int, ...]]:
         """Shape of the feature matrices."""
         return {label: bhm.shape for label, bhm in self.features.items()}
 
@@ -653,7 +653,9 @@ class _MultipleFeatureMatrices:
         labelled_features = {}
         for label, l_individuals in individuals.items():
             H = G[:, labelled_nodes[label]]
-            H = np.reshape(H, (-1, self._num_individuals[label], self._ploidy[label]))
+            H = np.reshape(
+                H, (H.shape[0], self._num_individuals[label], self._ploidy[label])
+            )
             labelled_features[label] = self.features[label]._from_genotype_matrix(
                 H, positions=positions, sequence_length=ts.sequence_length
             )

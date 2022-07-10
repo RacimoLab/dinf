@@ -3,7 +3,7 @@ import functools
 import itertools
 import logging
 import math
-import multiprocessing
+import multiprocess as multiprocessing
 import os
 import pathlib
 import signal
@@ -30,7 +30,7 @@ def _initializer(filename):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     # Ensure symbols from the user's genobuilder are avilable to workers.
     if filename is not None:
-        Genobuilder._from_file(filename)
+        Genobuilder.from_file(filename)
 
 
 def _process_pool_init(parallelism, genobuilder):
@@ -341,7 +341,29 @@ def train(
     epochs: int,
     parallelism: None | int = None,
     rng: np.random.Generator,
-):
+) -> Discriminator:
+    """
+    Train a discriminator network.
+
+    :param genobuilder:
+        Genobuilder object that describes the GAN.
+    :param training_replicates:
+        Size of the dataset used to train the discriminator.
+    :param test_replicates:
+        Size of the test dataset used to evaluate the discriminator after
+        each training epoch.
+    :param epochs:
+        Number of full passes over the training dataset when training
+        the discriminator.
+    :param parallelism:
+        Number of processes to use for parallelising calls to the
+        :meth:`Genobuilder.generator_func` and
+        :meth:`Genobuilder.target_func`.
+    :param numpy.random.Generator rng:
+        Numpy random number generator.
+    :return:
+        The trained discriminator.
+    """
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
@@ -353,11 +375,9 @@ def train(
     # discriminator.summary()
 
     training_thetas = genobuilder.parameters.draw_prior(
-        num_replicates=training_replicates // 2, rng=rng
+        training_replicates // 2, rng=rng
     )
-    test_thetas = genobuilder.parameters.draw_prior(
-        num_replicates=test_replicates // 2, rng=rng
-    )
+    test_thetas = genobuilder.parameters.draw_prior(test_replicates // 2, rng=rng)
     _train_discriminator(
         discriminator=discriminator,
         genobuilder=genobuilder,
@@ -379,12 +399,28 @@ def predict(
     parallelism: None | int = None,
     rng: np.random.Generator,
 ):
+    """
+    Sample generator features and make predictions using the discriminator.
+
+    :param genobuilder:
+        Genobuilder object that describes the GAN.
+    :param replicates:
+        Number of features to extract.
+    :param parallelism:
+        Number of processes to use for parallelising calls to the
+        :meth:`Genobuilder.generator_func` and
+        :meth:`Genobuilder.target_func`.
+    :param numpy.random.Generator rng:
+        Numpy random number generator.
+    :return:
+        An arviz dataset.
+    """
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
     _process_pool_init(parallelism, genobuilder)
 
-    thetas = genobuilder.parameters.draw_prior(num_replicates=replicates, rng=rng)
+    thetas = genobuilder.parameters.draw_prior(replicates, rng=rng)
     x = _generate_data(
         generator=genobuilder.generator_func,
         thetas=thetas,
@@ -507,14 +543,12 @@ def mcmc_gan(
             genobuilder.feature_shape, rng, genobuilder.discriminator_network
         )
         # Starting point for the mcmc chain.
-        start = genobuilder.parameters.draw_prior(num_replicates=walkers, rng=rng)
+        start = genobuilder.parameters.draw_prior(walkers, rng=rng)
 
         training_thetas = genobuilder.parameters.draw_prior(
-            num_replicates=training_replicates // 2, rng=rng
+            training_replicates // 2, rng=rng
         )
-        test_thetas = genobuilder.parameters.draw_prior(
-            num_replicates=test_replicates // 2, rng=rng
-        )
+        test_thetas = genobuilder.parameters.draw_prior(test_replicates // 2, rng=rng)
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))
@@ -696,11 +730,9 @@ def abc_gan(
         )
 
         training_thetas = genobuilder.parameters.draw_prior(
-            num_replicates=training_replicates // 2, rng=rng
+            training_replicates // 2, rng=rng
         )
-        test_thetas = genobuilder.parameters.draw_prior(
-            num_replicates=test_replicates // 2, rng=rng
-        )
+        test_thetas = genobuilder.parameters.draw_prior(test_replicates // 2, rng=rng)
 
     n_target_calls = 0
     n_generator_calls = 0
@@ -720,9 +752,7 @@ def abc_gan(
         )
         discriminator.to_file(store[-1] / "discriminator.pkl")
 
-        proposal_thetas = genobuilder.parameters.draw_prior(
-            num_replicates=proposals, rng=rng
-        )
+        proposal_thetas = genobuilder.parameters.draw_prior(proposals, rng=rng)
         dataset = _run_abc(
             discriminator=discriminator,
             generator=genobuilder.generator_func,
@@ -773,7 +803,7 @@ def pretraining_pg_gan(
     theta_best = None
 
     for k in range(max_pretraining_iterations):
-        theta = genobuilder.parameters.draw_prior(num_replicates=1, rng=rng)[0]
+        theta = genobuilder.parameters.draw_prior(1, rng=rng)[0]
         training_thetas = np.tile(theta, (training_replicates // 2, 1))
         test_thetas = np.tile(theta, (test_replicates // 2, 1))
 
@@ -829,11 +859,9 @@ def pretraining_dinf(
 
     for k in range(max_pretraining_iterations):
         training_thetas = genobuilder.parameters.draw_prior(
-            num_replicates=training_replicates // 2, rng=rng
+            training_replicates // 2, rng=rng
         )
-        test_thetas = genobuilder.parameters.draw_prior(
-            num_replicates=test_replicates // 2, rng=rng
-        )
+        test_thetas = genobuilder.parameters.draw_prior(test_replicates // 2, rng=rng)
 
         metrics, _, _ = _train_discriminator(
             discriminator=discriminator,
@@ -850,9 +878,7 @@ def pretraining_dinf(
         if acc > 0.9:
             break
 
-    thetas = genobuilder.parameters.draw_prior(
-        num_replicates=training_replicates, rng=rng
-    )
+    thetas = genobuilder.parameters.draw_prior(training_replicates, rng=rng)
     lp = _log_prob(
         thetas,
         discriminator=discriminator,
@@ -1329,14 +1355,12 @@ def alfi_mcmc_gan(
         )
         surrogate = Surrogate.from_input_shape(len(genobuilder.parameters), rng)
         # Starting point for the mcmc chain.
-        start = genobuilder.parameters.draw_prior(num_replicates=walkers, rng=rng)
+        start = genobuilder.parameters.draw_prior(walkers, rng=rng)
 
         training_thetas = genobuilder.parameters.draw_prior(
-            num_replicates=training_replicates // 2, rng=rng
+            training_replicates // 2, rng=rng
         )
-        test_thetas = genobuilder.parameters.draw_prior(
-            num_replicates=test_replicates // 2, rng=rng
-        )
+        test_thetas = genobuilder.parameters.draw_prior(test_replicates // 2, rng=rng)
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))

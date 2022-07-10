@@ -62,6 +62,7 @@ jobs:
         run: |
           python -c "import dinf"
           dinf --version
+          dinf-plot --help
 
   pypi_upload:
     runs-on: ubuntu-18.04

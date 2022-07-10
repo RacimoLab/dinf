@@ -24,7 +24,13 @@ if "KMP_AFFINITY" not in os.environ:
 
 
 from .dinf import abc_gan, alfi_mcmc_gan, mcmc_gan, pg_gan, predict, train
-from .discriminator import Discriminator, Surrogate, ExchangeableCNN, ExchangeablePGGAN
+from .discriminator import (
+    Discriminator,
+    Surrogate,
+    ExchangeableCNN,
+    ExchangeablePGGAN,
+    Symmetric,
+)
 from .feature_extractor import (
     HaplotypeMatrix,
     MultipleHaplotypeMatrices,
@@ -51,6 +57,7 @@ __all__ = [
     "Parameters",
     "Surrogate",
     "Store",
+    "Symmetric",
     "get_contig_lengths",
     "get_samples_from_1kgp_metadata",
     "abc_gan",
