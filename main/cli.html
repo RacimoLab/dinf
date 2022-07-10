@@ -205,7 +205,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev238
+            dinf 0.1.1.dev248
             </div>
             
         </div>
@@ -392,29 +392,150 @@ title="Print to PDF"
     <nav id="bd-toc-nav" aria-label="Page">
         <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#dinf-check">
-   dinf check
+  <a class="reference internal nav-link" href="#analysis-commands">
+   Analysis commands
   </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-check">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       check
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-train">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       train
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-predict">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       predict
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-abc-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       abc-gan
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-alfi-mcmc-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       alfi-mcmc-gan
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-mcmc-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       mcmc-gan
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-pg-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       pg-gan
+      </span>
+     </code>
+    </a>
+   </li>
+  </ul>
  </li>
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#dinf-abc-gan">
-   dinf abc-gan
+  <a class="reference internal nav-link" href="#plotting-commands">
+   Plotting commands
   </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#dinf-alfi-mcmc-gan">
-   dinf alfi-mcmc-gan
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#dinf-mcmc-gan">
-   dinf mcmc-gan
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#dinf-pg-gan">
-   dinf pg-gan
-  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-metrics">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       metrics
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-features">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       features
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-hist">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       hist
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-hist2d">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       hist2d
+      </span>
+     </code>
+    </a>
+   </li>
+  </ul>
  </li>
 </ul>
 
@@ -436,29 +557,150 @@ title="Print to PDF"
                         <nav aria-label="Page">
                             <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#dinf-check">
-   dinf check
+  <a class="reference internal nav-link" href="#analysis-commands">
+   Analysis commands
   </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-check">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       check
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-train">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       train
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-predict">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       predict
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-abc-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       abc-gan
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-alfi-mcmc-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       alfi-mcmc-gan
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-mcmc-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       mcmc-gan
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-pg-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       pg-gan
+      </span>
+     </code>
+    </a>
+   </li>
+  </ul>
  </li>
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#dinf-abc-gan">
-   dinf abc-gan
+  <a class="reference internal nav-link" href="#plotting-commands">
+   Plotting commands
   </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#dinf-alfi-mcmc-gan">
-   dinf alfi-mcmc-gan
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#dinf-mcmc-gan">
-   dinf mcmc-gan
-  </a>
- </li>
- <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#dinf-pg-gan">
-   dinf pg-gan
-  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-metrics">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       metrics
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-features">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       features
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-hist">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       hist
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-hist2d">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       hist2d
+      </span>
+     </code>
+    </a>
+   </li>
+  </ul>
  </li>
 </ul>
 
@@ -471,7 +713,20 @@ title="Print to PDF"
               <div>
                 
   <section class="tex2jax_ignore mathjax_ignore" id="cli-reference">
-<h1>CLI reference<a class="headerlink" href="#cli-reference" title="Permalink to this headline">#</a></h1>
+<span id="sec-cli"></span><h1>CLI reference<a class="headerlink" href="#cli-reference" title="Permalink to this headline">#</a></h1>
+<p>Dinf provides two command line programs, <code class="docutils literal notranslate"><span class="pre">dinf</span></code> and <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code>.
+The former provides subcommands for running analyses, while the latter
+provides subcommands for making plots of various things.
+When invoked with the <code class="docutils literal notranslate"><span class="pre">-h</span></code>/<code class="docutils literal notranslate"><span class="pre">--help</span></code> option, subcomands offer a concise
+description and list the available options.
+This help output is reproduced below.</p>
+<p>Once Dinf is installed, the commands can be run by typing <code class="docutils literal notranslate"><span class="pre">dinf</span></code>
+or <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code>. In addition, the commands can be run using
+Python module hooks by typing <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">dinf</span></code> or <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">dinf.plot</span></code>.
+The module hooks can be useful for running the commands from a
+cloned git repository without requiring installation (e.g. during development).</p>
+<section id="analysis-commands">
+<span id="sec-cli-dinf"></span><h2>Analysis commands<a class="headerlink" href="#analysis-commands" title="Permalink to this headline">#</a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [--version] {check,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan} ...
 
 Discriminator-based inference of population parameters.
@@ -492,7 +747,7 @@ optional arguments:
 </pre></div>
 </div>
 <section id="dinf-check">
-<h2>dinf check<a class="headerlink" href="#dinf-check" title="Permalink to this headline">#</a></h2>
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">check</span></code><a class="headerlink" href="#dinf-check" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf check [-h] user_model.py
 
 Check a genobuilder object by calling the target and generator functions.
@@ -508,8 +763,79 @@ optional arguments:
 </pre></div>
 </div>
 </section>
+<section id="dinf-train">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">train</span></code><a class="headerlink" href="#dinf-train" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf train [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
+                  [-R TEST_REPLICATES] [-e EPOCHS]
+                  user_model.py discriminator.pkl
+
+Train a discriminator.
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the Genobuilder&#39;s generator_func and target_func.
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        This dataset is constructed once each GAN iteration.
+                        (default: 1000000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+  user_model.py         Python script from which to import the variable
+                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        describes the GAN. See the examples/ folder for
+                        example models.
+  discriminator.pkl     Output file where the discriminator will be saved.
+</pre></div>
+</div>
+</section>
+<section id="dinf-predict">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">predict</span></code><a class="headerlink" href="#dinf-predict" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf predict [-h] [-S SEED] [-j PARALLELISM] [-r REPLICATES]
+                    user_model.py discriminator.pkl output.ncf
+
+Predict.
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the Genobuilder&#39;s generator_func and target_func.
+                        (default: None)
+
+predict arguments:
+  -r REPLICATES, --replicates REPLICATES
+                        Number of theta replicates to generate and predict
+                        with the discriminator. (default: 1000000)
+
+  user_model.py         Python script from which to import the variable
+                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        describes the GAN. See the examples/ folder for
+                        example models.
+  discriminator.pkl     Discriminator to use for predictions.
+  output.ncf            Output data, matching thetas to discriminator
+                        predictions (in Arviz netcdf format).
+</pre></div>
+</div>
+</section>
 <section id="dinf-abc-gan">
-<h2>dinf abc-gan<a class="headerlink" href="#dinf-abc-gan" title="Permalink to this headline">#</a></h2>
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">abc-gan</span></code><a class="headerlink" href="#dinf-abc-gan" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf abc-gan [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
                     [-R TEST_REPLICATES] [-e EPOCHS] [-p PROPOSALS]
                     [-P POSTERIORS] [-i ITERATIONS] [-d WORKING_DIRECTORY]
@@ -571,7 +897,7 @@ GAN arguments:
 </div>
 </section>
 <section id="dinf-alfi-mcmc-gan">
-<h2>dinf alfi-mcmc-gan<a class="headerlink" href="#dinf-alfi-mcmc-gan" title="Permalink to this headline">#</a></h2>
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">alfi-mcmc-gan</span></code><a class="headerlink" href="#dinf-alfi-mcmc-gan" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf alfi-mcmc-gan [-h] [-S SEED] [-j PARALLELISM]
                           [-r TRAINING_REPLICATES] [-R TEST_REPLICATES]
                           [-e EPOCHS] [-w WALKERS] [-s STEPS] [-i ITERATIONS]
@@ -626,7 +952,7 @@ GAN arguments:
 </div>
 </section>
 <section id="dinf-mcmc-gan">
-<h2>dinf mcmc-gan<a class="headerlink" href="#dinf-mcmc-gan" title="Permalink to this headline">#</a></h2>
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mcmc-gan</span></code><a class="headerlink" href="#dinf-mcmc-gan" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf mcmc-gan [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
                      [-R TEST_REPLICATES] [-e EPOCHS] [-w WALKERS] [-s STEPS]
                      [--Dx-replicates DX_REPLICATES] [-i ITERATIONS]
@@ -691,7 +1017,7 @@ GAN arguments:
 </div>
 </section>
 <section id="dinf-pg-gan">
-<h2>dinf pg-gan<a class="headerlink" href="#dinf-pg-gan" title="Permalink to this headline">#</a></h2>
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">pg-gan</span></code><a class="headerlink" href="#dinf-pg-gan" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf pg-gan [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
                    [-R TEST_REPLICATES] [-e EPOCHS]
                    [--Dx-replicates DX_REPLICATES]
@@ -749,6 +1075,190 @@ GAN arguments:
 </div>
 </section>
 </section>
+<section id="plotting-commands">
+<span id="sec-cli-dinf-plot"></span><h2>Plotting commands<a class="headerlink" href="#plotting-commands" title="Permalink to this headline">#</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot [-h] {features,metrics,hist,hist2d} ...
+
+Dinf plotting tools.
+
+positional arguments:
+  {features,metrics,hist,hist2d}
+    features            Plot a feature matrix or matrices as heatmaps.
+    metrics             Plot loss and accuracy of discriminator(s).
+    hist                Plot marginal posterior densities.
+    hist2d              Plot 2d marginal posterior densities.
+
+optional arguments:
+  -h, --help            show this help message and exit
+</pre></div>
+</div>
+<section id="dinf-plot-metrics">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">metrics</span></code><a class="headerlink" href="#dinf-plot-metrics" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot metrics [-h] [-o output.pdf]
+                         discriminator.pkl [discriminator.pkl ...]
+
+Plot loss and accuracy of discriminator(s).
+
+Each metric is plotted as a function of the training epoch,
+and the resulting multipanel plot shows:
+  - training loss,
+  - training accuracy,
+  - test loss, and
+  - test accuracy.
+
+If multiple discriminator files are provided, the training metrics for
+each file are indicated by a different colour. The legend shows the
+corresponding filename.
+
+positional arguments:
+  discriminator.pkl     The discriminator network(s) to plot.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o output.pdf, --output-file output.pdf
+                        Output file for the figure. If no output file is
+                        specified, an interactive plot window will be opened.
+                        (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-plot-features">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">features</span></code><a class="headerlink" href="#dinf-plot-features" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot features [-h] [-o output.pdf] [-S SEED] [--target] model.py
+
+Plot a feature matrix or matrices as heatmaps.
+
+By default, one simulation will be performed with the generator to obtain
+a set of features for plotting. To instead extract features from the
+target dataset, use the --target option.
+
+positional arguments:
+  model.py              Python script from which to import the variable
+                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        describes the GAN. See the examples/ folder for
+                        example models.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o output.pdf, --output-file output.pdf
+                        Output file for the figure. If no output file is
+                        specified, an interactive plot window will be opened.
+                        (default: None)
+  -S SEED, --seed SEED  Seed for the random number generator (default: None)
+  --target              Extract feature(s) from the target dataset. (default:
+                        False)
+</pre></div>
+</div>
+</section>
+<section id="dinf-plot-hist">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code><a class="headerlink" href="#dinf-plot-hist" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist [-h] [-o output.pdf] [-n N | -t P] [-W] [-c]
+                      [-x X_PARAM] [-m model.py]
+                      data.ncf
+
+Plot marginal posterior densities.
+
+One plot is produced for the discriminator probabilities,
+plus one plot for each model parameter. The choice of which
+parameter to plot can be specified using the -x option,
+with the special value &quot;_p&quot; indicating the discriminator
+probabilities.
+
+The resulting figure is a histogram. If the data correspond
+to a simulation-only model (provided via the -m option),
+then the parameter&#39;s truth value will be shown as a vertical
+red line. A 95% credible interval is shown at the bottom of
+the figure. By default, all values in the data file contribute
+equally to the histogram. For parameter values drawn from the
+prior distribution, this will therefore show the prior
+distribution. A more informative plot can be obtained by
+weighting parameter values by the discriminator probabilities
+using the -W option. Alternately, the data file can be filtered
+to obtain a posterior sample using the -n or -t options.
+
+positional arguments:
+  data.ncf              The datafile containing discriminator predictions.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o output.pdf, --output-file output.pdf
+                        Output file for the figure. If no output file is
+                        specified, an interactive plot window will be opened.
+                        (default: None)
+  -n N, --top-n N       Accept only the N top parameter values, ranked by log
+                        probability. (default: None)
+  -t P, --probability-threshold P
+                        Accept only the parameter values with probabilities
+                        greater than P. (default: None)
+  -W, --weighted        Weight the parameter values by probability. (default:
+                        False)
+  -c, --cumulative      Plot cumulative distribution. (default: False)
+  -x X_PARAM, --x-param X_PARAM
+                        Name of parameter to plot. The special name &quot;_p&quot; is
+                        recognised to plot the probabilities obtained from the
+                        discriminator. (default: None)
+  -m model.py, --model model.py
+                        Model file from which the parameter truth values with
+                        be taken. (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-plot-hist2d">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist2d</span></code><a class="headerlink" href="#dinf-plot-hist2d" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist2d [-h] [-o output.pdf] [-n N | -t P] [-W] [-x X_PARAM]
+                        [-y Y_PARAM]
+                        model.py data.ncf
+
+Plot 2d marginal posterior densities.
+
+One plot is produced for each unique pair of parameters.
+As this may lead to a large number of plots (particularly
+for interactive use!), the choice of which parameters to
+plot can be specified using the -x and -y options.
+
+The resulting figure is a 2d histogram, with darker squares
+indicating higher densities. If the data correspond to a
+simulation-only model, then the parameters&#39; truth values will
+be indicated by red lines. By default, all values in the
+data file contribute equally to the histogram. For parameter
+values drawn from the prior distribution, this will therefore
+show the prior distribution. A more informative plot can be
+obtained by weighting parameter values by the discriminator
+probabilities using the -W option. Alternately, the data file
+can be filtered to obtain a posterior sample using the -n
+or -t options.
+
+positional arguments:
+  model.py              Python script from which to import the variable
+                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        describes the GAN. See the examples/ folder for
+                        example models.
+  data.ncf              The datafile containing discriminator predictions.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o output.pdf, --output-file output.pdf
+                        Output file for the figure. If no output file is
+                        specified, an interactive plot window will be opened.
+                        (default: None)
+  -n N, --top-n N       Accept only the N top parameter values, ranked by log
+                        probability. (default: None)
+  -t P, --probability-threshold P
+                        Accept only the parameter values with probabilities
+                        greater than P. (default: None)
+  -W, --weighted        Weight the parameter values by probability. (default:
+                        False)
+  -x X_PARAM, --x-param X_PARAM
+                        Name of parameter to plot on horizontal axis.
+                        (default: None)
+  -y Y_PARAM, --y-param Y_PARAM
+                        Name of parameter to plot on vertical axis. (default:
+                        None)
+</pre></div>
+</div>
+</section>
+</section>
+</section>
 
     <script type="text/x-thebe-config">
     {
@@ -795,7 +1305,7 @@ GAN arguments:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev238+g378793d
+      dinf 0.1.1.dev248+g8be5595
     </div>
 </p>
         </footer>

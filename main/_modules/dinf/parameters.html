@@ -203,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev238
+            dinf 0.1.1.dev248
             </div>
             
         </div>
@@ -339,26 +339,29 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">logit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="c1"># Warning: divide by zero at x=0.</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">))</span>
 
 
 <span class="k">def</span> <span class="nf">expit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="c1"># Warning: overflow with x=-inf.</span>
     <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">))</span>
 
 
 <div class="viewcode-block" id="Param"><a class="viewcode-back" href="../../api.html#dinf.Param">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
 <span class="k">class</span> <span class="nc">Param</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A parameter whose value is to be inferred.</span>
+<span class="sd">    An inferrable parameter with ``Uniform(low, high)`` prior distribution.</span>
 
 <span class="sd">    :param low:</span>
 <span class="sd">        The lower bound for the parameter.</span>
 <span class="sd">    :param high:</span>
 <span class="sd">        The uppper bound for the parameter.</span>
 <span class="sd">    :param truth:</span>
-<span class="sd">        The true value of the parameter. Set to None when the value is not known</span>
-<span class="sd">        (e.g. when inferring parameters of empirical data). If the value is not</span>
-<span class="sd">        None, this value may be used as the truth in a simulation study.</span>
+<span class="sd">        The true value of the parameter. Set to None if not known</span>
+<span class="sd">        (e.g. for parameters corresponding to an empirical dataset).</span>
+<span class="sd">        If the value is not None, this value may be used as the</span>
+<span class="sd">        truth in a simulation study.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">low</span><span class="p">:</span> <span class="nb">float</span>
@@ -368,85 +371,124 @@ title="Open an issue"
     <span class="sd">&quot;&quot;&quot;Parameter&#39;s upper bound.&quot;&quot;&quot;</span>
 
     <span class="n">truth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    The true value of the parameter. Set to None when the value is not known</span>
-<span class="sd">    (e.g. when inferring parameters of empirical data). If the value is not</span>
-<span class="sd">    None, this value may be used as the truth in a simulation study.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;The true value of the parameter. May be None.&quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;Name of the parameter.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Bounds must be finite.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">truth</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">truth</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;True value (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">truth</span><span class="si">}</span><span class="s2">) not in bounds [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="si">}</span><span class="s2">]&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;truth=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">truth</span><span class="si">}</span><span class="s2"> not in bounds [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="si">}</span><span class="s2">]&quot;</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="Param.draw_prior"><a class="viewcode-back" href="../../api.html#dinf.Param.draw_prior">[docs]</a>    <span class="k">def</span> <span class="nf">draw_prior</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
+<div class="viewcode-block" id="Param.draw_prior"><a class="viewcode-back" href="../../api.html#dinf.Param.draw_prior">[docs]</a>    <span class="k">def</span> <span class="nf">draw_prior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Draw a random sample from the prior distribution.</span>
+<span class="sd">        A random sample from the ``Uniform(low, high)`` prior distribution.</span>
 
-<span class="sd">        :param size: The sample size.</span>
-<span class="sd">        :param numpy.random.Generator rng: The numpy random number generator.</span>
-<span class="sd">        :return: A numpy array of parameter values.</span>
+<span class="sd">        :param size:</span>
+<span class="sd">            The sample size.</span>
+<span class="sd">        :param numpy.random.Generator rng:</span>
+<span class="sd">            The numpy random number generator.</span>
+<span class="sd">        :return:</span>
+<span class="sd">            A numpy array of parameter values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Param.bounds_contain"><a class="viewcode-back" href="../../api.html#dinf.Param.bounds_contain">[docs]</a>    <span class="k">def</span> <span class="nf">bounds_contain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">]:</span>
+<div class="viewcode-block" id="Param.bounds_contain"><a class="viewcode-back" href="../../api.html#dinf.Param.bounds_contain">[docs]</a>    <span class="k">def</span> <span class="nf">bounds_contain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Test if values are within in the parameter bounds.</span>
 
-<span class="sd">        :param x: The value(s) that will be bounds checked.</span>
+<span class="sd">        :param x:</span>
+<span class="sd">            The values that will be bounds checked.</span>
+<span class="sd">            May be a single number or an array.</span>
 <span class="sd">        :return:</span>
-<span class="sd">            A boolean value, or array of booleans with the same shape as</span>
+<span class="sd">            A boolean value, or array of booleans with the same length as</span>
 <span class="sd">            the input. ret[j] is True if x[j] is in bounds, False otherwise.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">low</span> <span class="o">&lt;=</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Param.transform"><a class="viewcode-back" href="../../api.html#dinf.Param.transform">[docs]</a>    <span class="nd">@np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform bounded values on [low, high] to unbounded values on [-inf, inf].</span>
 
 <span class="sd">        Performs a logit transformation.</span>
 
-<span class="sd">        :param x: The values to be transformed.</span>
-<span class="sd">        :return: Transformed parameter values.</span>
+<span class="sd">        :param x:</span>
+<span class="sd">            The values to be transformed.</span>
+<span class="sd">        :return:</span>
+<span class="sd">            Transformed parameter values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">logit</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="Param.itransform"><a class="viewcode-back" href="../../api.html#dinf.Param.itransform">[docs]</a>    <span class="nd">@np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">itransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">itransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform unbounded values on [-inf, inf] to bounded values on [low, high].</span>
 
 <span class="sd">        Performs an inverse logit transformation (aka expit, aka sigmoid).</span>
 
-<span class="sd">        :param x: The values to be transformed.</span>
-<span class="sd">        :return: Transformed parameter values.</span>
+<span class="sd">        :param x:</span>
+<span class="sd">            The values to be transformed.</span>
+<span class="sd">        :return:</span>
+<span class="sd">            Transformed parameter values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span> <span class="o">+</span> <span class="n">expit</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="Parameters"><a class="viewcode-back" href="../../api.html#dinf.Parameters">[docs]</a><span class="k">class</span> <span class="nc">Parameters</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    An ordered collection of parameters whose values are to be inferred.</span>
+<span class="sd">    An ordered collection of inferrable parameters.</span>
+
+<span class="sd">    A collection of parameters is built by passing :class:`Param` objects</span>
+<span class="sd">    to the constructor by keyword. The keyword will be used as the</span>
+<span class="sd">    :attr:`name &lt;Param.name&gt;` for the given parameter. This class implements</span>
+<span class="sd">    Python&#39;s :term:`python:mapping` protocol.</span>
+
+<span class="sd">    .. code::</span>
+
+<span class="sd">        import dinf</span>
+
+<span class="sd">        # Parameters named &quot;a&quot;, &quot;b&quot;, and &quot;c&quot;.</span>
+<span class="sd">        parameters = dinf.Parameters(</span>
+<span class="sd">            a=dinf.Param(low=0, high=1),</span>
+<span class="sd">            b=dinf.Param(low=5, high=100),</span>
+<span class="sd">            c=dinf.Param(low=1e-6, high=1e-3),</span>
+<span class="sd">        )</span>
+
+<span class="sd">        # Iterate over parameters.</span>
+<span class="sd">        assert len(parameters) == 3</span>
+<span class="sd">        assert list(parameters) == [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;]</span>
+<span class="sd">        assert [p.high for p in parameters.values()] == [1, 100, 1e-3]</span>
+
+<span class="sd">        # Lookup a parameter by name.</span>
+<span class="sd">        a = parameters[&quot;a&quot;]</span>
+<span class="sd">        assert a.low == 0</span>
+<span class="sd">        assert a.high == 1</span>
+<span class="sd">        assert a.name == &quot;a&quot;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Param</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param kwargs:</span>
-<span class="sd">            The named :class:`Param` object(s).</span>
+<span class="sd">            The :class:`Param` objects, named by keyword.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_posterior</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Param</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> must be a (sub)class of Param&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Set the name.</span>
+                <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">k</span>
+            <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">k</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;name mismatch for </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=Param(..., name=</span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
@@ -458,41 +500,41 @@ title="Open an issue"
     <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Parameters.draw_prior"><a class="viewcode-back" href="../../api.html#dinf.Parameters.draw_prior">[docs]</a>    <span class="k">def</span> <span class="nf">draw_prior</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">num_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">floating</span><span class="p">]:</span>
+<div class="viewcode-block" id="Parameters.draw_prior"><a class="viewcode-back" href="../../api.html#dinf.Parameters.draw_prior">[docs]</a>    <span class="k">def</span> <span class="nf">draw_prior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Draw a random sample for the parameters, from the prior distribution.</span>
+<span class="sd">        A random sample of parameter values.</span>
 
-<span class="sd">        :param num_replicates: The sample size.</span>
-<span class="sd">        :param numpy.random.Generator rng: The numpy random number generator.</span>
+<span class="sd">        :param size:</span>
+<span class="sd">            The sample size.</span>
+<span class="sd">        :param numpy.random.Generator rng:</span>
+<span class="sd">            The numpy random number generator.</span>
 <span class="sd">        :return:</span>
 <span class="sd">            A 2d numpy array of parameter values, where ret[j][k] is the</span>
 <span class="sd">            j&#39;th draw for the k&#39;th parameter.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span></div>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span></div>
 
-<div class="viewcode-block" id="Parameters.bounds_contain"><a class="viewcode-back" href="../../api.html#dinf.Parameters.bounds_contain">[docs]</a>    <span class="k">def</span> <span class="nf">bounds_contain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">]:</span>
+<div class="viewcode-block" id="Parameters.bounds_contain"><a class="viewcode-back" href="../../api.html#dinf.Parameters.bounds_contain">[docs]</a>    <span class="k">def</span> <span class="nf">bounds_contain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Test if values are within in the parameter bounds.</span>
 
-<span class="sd">        :param x:</span>
-<span class="sd">            A 2d numpy array, where x[j][k] is the j&#39;th coordinate for the</span>
+<span class="sd">        :param xs:</span>
+<span class="sd">            A 2d numpy array, where xs[j][k] is the j&#39;th sample for the</span>
 <span class="sd">            k&#39;th parameter.</span>
 <span class="sd">        :return:</span>
 <span class="sd">            A 1d numpy array of boolean values, where ret[j] is True if the</span>
-<span class="sd">            j&#39;th coordinate is within the parameter space, and False otherwise.</span>
+<span class="sd">            j&#39;th sample is within the parameter space, and False otherwise.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())],</span>
+            <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())],</span>
             <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">ret</span></div>
 
 <div class="viewcode-block" id="Parameters.transform"><a class="viewcode-back" href="../../api.html#dinf.Parameters.transform">[docs]</a>    <span class="nd">@np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform values bounded by [param.low, param.high] to [-inf, inf].</span>
 
@@ -507,7 +549,7 @@ title="Open an issue"
             <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">xs</span><span class="p">[:,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())]</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Parameters.itransform"><a class="viewcode-back" href="../../api.html#dinf.Parameters.itransform">[docs]</a>    <span class="k">def</span> <span class="nf">itransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<div class="viewcode-block" id="Parameters.itransform"><a class="viewcode-back" href="../../api.html#dinf.Parameters.itransform">[docs]</a>    <span class="k">def</span> <span class="nf">itransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform values on [-inf, inf] to be bounded by [param.low, param.high].</span>
 
@@ -541,7 +583,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev238+g378793d
+      dinf 0.1.1.dev248+g8be5595
     </div>
 </p>
         </footer>

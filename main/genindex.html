@@ -203,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev238
+            dinf 0.1.1.dev248
             </div>
             
         </div>
@@ -344,6 +344,7 @@ title="Open an issue"
  | <a href="#I"><strong>I</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
@@ -352,22 +353,12 @@ title="Open an issue"
 <h2 id="_">_</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#dinf.BagOfVcf.__getitem__">__getitem__() (dinf.BagOfVcf method)</a>
-
-      <ul>
-        <li><a href="api.html#dinf.Store.__getitem__">(dinf.Store method)</a>
+      <li><a href="api.html#dinf.Store.__getitem__">__getitem__() (dinf.Store method)</a>
 </li>
-      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#dinf.BagOfVcf.__iter__">__iter__() (dinf.BagOfVcf method)</a>
+      <li><a href="api.html#dinf.Store.__len__">__len__() (dinf.Store method)</a>
 </li>
-      <li><a href="api.html#dinf.BagOfVcf.__len__">__len__() (dinf.BagOfVcf method)</a>
-
-      <ul>
-        <li><a href="api.html#dinf.Store.__len__">(dinf.Store method)</a>
-</li>
-      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -413,10 +404,10 @@ title="Open an issue"
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
-    dinf.misc
+    dinf.plot
 
       <ul>
-        <li><a href="api.html#module-dinf.misc">module</a>
+        <li><a href="api.html#module-dinf.plot">module</a>
 </li>
       </ul></li>
       <li><a href="api.html#dinf.Discriminator">Discriminator (class in dinf)</a>
@@ -449,14 +440,24 @@ title="Open an issue"
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#dinf.plot.feature">feature() (in module dinf.plot)</a>
+</li>
       <li><a href="api.html#dinf.Genobuilder.feature_shape">feature_shape (dinf.Genobuilder attribute)</a>
+</li>
+      <li><a href="api.html#dinf.plot.features">features() (in module dinf.plot)</a>
 </li>
       <li><a href="api.html#dinf.Discriminator.fit">fit() (dinf.Discriminator method)</a>
 </li>
       <li><a href="api.html#dinf.Discriminator.from_file">from_file() (dinf.Discriminator class method)</a>
+
+      <ul>
+        <li><a href="api.html#dinf.Genobuilder.from_file">(dinf.Genobuilder static method)</a>
 </li>
+      </ul></li>
       <li><a href="api.html#dinf.Discriminator.from_input_shape">from_input_shape() (dinf.Discriminator class method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.BinnedHaplotypeMatrix.from_ts">from_ts() (dinf.BinnedHaplotypeMatrix method)</a>
 
       <ul>
@@ -467,8 +468,6 @@ title="Open an issue"
         <li><a href="api.html#dinf.MultipleHaplotypeMatrices.from_ts">(dinf.MultipleHaplotypeMatrices method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.BinnedHaplotypeMatrix.from_vcf">from_vcf() (dinf.BinnedHaplotypeMatrix method)</a>
 
       <ul>
@@ -503,9 +502,13 @@ title="Open an issue"
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.HaplotypeMatrix">HaplotypeMatrix (class in dinf)</a>
 </li>
+      <li><a href="api.html#dinf.Param.high">high (dinf.Param attribute)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api.html#dinf.Param.high">high (dinf.Param attribute)</a>
+      <li><a href="api.html#dinf.plot.hist">hist() (in module dinf.plot)</a>
+</li>
+      <li><a href="api.html#dinf.plot.hist2d">hist2d() (in module dinf.plot)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -529,6 +532,10 @@ title="Open an issue"
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#dinf.BagOfVcf.lengths">lengths (dinf.BagOfVcf attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.Param.low">low (dinf.Param attribute)</a>
 </li>
   </ul></td>
@@ -539,11 +546,13 @@ title="Open an issue"
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.mcmc_gan">mcmc_gan() (in module dinf)</a>
 </li>
+      <li><a href="api.html#dinf.plot.metrics">metrics() (in module dinf.plot)</a>
+</li>
       <li>
     module
 
       <ul>
-        <li><a href="api.html#module-dinf.misc">dinf.misc</a>
+        <li><a href="api.html#module-dinf.plot">dinf.plot</a>
 </li>
       </ul></li>
   </ul></td>
@@ -555,6 +564,14 @@ title="Open an issue"
   </ul></td>
 </tr></table>
 
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api.html#dinf.Param.name">name (dinf.Param attribute)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -562,14 +579,18 @@ title="Open an issue"
 </li>
       <li><a href="api.html#dinf.Parameters">Parameters (class in dinf)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.Genobuilder.parameters">parameters (dinf.Genobuilder attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.pg_gan">pg_gan() (in module dinf)</a>
 </li>
       <li><a href="api.html#dinf.Discriminator.predict">predict() (dinf.Discriminator method)</a>
+
+      <ul>
+        <li><a href="api.html#dinf.predict">(in module dinf)</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -579,6 +600,8 @@ title="Open an issue"
       <li><a href="api.html#dinf.BagOfVcf.sample_genotype_matrix">sample_genotype_matrix() (dinf.BagOfVcf method)</a>
 </li>
       <li><a href="api.html#dinf.BagOfVcf.sample_regions">sample_regions() (dinf.BagOfVcf method)</a>
+</li>
+      <li><a href="api.html#dinf.BagOfVcf.samples">samples (dinf.BagOfVcf attribute)</a>
 </li>
       <li><a href="api.html#dinf.BinnedHaplotypeMatrix.shape">shape (dinf.BinnedHaplotypeMatrix property)</a>
 
@@ -596,6 +619,8 @@ title="Open an issue"
 </li>
       <li><a href="api.html#dinf.Discriminator.summary">summary() (dinf.Discriminator method)</a>
 </li>
+      <li><a href="api.html#dinf.Symmetric">Symmetric (class in dinf)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -606,14 +631,16 @@ title="Open an issue"
 </li>
       <li><a href="api.html#dinf.Discriminator.to_file">to_file() (dinf.Discriminator method)</a>
 </li>
+      <li><a href="api.html#dinf.train">train() (in module dinf)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.Param.transform">transform() (dinf.Param method)</a>
 
       <ul>
         <li><a href="api.html#dinf.Parameters.transform">(dinf.Parameters method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api.html#dinf.Param.truth">truth (dinf.Param attribute)</a>
 </li>
       <li><a href="api.html#dinf.misc.ts_individuals">ts_individuals() (in module dinf.misc)</a>
@@ -641,7 +668,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev238+g378793d
+      dinf 0.1.1.dev248+g8be5595
     </div>
 </p>
         </footer>

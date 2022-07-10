@@ -203,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev238
+            dinf 0.1.1.dev248
             </div>
             
         </div>
@@ -330,13 +330,12 @@ title="Open an issue"
                 
   <h1>Source code for dinf.genobuilder</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
-<span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">dataclasses</span>
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">importlib</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span>
 
 <span class="kn">from</span> <span class="nn">flax</span> <span class="kn">import</span> <span class="n">linen</span> <span class="k">as</span> <span class="n">nn</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -358,115 +357,134 @@ title="Open an issue"
 <div class="viewcode-block" id="Genobuilder"><a class="viewcode-back" href="../../api.html#dinf.Genobuilder">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
 <span class="k">class</span> <span class="nc">Genobuilder</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    User-defined parts of the GAN.</span>
+<span class="sd">    A container that describes the components of a Dinf model.</span>
 
-<span class="sd">    .. note::</span>
-<span class="sd">        Type annotations are shown below in the function signatures for clarity,</span>
-<span class="sd">        but type annotations are not required in user-defined functions.</span>
+<span class="sd">    Constructing a Dinf model requires:</span>
 
-<span class="sd">    :param target_func:</span>
-<span class="sd">        A function that samples a feature from the target dataset.</span>
-<span class="sd">        If ``None`` (which must be specified explicitly),</span>
-<span class="sd">        the :attr:`.generator_func` will be used to simulate</span>
-<span class="sd">        the target dataset using each parameter&#39;s ``truth`` value.</span>
+<span class="sd">     - specifying the inferrable ``parameters``,</span>
+<span class="sd">     - a ``generator_func`` function that accepts concrete parameter values,</span>
+<span class="sd">       produces data under some simulation model, and returns a feature matrix</span>
+<span class="sd">       (or matrices),</span>
+<span class="sd">     - a ``target_func`` function that samples from the target dataset,</span>
+<span class="sd">       and returns a feature matrix (or matrices),</span>
+<span class="sd">     - the ``feature_shape``, which is the shape of the feature matrix</span>
+<span class="sd">       (or matrices) that are returned by both the ``generator_func``</span>
+<span class="sd">       and the ``target_func``.</span>
 
-<span class="sd">        Otherwise, this function should draw data features from an empirical</span>
-<span class="sd">        dataset such as a vcf file.</span>
-<span class="sd">        The function accepts a single (positional) argument, an integer seed,</span>
-<span class="sd">        and returns an n-dimensional feature array, whose shape is given in</span>
-<span class="sd">        :attr:`.feature_shape`.</span>
-<span class="sd">        To return a single feature array (e.g. for one population),</span>
-<span class="sd">        the signature of the function should be:</span>
+<span class="sd">    .. code::</span>
 
-<span class="sd">        .. code::</span>
+<span class="sd">        import dinf</span>
+<span class="sd">        import msprime</span>
 
-<span class="sd">            def target_func(seed: int, /) -&gt; np.ndarray:</span>
-<span class="sd">                ...</span>
+<span class="sd">        parameters = dinf.Parameters(...)</span>
+<span class="sd">        features = dinf.BinnedHaplotypeMatrix(...)</span>
+<span class="sd">        vcfs = dinf.BagOfVcf(...)</span>
 
-<span class="sd">        To return multiple feature arrays</span>
-<span class="sd">        (e.g. one feature array for each population),</span>
-<span class="sd">        the signature of the function should be:</span>
+<span class="sd">        def generator(seed, ...):</span>
+<span class="sd">            ...</span>
+<span class="sd">            # E.g. simulate using msprime to get a succinct tree sequence (ts).</span>
+<span class="sd">            ts = msprime.sim_ancestry(...)</span>
+<span class="sd">            mts = msprime.sim_mutations(ts, ...)</span>
+<span class="sd">            return features.from_ts(mts)</span>
 
-<span class="sd">        .. code::</span>
+<span class="sd">        def target(seed):</span>
+<span class="sd">            ...</span>
+<span class="sd">            return features.from_vcf(vcfs, ...)</span>
 
-<span class="sd">            def target_func(seed: int, /) -&gt; dict[str, np.ndarray]:</span>
-<span class="sd">                ...</span>
-
-<span class="sd">        where the dictionary keys in the returned value are human-readable</span>
-<span class="sd">        labels for the distinct feature arrays.</span>
-
-<span class="sd">    :param generator_func:</span>
-<span class="sd">        A function that generates features using the given parameter values.</span>
-
-<span class="sd">        The first (positional) argument to the function is an integer seed.</span>
-<span class="sd">        The subsequent arguments correspond to values for the</span>
-<span class="sd">        :attr:`.parameters`, and will be passed to the generator</span>
-<span class="sd">        function by name (as keyword arguments). This function returns</span>
-<span class="sd">        an n-dimensional feature array, whose shape is given in</span>
-<span class="sd">        :attr:`.feature_shape`. The signature of the function will</span>
-<span class="sd">        follow the pattern below, where ``p0``, ``p1``, etc. are the</span>
-<span class="sd">        names of the parameters in :attr:`.parameters`.</span>
-
-<span class="sd">        To return a single feature array (e.g. for one population),</span>
-<span class="sd">        the signature of the function should be:</span>
-
-<span class="sd">        .. code::</span>
-
-<span class="sd">            def generator_func(</span>
-<span class="sd">                seed: int, /, *, p0: float, p1: float, ...</span>
-<span class="sd">            ) -&gt; np.ndarray:</span>
-<span class="sd">                ...</span>
-
-<span class="sd">        To return multiple feature arrays</span>
-<span class="sd">        (e.g. one feature array for each population),</span>
-<span class="sd">        the signature of the function should be:</span>
-
-<span class="sd">        .. code::</span>
-
-<span class="sd">            def generator_func(</span>
-<span class="sd">                seed: int, /, *, p0: float, p1: float, ...</span>
-<span class="sd">            ) -&gt; dict[str, np.ndarray]:</span>
-<span class="sd">                ...</span>
-
-<span class="sd">        where the dictionary keys in the returned value are human-readable</span>
-<span class="sd">        labels for the distinct feature arrays.</span>
-<span class="sd">        For generator functions accepting large numbers of parameters,</span>
-<span class="sd">        the following pattern using ``**kwargs`` may be preferred instead:</span>
-
-<span class="sd">        .. code::</span>
-
-<span class="sd">            def generator_func(seed: int, **kwargs)-&gt; dict[str, np.ndarray]:</span>
-<span class="sd">                assert kwargs.keys() == parameters.keys()</span>
-<span class="sd">                # do something with p0</span>
-<span class="sd">                do_something(kwargs[&quot;p0&quot;])</span>
-<span class="sd">                # do something with p1</span>
-<span class="sd">                do_something_else(kwargs[&quot;p1&quot;])</span>
+<span class="sd">        genobuilder = dinf.Genobuilder(</span>
+<span class="sd">            parameters=parameters,</span>
+<span class="sd">            generator_func=generator,</span>
+<span class="sd">            target_func=target,</span>
+<span class="sd">            feature_shape=features.shape,</span>
+<span class="sd">        )</span>
 
 <span class="sd">    :param parameters:</span>
 <span class="sd">        A collection of inferrable parameters, one for each keyword argument</span>
 <span class="sd">        provided to the :attr:`.generator_func`.</span>
 
+<span class="sd">    :param generator_func:</span>
+<span class="sd">        A function that returns features for concrete parameter values.</span>
+
+<span class="sd">        The first (positional) argument to the function is an integer seed,</span>
+<span class="sd">        that may be used to seed a random number generator.</span>
+<span class="sd">        The subsequent (keyword) arguments correspond to concrete values for</span>
+<span class="sd">        the :attr:`.parameters`.</span>
+<span class="sd">        The return value is either:</span>
+
+<span class="sd">         - a feature matrix, i.e. an n-dimensional numpy array, or</span>
+<span class="sd">         - multiple feature matrices, i.e. a dictionary of n-dimensional</span>
+<span class="sd">           numpy arrays, where the dictionary keys are arbitrary labels</span>
+<span class="sd">           such as population names.</span>
+
+<span class="sd">        The signature of the function will follow the patterns below,</span>
+<span class="sd">        where ``p0``, ``p1``, etc. are the names of the parameters in</span>
+<span class="sd">        :attr:`.parameters`.</span>
+<span class="sd">        Type annotations are provided here for clarity, but are not required</span>
+<span class="sd">        in user-defined functions. In function signatures,</span>
+<span class="sd">        `positional-only parameters &lt;https://peps.python.org/pep-0570/&gt;`_</span>
+<span class="sd">        preceed a ``/`` and</span>
+<span class="sd">        `keyword-only parameters &lt;https://peps.python.org/pep-3102/&gt;`_</span>
+<span class="sd">        follow a ``*``.</span>
+
+<span class="sd">        .. code::</span>
+
+<span class="sd">            parameters = dinf.Parameters(</span>
+<span class="sd">                p0=dinf.Param(...),</span>
+<span class="sd">                p1=dinf.Param(...),</span>
+<span class="sd">                ...</span>
+<span class="sd">            )</span>
+
+<span class="sd">            # Signature for returning a single feature matrix.</span>
+<span class="sd">            def generator_func1(</span>
+<span class="sd">                seed: int, /, *, p0: float, p1: float, ...</span>
+<span class="sd">            ) -&gt; np.ndarray:</span>
+<span class="sd">                ...</span>
+
+<span class="sd">            # Signature for returning multiple feature matrices.</span>
+<span class="sd">            def generator_func2(</span>
+<span class="sd">                seed: int, /, *, p0: float, p1: float, ...</span>
+<span class="sd">            ) -&gt; dict[str, np.ndarray]:</span>
+<span class="sd">                ...</span>
+
+<span class="sd">            # For generator functions accepting large numbers of parameters,</span>
+<span class="sd">            # the following pattern using ``**kwargs`` may be preferred.</span>
+<span class="sd">            def generator_func3(</span>
+<span class="sd">                seed: int, /, **kwargs: float</span>
+<span class="sd">            )-&gt; dict[str, np.ndarray]:</span>
+<span class="sd">                assert kwargs.keys() == parameters.keys()</span>
+<span class="sd">                # do something with p0</span>
+<span class="sd">                do_something(kwargs[&quot;p0&quot;])</span>
+<span class="sd">                # do something with p1</span>
+<span class="sd">                do_something_else(kwargs[&quot;p1&quot;])</span>
+<span class="sd">                ...</span>
+
+<span class="sd">    :param target_func:</span>
+<span class="sd">        A function that returns features sampled from the target dataset.</span>
+
+<span class="sd">        If ``None`` (which must be specified explicitly),</span>
+<span class="sd">        the :attr:`.generator_func` will be used to simulate</span>
+<span class="sd">        the target dataset using each parameter&#39;s :attr:`truth &lt;Param.truth&gt;`</span>
+<span class="sd">        value.</span>
+
+<span class="sd">        The function takes a single (positional) argument, an integer seed,</span>
+<span class="sd">        that may be used to seed a random number generator.</span>
+<span class="sd">        The return value must match the return value of :attr:`generator_func`.</span>
+
 <span class="sd">    :param feature_shape:</span>
-<span class="sd">        The shape of the n-dimensional array(s) produced by :attr:`.target_func`</span>
-<span class="sd">        and :attr:`.generator_func`.</span>
-<span class="sd">        This is either a tuple of array dimensions (c.f. :attr:`numpy.ndarray.shape`),</span>
-<span class="sd">        or a dictionary mapping labels to tuples.</span>
-<span class="sd">        The former indicates a single feature array, while the latter indicates</span>
-<span class="sd">        a collection of feature arrays.</span>
+<span class="sd">        The shape of the feature, or features, returned by</span>
+<span class="sd">        :attr:`.generator_func` and :attr:`.target_func`.</span>
+
+<span class="sd">         - When a single feature matrix is returned, i.e. an n-dimensional</span>
+<span class="sd">           numpy array, the ``feature_shape`` is a tuple of array dimensions</span>
+<span class="sd">           (c.f. :attr:`numpy.ndarray.shape`).</span>
+<span class="sd">         - When multiple feature matrices are returned,</span>
+<span class="sd">           i.e. a dictionary of n-dimensional numpy arrays,</span>
+<span class="sd">           the ``feature_shape`` is also a dictionary, which maps</span>
+<span class="sd">           feature labels to the shape of the given feature matrix.</span>
 
 <span class="sd">    :param discriminator_network:</span>
-<span class="sd">        A flax neural network module. If not specified, :class:`ExchangeableCNN`</span>
-<span class="sd">        will be used.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">target_func</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Function that samples a feature from the target distribution.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">generator_func</span><span class="p">:</span> <span class="n">Callable</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Function that generates features using the given parameter values.</span>
+<span class="sd">        A :doc:`flax &lt;flax:index&gt;` neural network.</span>
+<span class="sd">        If not specified, :class:`ExchangeableCNN` will be used.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span>
@@ -474,19 +492,25 @@ title="Open an issue"
 <span class="sd">    The inferrable parameters.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">feature_shape</span><span class="p">:</span> <span class="n">Tuple</span> <span class="o">|</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">]</span>
+    <span class="n">generator_func</span><span class="p">:</span> <span class="n">Callable</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Shape of the n-dimensional arrays produced by :attr:`.target_func`</span>
-<span class="sd">    and :attr:`.generator_func`.</span>
-<span class="sd">    This is either a tuple of array dimensions (c.f. :attr:`numpy.ndarray.shape`),</span>
-<span class="sd">    or a dictionary mapping labels to tuples.</span>
-<span class="sd">    The former indicates a single feature array, while the latter indicates</span>
-<span class="sd">    a collection of feature arrays.</span>
+<span class="sd">    Function that simulates features using concrete parameter values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">target_func</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function that samples features from the target distribution.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">feature_shape</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">|</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">]</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Shape of the feature, or features, produced by</span>
+<span class="sd">    :attr:`.generator_func` and :attr:`.target_func`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">discriminator_network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A flax neural network module. May be ``None``.</span>
+<span class="sd">    A :doc:`flax &lt;flax:index&gt;` neural network. May be ``None``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -529,10 +553,10 @@ title="Open an issue"
         <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">seed</span> <span class="o">=</span> <span class="mi">1234</span>
         <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-        <span class="n">thetas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">num_replicates</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;parameters.draw_prior(num_replicates=5) produced output with shape &quot;</span>
+                <span class="s2">&quot;parameters.draw_prior(5) produced output with shape &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, expected shape </span><span class="si">{</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span><span class="si">}</span><span class="s2">.&quot;</span>
             <span class="p">)</span>
 
@@ -550,8 +574,8 @@ title="Open an issue"
                 <span class="sa">f</span><span class="s2">&quot;but feature_shape is </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span></div>
 
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Genobuilder</span><span class="p">:</span>
+<div class="viewcode-block" id="Genobuilder.from_file"><a class="viewcode-back" href="../../api.html#dinf.Genobuilder.from_file">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Genobuilder</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load the symbol &quot;genobuilder&quot; from a file.</span>
 
@@ -577,7 +601,7 @@ title="Open an issue"
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">genobuilder</span><span class="p">,</span> <span class="n">Genobuilder</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: genobuilder is not a dinf.Genobuilder object&quot;</span><span class="p">)</span>
         <span class="n">genobuilder</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">filename</span>
-        <span class="k">return</span> <span class="n">genobuilder</span></div>
+        <span class="k">return</span> <span class="n">genobuilder</span></div></div>
 </pre></div>
 
               </div>
@@ -598,7 +622,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev238+g378793d
+      dinf 0.1.1.dev248+g8be5595
     </div>
 </p>
         </footer>

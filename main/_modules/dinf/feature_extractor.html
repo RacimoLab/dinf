@@ -203,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev238
+            dinf 0.1.1.dev248
             </div>
             
         </div>
@@ -453,7 +453,7 @@ title="Open an issue"
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Sequence length is shorter than the number of loci&quot;</span><span class="p">)</span>
 
         <span class="n">G</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">genotype_matrix</span><span class="p">()</span>  <span class="c1"># shape is (num_sites, num_haplotypes)</span>
-        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">))</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">))</span>
         <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ts</span><span class="o">.</span><span class="n">tables</span><span class="o">.</span><span class="n">sites</span><span class="o">.</span><span class="n">position</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_from_genotype_matrix</span><span class="p">(</span>
             <span class="n">G</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">sequence_length</span><span class="o">=</span><span class="n">ts</span><span class="o">.</span><span class="n">sequence_length</span>
@@ -590,7 +590,7 @@ title="Open an issue"
         <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_pseudo_haplotypes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
@@ -627,7 +627,7 @@ title="Open an issue"
         <span class="n">G_sites</span><span class="p">,</span> <span class="n">G_individuals</span><span class="p">,</span> <span class="n">G_ploidy</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">shape</span>
         <span class="k">assert</span> <span class="n">G_individuals</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span>
         <span class="k">assert</span> <span class="n">G_ploidy</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span>
-        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="n">G_sites</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="n">G_sites</span><span class="p">,</span> <span class="n">G_individuals</span> <span class="o">*</span> <span class="n">G_ploidy</span><span class="p">))</span>
 
         <span class="c1"># Filter sites with insufficient minor allele count.</span>
         <span class="n">ac0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -656,7 +656,7 @@ title="Open an issue"
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_phased</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="c1"># Collapse each individual&#39;s chromosome copies by summing counts.</span>
-            <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">))</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">))</span>
             <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
         <span class="n">positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
@@ -766,7 +766,7 @@ title="Open an issue"
         <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int8</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_pseudo_haplotypes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
@@ -809,7 +809,7 @@ title="Open an issue"
         <span class="n">G_sites</span><span class="p">,</span> <span class="n">G_individuals</span><span class="p">,</span> <span class="n">G_ploidy</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">shape</span>
         <span class="k">assert</span> <span class="n">G_individuals</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span>
         <span class="k">assert</span> <span class="n">G_ploidy</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span>
-        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="n">G_sites</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="n">G_sites</span><span class="p">,</span> <span class="n">G_individuals</span> <span class="o">*</span> <span class="n">G_ploidy</span><span class="p">))</span>
 
         <span class="c1"># Identify genotypes that aren&#39;t 0 or 1. These will be ignored later.</span>
         <span class="n">missing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">G</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">G</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">)</span>
@@ -826,7 +826,7 @@ title="Open an issue"
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_phased</span><span class="p">:</span>
             <span class="c1"># Collapse each individual&#39;s chromosome copies by summing counts.</span>
-            <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">))</span>
+            <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="p">(</span><span class="n">G_sites</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">))</span>
             <span class="n">G</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">genotypes</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">bins</span><span class="p">[</span><span class="n">keep</span><span class="p">],</span> <span class="n">G</span><span class="p">[</span><span class="n">keep</span><span class="p">]):</span>
@@ -917,7 +917,7 @@ title="Open an issue"
         <span class="p">)</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+    <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
         <span class="sd">&quot;&quot;&quot;Shape of the feature matrices.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="n">bhm</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">bhm</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
@@ -984,7 +984,9 @@ title="Open an issue"
         <span class="n">labelled_features</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">l_individuals</span> <span class="ow">in</span> <span class="n">individuals</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">H</span> <span class="o">=</span> <span class="n">G</span><span class="p">[:,</span> <span class="n">labelled_nodes</span><span class="p">[</span><span class="n">label</span><span class="p">]]</span>
-            <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">[</span><span class="n">label</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">[</span><span class="n">label</span><span class="p">]))</span>
+            <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="n">H</span><span class="p">,</span> <span class="p">(</span><span class="n">H</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_individuals</span><span class="p">[</span><span class="n">label</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ploidy</span><span class="p">[</span><span class="n">label</span><span class="p">])</span>
+            <span class="p">)</span>
             <span class="n">labelled_features</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">_from_genotype_matrix</span><span class="p">(</span>
                 <span class="n">H</span><span class="p">,</span> <span class="n">positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span> <span class="n">sequence_length</span><span class="o">=</span><span class="n">ts</span><span class="o">.</span><span class="n">sequence_length</span>
             <span class="p">)</span>
@@ -1126,7 +1128,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev238+g378793d
+      dinf 0.1.1.dev248+g8be5595
     </div>
 </p>
         </footer>

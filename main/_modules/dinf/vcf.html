@@ -203,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev238
+            dinf 0.1.1.dev248
             </div>
             
         </div>
@@ -344,7 +344,7 @@ title="Open an issue"
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="get_samples_from_1kgp_metadata"><a class="viewcode-back" href="../../api.html#dinf.get_samples_from_1kgp_metadata">[docs]</a><span class="k">def</span> <span class="nf">get_samples_from_1kgp_metadata</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">populations</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<div class="viewcode-block" id="get_samples_from_1kgp_metadata"><a class="viewcode-back" href="../../api.html#dinf.get_samples_from_1kgp_metadata">[docs]</a><span class="k">def</span> <span class="nf">get_samples_from_1kgp_metadata</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">populations</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get sample IDs for 1000 Genomes Project populations.</span>
 <span class="sd">    Related individuals are removed based on the FatherID and MotherID.</span>
@@ -366,10 +366,10 @@ title="Open an issue"
 
 
 <div class="viewcode-block" id="get_contig_lengths"><a class="viewcode-back" href="../../api.html#dinf.get_contig_lengths">[docs]</a><span class="k">def</span> <span class="nf">get_contig_lengths</span><span class="p">(</span>
-    <span class="n">filename</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">keep_contigs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">filename</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="n">keep_contigs</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Load contig lengths from a space-separated file like an fai (fasta index).</span>
+<span class="sd">    Load contig lengths from a whitespace-separated file like an fai (fasta index).</span>
 
 <span class="sd">    The file must have (at least) two columns, the first specifies the</span>
 <span class="sd">    contig ID, and the second is the contig length. Additional columns</span>
@@ -506,26 +506,47 @@ title="Open an issue"
 <span class="sd">    VCF data are sometimes contained in a single file, and sometimes split into</span>
 <span class="sd">    multiple files by chromosome. To remove the burden of dealing with both</span>
 <span class="sd">    of these common cases, this class maps a contig ID to a :class:`cyvcf2.VCF`</span>
-<span class="sd">    object for that contig. The class implements Python&#39;s</span>
-<span class="sd">    :class:`collections.abc.Mapping` protocol. In addition, the class provides</span>
-<span class="sd">    methods for sampling regions of the genome at random.</span>
+<span class="sd">    object for that contig. The class implements Python&#39;s :term:`python:mapping`</span>
+<span class="sd">    protocol, plus methods for sampling regions of the genome at random.</span>
 
-<span class="sd">    :ivar lengths:</span>
-<span class="sd">        Lengths of the contigs in the bag. The order matches the contig order</span>
-<span class="sd">        obtained by iterating over the bag.</span>
-<span class="sd">    :vartype lengths: np.ndarray</span>
-<span class="sd">    :ivar samples:</span>
-<span class="sd">        A dictionary that maps a label to a list of individual names,</span>
-<span class="sd">        where the individual names correspond to the VCF columns</span>
-<span class="sd">        for which genotypes will be sampled.</span>
-<span class="sd">        This is a bookkeeping device that records which genotypes belong</span>
-<span class="sd">        to which label (e.g. which population). If None, it is assumed</span>
-<span class="sd">        that all individuals in the VCF will be treated as exchangeable.</span>
+<span class="sd">    .. code::</span>
+
+<span class="sd">        import dinf</span>
+
+<span class="sd">        vcfs = dinf.BagOfVcf([&quot;chr1.bcf&quot;, &quot;chr2.bcf&quot;, &quot;chr3.bcf&quot;])</span>
+
+<span class="sd">        # Iterate over contig IDs.</span>
+<span class="sd">        assert len(vcfs) == 3</span>
+<span class="sd">        assert list(vcfs) == [&quot;chr1&quot;, &quot;chr2&quot;, &quot;chr3&quot;]</span>
+
+<span class="sd">        # Lookup a cyvcf2.VCF object by contig ID.</span>
+<span class="sd">        chr1 = vcfs[&quot;chr1&quot;]</span>
+<span class="sd">        assert chr1.fname == &quot;chr1.bcf&quot;</span>
+<span class="sd">        first_variant = next(chr1)</span>
+<span class="sd">        assert first_variant.CHROM == &quot;chr1&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">lengths</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Lengths of the contigs in the bag.</span>
+
+<span class="sd">    The order matches the contig order obtained when iterating.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">samples</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A dictionary that maps a label to a list of individual names.</span>
+
+<span class="sd">    The individual names correspond to the VCF columns for which genotypes</span>
+<span class="sd">    will be sampled. This is a bookkeeping device that records which genotypes</span>
+<span class="sd">    belong to which label (e.g. which population). If None, it is assumed</span>
+<span class="sd">    that all individuals in the VCF will be treated as exchangeable.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">files</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">],</span>
+        <span class="o">/</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">samples</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">contig_lengths</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -533,7 +554,7 @@ title="Open an issue"
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param files:</span>
 <span class="sd">            An iterable of filenames. Each file must be an indexed VCF or BCF,</span>
-<span class="sd">            and contain the FORMAT/GT field.</span>
+<span class="sd">            and must contain the FORMAT/GT field.</span>
 <span class="sd">        :param contig_lengths:</span>
 <span class="sd">            A dict mapping a contig name to contig length. Only the contigs in</span>
 <span class="sd">            this dict will be used.</span>
@@ -676,13 +697,13 @@ title="Open an issue"
         <span class="bp">self</span><span class="o">.</span><span class="n">_needs_reopen</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">os</span><span class="o">.</span><span class="n">register_at_fork</span><span class="p">(</span><span class="n">before</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_close</span><span class="p">)</span>
 
-<div class="viewcode-block" id="BagOfVcf.__iter__"><a class="viewcode-back" href="../../api.html#dinf.BagOfVcf.__iter__">[docs]</a>    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Iterate over contig IDs in the bag.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contig2vcf</span></div>
+        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contig2vcf</span>
 
-<div class="viewcode-block" id="BagOfVcf.__getitem__"><a class="viewcode-back" href="../../api.html#dinf.BagOfVcf.__getitem__">[docs]</a>    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">contig_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cyvcf2</span><span class="o">.</span><span class="n">VCF</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">contig_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cyvcf2</span><span class="o">.</span><span class="n">VCF</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get the :class:`cyvcf2.VCF` containing the given contig.</span>
 
@@ -696,16 +717,16 @@ title="Open an issue"
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;key must be a string&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_needs_reopen</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_reopen</span><span class="p">()</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contig2vcf</span><span class="p">[</span><span class="n">contig_id</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contig2vcf</span><span class="p">[</span><span class="n">contig_id</span><span class="p">]</span>
 
-<div class="viewcode-block" id="BagOfVcf.__len__"><a class="viewcode-back" href="../../api.html#dinf.BagOfVcf.__len__">[docs]</a>    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The number of distinct VCF and/or BCF files in the bag.</span>
+<span class="sd">        The number of contigs in the mapping.</span>
 
 <span class="sd">        :return:</span>
 <span class="sd">            The size of the bag.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_contig2vcf</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_contig2vcf</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">contig_id</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -714,9 +735,12 @@ title="Open an issue"
         <span class="bp">self</span><span class="o">.</span><span class="n">_needs_reopen</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">def</span> <span class="nf">_reopen</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">file2vcf</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">file</span><span class="p">:</span> <span class="n">cyvcf2</span><span class="o">.</span><span class="n">VCF</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_individuals</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">threads</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_contig2file</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_contig2vcf</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">contig_id</span><span class="p">:</span> <span class="n">cyvcf2</span><span class="o">.</span><span class="n">VCF</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_individuals</span><span class="p">,</span> <span class="n">lazy</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">threads</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">contig_id</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contig2file</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="n">contig_id</span><span class="p">:</span> <span class="n">file2vcf</span><span class="p">[</span><span class="n">file</span><span class="p">]</span> <span class="k">for</span> <span class="n">contig_id</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_contig2file</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_needs_reopen</span> <span class="o">=</span> <span class="kc">False</span>
 
@@ -726,9 +750,12 @@ title="Open an issue"
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Sample a list of (chrom, start, end) triplets.</span>
 
-<span class="sd">        :param size: Number of genomic windows to sample.</span>
-<span class="sd">        :param sequence_length: Length of the sequence to sample.</span>
-<span class="sd">        :param numpy.random.Generator rng: The numpy random number generator.</span>
+<span class="sd">        :param size:</span>
+<span class="sd">            Number of genomic windows to sample.</span>
+<span class="sd">        :param sequence_length:</span>
+<span class="sd">            Length of the sequence to sample.</span>
+<span class="sd">        :param numpy.random.Generator rng:</span>
+<span class="sd">            The numpy random number generator.</span>
 <span class="sd">        :return:</span>
 <span class="sd">            List of 3-tuples: (chrom, start, end).</span>
 <span class="sd">            The start and end coordinates are 1-based and inclusive, to match</span>
@@ -825,7 +852,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev238+g378793d
+      dinf 0.1.1.dev248+g8be5595
     </div>
 </p>
         </footer>

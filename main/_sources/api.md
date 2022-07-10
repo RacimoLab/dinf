@@ -1,16 +1,119 @@
 (sec_api)=
 # API reference
 
+(sec_api_summary)=
+## Summary
+
+```{eval-rst}
+.. currentmodule:: dinf
+```
+
+### Defining a Dinf model
+
+```{eval-rst}
+.. autosummary::
+    Genobuilder
+```
+
+### Specifying parameters
+
+```{eval-rst}
+.. autosummary::
+    Parameters
+    Param
+```
+
+### Feature extraction
+
+```{eval-rst}
+.. autosummary::
+    HaplotypeMatrix
+    MultipleHaplotypeMatrices
+    BinnedHaplotypeMatrix
+    MultipleBinnedHaplotypeMatrices
+    BagOfVcf
+```
+
+### Training
+
+```{eval-rst}
+.. autosummary::
+    train
+```
+
+### Inference
+
+```{eval-rst}
+.. autosummary::
+    predict
+    abc_gan
+    alfi_mcmc_gan
+    mcmc_gan
+    pg_gan
+```
+
+### Classification
+
+```{eval-rst}
+.. autosummary::
+    Discriminator
+```
+
+### Discriminator networks
+
+```{eval-rst}
+.. autosummary::
+    ExchangeableCNN
+    ExchangeablePGGAN
+    Symmetric
+```
+
+### Miscellaneous
+
+```{eval-rst}
+.. autosummary::
+    misc.ts_individuals
+    get_samples_from_1kgp_metadata
+    get_contig_lengths
+    Store
+```
+
+### Plotting
+
+```{eval-rst}
+.. currentmodule:: dinf.plot
+
+.. autosummary::
+    feature
+    features
+    metrics
+    hist
+    hist2d
+```
+
+## Reference
+
 (sec_api_defining_a_dinf_model)=
-## Defining a Dinf model
+### Defining a Dinf model
 
 ```{eval-rst}
 .. autoclass:: dinf.Genobuilder
    :members:
 ```
 
+(sec_api_parameters)=
+### Specifying parameters
+
+```{eval-rst}
+.. autoclass:: dinf.Parameters
+   :members:
+
+.. autoclass:: dinf.Param
+   :members:
+```
+
 (sec_api_feature_extraction)=
-## Feature extraction
+### Feature extraction
 
 ```{eval-rst}
 .. autoclass:: dinf.HaplotypeMatrix
@@ -42,38 +145,28 @@
 
 .. autoclass:: dinf.BagOfVcf
    :members:
-
-   .. automethod:: __iter__
-   .. automethod:: __getitem__
-   .. automethod:: __len__
 ```
 
-(sec_api_parameters)=
-## Specifying parameters
+(sec_api_train)=
+### Training
 
 ```{eval-rst}
-.. autoclass:: dinf.Parameters
-   :members:
-
-.. autoclass:: dinf.Param
-   :members:
+.. autofunction:: dinf.train
 ```
 
 (sec_api_inference)=
-## Inference
+### Inference
 
 ```{eval-rst}
+.. autofunction:: dinf.predict
 .. autofunction:: dinf.abc_gan
-
 .. autofunction:: dinf.alfi_mcmc_gan
-
 .. autofunction:: dinf.mcmc_gan
-
 .. autofunction:: dinf.pg_gan
 ```
 
 (sec_api_classification)=
-## Classification
+### Classification
 
 ```{eval-rst}
 .. autoclass:: dinf.Discriminator
@@ -91,18 +184,16 @@
 
 ```{eval-rst}
 .. autoclass:: dinf.ExchangeableCNN
-
 .. autoclass:: dinf.ExchangeablePGGAN
+.. autoclass:: dinf.Symmetric
 ```
 
 (sec_api_misc)=
-## Miscellaneous
+### Miscellaneous
 
 ```{eval-rst}
 
-.. automodule:: dinf.misc
-   :members: ts_individuals
-
+.. autofunction:: dinf.misc.ts_individuals
 .. autofunction:: dinf.get_samples_from_1kgp_metadata
 .. autofunction:: dinf.get_contig_lengths
 
@@ -111,4 +202,12 @@
 
    .. automethod:: __len__
    .. automethod:: __getitem__
+```
+
+(sec_api_plotting)=
+### Plotting
+
+```{eval-rst}
+.. automodule:: dinf.plot
+    :members:
 ```
