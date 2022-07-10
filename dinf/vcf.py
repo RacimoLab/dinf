@@ -404,9 +404,12 @@ class BagOfVcf(collections.abc.Mapping):
         self._needs_reopen = True
 
     def _reopen(self):
+        file2vcf = {
+            file: cyvcf2.VCF(file, samples=self._individuals, lazy=True, threads=1)
+            for file in set(self._contig2file.values())
+        }
         self._contig2vcf = {
-            contig_id: cyvcf2.VCF(file, samples=self._individuals, lazy=True, threads=1)
-            for contig_id, file in self._contig2file.items()
+            contig_id: file2vcf[file] for contig_id, file in self._contig2file.items()
         }
         self._needs_reopen = False
 
