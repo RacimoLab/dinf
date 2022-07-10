@@ -13,7 +13,7 @@ import cyvcf2
 logger = logging.getLogger(__name__)
 
 
-def get_samples_from_1kgp_metadata(filename: str, populations: list) -> dict:
+def get_samples_from_1kgp_metadata(filename: str, /, *, populations: list) -> dict:
     """
     Get sample IDs for 1000 Genomes Project populations.
     Related individuals are removed based on the FatherID and MotherID.
@@ -35,10 +35,10 @@ def get_samples_from_1kgp_metadata(filename: str, populations: list) -> dict:
 
 
 def get_contig_lengths(
-    filename: pathlib.Path | str, keep_contigs: Iterable[str] | None = None
+    filename: pathlib.Path | str, /, keep_contigs: Iterable[str] | None = None
 ) -> dict:
     """
-    Load contig lengths from a space-separated file like an fai (fasta index).
+    Load contig lengths from a whitespace-separated file like an fai (fasta index).
 
     The file must have (at least) two columns, the first specifies the
     contig ID, and the second is the contig length. Additional columns

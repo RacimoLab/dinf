@@ -343,6 +343,8 @@ def train(
     rng: np.random.Generator,
 ) -> Discriminator:
     """
+    Train a discriminator network.
+
     :param genobuilder:
         Genobuilder object that describes the GAN.
     :param training_replicates:
@@ -397,6 +399,22 @@ def predict(
     parallelism: None | int = None,
     rng: np.random.Generator,
 ):
+    """
+    Sample generator features and make predictions using the discriminator.
+
+    :param genobuilder:
+        Genobuilder object that describes the GAN.
+    :param replicates:
+        Number of features to extract.
+    :param parallelism:
+        Number of processes to use for parallelising calls to the
+        :meth:`Genobuilder.generator_func` and
+        :meth:`Genobuilder.target_func`.
+    :param numpy.random.Generator rng:
+        Numpy random number generator.
+    :return:
+        An arviz dataset.
+    """
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
