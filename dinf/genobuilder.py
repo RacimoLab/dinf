@@ -1,11 +1,10 @@
 from __future__ import annotations
-import collections
 import dataclasses
 import functools
 import importlib
 import pathlib
 import sys
-from typing import Callable, Tuple
+from typing import Callable, Dict
 
 from flax import linen as nn
 import numpy as np
@@ -27,115 +26,134 @@ def _sim_shim(args, *, func, keys):
 @dataclasses.dataclass
 class Genobuilder:
     """
-    User-defined parts of the GAN.
+    A container that describes the components of a Dinf model.
 
-    .. note::
-        Type annotations are shown below in the function signatures for clarity,
-        but type annotations are not required in user-defined functions.
+    Constructing a Dinf model requires:
 
-    :param target_func:
-        A function that samples a feature from the target dataset.
-        If ``None`` (which must be specified explicitly),
-        the :attr:`.generator_func` will be used to simulate
-        the target dataset using each parameter's ``truth`` value.
+     - specifying the inferrable ``parameters``,
+     - a ``generator_func`` function that accepts concrete parameter values,
+       produces data under some simulation model, and returns a feature matrix
+       (or matrices),
+     - a ``target_func`` function that samples from the target dataset,
+       and returns a feature matrix (or matrices),
+     - the ``feature_shape``, which is the shape of the feature matrix
+       (or matrices) that are returned by both the ``generator_func``
+       and the ``target_func``.
 
-        Otherwise, this function should draw data features from an empirical
-        dataset such as a vcf file.
-        The function accepts a single (positional) argument, an integer seed,
-        and returns an n-dimensional feature array, whose shape is given in
-        :attr:`.feature_shape`.
-        To return a single feature array (e.g. for one population),
-        the signature of the function should be:
+    .. code::
 
-        .. code::
+        import dinf
+        import msprime
 
-            def target_func(seed: int, /) -> np.ndarray:
-                ...
+        parameters = dinf.Parameters(...)
+        features = dinf.BinnedHaplotypeMatrix(...)
+        vcfs = dinf.BagOfVcf(...)
 
-        To return multiple feature arrays
-        (e.g. one feature array for each population),
-        the signature of the function should be:
+        def generator(seed, ...):
+            ...
+            # E.g. simulate using msprime to get a succinct tree sequence (ts).
+            ts = msprime.sim_ancestry(...)
+            mts = msprime.sim_mutations(ts, ...)
+            return features.from_ts(mts)
 
-        .. code::
+        def target(seed):
+            ...
+            return features.from_vcf(vcfs, ...)
 
-            def target_func(seed: int, /) -> dict[str, np.ndarray]:
-                ...
-
-        where the dictionary keys in the returned value are human-readable
-        labels for the distinct feature arrays.
-
-    :param generator_func:
-        A function that generates features using the given parameter values.
-
-        The first (positional) argument to the function is an integer seed.
-        The subsequent arguments correspond to values for the
-        :attr:`.parameters`, and will be passed to the generator
-        function by name (as keyword arguments). This function returns
-        an n-dimensional feature array, whose shape is given in
-        :attr:`.feature_shape`. The signature of the function will
-        follow the pattern below, where ``p0``, ``p1``, etc. are the
-        names of the parameters in :attr:`.parameters`.
-
-        To return a single feature array (e.g. for one population),
-        the signature of the function should be:
-
-        .. code::
-
-            def generator_func(
-                seed: int, /, *, p0: float, p1: float, ...
-            ) -> np.ndarray:
-                ...
-
-        To return multiple feature arrays
-        (e.g. one feature array for each population),
-        the signature of the function should be:
-
-        .. code::
-
-            def generator_func(
-                seed: int, /, *, p0: float, p1: float, ...
-            ) -> dict[str, np.ndarray]:
-                ...
-
-        where the dictionary keys in the returned value are human-readable
-        labels for the distinct feature arrays.
-        For generator functions accepting large numbers of parameters,
-        the following pattern using ``**kwargs`` may be preferred instead:
-
-        .. code::
-
-            def generator_func(seed: int, **kwargs)-> dict[str, np.ndarray]:
-                assert kwargs.keys() == parameters.keys()
-                # do something with p0
-                do_something(kwargs["p0"])
-                # do something with p1
-                do_something_else(kwargs["p1"])
+        genobuilder = dinf.Genobuilder(
+            parameters=parameters,
+            generator_func=generator,
+            target_func=target,
+            feature_shape=features.shape,
+        )
 
     :param parameters:
         A collection of inferrable parameters, one for each keyword argument
         provided to the :attr:`.generator_func`.
 
+    :param generator_func:
+        A function that returns features for concrete parameter values.
+
+        The first (positional) argument to the function is an integer seed,
+        that may be used to seed a random number generator.
+        The subsequent (keyword) arguments correspond to concrete values for
+        the :attr:`.parameters`.
+        The return value is either:
+
+         - a feature matrix, i.e. an n-dimensional numpy array, or
+         - multiple feature matrices, i.e. a dictionary of n-dimensional
+           numpy arrays, where the dictionary keys are arbitrary labels
+           such as population names.
+
+        The signature of the function will follow the patterns below,
+        where ``p0``, ``p1``, etc. are the names of the parameters in
+        :attr:`.parameters`.
+        Type annotations are provided here for clarity, but are not required
+        in user-defined functions. In function signatures,
+        `positional-only parameters <https://peps.python.org/pep-0570/>`_
+        preceed a ``/`` and
+        `keyword-only parameters <https://peps.python.org/pep-3102/>`_
+        follow a ``*``.
+
+        .. code::
+
+            parameters = dinf.Parameters(
+                p0=dinf.Param(...),
+                p1=dinf.Param(...),
+                ...
+            )
+
+            # Signature for returning a single feature matrix.
+            def generator_func1(
+                seed: int, /, *, p0: float, p1: float, ...
+            ) -> np.ndarray:
+                ...
+
+            # Signature for returning multiple feature matrices.
+            def generator_func2(
+                seed: int, /, *, p0: float, p1: float, ...
+            ) -> dict[str, np.ndarray]:
+                ...
+
+            # For generator functions accepting large numbers of parameters,
+            # the following pattern using ``**kwargs`` may be preferred.
+            def generator_func3(
+                seed: int, /, **kwargs: float
+            )-> dict[str, np.ndarray]:
+                assert kwargs.keys() == parameters.keys()
+                # do something with p0
+                do_something(kwargs["p0"])
+                # do something with p1
+                do_something_else(kwargs["p1"])
+                ...
+
+    :param target_func:
+        A function that returns features sampled from the target dataset.
+
+        If ``None`` (which must be specified explicitly),
+        the :attr:`.generator_func` will be used to simulate
+        the target dataset using each parameter's :attr:`truth <Param.truth>`
+        value.
+
+        The function takes a single (positional) argument, an integer seed,
+        that may be used to seed a random number generator.
+        The return value must match the return value of :attr:`generator_func`.
+
     :param feature_shape:
-        The shape of the n-dimensional array(s) produced by :attr:`.target_func`
-        and :attr:`.generator_func`.
-        This is either a tuple of array dimensions (c.f. :attr:`numpy.ndarray.shape`),
-        or a dictionary mapping labels to tuples.
-        The former indicates a single feature array, while the latter indicates
-        a collection of feature arrays.
+        The shape of the feature, or features, returned by
+        :attr:`.generator_func` and :attr:`.target_func`.
+
+         - When a single feature matrix is returned, i.e. an n-dimensional
+           numpy array, the ``feature_shape`` is a tuple of array dimensions
+           (c.f. :attr:`numpy.ndarray.shape`).
+         - When multiple feature matrices are returned,
+           i.e. a dictionary of n-dimensional numpy arrays,
+           the ``feature_shape`` is also a dictionary, which maps
+           feature labels to the shape of the given feature matrix.
 
     :param discriminator_network:
-        A flax neural network module. If not specified, :class:`ExchangeableCNN`
-        will be used.
-    """
-
-    target_func: Callable | None
-    """
-    Function that samples a feature from the target distribution.
-    """
-
-    generator_func: Callable
-    """
-    Function that generates features using the given parameter values.
+        A :doc:`flax <flax:index>` neural network.
+        If not specified, :class:`ExchangeableCNN` will be used.
     """
 
     parameters: Parameters
@@ -143,19 +161,25 @@ class Genobuilder:
     The inferrable parameters.
     """
 
-    feature_shape: Tuple | collections.abc.Mapping[str, Tuple]
+    generator_func: Callable
     """
-    Shape of the n-dimensional arrays produced by :attr:`.target_func`
-    and :attr:`.generator_func`.
-    This is either a tuple of array dimensions (c.f. :attr:`numpy.ndarray.shape`),
-    or a dictionary mapping labels to tuples.
-    The former indicates a single feature array, while the latter indicates
-    a collection of feature arrays.
+    Function that simulates features using concrete parameter values.
+    """
+
+    target_func: Callable | None
+    """
+    Function that samples features from the target distribution.
+    """
+
+    feature_shape: tuple | Dict[str, tuple]
+    """
+    Shape of the feature, or features, produced by
+    :attr:`.generator_func` and :attr:`.target_func`.
     """
 
     discriminator_network: nn.Module | None = None
     """
-    A flax neural network module. May be ``None``.
+    A :doc:`flax <flax:index>` neural network. May be ``None``.
     """
 
     def __post_init__(self):
@@ -198,10 +222,10 @@ class Genobuilder:
         if seed is None:
             seed = 1234
         rng = np.random.default_rng(seed)
-        thetas = self.parameters.draw_prior(num_replicates=5, rng=rng)
+        thetas = self.parameters.draw_prior(5, rng=rng)
         if thetas.shape != (5, len(self.parameters)):
             raise ValueError(
-                "parameters.draw_prior(num_replicates=5) produced output with shape "
+                "parameters.draw_prior(5) produced output with shape "
                 f"{thetas.shape}, expected shape {(5, len(self.parameters))}."
             )
 

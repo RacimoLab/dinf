@@ -9,6 +9,17 @@
    :members:
 ```
 
+(sec_api_parameters)=
+## Specifying parameters
+
+```{eval-rst}
+.. autoclass:: dinf.Parameters
+   :members:
+
+.. autoclass:: dinf.Param
+   :members:
+```
+
 (sec_api_feature_extraction)=
 ## Feature extraction
 
@@ -41,21 +52,6 @@
 
 
 .. autoclass:: dinf.BagOfVcf
-   :members:
-
-   .. automethod:: __iter__
-   .. automethod:: __getitem__
-   .. automethod:: __len__
-```
-
-(sec_api_parameters)=
-## Specifying parameters
-
-```{eval-rst}
-.. autoclass:: dinf.Parameters
-   :members:
-
-.. autoclass:: dinf.Param
    :members:
 ```
 

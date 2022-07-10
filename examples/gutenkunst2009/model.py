@@ -132,7 +132,7 @@ def generator(seed, **theta):
     return labelled_matrices
 
 
-vb = dinf.BagOfVcf(
+vcfs = dinf.BagOfVcf(
     pathlib.Path("bcf/").glob("*.bcf"),
     samples=samples,
     contig_lengths=contig_lengths,
@@ -142,7 +142,7 @@ vb = dinf.BagOfVcf(
 def target(seed):
     rng = np.random.default_rng(seed)
     labelled_matrices = features.from_vcf(
-        vb,
+        vcfs,
         sequence_length=sequence_length,
         min_seg_sites=20,
         max_missing_genotypes=0,

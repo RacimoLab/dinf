@@ -558,7 +558,7 @@ class _Features(_SubCommand):
             mats = genobuilder.target_func(args.seed)
         else:
             rng = np.random.default_rng(args.seed)
-            thetas = genobuilder.parameters.draw_prior(num_replicates=1, rng=rng)
+            thetas = genobuilder.parameters.draw_prior(1, rng=rng)
             mats = genobuilder.generator_func(
                 (rng.integers(low=0, high=2**31), thetas[0])
             )

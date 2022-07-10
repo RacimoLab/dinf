@@ -49,7 +49,7 @@ class TestParam:
 
     @pytest.mark.parametrize("truth", (15, -15))
     def test_truth_out_of_bounds(self, truth):
-        with pytest.raises(ValueError, match="True value.*not in bounds"):
+        with pytest.raises(ValueError, match="truth.*not in bounds"):
             Param(low=-10, high=10, truth=truth)
 
     @pytest.mark.parametrize("size", (1, 50))
@@ -77,10 +77,37 @@ class TestParameters:
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
 
+    def test_name(self):
+        # Param name should be set after construction.
+        params = Parameters(
+            a=Param(low=0, high=10),
+            b=Param(low=-1e6, high=1e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        for k, p in params.items():
+            assert k == p.name
+
+        # Param names shouldn't be altered by construction.
+        params = Parameters(
+            a=Param(low=0, high=10, name="a"),
+            b=Param(low=-1e6, high=1e6, name="b"),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        for k, p in params.items():
+            assert k == p.name
+
+    def test_name_mismatch(self):
+        with pytest.raises(ValueError, match="name mismatch"):
+            Parameters(a=Param(low=0, high=10, name="b"))
+
     def test_getitem(self):
         a = Param(low=0, high=10)
         params = Parameters(a=a)
-        assert params["a"] == a
+        a2 = params["a"]
+        assert a2.name == "a"
+        assert a2.low == 0
+        assert a2.high == 10
+        assert a2.truth is None
         with pytest.raises(KeyError):
             params["b"]
 
@@ -91,7 +118,8 @@ class TestParameters:
             b=Param(low=-1e6, high=1e6),
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
-        assert tuple(params) == tuple(params.keys())
+        assert tuple(params) == ("a", "b", "c")
+        assert tuple(params.keys()) == ("a", "b", "c")
 
     def test_len(self):
         assert len(Parameters()) == 0
@@ -101,6 +129,22 @@ class TestParameters:
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
         assert len(params) == 3
+
+    def test_mapping_protocol(self):
+        parameters = Parameters(
+            a=Param(low=0, high=1),
+            b=Param(low=5, high=100),
+            c=Param(low=1e-6, high=1e-3),
+        )
+        assert len(parameters) == 3
+        # Iterate over parameters.
+        assert list(parameters) == ["a", "b", "c"]
+        assert [p.high for p in parameters.values()] == [1, 100, 1e-3]
+        # Lookup a Param by name.
+        a = parameters["a"]
+        assert a.low == 0
+        assert a.high == 1
+        assert a.name == "a"
 
     def test_bounds_contain_true(self):
         rng = np.random.default_rng(1234)

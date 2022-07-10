@@ -259,7 +259,7 @@ class HaplotypeMatrix(_FeatureMatrix):
         self._dtype = np.float32
 
     @property
-    def shape(self) -> Tuple[int, int, int]:
+    def shape(self) -> Tuple[int, ...]:
         """Shape of the feature matrix."""
         return (self._num_pseudo_haplotypes, self._num_loci, 2)
 
@@ -435,7 +435,7 @@ class BinnedHaplotypeMatrix(_FeatureMatrix):
         self._dtype = np.int8
 
     @property
-    def shape(self) -> Tuple[int, int, int]:
+    def shape(self) -> Tuple[int, ...]:
         """Shape of the feature matrix."""
         return (self._num_pseudo_haplotypes, self._num_loci, 1)
 
@@ -586,7 +586,7 @@ class _MultipleFeatureMatrices:
         )
 
     @property
-    def shape(self) -> Dict[str, Tuple[int, int, int]]:
+    def shape(self) -> Dict[str, Tuple[int, ...]]:
         """Shape of the feature matrices."""
         return {label: bhm.shape for label, bhm in self.features.items()}
 
