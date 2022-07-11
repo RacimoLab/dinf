@@ -203,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev253
+            dinf 0.1.1.dev255
             </div>
             
         </div>
@@ -335,7 +335,6 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">dataclasses</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">numpy.typing</span> <span class="k">as</span> <span class="nn">npt</span>
 
 
 <span class="k">def</span> <span class="nf">logit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
@@ -344,7 +343,7 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">expit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-    <span class="c1"># Warning: overflow with x=-inf.</span>
+    <span class="c1"># Warning: overflow when x is negative and very large</span>
     <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">))</span>
 
 
@@ -479,7 +478,6 @@ title="Open an issue"
 <span class="sd">        :param kwargs:</span>
 <span class="sd">            The :class:`Param` objects, named by keyword.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_posterior</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Param</span><span class="p">):</span>
@@ -488,7 +486,12 @@ title="Open an issue"
                 <span class="c1"># Set the name.</span>
                 <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">k</span>
             <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">k</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;name mismatch for </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=Param(..., name=</span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Name mismatch for </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=Param(..., name=</span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;_Pr&quot;</span><span class="p">:</span>
+                <span class="c1"># Used for the discriminator probabilites in npz files.</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Parameter name &#39;_Pr&#39; is reserved by Dinf for internal use.&quot;</span>
+                <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
@@ -533,8 +536,7 @@ title="Open an issue"
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">ret</span></div>
 
-<div class="viewcode-block" id="Parameters.transform"><a class="viewcode-back" href="../../api.html#dinf.Parameters.transform">[docs]</a>    <span class="nd">@np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<div class="viewcode-block" id="Parameters.transform"><a class="viewcode-back" href="../../api.html#dinf.Parameters.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform values bounded by [param.low, param.high] to [-inf, inf].</span>
 
@@ -583,7 +585,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev253+gfb217cb
+      dinf 0.1.1.dev255+g65c380a
     </div>
 </p>
         </footer>

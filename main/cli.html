@@ -205,7 +205,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev253
+            dinf 0.1.1.dev255
             </div>
             
         </div>
@@ -785,7 +785,7 @@ training arguments:
   -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
                         Size of the dataset used to train the discriminator.
                         This dataset is constructed once each GAN iteration.
-                        (default: 1000000)
+                        (default: 1000)
   -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
                         Size of the test dataset used to evaluate the
                         discriminator after each training epoch. (default:
@@ -805,7 +805,7 @@ training arguments:
 <section id="dinf-predict">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">predict</span></code><a class="headerlink" href="#dinf-predict" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf predict [-h] [-S SEED] [-j PARALLELISM] [-r REPLICATES]
-                    user_model.py discriminator.pkl output.ncf
+                    user_model.py discriminator.pkl output.npz
 
 Predict.
 
@@ -822,15 +822,15 @@ common arguments:
 predict arguments:
   -r REPLICATES, --replicates REPLICATES
                         Number of theta replicates to generate and predict
-                        with the discriminator. (default: 1000000)
+                        with the discriminator. (default: 1000)
 
   user_model.py         Python script from which to import the variable
                         &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
                         describes the GAN. See the examples/ folder for
                         example models.
   discriminator.pkl     Discriminator to use for predictions.
-  output.ncf            Output data, matching thetas to discriminator
-                        predictions (in Arviz netcdf format).
+  output.npz            Output data, matching thetas to discriminator
+                        predictions.
 </pre></div>
 </div>
 </section>
@@ -839,7 +839,7 @@ predict arguments:
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf abc-gan [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
                     [-R TEST_REPLICATES] [-e EPOCHS] [-p PROPOSALS]
                     [-P POSTERIORS] [-i ITERATIONS] [-d WORKING_DIRECTORY]
-                    user_model.py
+                    model.py
 
 Run the ABC GAN.
 
@@ -867,7 +867,7 @@ training arguments:
   -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
                         Size of the dataset used to train the discriminator.
                         This dataset is constructed once each GAN iteration.
-                        (default: 1000000)
+                        (default: 1000)
   -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
                         Size of the test dataset used to evaluate the
                         discriminator after each training epoch. (default:
@@ -878,7 +878,7 @@ training arguments:
 
 ABC arguments:
   -p PROPOSALS, --proposals PROPOSALS
-                        Number of ABC sample draws. (default: 1000000)
+                        Number of ABC sample draws. (default: 1000)
   -P POSTERIORS, --posteriors POSTERIORS
                         Number of top-ranked ABC sample draws to keep.
                         (default: 1000)
@@ -889,7 +889,7 @@ GAN arguments:
   -d WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
                         Folder to output results. If not specified, the
                         current directory will be used. (default: None)
-  user_model.py         Python script from which to import the variable
+  model.py              Python script from which to import the variable
                         &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
                         describes the GAN. See the examples/ folder for
                         example models.
@@ -902,7 +902,7 @@ GAN arguments:
                           [-r TRAINING_REPLICATES] [-R TEST_REPLICATES]
                           [-e EPOCHS] [-w WALKERS] [-s STEPS] [-i ITERATIONS]
                           [-d WORKING_DIRECTORY]
-                          user_model.py
+                          model.py
 
 Run the ALFI MCMC GAN.
 
@@ -923,7 +923,7 @@ training arguments:
   -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
                         Size of the dataset used to train the discriminator.
                         This dataset is constructed once each GAN iteration.
-                        (default: 1000000)
+                        (default: 1000)
   -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
                         Size of the test dataset used to evaluate the
                         discriminator after each training epoch. (default:
@@ -944,7 +944,7 @@ GAN arguments:
   -d WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
                         Folder to output results. If not specified, the
                         current directory will be used. (default: None)
-  user_model.py         Python script from which to import the variable
+  model.py              Python script from which to import the variable
                         &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
                         describes the GAN. See the examples/ folder for
                         example models.
@@ -957,7 +957,7 @@ GAN arguments:
                      [-R TEST_REPLICATES] [-e EPOCHS] [-w WALKERS] [-s STEPS]
                      [--Dx-replicates DX_REPLICATES] [-i ITERATIONS]
                      [-d WORKING_DIRECTORY]
-                     user_model.py
+                     model.py
 
 Run the MCMC GAN.
 
@@ -985,7 +985,7 @@ training arguments:
   -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
                         Size of the dataset used to train the discriminator.
                         This dataset is constructed once each GAN iteration.
-                        (default: 1000000)
+                        (default: 1000)
   -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
                         Size of the test dataset used to evaluate the
                         discriminator after each training epoch. (default:
@@ -1009,7 +1009,7 @@ GAN arguments:
   -d WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
                         Folder to output results. If not specified, the
                         current directory will be used. (default: None)
-  user_model.py         Python script from which to import the variable
+  model.py              Python script from which to import the variable
                         &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
                         describes the GAN. See the examples/ folder for
                         example models.
@@ -1024,7 +1024,7 @@ GAN arguments:
                    [--num-proposals NUM_PROPOSALS]
                    [--max-pretraining-iterations MAX_PRETRAINING_ITERATIONS]
                    [-i ITERATIONS] [-d WORKING_DIRECTORY]
-                   user_model.py
+                   model.py
 
 Run PG-GAN style simulated annealing.
 
@@ -1042,7 +1042,7 @@ training arguments:
   -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
                         Size of the dataset used to train the discriminator.
                         This dataset is constructed once each GAN iteration.
-                        (default: 1000000)
+                        (default: 1000)
   -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
                         Size of the test dataset used to evaluate the
                         discriminator after each training epoch. (default:
@@ -1067,7 +1067,7 @@ GAN arguments:
   -d WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
                         Folder to output results. If not specified, the
                         current directory will be used. (default: None)
-  user_model.py         Python script from which to import the variable
+  model.py              Python script from which to import the variable
                         &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
                         describes the GAN. See the examples/ folder for
                         example models.
@@ -1154,14 +1154,14 @@ optional arguments:
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code><a class="headerlink" href="#dinf-plot-hist" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist [-h] [-o output.pdf] [-n N | -t P] [-W] [-c]
                       [-x X_PARAM] [-m model.py]
-                      data.ncf
+                      data.npz
 
 Plot marginal posterior densities.
 
 One plot is produced for the discriminator probabilities,
 plus one plot for each model parameter. The choice of which
 parameter to plot can be specified using the -x option,
-with the special value &quot;_p&quot; indicating the discriminator
+with the special value &quot;_Pr&quot; indicating the discriminator
 probabilities.
 
 The resulting figure is a histogram. If the data correspond
@@ -1177,7 +1177,7 @@ using the -W option. Alternately, the data file can be filtered
 to obtain a posterior sample using the -n or -t options.
 
 positional arguments:
-  data.ncf              The datafile containing discriminator predictions.
+  data.npz              The datafile containing discriminator predictions.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -1194,7 +1194,7 @@ optional arguments:
                         False)
   -c, --cumulative      Plot cumulative distribution. (default: False)
   -x X_PARAM, --x-param X_PARAM
-                        Name of parameter to plot. The special name &quot;_p&quot; is
+                        Name of parameter to plot. The special name &quot;_Pr&quot; is
                         recognised to plot the probabilities obtained from the
                         discriminator. (default: None)
   -m model.py, --model model.py
@@ -1206,8 +1206,8 @@ optional arguments:
 <section id="dinf-plot-hist2d">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist2d</span></code><a class="headerlink" href="#dinf-plot-hist2d" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist2d [-h] [-o output.pdf] [-n N | -t P] [-W] [-x X_PARAM]
-                        [-y Y_PARAM]
-                        model.py data.ncf
+                        [-y Y_PARAM] [-m model.py]
+                        data.npz
 
 Plot 2d marginal posterior densities.
 
@@ -1229,11 +1229,7 @@ can be filtered to obtain a posterior sample using the -n
 or -t options.
 
 positional arguments:
-  model.py              Python script from which to import the variable
-                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
-                        describes the GAN. See the examples/ folder for
-                        example models.
-  data.ncf              The datafile containing discriminator predictions.
+  data.npz              The datafile containing discriminator predictions.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -1254,6 +1250,9 @@ optional arguments:
   -y Y_PARAM, --y-param Y_PARAM
                         Name of parameter to plot on vertical axis. (default:
                         None)
+  -m model.py, --model model.py
+                        Model file from which the parameter truth values with
+                        be taken. (default: None)
 </pre></div>
 </div>
 </section>
@@ -1305,7 +1304,7 @@ optional arguments:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev253+gfb217cb
+      dinf 0.1.1.dev255+g65c380a
     </div>
 </p>
         </footer>

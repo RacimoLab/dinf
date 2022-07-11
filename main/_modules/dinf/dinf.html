@@ -203,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev253
+            dinf 0.1.1.dev255
             </div>
             
         </div>
@@ -334,17 +334,21 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">import</span> <span class="nn">multiprocess</span> <span class="k">as</span> <span class="nn">multiprocessing</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
 <span class="kn">import</span> <span class="nn">signal</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Callable</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span> <span class="nn">zipfile</span>
 
-<span class="kn">import</span> <span class="nn">arviz</span> <span class="k">as</span> <span class="nn">az</span>
 <span class="kn">import</span> <span class="nn">emcee</span>
 <span class="kn">import</span> <span class="nn">jax</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.lib.recfunctions</span> <span class="kn">import</span> <span class="n">structured_to_unstructured</span>
+
+<span class="c1"># We&#39;re compatible with the standard lib&#39;s multiprocessing,</span>
+<span class="c1"># but multiprocess uses dill to pickle functions which provides</span>
+<span class="c1"># greater flexibility to users (i.e. fewer confusing errors).</span>
+<span class="kn">import</span> <span class="nn">multiprocess</span> <span class="k">as</span> <span class="nn">multiprocessing</span>
 
 <span class="kn">from</span> <span class="nn">.discriminator</span> <span class="kn">import</span> <span class="n">Discriminator</span><span class="p">,</span> <span class="n">Surrogate</span>
 <span class="kn">from</span> <span class="nn">.genobuilder</span> <span class="kn">import</span> <span class="n">Genobuilder</span>
@@ -462,16 +466,10 @@ title="Open an issue"
 <span class="k">def</span> <span class="nf">_generate_training_data</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">generator</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">parallelism</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
     <span class="n">num_replicates</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
     <span class="n">x_generator</span> <span class="o">=</span> <span class="n">_generate_data</span><span class="p">(</span>
-        <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
-        <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
-        <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
-        <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+        <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span> <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span> <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
     <span class="p">)</span>
     <span class="n">x_target</span> <span class="o">=</span> <span class="n">_observe_data</span><span class="p">(</span>
-        <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
-        <span class="n">num_replicates</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span>
-        <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
-        <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+        <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">num_replicates</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
     <span class="p">)</span>
     <span class="c1"># XXX: Large copy doubles peak memory.</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="o">*</span><span class="n">l</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">l</span><span class="p">),</span> <span class="n">x_generator</span><span class="p">,</span> <span class="n">x_target</span><span class="p">)</span>
@@ -479,6 +477,122 @@ title="Open an issue"
     <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_replicates</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">num_replicates</span><span class="p">)))</span>
     <span class="c1"># Note: training data is not shuffled</span>
     <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_generator</span>
+
+
+<div class="viewcode-block" id="save_results"><a class="viewcode-back" href="../../api.html#dinf.save_results">[docs]</a><span class="k">def</span> <span class="nf">save_results</span><span class="p">(</span>
+    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span>
+    <span class="o">/</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Save discriminator predictions and parameter values to a .npz file.</span>
+
+<span class="sd">    :param filename:</span>
+<span class="sd">        The output file.</span>
+<span class="sd">    :param thetas:</span>
+<span class="sd">        Parameter values.</span>
+<span class="sd">    :param probs:</span>
+<span class="sd">        Discriminator predictions corresponding to the ``thetas``.</span>
+<span class="sd">    :param parameters:</span>
+<span class="sd">        Sequence of parameter names.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;thetas.shape=</span><span class="si">{</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, but got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span><span class="si">}</span><span class="s2"> parameters&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">probs</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;thetas.shape=</span><span class="si">{</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, but got probs.shape=</span><span class="si">{</span><span class="n">probs</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+    <span class="k">assert</span> <span class="s2">&quot;_Pr&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parameters</span>
+    <span class="n">kw</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;_Pr&quot;</span><span class="p">:</span> <span class="n">probs</span><span class="p">,</span>
+        <span class="o">**</span><span class="p">{</span><span class="n">par_name</span><span class="p">:</span> <span class="n">thetas</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">par_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parameters</span><span class="p">)},</span>
+    <span class="p">}</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">_npz_array_metadata</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read array metadata from an npz file without loading the arrays.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">read_array_header</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">read_array_header_1_0</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">version</span> <span class="o">==</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">read_array_header_2_0</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Probably version 3.0, created with utf8 array names.</span>
+            <span class="c1"># Numpy doesn&#39;t have a public API for this, so just use</span>
+            <span class="c1"># the internal numpy function that has existed since 2014.</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">_read_array_header</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
+
+    <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">formats</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="k">as</span> <span class="n">zf</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">zf</span><span class="o">.</span><span class="n">namelist</span><span class="p">():</span>
+            <span class="k">assert</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.npy&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">zf</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">version</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">read_magic</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="n">shape</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">read_array_header</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span>
+            <span class="n">short_name</span> <span class="o">=</span> <span class="n">name</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="s2">&quot;.npy&quot;</span><span class="p">)]</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">short_name</span><span class="p">)</span>
+            <span class="n">formats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dtype</span><span class="o">.</span><span class="n">str</span><span class="p">)</span>
+            <span class="n">shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">names</span><span class="p">,</span> <span class="n">formats</span><span class="p">,</span> <span class="n">shapes</span>
+
+
+<div class="viewcode-block" id="load_results"><a class="viewcode-back" href="../../api.html#dinf.load_results">[docs]</a><span class="k">def</span> <span class="nf">load_results</span><span class="p">(</span>
+    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load descriminator predictions and parameter values from a .npz file.</span>
+
+<span class="sd">    :param filename:</span>
+<span class="sd">        The input file.</span>
+<span class="sd">    :param parameters:</span>
+<span class="sd">        Sequence of parameter names against which the file&#39;s</span>
+<span class="sd">        arrays will be checked. A ValueError exception is raised</span>
+<span class="sd">        if the names are not the same (and in the same order).</span>
+<span class="sd">        If None, the parameter names are not checked.</span>
+<span class="sd">    :return:</span>
+<span class="sd">        A numpy structured array, where the first column is the probabilities</span>
+<span class="sd">        (named ``_Pr``), and the subsequence columns are the</span>
+<span class="sd">        parameter values (if any).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">names</span><span class="p">,</span> <span class="n">formats</span><span class="p">,</span> <span class="n">shapes</span> <span class="o">=</span> <span class="n">_npz_array_metadata</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="c1"># All arrays had the same shape when the file was saved.</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">shape</span> <span class="o">==</span> <span class="n">shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+    <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">expected_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">names</span> <span class="o">!=</span> <span class="n">expected_names</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: expected arrays </span><span class="si">{</span><span class="n">expected_names</span><span class="si">}</span><span class="s2">, but got </span><span class="si">{</span><span class="n">names</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;_Pr&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: expected array &#39;_Pr&#39;, but got </span><span class="si">{</span><span class="n">names</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">npzfile</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span> <span class="n">formats</span><span class="o">=</span><span class="n">formats</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+        <span class="n">arr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">npzfile</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">arr</span></div>
+
+
+<span class="k">def</span> <span class="nf">_load_results_unstructured</span><span class="p">(</span>
+    <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Split results into thetas and probs.&quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">load_results</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]</span>
+    <span class="n">thetas</span> <span class="o">=</span> <span class="n">structured_to_unstructured</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">names</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
+    <span class="k">return</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span>
 
 
 <span class="k">def</span> <span class="nf">_log_prob</span><span class="p">(</span>
@@ -563,30 +677,17 @@ title="Open an issue"
     <span class="n">mt_initial_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">mtrand</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">))</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
     <span class="n">state</span> <span class="o">=</span> <span class="n">emcee</span><span class="o">.</span><span class="n">State</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">mt_initial_state</span><span class="p">)</span>
     <span class="n">sampler</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">nsteps</span><span class="o">=</span><span class="n">steps</span><span class="p">)</span>
-    <span class="n">chain</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">get_chain</span><span class="p">()</span>
+    <span class="n">thetas</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">get_chain</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">walkers</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
 
-    <span class="n">datadict</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;posterior&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="n">p</span><span class="p">:</span> <span class="n">chain</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
-        <span class="p">},</span>
-        <span class="s2">&quot;sample_stats&quot;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s2">&quot;lp&quot;</span><span class="p">:</span> <span class="n">sampler</span><span class="o">.</span><span class="n">get_log_prob</span><span class="p">()</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-            <span class="s2">&quot;acceptance_rate&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">acceptance_fraction</span><span class="p">),</span>
-        <span class="p">},</span>
-    <span class="p">}</span>
-    <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
-        <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span>
-            <span class="s2">&quot;ignore&quot;</span><span class="p">,</span>
-            <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span>
-            <span class="n">message</span><span class="o">=</span><span class="s2">&quot;More chains.*than draws&quot;</span><span class="p">,</span>
-            <span class="n">module</span><span class="o">=</span><span class="s2">&quot;arviz&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="o">**</span><span class="n">datadict</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">get_log_prob</span><span class="p">())</span>
+    <span class="k">assert</span> <span class="n">probs</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">walkers</span><span class="p">)</span>
 
     <span class="c1"># XXX: use logger</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MCMC acceptance rate&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">acceptance_fraction</span><span class="p">))</span>
 
-    <span class="k">return</span> <span class="n">dataset</span>
+    <span class="k">return</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span>
 
 
 <span class="k">def</span> <span class="nf">_train_discriminator</span><span class="p">(</span>
@@ -729,7 +830,7 @@ title="Open an issue"
     <span class="n">replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">parallelism</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
-<span class="p">):</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Sample generator features and make predictions using the discriminator.</span>
 
@@ -744,7 +845,10 @@ title="Open an issue"
 <span class="sd">    :param numpy.random.Generator rng:</span>
 <span class="sd">        Numpy random number generator.</span>
 <span class="sd">    :return:</span>
-<span class="sd">        An arviz dataset.</span>
+<span class="sd">        A 2-tuple of (thetas, probs), where ``thetas`` are the drawn parameters</span>
+<span class="sd">        and ``probs`` are the discriminator predictions.</span>
+<span class="sd">        theta[j][k] is the j&#39;th draw for the k&#39;th parameter, and</span>
+<span class="sd">        probs[j] is the discriminator prediction for the j&#39;th draw.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">parallelism</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
@@ -758,15 +862,8 @@ title="Open an issue"
         <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
         <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
-        <span class="n">log_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
-
-    <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
-        <span class="n">posterior</span><span class="o">=</span><span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">thetas</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">)},</span>
-        <span class="n">sample_stats</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;lp&quot;</span><span class="p">:</span> <span class="n">log_y</span><span class="p">},</span>
-    <span class="p">)</span>
-    <span class="k">return</span> <span class="n">dataset</span></div>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span></div>
 
 
 <div class="viewcode-block" id="mcmc_gan"><a class="viewcode-back" href="../../api.html#dinf.mcmc_gan">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
@@ -843,11 +940,11 @@ title="Open an issue"
         <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
 
     <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
-
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">files_exist</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">fn</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;mcmc.ncf&quot;</span><span class="p">)</span>
+            <span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">fn</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;mcmc.npz&quot;</span><span class="p">)</span>
         <span class="p">]</span>
         <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> is incomplete. Delete and try again?&quot;</span><span class="p">)</span>
@@ -855,18 +952,21 @@ title="Open an issue"
 
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_netcdf</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.ncf&quot;</span><span class="p">)</span>
-        <span class="n">chain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">posterior</span><span class="o">.</span><span class="n">to_array</span><span class="p">())</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">start</span> <span class="o">=</span> <span class="n">chain</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">thetas</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_load_results_unstructured</span><span class="p">(</span>
+            <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.npz&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">thetas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span> <span class="o">!=</span> <span class="n">walkers</span><span class="p">:</span>
             <span class="c1"># TODO: allow this by sampling start points for the walkers?</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;request for </span><span class="si">{</span><span class="n">walkers</span><span class="si">}</span><span class="s2"> walkers, but resuming from &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s1">&#39;mcmc.ncf&#39;</span><span class="si">}</span><span class="s2"> which used </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="si">}</span><span class="s2"> walkers.&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s1">&#39;mcmc.npz&#39;</span><span class="si">}</span><span class="s2"> which used </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="si">}</span><span class="s2"> walkers.&quot;</span>
             <span class="p">)</span>
 
-        <span class="n">thetas</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">chain</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">sampled_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">sampled_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+            <span class="n">thetas</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
     <span class="k">else</span><span class="p">:</span>
@@ -874,12 +974,10 @@ title="Open an issue"
             <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
         <span class="p">)</span>
         <span class="c1"># Starting point for the mcmc chain.</span>
-        <span class="n">start</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">walkers</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">walkers</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
 
-        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-            <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
-        <span class="p">)</span>
-        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
 
     <span class="c1"># If start values are linearly dependent, emcee complains loudly.</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">((</span><span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
@@ -891,7 +989,7 @@ title="Open an issue"
         <span class="n">_log_prob</span><span class="p">,</span>
         <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
         <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
-        <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
         <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
         <span class="n">num_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
         <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
@@ -912,22 +1010,25 @@ title="Open an issue"
         <span class="p">)</span>
         <span class="n">discriminator</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
 
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">_run_mcmc_emcee</span><span class="p">(</span>
+        <span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="n">_run_mcmc_emcee</span><span class="p">(</span>
             <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">walkers</span><span class="o">=</span><span class="n">walkers</span><span class="p">,</span>
             <span class="n">steps</span><span class="o">=</span><span class="n">steps</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
             <span class="n">log_prob_func</span><span class="o">=</span><span class="n">log_prob_func</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">az</span><span class="o">.</span><span class="n">to_netcdf</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.ncf&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">walkers</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
+        <span class="n">save_results</span><span class="p">(</span>
+            <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.npz&quot;</span><span class="p">,</span> <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span><span class="o">=</span><span class="n">probs</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
+        <span class="p">)</span>
 
-        <span class="n">chain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">posterior</span><span class="o">.</span><span class="n">to_array</span><span class="p">())</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
         <span class="c1"># The chain for next iteration starts at the end of this chain.</span>
-        <span class="n">start</span> <span class="o">=</span> <span class="n">chain</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">thetas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
-        <span class="n">thetas</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">chain</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">sampled_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">sampled_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+            <span class="n">thetas</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
 
@@ -948,22 +1049,11 @@ title="Open an issue"
     <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">_generate_data</span><span class="p">(</span>
-        <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
-        <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
-        <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
-        <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+        <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span> <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span> <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
     <span class="p">)</span>
     <span class="n">y</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
     <span class="n">top</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">y</span><span class="p">)[::</span><span class="o">-</span><span class="mi">1</span><span class="p">][:</span><span class="n">posteriors</span><span class="p">]</span>
-    <span class="n">top_params</span> <span class="o">=</span> <span class="n">thetas</span><span class="p">[</span><span class="n">top</span><span class="p">]</span>
-    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
-        <span class="n">log_top_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="n">top</span><span class="p">])</span>
-
-    <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
-        <span class="n">posterior</span><span class="o">=</span><span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">top_params</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parameters</span><span class="p">)},</span>
-        <span class="n">sample_stats</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;lp&quot;</span><span class="p">:</span> <span class="n">log_top_y</span><span class="p">},</span>
-    <span class="p">)</span>
-    <span class="k">return</span> <span class="n">dataset</span>
+    <span class="k">return</span> <span class="n">thetas</span><span class="p">[</span><span class="n">top</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="n">top</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="abc_gan"><a class="viewcode-back" href="../../api.html#dinf.abc_gan">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
@@ -1037,10 +1127,11 @@ title="Open an issue"
 
     <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
 
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">files_exist</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">fn</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;abc.ncf&quot;</span><span class="p">)</span>
+            <span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">fn</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;abc.npz&quot;</span><span class="p">)</span>
         <span class="p">]</span>
         <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> is incomplete. Delete and try again?&quot;</span><span class="p">)</span>
@@ -1048,10 +1139,10 @@ title="Open an issue"
 
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_netcdf</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;abc.ncf&quot;</span><span class="p">)</span>
-
-        <span class="n">chain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">posterior</span><span class="o">.</span><span class="n">to_array</span><span class="p">())</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">thetas</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">chain</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">thetas</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_load_results_unstructured</span><span class="p">(</span>
+            <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;abc.npz&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
         <span class="n">sampled_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
@@ -1060,10 +1151,8 @@ title="Open an issue"
             <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
         <span class="p">)</span>
 
-        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-            <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
-        <span class="p">)</span>
-        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
 
     <span class="n">n_target_calls</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="mi">0</span>
@@ -1083,20 +1172,20 @@ title="Open an issue"
         <span class="p">)</span>
         <span class="n">discriminator</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
 
-        <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">proposals</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">_run_abc</span><span class="p">(</span>
+        <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">proposals</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="n">_run_abc</span><span class="p">(</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
             <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">thetas</span><span class="o">=</span><span class="n">proposal_thetas</span><span class="p">,</span>
             <span class="n">posteriors</span><span class="o">=</span><span class="n">posteriors</span><span class="p">,</span>
             <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">az</span><span class="o">.</span><span class="n">to_netcdf</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;abc.ncf&quot;</span><span class="p">)</span>
+        <span class="n">save_results</span><span class="p">(</span>
+            <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;abc.npz&quot;</span><span class="p">,</span> <span class="n">probs</span><span class="o">=</span><span class="n">probs</span><span class="p">,</span> <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
+        <span class="p">)</span>
 
-        <span class="n">chain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">posterior</span><span class="o">.</span><span class="n">to_array</span><span class="p">())</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">thetas</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">chain</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">sampled_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
@@ -1184,15 +1273,14 @@ title="Open an issue"
 <span class="sd">    drawn from the prior.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span>
     <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span>
         <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
     <span class="p">)</span>
 
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_pretraining_iterations</span><span class="p">):</span>
-        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-            <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
-        <span class="p">)</span>
-        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
 
         <span class="n">metrics</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_train_discriminator</span><span class="p">(</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
@@ -1209,12 +1297,12 @@ title="Open an issue"
         <span class="k">if</span> <span class="n">acc</span> <span class="o">&gt;</span> <span class="mf">0.9</span><span class="p">:</span>
             <span class="k">break</span>
 
-    <span class="n">thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">training_replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+    <span class="n">thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">training_replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
     <span class="n">lp</span> <span class="o">=</span> <span class="n">_log_prob</span><span class="p">(</span>
         <span class="n">thetas</span><span class="p">,</span>
         <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
         <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
-        <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+        <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
         <span class="n">num_replicates</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
         <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
@@ -1430,11 +1518,12 @@ title="Open an issue"
 
     <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
 
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">files_exist</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">fn</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;pg-gan-proposals.ncf&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;pg-gan-proposals.npz&quot;</span><span class="p">)</span>
         <span class="p">]</span>
         <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> is incomplete. Delete and try again?&quot;</span><span class="p">)</span>
@@ -1442,11 +1531,11 @@ title="Open an issue"
 
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_netcdf</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;pg-gan-proposals.ncf&quot;</span><span class="p">)</span>
-        <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">posterior</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">draw</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to_array</span><span class="p">())</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span>
-            <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
+        <span class="n">proposal_thetas</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="n">_load_results_unstructured</span><span class="p">(</span>
+            <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;pg-gan-proposals.npz&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
         <span class="p">)</span>
-        <span class="n">lp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">sample_stats</span><span class="o">.</span><span class="n">lp</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">draw</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">proposal_thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="n">lp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
         <span class="c1"># First entry is for the current theta in the simulated annealing chain.</span>
         <span class="n">theta</span> <span class="o">=</span> <span class="n">proposal_thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">current_lp</span> <span class="o">=</span> <span class="n">lp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1500,7 +1589,7 @@ title="Open an issue"
             <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
             <span class="n">num_proposals</span><span class="o">=</span><span class="n">num_proposals</span><span class="p">,</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">proposal_stddev</span><span class="o">=</span><span class="n">proposal_stddev</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -1508,31 +1597,19 @@ title="Open an issue"
             <span class="n">proposal_thetas</span><span class="p">,</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
             <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">num_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
             <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">n_generator_calls</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">proposal_thetas</span><span class="p">)</span> <span class="o">*</span> <span class="n">Dx_replicates</span>
 
-        <span class="n">datadict</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s2">&quot;posterior&quot;</span><span class="p">:</span> <span class="p">{</span>
-                <span class="n">p</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">proposal_thetas</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
-            <span class="p">},</span>
-            <span class="s2">&quot;sample_stats&quot;</span><span class="p">:</span> <span class="p">{</span>
-                <span class="s2">&quot;lp&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">lp</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
-            <span class="p">},</span>
-        <span class="p">}</span>
-        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span>
-                <span class="s2">&quot;ignore&quot;</span><span class="p">,</span>
-                <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span>
-                <span class="n">message</span><span class="o">=</span><span class="s2">&quot;More chains.*than draws&quot;</span><span class="p">,</span>
-                <span class="n">module</span><span class="o">=</span><span class="s2">&quot;arviz&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="o">**</span><span class="n">datadict</span><span class="p">)</span>
-        <span class="n">az</span><span class="o">.</span><span class="n">to_netcdf</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;pg-gan-proposals.ncf&quot;</span><span class="p">)</span>
+        <span class="n">save_results</span><span class="p">(</span>
+            <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;pg-gan-proposals.npz&quot;</span><span class="p">,</span>
+            <span class="n">thetas</span><span class="o">=</span><span class="n">proposal_thetas</span><span class="p">,</span>
+            <span class="n">probs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">lp</span><span class="p">),</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">current_lp</span> <span class="o">=</span> <span class="n">lp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># First entry is for the current theta.</span>
         <span class="n">best</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">lp</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
@@ -1550,7 +1627,7 @@ title="Open an issue"
 
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;log prob: </span><span class="si">{</span><span class="n">current_lp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">theta_i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">theta_i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
             <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">truth</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">theta_i</span><span class="si">}</span><span class="s2"> (truth=</span><span class="si">{</span><span class="n">param</span><span class="o">.</span><span class="n">truth</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
@@ -1651,11 +1728,12 @@ title="Open an issue"
 
     <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
 
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">files_exist</span> <span class="o">=</span> <span class="p">[</span>
             <span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">fn</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;surrogate.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;mcmc.ncf&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;surrogate.pkl&quot;</span><span class="p">,</span> <span class="s2">&quot;mcmc.npz&quot;</span><span class="p">)</span>
         <span class="p">]</span>
         <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> is incomplete. Delete and try again?&quot;</span><span class="p">)</span>
@@ -1664,34 +1742,35 @@ title="Open an issue"
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
         <span class="n">surrogate</span> <span class="o">=</span> <span class="n">Surrogate</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;surrogate.pkl&quot;</span><span class="p">)</span>
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">az</span><span class="o">.</span><span class="n">from_netcdf</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.ncf&quot;</span><span class="p">)</span>
+        <span class="n">thetas</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_load_results_unstructured</span><span class="p">(</span>
+            <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.npz&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
         <span class="c1"># Discard first half as burn in.</span>
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">draw</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
-        <span class="n">chain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">posterior</span><span class="o">.</span><span class="n">to_array</span><span class="p">())</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">start</span> <span class="o">=</span> <span class="n">chain</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">thetas</span><span class="p">[</span><span class="n">steps</span><span class="p">:]</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">thetas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span> <span class="o">!=</span> <span class="n">walkers</span><span class="p">:</span>
             <span class="c1"># TODO: allow this by sampling start points for the walkers?</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;request for </span><span class="si">{</span><span class="n">walkers</span><span class="si">}</span><span class="s2"> walkers, but resuming from &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s1">&#39;mcmc.ncf&#39;</span><span class="si">}</span><span class="s2"> which used </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="si">}</span><span class="s2"> walkers.&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s1">&#39;mcmc.npz&#39;</span><span class="si">}</span><span class="s2"> which used </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="si">}</span><span class="s2"> walkers.&quot;</span>
             <span class="p">)</span>
 
-        <span class="n">thetas</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">chain</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">sampled_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">sampled_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+            <span class="n">thetas</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span>
             <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
         <span class="p">)</span>
-        <span class="n">surrogate</span> <span class="o">=</span> <span class="n">Surrogate</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">),</span> <span class="n">rng</span><span class="p">)</span>
+        <span class="n">surrogate</span> <span class="o">=</span> <span class="n">Surrogate</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">),</span> <span class="n">rng</span><span class="p">)</span>
         <span class="c1"># Starting point for the mcmc chain.</span>
-        <span class="n">start</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">walkers</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">walkers</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
 
-        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-            <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
-        <span class="p">)</span>
-        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
 
     <span class="c1"># If start values are linearly dependent, emcee complains loudly.</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">((</span><span class="n">start</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">start</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
@@ -1700,9 +1779,7 @@ title="Open an issue"
     <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="n">log_prob_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
-        <span class="n">_log_prob_surrogate</span><span class="p">,</span>
-        <span class="n">surrogate</span><span class="o">=</span><span class="n">surrogate</span><span class="p">,</span>
-        <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+        <span class="n">_log_prob_surrogate</span><span class="p">,</span> <span class="n">surrogate</span><span class="o">=</span><span class="n">surrogate</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
     <span class="p">)</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">iterations</span><span class="p">):</span>
@@ -1745,35 +1822,32 @@ title="Open an issue"
                 <span class="sa">f</span><span class="s2">&quot;S(θ)=</span><span class="si">{</span><span class="n">s_pred</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="si">}</span><span class="s2">; &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;α=</span><span class="si">{</span><span class="n">alpha</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="si">:</span><span class="s2">.3g</span><span class="si">}</span><span class="s2">, β=</span><span class="si">{</span><span class="n">beta</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="si">:</span><span class="s2">.3g</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
-            <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="n">training_thetas</span><span class="p">[</span><span class="n">j</span><span class="p">]):</span>
+            <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">training_thetas</span><span class="p">[</span><span class="n">j</span><span class="p">]):</span>
                 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
             <span class="n">which</span> <span class="o">=</span> <span class="s2">&quot;S&quot;</span>
 
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">_run_mcmc_emcee</span><span class="p">(</span>
+        <span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="n">_run_mcmc_emcee</span><span class="p">(</span>
             <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">walkers</span><span class="o">=</span><span class="n">walkers</span><span class="p">,</span>
             <span class="n">steps</span><span class="o">=</span><span class="mi">2</span> <span class="o">*</span> <span class="n">steps</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
             <span class="n">log_prob_func</span><span class="o">=</span><span class="n">log_prob_func</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">az</span><span class="o">.</span><span class="n">to_netcdf</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.ncf&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">steps</span><span class="p">,</span> <span class="n">walkers</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
+        <span class="n">save_results</span><span class="p">(</span>
+            <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.npz&quot;</span><span class="p">,</span> <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span><span class="o">=</span><span class="n">probs</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
+        <span class="p">)</span>
 
         <span class="c1"># Discard first half as burn in.</span>
-        <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">draw</span><span class="o">=</span><span class="nb">slice</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">thetas</span><span class="p">[</span><span class="n">steps</span><span class="p">:]</span>
 
-        <span class="n">chain</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">posterior</span><span class="o">.</span><span class="n">to_array</span><span class="p">())</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
         <span class="c1"># The chain for next iteration starts at the end of this chain.</span>
-        <span class="n">start</span> <span class="o">=</span> <span class="n">chain</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">thetas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
-        <span class="n">thetas</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">chain</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-
-        <span class="c1"># Discard half of the dataset with the lowest log prob.</span>
-        <span class="c1"># lp = np.array(dataset.sample_stats.lp).swapaxes(0, 1).reshape(-1)</span>
-        <span class="c1"># idx = np.argsort(lp)[len(lp) // 2:]</span>
-        <span class="c1"># thetas = thetas[idx]</span>
-
-        <span class="n">sampled_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">sampled_thetas</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+            <span class="n">thetas</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
 
@@ -1801,7 +1875,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev253+gfb217cb
+      dinf 0.1.1.dev255+g65c380a
     </div>
 </p>
         </footer>

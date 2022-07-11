@@ -72,6 +72,8 @@
 
 ```{eval-rst}
 .. autosummary::
+    save_results
+    load_results
     misc.ts_individuals
     get_samples_from_1kgp_metadata
     get_contig_lengths
@@ -193,6 +195,8 @@
 
 ```{eval-rst}
 
+.. autofunction:: dinf.save_results
+.. autofunction:: dinf.load_results
 .. autofunction:: dinf.misc.ts_individuals
 .. autofunction:: dinf.get_samples_from_1kgp_metadata
 .. autofunction:: dinf.get_contig_lengths
