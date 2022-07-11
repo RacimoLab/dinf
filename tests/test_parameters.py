@@ -97,7 +97,7 @@ class TestParameters:
             assert k == p.name
 
     def test_name_mismatch(self):
-        with pytest.raises(ValueError, match="name mismatch"):
+        with pytest.raises(ValueError, match="Name mismatch"):
             Parameters(a=Param(low=0, high=10, name="b"))
 
     def test_getitem(self):

@@ -1,9 +1,9 @@
 from __future__ import annotations
 import argparse
+import os
 import pathlib
 import textwrap
 
-import arviz as az
 import numpy as np
 
 import dinf
@@ -25,6 +25,9 @@ def check_output_file(path):
     inaccessibility, but we should catch the most common problems early.
     """
     if path.exists():
+        if path.samefile(os.devnull) or path.is_fifo():
+            # No problem!
+            return
         raise ValueError(f"{path}: output file already exists, refusing to overwrite")
     path.touch()
     path.unlink()
@@ -52,7 +55,7 @@ def _add_train_parser_group(parser):
         "-r",
         "--training-replicates",
         type=int,
-        default=1_000_000,
+        default=1000,
         help=(
             "Size of the dataset used to train the discriminator. "
             "This dataset is constructed once each GAN iteration."
@@ -62,7 +65,7 @@ def _add_train_parser_group(parser):
         "-R",
         "--test-replicates",
         type=int,
-        default=1_000,
+        default=1000,
         help=(
             "Size of the test dataset used to evaluate the discriminator "
             "after each training epoch."
@@ -103,7 +106,7 @@ def _add_gan_parser_group(parser):
     )
     group.add_argument(
         "genob_model",
-        metavar="user_model.py",
+        metavar="model.py",
         type=pathlib.Path,
         help=_GENOB_MODEL_HELP,
     )
@@ -148,7 +151,7 @@ class AbcGan:
             "-p",
             "--proposals",
             type=int,
-            default=1_000_000,
+            default=1000,
             help="Number of ABC sample draws.",
         )
         group.add_argument(
@@ -426,7 +429,7 @@ class Predict:
             "-r",
             "--replicates",
             type=int,
-            default=1_000_000,
+            default=1000,
             help=(
                 "Number of theta replicates to generate and predict with "
                 "the discriminator. "
@@ -448,12 +451,9 @@ class Predict:
         )
         group.add_argument(
             "output_file",
-            metavar="output.ncf",
+            metavar="output.npz",
             type=pathlib.Path,
-            help=(
-                "Output data, matching thetas to discriminator predictions "
-                "(in Arviz netcdf format)."
-            ),
+            help="Output data, matching thetas to discriminator predictions.",
         )
 
     def __call__(self, args: argparse.Namespace):
@@ -461,14 +461,19 @@ class Predict:
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         discriminator = dinf.Discriminator.from_file(args.discriminator_file)
         check_output_file(args.output_file)
-        dataset = dinf.predict(
+        thetas, probs = dinf.predict(
             discriminator=discriminator,
             genobuilder=genobuilder,
             replicates=args.replicates,
             parallelism=args.parallelism,
             rng=rng,
         )
-        az.to_netcdf(dataset, args.output_file)
+        dinf.save_results(
+            args.output_file,
+            thetas=thetas,
+            probs=probs,
+            parameters=genobuilder.parameters,
+        )
 
 
 class Check:

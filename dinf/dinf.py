@@ -3,17 +3,21 @@ import functools
 import itertools
 import logging
 import math
-import multiprocess as multiprocessing
 import os
 import pathlib
 import signal
-from typing import cast, Callable
-import warnings
+from typing import cast, Callable, Tuple
+import zipfile
 
-import arviz as az
 import emcee
 import jax
 import numpy as np
+from numpy.lib.recfunctions import structured_to_unstructured
+
+# We're compatible with the standard lib's multiprocessing,
+# but multiprocess uses dill to pickle functions which provides
+# greater flexibility to users (i.e. fewer confusing errors).
+import multiprocess as multiprocessing
 
 from .discriminator import Discriminator, Surrogate
 from .genobuilder import Genobuilder
@@ -131,16 +135,10 @@ def _observe_data(*, target, num_replicates, parallelism, rng):
 def _generate_training_data(*, target, generator, thetas, parallelism, rng):
     num_replicates = len(thetas)
     x_generator = _generate_data(
-        generator=generator,
-        thetas=thetas,
-        parallelism=parallelism,
-        rng=rng,
+        generator=generator, thetas=thetas, parallelism=parallelism, rng=rng
     )
     x_target = _observe_data(
-        target=target,
-        num_replicates=num_replicates,
-        parallelism=parallelism,
-        rng=rng,
+        target=target, num_replicates=num_replicates, parallelism=parallelism, rng=rng
     )
     # XXX: Large copy doubles peak memory.
     x = jax.tree_map(lambda *l: np.concatenate(l), x_generator, x_target)
@@ -148,6 +146,122 @@ def _generate_training_data(*, target, generator, thetas, parallelism, rng):
     y = np.concatenate((np.zeros(num_replicates), np.ones(num_replicates)))
     # Note: training data is not shuffled
     return x, y, x_generator
+
+
+def save_results(
+    filename: str | pathlib.Path,
+    /,
+    *,
+    thetas: np.ndarray,
+    probs: np.ndarray,
+    parameters: Parameters,
+):
+    """
+    Save discriminator predictions and parameter values to a .npz file.
+
+    :param filename:
+        The output file.
+    :param thetas:
+        Parameter values.
+    :param probs:
+        Discriminator predictions corresponding to the ``thetas``.
+    :param parameters:
+        Sequence of parameter names.
+    """
+    if thetas.shape[-1] != len(parameters):
+        raise ValueError(
+            f"thetas.shape={thetas.shape}, but got {len(parameters)} parameters"
+        )
+    if thetas.shape[:-1] != probs.shape:
+        raise ValueError(
+            f"thetas.shape={thetas.shape}, but got probs.shape={probs.shape}"
+        )
+    assert "_Pr" not in parameters
+    kw = {
+        "_Pr": probs,
+        **{par_name: thetas[..., j] for j, par_name in enumerate(parameters)},
+    }
+    np.savez(filename, **kw)
+
+
+def _npz_array_metadata(filename: str | pathlib.Path, /):
+    """Read array metadata from an npz file without loading the arrays."""
+
+    def read_array_header(f, version):
+        if version == (1, 0):
+            return np.lib.format.read_array_header_1_0(f)
+        elif version == (2, 0):
+            return np.lib.format.read_array_header_2_0(f)
+        else:
+            # Probably version 3.0, created with utf8 array names.
+            # Numpy doesn't have a public API for this, so just use
+            # the internal numpy function that has existed since 2014.
+            return np.lib.format._read_array_header(f, version=version)
+
+    names = []
+    formats = []
+    shapes = []
+    with zipfile.ZipFile(filename) as zf:
+        for name in zf.namelist():
+            assert name.endswith(".npy")
+            with zf.open(name) as f:
+                version = np.lib.format.read_magic(f)
+                shape, _, dtype = read_array_header(f, version)
+            short_name = name[: len(name) - len(".npy")]
+            names.append(short_name)
+            formats.append(dtype.str)
+            shapes.append(shape)
+
+    return names, formats, shapes
+
+
+def load_results(
+    filename: str | pathlib.Path, /, *, parameters: Parameters | None = None
+) -> np.ndarray:
+    """
+    Load descriminator predictions and parameter values from a .npz file.
+
+    :param filename:
+        The input file.
+    :param parameters:
+        Sequence of parameter names against which the file's
+        arrays will be checked. A ValueError exception is raised
+        if the names are not the same (and in the same order).
+        If None, the parameter names are not checked.
+    :return:
+        A numpy structured array, where the first column is the probabilities
+        (named ``_Pr``), and the subsequence columns are the
+        parameter values (if any).
+    """
+    names, formats, shapes = _npz_array_metadata(filename)
+    # All arrays had the same shape when the file was saved.
+    assert all(shape == shapes[0] for shape in shapes[1:])
+
+    if parameters is not None:
+        expected_names = ["_Pr"] + list(parameters)
+        if names != expected_names:
+            raise ValueError(
+                f"{filename}: expected arrays {expected_names}, but got {names}"
+            )
+    elif names[0] != "_Pr":
+        raise ValueError(f"{filename}: expected array '_Pr', but got {names}")
+
+    npzfile = np.load(filename)
+    arr = np.empty(shapes[0], dtype=dict(names=names, formats=formats))
+    for name in names:
+        arr[name] = npzfile[name]
+    return arr
+
+
+def _load_results_unstructured(
+    filename: str | pathlib.Path, /, *, parameters: Parameters
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Split results into thetas and probs."""
+    data = load_results(filename, parameters=parameters)
+    names = list(data.dtype.names)
+    probs = data["_Pr"]
+    thetas = structured_to_unstructured(data[names[1:]])
+    return thetas, probs
 
 
 def _log_prob(
@@ -232,30 +346,17 @@ def _run_mcmc_emcee(
     mt_initial_state = np.random.mtrand.RandomState(rng.integers(2**31)).get_state()
     state = emcee.State(start, random_state=mt_initial_state)
     sampler.run_mcmc(state, nsteps=steps)
-    chain = sampler.get_chain()
+    thetas = sampler.get_chain()
+    assert thetas.shape == (steps, walkers, len(parameters))
 
-    datadict = {
-        "posterior": {
-            p: chain[..., j].swapaxes(0, 1) for j, p in enumerate(parameters)
-        },
-        "sample_stats": {
-            "lp": sampler.get_log_prob().swapaxes(0, 1),
-            "acceptance_rate": np.mean(sampler.acceptance_fraction),
-        },
-    }
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            category=UserWarning,
-            message="More chains.*than draws",
-            module="arviz",
-        )
-        dataset = az.from_dict(**datadict)
+    with np.errstate(over="ignore"):
+        probs = np.exp(sampler.get_log_prob())
+    assert probs.shape == (steps, walkers)
 
     # XXX: use logger
     print("MCMC acceptance rate", np.mean(sampler.acceptance_fraction))
 
-    return dataset
+    return thetas, probs
 
 
 def _train_discriminator(
@@ -398,7 +499,7 @@ def predict(
     replicates: int,
     parallelism: None | int = None,
     rng: np.random.Generator,
-):
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Sample generator features and make predictions using the discriminator.
 
@@ -413,7 +514,10 @@ def predict(
     :param numpy.random.Generator rng:
         Numpy random number generator.
     :return:
-        An arviz dataset.
+        A 2-tuple of (thetas, probs), where ``thetas`` are the drawn parameters
+        and ``probs`` are the discriminator predictions.
+        theta[j][k] is the j'th draw for the k'th parameter, and
+        probs[j] is the discriminator prediction for the j'th draw.
     """
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
@@ -427,15 +531,8 @@ def predict(
         parallelism=parallelism,
         rng=rng,
     )
-    y = discriminator.predict(x)
-    with np.errstate(divide="ignore"):
-        log_y = np.log(y)
-
-    dataset = az.from_dict(
-        posterior={p: thetas[..., j] for j, p in enumerate(genobuilder.parameters)},
-        sample_stats={"lp": log_y},
-    )
-    return dataset
+    probs = discriminator.predict(x)
+    return thetas, probs
 
 
 @cleanup_process_pool_afterwards
@@ -512,11 +609,11 @@ def mcmc_gan(
         parallelism = cast(int, os.cpu_count())
 
     _process_pool_init(parallelism, genobuilder)
-
+    parameters = genobuilder.parameters
     resume = False
     if len(store) > 0:
         files_exist = [
-            (store[-1] / fn).exists() for fn in ("discriminator.pkl", "mcmc.ncf")
+            (store[-1] / fn).exists() for fn in ("discriminator.pkl", "mcmc.npz")
         ]
         if sum(files_exist) == 1:
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
@@ -524,18 +621,21 @@ def mcmc_gan(
 
     if resume:
         discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
-        dataset = az.from_netcdf(store[-1] / "mcmc.ncf")
-        chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
-        start = chain[-1]
+        thetas, _ = _load_results_unstructured(
+            store[-1] / "mcmc.npz", parameters=parameters
+        )
+        assert len(thetas.shape) == 3
+        start = thetas[-1]
         if len(start) != walkers:
             # TODO: allow this by sampling start points for the walkers?
             raise ValueError(
                 f"request for {walkers} walkers, but resuming from "
-                f"{store[-1] / 'mcmc.ncf'} which used {len(start)} walkers."
+                f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
             )
 
-        thetas = chain.reshape(-1, chain.shape[-1])
-        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=False)
+        sampled_thetas = rng.choice(
+            thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
+        )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
@@ -543,12 +643,10 @@ def mcmc_gan(
             genobuilder.feature_shape, rng, genobuilder.discriminator_network
         )
         # Starting point for the mcmc chain.
-        start = genobuilder.parameters.draw_prior(walkers, rng=rng)
+        start = parameters.draw_prior(walkers, rng=rng)
 
-        training_thetas = genobuilder.parameters.draw_prior(
-            training_replicates // 2, rng=rng
-        )
-        test_thetas = genobuilder.parameters.draw_prior(test_replicates // 2, rng=rng)
+        training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
+        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng)
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))
@@ -560,7 +658,7 @@ def mcmc_gan(
         _log_prob,
         discriminator=discriminator,
         generator=genobuilder.generator_func,
-        parameters=genobuilder.parameters,
+        parameters=parameters,
         parallelism=parallelism,
         num_replicates=Dx_replicates,
         rng=rng,
@@ -581,22 +679,25 @@ def mcmc_gan(
         )
         discriminator.to_file(store[-1] / "discriminator.pkl")
 
-        dataset = _run_mcmc_emcee(
+        thetas, probs = _run_mcmc_emcee(
             start=start,
-            parameters=genobuilder.parameters,
+            parameters=parameters,
             walkers=walkers,
             steps=steps,
             rng=rng,
             log_prob_func=log_prob_func,
         )
-        az.to_netcdf(dataset, store[-1] / "mcmc.ncf")
+        assert thetas.shape == (steps, walkers, len(parameters))
+        save_results(
+            store[-1] / "mcmc.npz", thetas=thetas, probs=probs, parameters=parameters
+        )
 
-        chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
         # The chain for next iteration starts at the end of this chain.
-        start = chain[-1]
+        start = thetas[-1]
 
-        thetas = chain.reshape(-1, chain.shape[-1])
-        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=False)
+        sampled_thetas = rng.choice(
+            thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
+        )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
 
@@ -617,22 +718,11 @@ def _run_abc(
     rng: np.random.Generator,
 ):
     x = _generate_data(
-        generator=generator,
-        thetas=thetas,
-        parallelism=parallelism,
-        rng=rng,
+        generator=generator, thetas=thetas, parallelism=parallelism, rng=rng
     )
     y = discriminator.predict(x)
     top = np.argsort(y)[::-1][:posteriors]
-    top_params = thetas[top]
-    with np.errstate(divide="ignore"):
-        log_top_y = np.log(y[top])
-
-    dataset = az.from_dict(
-        posterior={p: top_params[..., j] for j, p in enumerate(parameters)},
-        sample_stats={"lp": log_top_y},
-    )
-    return dataset
+    return thetas[top], y[top]
 
 
 @cleanup_process_pool_afterwards
@@ -706,10 +796,11 @@ def abc_gan(
 
     _process_pool_init(parallelism, genobuilder)
 
+    parameters = genobuilder.parameters
     resume = False
     if len(store) > 0:
         files_exist = [
-            (store[-1] / fn).exists() for fn in ("discriminator.pkl", "abc.ncf")
+            (store[-1] / fn).exists() for fn in ("discriminator.pkl", "abc.npz")
         ]
         if sum(files_exist) == 1:
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
@@ -717,10 +808,10 @@ def abc_gan(
 
     if resume:
         discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
-        dataset = az.from_netcdf(store[-1] / "abc.ncf")
-
-        chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
-        thetas = chain.reshape(-1, chain.shape[-1])
+        thetas, _ = _load_results_unstructured(
+            store[-1] / "abc.npz", parameters=parameters
+        )
+        assert len(thetas.shape) == 2
         sampled_thetas = rng.choice(thetas, size=num_replicates, replace=True)
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
@@ -729,10 +820,8 @@ def abc_gan(
             genobuilder.feature_shape, rng, genobuilder.discriminator_network
         )
 
-        training_thetas = genobuilder.parameters.draw_prior(
-            training_replicates // 2, rng=rng
-        )
-        test_thetas = genobuilder.parameters.draw_prior(test_replicates // 2, rng=rng)
+        training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
+        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng)
 
     n_target_calls = 0
     n_generator_calls = 0
@@ -752,20 +841,20 @@ def abc_gan(
         )
         discriminator.to_file(store[-1] / "discriminator.pkl")
 
-        proposal_thetas = genobuilder.parameters.draw_prior(proposals, rng=rng)
-        dataset = _run_abc(
+        proposal_thetas = parameters.draw_prior(proposals, rng=rng)
+        thetas, probs = _run_abc(
             discriminator=discriminator,
             generator=genobuilder.generator_func,
-            parameters=genobuilder.parameters,
+            parameters=parameters,
             thetas=proposal_thetas,
             posteriors=posteriors,
             parallelism=parallelism,
             rng=rng,
         )
-        az.to_netcdf(dataset, store[-1] / "abc.ncf")
+        save_results(
+            store[-1] / "abc.npz", probs=probs, thetas=thetas, parameters=parameters
+        )
 
-        chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
-        thetas = chain.reshape(-1, chain.shape[-1])
         sampled_thetas = rng.choice(thetas, size=num_replicates, replace=True)
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
@@ -853,15 +942,14 @@ def pretraining_dinf(
     drawn from the prior.
     """
 
+    parameters = genobuilder.parameters
     discriminator = Discriminator.from_input_shape(
         genobuilder.feature_shape, rng, genobuilder.discriminator_network
     )
 
     for k in range(max_pretraining_iterations):
-        training_thetas = genobuilder.parameters.draw_prior(
-            training_replicates // 2, rng=rng
-        )
-        test_thetas = genobuilder.parameters.draw_prior(test_replicates // 2, rng=rng)
+        training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
+        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng)
 
         metrics, _, _ = _train_discriminator(
             discriminator=discriminator,
@@ -878,12 +966,12 @@ def pretraining_dinf(
         if acc > 0.9:
             break
 
-    thetas = genobuilder.parameters.draw_prior(training_replicates, rng=rng)
+    thetas = parameters.draw_prior(training_replicates, rng=rng)
     lp = _log_prob(
         thetas,
         discriminator=discriminator,
         generator=genobuilder.generator_func,
-        parameters=genobuilder.parameters,
+        parameters=parameters,
         num_replicates=1,
         parallelism=parallelism,
         rng=rng,
@@ -1099,11 +1187,12 @@ def pg_gan(
 
     _process_pool_init(parallelism, genobuilder)
 
+    parameters = genobuilder.parameters
     resume = False
     if len(store) > 0:
         files_exist = [
             (store[-1] / fn).exists()
-            for fn in ("discriminator.pkl", "pg-gan-proposals.ncf")
+            for fn in ("discriminator.pkl", "pg-gan-proposals.npz")
         ]
         if sum(files_exist) == 1:
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
@@ -1111,11 +1200,11 @@ def pg_gan(
 
     if resume:
         discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
-        dataset = az.from_netcdf(store[-1] / "pg-gan-proposals.ncf")
-        proposal_thetas = np.array(dataset.posterior.isel(draw=-1).to_array()).swapaxes(
-            0, 1
+        proposal_thetas, probs = _load_results_unstructured(
+            store[-1] / "pg-gan-proposals.npz", parameters=parameters
         )
-        lp = np.array(dataset.sample_stats.lp.isel(draw=-1))
+        assert len(proposal_thetas.shape) == 2
+        lp = np.log(probs)
         # First entry is for the current theta in the simulated annealing chain.
         theta = proposal_thetas[0]
         current_lp = lp[0]
@@ -1169,7 +1258,7 @@ def pg_gan(
             temperature=temperature,
             rng=rng,
             num_proposals=num_proposals,
-            parameters=genobuilder.parameters,
+            parameters=parameters,
             proposal_stddev=proposal_stddev,
         )
 
@@ -1177,31 +1266,19 @@ def pg_gan(
             proposal_thetas,
             discriminator=discriminator,
             generator=genobuilder.generator_func,
-            parameters=genobuilder.parameters,
+            parameters=parameters,
             num_replicates=Dx_replicates,
             parallelism=parallelism,
             rng=rng,
         )
         n_generator_calls += len(proposal_thetas) * Dx_replicates
 
-        datadict = {
-            "posterior": {
-                p: np.expand_dims(proposal_thetas[..., j], -1)
-                for j, p in enumerate(genobuilder.parameters)
-            },
-            "sample_stats": {
-                "lp": np.expand_dims(lp, -1),
-            },
-        }
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                category=UserWarning,
-                message="More chains.*than draws",
-                module="arviz",
-            )
-            dataset = az.from_dict(**datadict)
-        az.to_netcdf(dataset, store[-1] / "pg-gan-proposals.ncf")
+        save_results(
+            store[-1] / "pg-gan-proposals.npz",
+            thetas=proposal_thetas,
+            probs=np.exp(lp),
+            parameters=parameters,
+        )
 
         current_lp = lp[0]  # First entry is for the current theta.
         best = 1 + np.argmax(lp[1:])
@@ -1219,7 +1296,7 @@ def pg_gan(
 
         print(f"log prob: {current_lp}")
 
-        for theta_i, (name, param) in zip(theta, genobuilder.parameters.items()):
+        for theta_i, (name, param) in zip(theta, parameters.items()):
             if param.truth:
                 print(f"{name}: {theta_i} (truth={param.truth})")
             else:
@@ -1320,11 +1397,12 @@ def alfi_mcmc_gan(
 
     _process_pool_init(parallelism, genobuilder)
 
+    parameters = genobuilder.parameters
     resume = False
     if len(store) > 0:
         files_exist = [
             (store[-1] / fn).exists()
-            for fn in ("discriminator.pkl", "surrogate.pkl", "mcmc.ncf")
+            for fn in ("discriminator.pkl", "surrogate.pkl", "mcmc.npz")
         ]
         if sum(files_exist) not in (0, len(files_exist)):
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
@@ -1333,34 +1411,35 @@ def alfi_mcmc_gan(
     if resume:
         discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
         surrogate = Surrogate.from_file(store[-1] / "surrogate.pkl")
-        dataset = az.from_netcdf(store[-1] / "mcmc.ncf")
+        thetas, _ = _load_results_unstructured(
+            store[-1] / "mcmc.npz", parameters=parameters
+        )
+        assert len(thetas.shape) == 3
         # Discard first half as burn in.
-        dataset = dataset.isel(draw=slice(steps, None))
-        chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
-        start = chain[-1]
+        thetas = thetas[steps:]
+        start = thetas[-1]
         if len(start) != walkers:
             # TODO: allow this by sampling start points for the walkers?
             raise ValueError(
                 f"request for {walkers} walkers, but resuming from "
-                f"{store[-1] / 'mcmc.ncf'} which used {len(start)} walkers."
+                f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
             )
 
-        thetas = chain.reshape(-1, chain.shape[-1])
-        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=False)
+        sampled_thetas = rng.choice(
+            thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
+        )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
         discriminator = Discriminator.from_input_shape(
             genobuilder.feature_shape, rng, genobuilder.discriminator_network
         )
-        surrogate = Surrogate.from_input_shape(len(genobuilder.parameters), rng)
+        surrogate = Surrogate.from_input_shape(len(parameters), rng)
         # Starting point for the mcmc chain.
-        start = genobuilder.parameters.draw_prior(walkers, rng=rng)
+        start = parameters.draw_prior(walkers, rng=rng)
 
-        training_thetas = genobuilder.parameters.draw_prior(
-            training_replicates // 2, rng=rng
-        )
-        test_thetas = genobuilder.parameters.draw_prior(test_replicates // 2, rng=rng)
+        training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
+        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng)
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))
@@ -1369,9 +1448,7 @@ def alfi_mcmc_gan(
     n_generator_calls = 0
 
     log_prob_func = functools.partial(
-        _log_prob_surrogate,
-        surrogate=surrogate,
-        parameters=genobuilder.parameters,
+        _log_prob_surrogate, surrogate=surrogate, parameters=parameters
     )
 
     for i in range(len(store) + 1, len(store) + 1 + iterations):
@@ -1414,35 +1491,32 @@ def alfi_mcmc_gan(
                 f"S(θ)={s_pred[j]}; "
                 f"α={alpha[j]:.3g}, β={beta[j]:.3g}"
             )
-            for param_name, value in zip(genobuilder.parameters, training_thetas[j]):
+            for param_name, value in zip(parameters, training_thetas[j]):
                 print(" ", param_name, value)
             which = "S"
 
-        dataset = _run_mcmc_emcee(
+        thetas, probs = _run_mcmc_emcee(
             start=start,
-            parameters=genobuilder.parameters,
+            parameters=parameters,
             walkers=walkers,
             steps=2 * steps,
             rng=rng,
             log_prob_func=log_prob_func,
         )
-        az.to_netcdf(dataset, store[-1] / "mcmc.ncf")
+        assert thetas.shape == (2 * steps, walkers, len(parameters))
+        save_results(
+            store[-1] / "mcmc.npz", thetas=thetas, probs=probs, parameters=parameters
+        )
 
         # Discard first half as burn in.
-        dataset = dataset.isel(draw=slice(steps, None))
+        thetas = thetas[steps:]
 
-        chain = np.array(dataset.posterior.to_array()).swapaxes(0, 2)
         # The chain for next iteration starts at the end of this chain.
-        start = chain[-1]
+        start = thetas[-1]
 
-        thetas = chain.reshape(-1, chain.shape[-1])
-
-        # Discard half of the dataset with the lowest log prob.
-        # lp = np.array(dataset.sample_stats.lp).swapaxes(0, 1).reshape(-1)
-        # idx = np.argsort(lp)[len(lp) // 2:]
-        # thetas = thetas[idx]
-
-        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=False)
+        sampled_thetas = rng.choice(
+            thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
+        )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
 

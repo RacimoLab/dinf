@@ -4,7 +4,6 @@ import copy
 import dataclasses
 
 import numpy as np
-import numpy.typing as npt
 
 
 def logit(x):
@@ -13,7 +12,7 @@ def logit(x):
 
 
 def expit(x):
-    # Warning: overflow with x=-inf.
+    # Warning: overflow when x is negative and very large
     return 1 / (1 + np.exp(-x))
 
 
@@ -148,7 +147,6 @@ class Parameters(collections.abc.Mapping):
         :param kwargs:
             The :class:`Param` objects, named by keyword.
         """
-        self._posterior: npt.NDArray | None = None
         self._params = copy.deepcopy(kwargs)
         for k, v in self._params.items():
             if not isinstance(v, Param):
@@ -157,7 +155,12 @@ class Parameters(collections.abc.Mapping):
                 # Set the name.
                 v.name = k
             if v.name != k:
-                raise ValueError(f"name mismatch for {k}=Param(..., name={v.name})")
+                raise ValueError(f"Name mismatch for {k}=Param(..., name={v.name})")
+            if v.name == "_Pr":
+                # Used for the discriminator probabilites in npz files.
+                raise ValueError(
+                    "Parameter name '_Pr' is reserved by Dinf for internal use."
+                )
 
     def __getitem__(self, key):
         return self._params[key]
@@ -202,7 +205,6 @@ class Parameters(collections.abc.Mapping):
         )
         return ret
 
-    @np.errstate(divide="ignore")
     def transform(self, xs: np.ndarray, /) -> np.ndarray:
         """
         Transform values bounded by [param.low, param.high] to [-inf, inf].

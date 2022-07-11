@@ -1,7 +1,4 @@
 *.pdf
-*.ncf
-*.hdf5
-*.zarr
 __pycache__
 build/
 dinf.egg-info/
