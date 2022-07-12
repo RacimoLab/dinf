@@ -3,6 +3,7 @@ from typing import Callable
 import numpy as np
 import jax
 import chex
+import flax
 import pytest
 
 from dinf import discriminator
@@ -278,9 +279,12 @@ class TestDiscriminator:
             {"x": (64, 32, 1), "y": {"z": (16, 8, 4)}},
         ],
     )
-    def test_from_input_shape(self, input_shape):
+    def test_init(self, input_shape):
         rng = np.random.default_rng(1234)
-        discriminator.Discriminator.from_input_shape(input_shape, rng)
+        d = discriminator.Discriminator(input_shape)
+        d = d.init(rng)
+        assert d is not None
+        assert len(d.state.params) > 0
 
     @pytest.mark.parametrize(
         "input_shape",
@@ -300,9 +304,8 @@ class TestDiscriminator:
         ],
     )
     def test_bad_shape(self, input_shape):
-        rng = np.random.default_rng(1234)
         with pytest.raises(ValueError, match="features must each have shape"):
-            discriminator.Discriminator.from_input_shape(input_shape, rng)
+            discriminator.Discriminator(input_shape)
 
     @pytest.mark.parametrize(
         "shape",
@@ -316,21 +319,24 @@ class TestDiscriminator:
         val_x, val_y, _ = random_dataset(shape=tree_cons(10, tree_cdr(shape)))
 
         rng = np.random.default_rng(1234)
-        d1 = discriminator.Discriminator.from_input_shape(input_shape, rng)
+        d1 = discriminator.Discriminator(input_shape).init(rng)
         d1.fit(train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, rng=rng)
-        chex.assert_tree_all_finite(d1.variables)
+        chex.assert_tree_all_finite(d1.state)
 
         # Results should be deterministic and not depend on validation.
         rng = np.random.default_rng(1234)
-        d2 = discriminator.Discriminator.from_input_shape(input_shape, rng)
+        d2 = discriminator.Discriminator(input_shape).init(rng)
         d2.fit(train_x=train_x, train_y=train_y, rng=rng)
-        chex.assert_trees_all_close(d1.variables, d2.variables)
+        chex.assert_trees_all_close(
+            flax.serialization.to_state_dict(d1.state),
+            flax.serialization.to_state_dict(d2.state),
+        )
 
     def test_fit_bad_shapes(self):
         rng = np.random.default_rng(1234)
 
         x, y, input_shape = random_dataset(shape=(30, 12, 34, 2))
-        d = discriminator.Discriminator.from_input_shape(input_shape, rng)
+        d = discriminator.Discriminator(input_shape).init(rng)
         d.fit(train_x=x, train_y=y, rng=rng)
 
         with pytest.raises(ValueError, match="Must specify both"):
@@ -363,9 +369,7 @@ class TestDiscriminator:
     @pytest.mark.usefixtures("capsys")
     def test_summary(self, capsys):
         rng = np.random.default_rng(1234)
-        d = discriminator.Discriminator.from_input_shape(
-            {"a": np.array((30, 40, 1))}, rng
-        )
+        d = discriminator.Discriminator({"a": np.array((30, 40, 1))}).init(rng)
         d.summary()
         captured = capsys.readouterr()
         assert "params" in captured.out
@@ -375,24 +379,27 @@ class TestDiscriminator:
     def test_load_save_roundtrip(self, tmp_path):
         rng = np.random.default_rng(1234)
         x, y, input_shape = random_dataset(50)
-        d1 = discriminator.Discriminator.from_input_shape(input_shape, rng)
+        d1 = discriminator.Discriminator(input_shape).init(rng)
         d1.fit(train_x=x, train_y=y, rng=rng)
         d1_y = d1.predict(x)
         filename = tmp_path / "discriminator.pkl"
         d1.to_file(filename)
-        d2 = discriminator.Discriminator.from_file(filename)
+        d2 = discriminator.Discriminator(input_shape).from_file(filename)
         d2_y = d2.predict(x)
         np.testing.assert_allclose(d1_y, d2_y)
+        d3 = discriminator.Discriminator(None).from_file(filename)
+        d3_y = d3.predict(x)
+        np.testing.assert_allclose(d1_y, d3_y)
 
     @pytest.mark.parametrize("discriminator_format", [0, "0.0.1"])
     def test_load_old_file(self, tmp_path, discriminator_format):
         rng = np.random.default_rng(1234)
-        d1 = discriminator.Discriminator.from_input_shape((30, 40, 1), rng)
+        d1 = discriminator.Discriminator((30, 40, 1)).init(rng)
         d1.format_version = discriminator_format
         filename = tmp_path / "discriminator.pkl"
         d1.to_file(filename)
         with pytest.raises(ValueError, match="network is not compatible"):
-            discriminator.Discriminator.from_file(filename)
+            discriminator.Discriminator((30, 40, 1)).from_file(filename)
 
     @pytest.mark.parametrize(
         "shape",
@@ -406,7 +413,7 @@ class TestDiscriminator:
         val_x, val_y, _ = random_dataset(shape=tree_cons(10, tree_cdr(shape)))
 
         rng = np.random.default_rng(1234)
-        d = discriminator.Discriminator.from_input_shape(input_shape, rng)
+        d = discriminator.Discriminator(input_shape).init(rng)
         d.fit(train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, rng=rng)
 
         y1 = d.predict(val_x)
@@ -421,7 +428,7 @@ class TestDiscriminator:
     def test_predict_bad_shapes(self):
         rng = np.random.default_rng(1234)
         x, y, input_shape = random_dataset(shape=(30, 12, 34, 2))
-        d = discriminator.Discriminator.from_input_shape(input_shape, rng)
+        d = discriminator.Discriminator(input_shape).init(rng)
         d.fit(train_x=x, train_y=y, rng=rng)
 
         with pytest.raises(ValueError, match="Trailing dimensions"):
@@ -434,7 +441,7 @@ class TestDiscriminator:
     def test_predict_without_fit(self):
         rng = np.random.default_rng(1234)
         x, _, input_shape = random_dataset(shape=(30, 12, 34, 2))
-        d = discriminator.Discriminator.from_input_shape(input_shape, rng)
+        d = discriminator.Discriminator(input_shape).init(rng)
         with pytest.raises(ValueError, match="has not been trained"):
             d.predict(x)
 

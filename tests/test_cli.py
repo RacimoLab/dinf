@@ -117,7 +117,9 @@ class TestAbcGan:
         assert working_directory.exists()
         genobuilder = dinf.Genobuilder.from_file(ex)
         for i in range(2):
-            check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+            check_discriminator(
+                working_directory / f"{i}" / "discriminator.pkl", genobuilder
+            )
             check_npz(
                 working_directory / f"{i}" / "abc.npz",
                 chains=1,
@@ -165,7 +167,9 @@ class TestAlfiMcmcGan:
         assert working_directory.exists()
         genobuilder = dinf.Genobuilder.from_file(ex)
         for i in range(2):
-            check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+            check_discriminator(
+                working_directory / f"{i}" / "discriminator.pkl", genobuilder
+            )
             check_npz(
                 working_directory / f"{i}" / "mcmc.npz",
                 chains=6,
@@ -210,7 +214,9 @@ class TestMcmcGan:
         assert working_directory.exists()
         genobuilder = dinf.Genobuilder.from_file(ex)
         for i in range(2):
-            check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+            check_discriminator(
+                working_directory / f"{i}" / "discriminator.pkl", genobuilder
+            )
             check_npz(
                 working_directory / f"{i}" / "mcmc.npz",
                 chains=6,
@@ -256,7 +262,9 @@ class TestPgGan:
         genobuilder = dinf.Genobuilder.from_file(ex)
         num_parameters = len(genobuilder.parameters)
         for i in range(2):
-            check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+            check_discriminator(
+                working_directory / f"{i}" / "discriminator.pkl", genobuilder
+            )
             check_npz(
                 working_directory / f"{i}" / "pg-gan-proposals.npz",
                 chains=1,
@@ -294,7 +302,8 @@ class TestTrain:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        check_discriminator(discriminator_file)
+        genobuilder = dinf.Genobuilder.from_file(ex)
+        check_discriminator(discriminator_file, genobuilder)
 
 
 class TestPredict:
@@ -326,7 +335,8 @@ class TestPredict:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        check_discriminator(discriminator_file)
+        genobuilder = dinf.Genobuilder.from_file(ex)
+        check_discriminator(discriminator_file, genobuilder)
 
         output_file = tmp_path / "output.npz"
         subprocess.run(
@@ -344,7 +354,6 @@ class TestPredict:
             stderr=subprocess.PIPE,
         )
 
-        genobuilder = dinf.Genobuilder.from_file(ex)
         check_npz(
             output_file,
             chains=1,

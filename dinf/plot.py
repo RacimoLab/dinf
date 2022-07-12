@@ -3,7 +3,7 @@ import argparse
 import contextlib
 import pathlib
 import textwrap
-from typing import Dict
+from typing import Any, Dict
 
 from adjustText import adjust_text
 import matplotlib
@@ -180,16 +180,17 @@ def features(mats: Dict[str, np.ndarray], /, *, subplots_kw: dict | None = None)
 
 
 def metrics(
+    metrics_collection: Dict[str, Dict[str, Any]],
+    /,
     *,
-    networks: Dict[str, dinf.Discriminator],
     legend_title: str | None = None,
     subplot_mosaic_kw: dict | None = None,
 ):
     """
-    Plot training metrics for a discriminator neural network.
+    Plot training metrics from a discriminator neural network.
 
-    :param networks:
-        A dictionary mapping labels to Discriminator objects.
+    :param metrics_collection:
+        A dictionary mapping labels to metrics dictionaries.
         The labels will be used in the legend to identify each
         discriminator.
     :param legend_title:
@@ -221,12 +222,10 @@ def metrics(
         axs["train_accuracy"], axs["test_accuracy"]
     )
 
-    metrics = ("train_loss", "test_loss", "train_accuracy", "test_accuracy")
-    for label, network in networks.items():
-        assert network.trained
-        assert network.train_metrics is not None
-        for metric in metrics:
-            y = network.train_metrics[metric]
+    mkeys = ("train_loss", "test_loss", "train_accuracy", "test_accuracy")
+    for label, metrics in metrics_collection.items():
+        for metric in mkeys:
+            y = metrics[metric]
             epoch = range(1, len(y) + 1)
             axs[metric].plot(epoch, y, label=label)
             axs[metric].set_title(metric.replace("_", " "))
@@ -236,7 +235,7 @@ def metrics(
     axs["train_accuracy"].set_xlabel("epoch")
     axs["test_accuracy"].set_xlabel("epoch")
 
-    if len(networks) > 1:
+    if len(metrics_collection) > 1:
         handles, labels = axs["train_loss"].get_legend_handles_labels()
         # Put legend to the right of the test loss.
         axs["test_loss"].legend(
@@ -616,12 +615,12 @@ class _Metrics(_SubCommand):
         self.add_argument_discriminators()
 
     def __call__(self, args: argparse.Namespace):
-        discriminators = {
-            pathlib.Path(d).name: dinf.Discriminator.from_file(d)
+        metrics_collection = {
+            pathlib.Path(d).name: dinf.Discriminator(None).from_file(d).metrics
             for d in args.discriminators
         }
         fig, axs = metrics(
-            networks=discriminators,
+            metrics_collection,
             subplot_mosaic_kw=dict(figsize=plt.figaspect(9 / 16)),
         )
         if args.output_file is None:

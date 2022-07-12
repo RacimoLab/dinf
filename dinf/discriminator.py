@@ -1,8 +1,8 @@
 from __future__ import annotations
+import collections
 import dataclasses
 import functools
 import pathlib
-import pickle
 import sys
 import time
 from typing import Callable, Tuple
@@ -305,174 +305,214 @@ class ExchangeableCNN(nn.Module):
 
 
 @dataclasses.dataclass
-class Network:
+class _NetworkWrapper:
     """
-    Base class for Discriminator and Surrogate networks.
-
-
-    :ivar network: The flax neural network. This has an apply() method.
-    :ivar input_shape: The shape of the input to the neural network.
-    :ivar variables: A Pytree of the network parameters.
-    :ivar train_metrics:
-        A Pytree containing the loss/accuracy metrics obtained when training
-        the network.
+    Base class for Discriminator and Surrogate wrappers.
     """
 
-    network: nn.Module
     input_shape: Pytree
-    variables: Pytree
-    train_metrics: Pytree | None = None
-    state: TrainState | None = None
-    trained: bool = False
-    # Bump this after making internal changes.
-    format_version: int = 2
+    """The shape of the input to the neural network."""
 
-    @classmethod
-    def from_input_shape(
-        cls,
-        input_shape: Pytree,
-        rng: np.random.Generator,
-        network: nn.Module,
-    ):
+    network: nn.Module | None = None
+    """The flax neural network."""
+
+    state: TrainState | None = None
+    """Network training state, e.g. network parameters and batch statistics."""
+
+    trained: bool = False
+    """True if the network has been trained, False otherwise."""
+
+    metrics: collections.abc.Mapping = dataclasses.field(
+        default_factory=lambda: collections.defaultdict(list)
+    )
+    """Loss and accuracy metrics obtained when training the network."""
+
+    # Bump this after making internal changes.
+    format_version: int = 3
+    """Version number for the serialised network on disk."""
+
+    _add_batch_dim: bool = True
+    _inited: bool = False
+
+    def __post_init__(self):
+        assert self.network is not None
+
+        if self.state is None:
+            self.state = TrainState.create(
+                apply_fn=self.network.apply,
+                tx=optax.chain(
+                    optax.clip(1.0),
+                    optax.adam(learning_rate=0.001),
+                ),
+                params={},
+                batch_stats={},
+            )
+        if self.input_shape is not None and self._add_batch_dim:
+            # Add leading batch dimension.
+            if isinstance(self.input_shape, int):
+                self.input_shape = (self.input_shape,)
+            self.input_shape = tree_cons(1, self.input_shape)
+
+    def init(self, rng: np.random.Generator):
         """
         Build a neural network with the given input shape.
 
-        :param input_shape:
-            The shape of the input data for the network.
         :param numpy.random.Generator rng:
             The numpy random number generator.
-        :param network:
-            A flax neural network.
+        :return:
+            A new network wrapper object.
         """
-        key = jax.random.PRNGKey(rng.integers(2**63))
-
-        # Add leading batch dimension.
-        input_shape = tree_cons(1, input_shape)
-        dummy_input = jax.tree_map(
-            lambda x: jnp.zeros(x, dtype=np.float32),
-            input_shape,
-            is_leaf=lambda x: isinstance(x, tuple),
-        )
+        assert self.input_shape is not None
+        assert self.state is not None
 
         @jax.jit
         def init(*args):
-            return network.init(*args, train=False)
+            return self.network.init(*args, train=False)
 
+        dummy_input = jax.tree_map(
+            lambda x: jnp.zeros(x, dtype=np.float32),
+            self.input_shape,
+            is_leaf=lambda x: isinstance(x, tuple),
+        )
+        key = jax.random.PRNGKey(rng.integers(2**63))
         variables = init(key, dummy_input)
-        return cls(network=network, variables=variables, input_shape=input_shape)
+        state = type(self.state).create(
+            apply_fn=self.state.apply_fn,
+            tx=self.state.tx,
+            params=variables["params"],
+            batch_stats=variables.get("batch_stats", {}),
+        )
+        return dataclasses.replace(
+            self, state=state, _add_batch_dim=False, _inited=True
+        )
 
-    @classmethod
-    def from_file(cls, filename: str | pathlib.Path):
+    def from_file(self, filename: str | pathlib.Path, /):
         """
-        Load neural network from the given file.
+        Load neural network training state from the given file.
 
-        :param filename: The filename of the saved model.
-        :return: The network object.
+        :param filename:
+            The filename of the saved model.
+        :return:
+            A new network wrapper object.
         """
         with open(filename, "rb") as f:
-            data = pickle.load(f)
-        if data.pop("format_version", -1) != cls.format_version:
-            raise ValueError(
-                f"{filename}: saved network is not compatible with this "
-                "version of dinf. Either train a new network or use an "
-                "older version of dinf."
-            )
-        expected_fields = set(map(lambda f: f.name, dataclasses.fields(cls)))
-        expected_fields.remove("format_version")
-        assert data.keys() == expected_fields
-        return cls(**data)
+            data = flax.serialization.msgpack_restore(f.read())
+        return self.fromdict(data, _err_prefix=f"{filename}: ")
 
-    def to_file(self, filename) -> None:
+    def to_file(self, filename: str | pathlib.Path, /) -> None:
         """
         Save neural network to the given file.
 
         :param filename: The path where the model will be saved.
         """
-        data = dataclasses.asdict(self)
-        data["state"] = None
-        data["network"] = self.network  # asdict converts this to a dict
+        data = self.asdict()
         with open(filename, "wb") as f:
-            pickle.dump(data, f)
+            f.write(flax.serialization.msgpack_serialize(data))
+
+    def fromdict(self, data: dict, _err_prefix: str = ""):
+        assert self.state is not None
+
+        format_version = data.get("format_version")
+        if format_version is not None and format_version != self.format_version:
+            raise ValueError(
+                f"{_err_prefix}saved network is not compatible with this "
+                "version of dinf. Either train a new network or use an "
+                "older version of dinf."
+            )
+        expected_fields = {
+            "input_shape",
+            "state",
+            "trained",
+            "metrics",
+            "format_version",
+        }
+        if data.keys() != expected_fields:
+            raise ValueError(
+                f"{_err_prefix}not recognisable as a Dinf network.\n"
+                f"Expected {expected_fields},\nbut got {set(data.keys())}."
+            )
+
+        data["input_shape"] = jax.tree_map(
+            tuple,
+            data["input_shape"],
+            is_leaf=lambda x: isinstance(x, list),
+        )
+        data["state"] = type(self.state).create(
+            apply_fn=self.state.apply_fn,
+            tx=self.state.tx,
+            params=data["state"]["params"],
+            batch_stats=data["state"].get("batch_stats", {}),
+        )
+        data["metrics"] = collections.defaultdict(list, **data["metrics"])
+        return dataclasses.replace(self, _add_batch_dim=False, _inited=True, **data)
+
+    def asdict(self) -> dict:
+        input_shape = jax.tree_map(
+            list,
+            self.input_shape,
+            is_leaf=lambda x: isinstance(x, tuple),
+        )
+        state = flax.serialization.to_state_dict(self.state)
+        metrics = {k: np.array(v) for k, v in self.metrics.items()}
+        return dict(
+            input_shape=input_shape,
+            state=state,
+            trained=self.trained,
+            metrics=metrics,
+            format_version=self.format_version,
+        )
 
     def summary(self):
         """Print a summary of the neural network."""
+        # XXX: The order of layers in the CNN are lost because of
+        # https://github.com/google/jax/issues/4085
+
         a = jax.tree_map(
             lambda x: jnp.zeros(x, dtype=np.float32),
             self.input_shape,
             is_leaf=lambda x: isinstance(x, tuple),
         )
-        _, state = self.network.apply(
-            self.variables,
-            a,
-            train=False,
-            capture_intermediates=True,
-            mutable=["intermediates"],
-        )
-        # TODO: this sucks. The order of layers in the CNN are lost, because of
-        # https://github.com/google/jax/issues/4085
-        print(jax.tree_map(lambda x: (x.shape, x.dtype), state["intermediates"]))
-        print(jax.tree_map(lambda x: (x.shape, x.dtype), self.variables))
-
-        num_params = np.sum(
-            jax.tree_leaves(
-                jax.tree_map(lambda x: np.prod(x.shape), self.variables["params"])
-            )
-        )
-        print("Total number of trainable parameters:", num_params)
+        print(self.network.tabulate(jax.random.PRNGKey(0), a, train=False))
 
 
 @dataclasses.dataclass
-class Discriminator(Network):
+class Discriminator(_NetworkWrapper):
     """
-    A discriminator network that classifies the origin of feature matrices.
+    Wrapper of the discriminator network for classifying genotype matrices.
 
-    To instantiate, use the :meth:`from_file()` or :meth:`from_input_shape()`
-    class methods.
+    :param input_shape:
+        The shape of the input data for the network. This is a dictionary
+        that maps a label to a feature array. Each feature array has shape
+        (n, m, c), where
+        n >= 2 is the number of (pseudo)haplotypes,
+        m >= 4 is the length of the (pseudo)haplotypes,
+        and c <= 4 is the number of channels.
     """
 
-    @classmethod
-    def from_input_shape(
-        cls,
-        input_shape: Pytree,
-        rng: np.random.Generator,
-        network: nn.Module = None,
-    ) -> Discriminator:
-        """
-        Build a discriminator neural network with the given input shape.
+    def __post_init__(self):
+        if self.network is None:
+            self.network = ExchangeableCNN()
+        super().__post_init__()
 
-        :param input_shape:
-            The shape of the input data for the network. This is a dictionary
-            that maps a label to a feature array. Each feature array has shape
-            (n, m, c), where
-            n >= 2 is the number of (pseudo)haplotypes,
-            m >= 4 is the length of the (pseudo)haplotypes,
-            and c <= 4 is the number of channels.
-        :param numpy.random.Generator rng:
-            The numpy random number generator.
-        :param network:
-            A :doc:`flax <flax:index>` neural network.
-            If not specified, :class:`ExchangeableCNN` will be used.
-        """
-        if network is None:
-            network = ExchangeableCNN()
+        if self.input_shape is None:
+            return
 
         # Sanity checks.
         if not jax.tree_util.tree_all(
             jax.tree_map(
-                lambda x: np.shape(x) == (3,) and x[0] >= 2 and x[1] >= 4 and x[2] <= 4,
-                input_shape,
+                lambda x: np.shape(x) == (4,) and x[1] >= 2 and x[2] >= 4 and x[3] <= 4,
+                self.input_shape,
                 is_leaf=lambda x: isinstance(x, tuple),
             )
         ):
             raise ValueError(
-                "Input features must each have shape (n, m, c), where "
+                "Input features must each have shape (b, n, m, c), where "
+                "b is the number of batches,"
                 "n >= 2 is the number of (pseudo)haplotypes, "
                 "m >= 4 is the length of the (pseudo)haplotypes, "
                 "and c <= 4 is the number of channels.\n"
-                f"input_shape={input_shape}"
+                f"input_shape={self.input_shape}"
             )
-
-        return super().from_input_shape(input_shape, rng, network)
 
     def fit(
         self,
@@ -484,8 +524,6 @@ class Discriminator(Network):
         batch_size: int = 64,
         epochs: int = 1,
         rng: np.random.Generator,
-        # TODO: tensorboard output
-        # tensorboard_log_dir=None,
         reset_metrics: bool = False,
         entropy_regularisation: bool = False,
     ):
@@ -505,6 +543,10 @@ class Discriminator(Network):
             fit() (if any). If false, loss/accuracy metrics will be appended
             to the existing metrics.
         """
+        assert self.network is not None
+        assert self.state is not None
+        assert self.input_shape is not None
+        assert self._inited
         if leading_dim_size(train_x) != leading_dim_size(train_y):
             raise ValueError(
                 "Leading dimensions of train_x and train_y must be the same.\n"
@@ -602,63 +644,34 @@ class Discriminator(Network):
             print(f"; test loss {loss:.4f}, accuracy {accuracy:.4f}")
             return loss, accuracy
 
-        state = self.state
-        if state is None:
-            state = TrainState.create(
-                apply_fn=self.network.apply,
-                tx=optax.chain(
-                    optax.clip(1.0),
-                    optax.adam(learning_rate=0.001),
-                ),
-                params=self.variables["params"],
-                batch_stats=self.variables.get("batch_stats", {}),
-            )
-
         train_ds = dict(input=train_x, output=train_y)
         test_ds = dict(input=val_x, output=val_y)
         do_eval = val_x is not None
 
-        if reset_metrics or self.train_metrics is None:
-            self.train_metrics = dict(
-                train_loss=[],
-                train_accuracy=[],
-            )
-            if do_eval:
-                self.train_metrics.update(
-                    test_loss=[],
-                    test_accuracy=[],
-                )
+        if reset_metrics:
+            self.metrics = collections.defaultdict(list)
 
         dropout_rng1 = jax.random.PRNGKey(rng.integers(2**63))
 
         for epoch in range(1, epochs + 1):
             dropout_rng1, dropout_rng2 = jax.random.split(dropout_rng1)
-            train_loss, train_accuracy, state = train_epoch(
-                state, train_ds, batch_size, epoch, dropout_rng2
+            train_loss, train_accuracy, self.state = train_epoch(
+                self.state, train_ds, batch_size, epoch, dropout_rng2
             )
-            self.train_metrics["train_loss"].append(train_loss)
-            self.train_metrics["train_accuracy"].append(train_accuracy)
+            self.metrics["train_loss"].append(train_loss)
+            self.metrics["train_accuracy"].append(train_accuracy)
 
             if do_eval:
-                test_loss, test_accuracy = eval_model(state, test_ds, batch_size)
-                self.train_metrics["test_loss"].append(test_loss)
-                self.train_metrics["test_accuracy"].append(test_accuracy)
+                test_loss, test_accuracy = eval_model(self.state, test_ds, batch_size)
+                self.metrics["test_loss"].append(test_loss)
+                self.metrics["test_accuracy"].append(test_accuracy)
             else:
                 print()
 
-        assert state is not None
-        self.state = state
         self.trained = True
-        self.variables = jax.tree_map(
-            np.array,
-            dict(
-                params=jax.device_get(state.params),
-                batch_stats=jax.device_get(state.batch_stats),
-            ),
-        )
 
         # Return the metrics from the last epoch of training.
-        metrics_conclusion = {k: v[-1] for k, v in self.train_metrics.items()}
+        metrics_conclusion = {k: v[-1] for k, v in self.metrics.items()}
         return metrics_conclusion
 
     def predict(self, x, *, batch_size: int = 1024) -> np.ndarray:
@@ -669,7 +682,9 @@ class Discriminator(Network):
         :param batch_size: Size of data batches for prediction.
         :return: A vector of predictions, one for each input instance.
         """
-
+        assert self.network is not None
+        assert self.state is not None
+        assert self.input_shape is not None
         assert leading_dim_size(x) > 0
         if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(x)])):
             raise ValueError(
@@ -685,8 +700,9 @@ class Discriminator(Network):
 
         dataset = dict(input=x)
         y = []
+        variables = dict(params=self.state.params, batch_stats=self.state.batch_stats)
         for batch in batchify(dataset, batch_size):
-            y.append(_predict_batch(batch, self.variables, self.network.apply))
+            y.append(_predict_batch(batch, variables, self.network.apply))
         return np.concatenate(y)
 
 
@@ -796,51 +812,17 @@ class SurrogateMLP(nn.Module):
 
 
 @dataclasses.dataclass
-class Surrogate(Network):
+class Surrogate(_NetworkWrapper):
     """
-    A surrogate network for the beta-estimation model of ALFI.
+    Wrapper of the surrogate network for the beta-estimation model of ALFI.
 
     This network predicts the output of the discriminator network
     from a set of dinf model parameters, thus bypassing the generator.
     Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
-
-    To instantiate, use the :meth:`from_file()` or :meth:`from_input_shape()`
-    class methods.
     """
 
-    @classmethod
-    def from_input_shape(
-        cls,
-        input_shape: int,
-        rng: np.random.Generator,
-        network: nn.Module = None,
-    ) -> Surrogate:
-        """
-        Build a surrogate neural network with the given input shape.
-
-        :param input_shape:
-            The shape of the input data for the network.
-        :param numpy.random.Generator rng:
-            The numpy random number generator.
-        :param network:
-            A neural network. If not specified, a simple MLP will be used.
-        """
-        if network is None:
-            network = SurrogateMLP()
-        key = jax.random.PRNGKey(rng.integers(2**63))
-
-        assert input_shape >= 1
-
-        # Add leading batch dimension.
-        input_shape2 = (1, input_shape)
-        dummy_input = jnp.zeros(input_shape2)
-
-        @jax.jit
-        def init(*args):
-            return network.init(*args, train=False)
-
-        variables = init(key, dummy_input)
-        return cls(network=network, variables=variables, input_shape=input_shape2)
+    network: nn.Module = SurrogateMLP()
+    """The flax neural network module used as the surrogate."""
 
     def fit(
         self,
@@ -852,14 +834,10 @@ class Surrogate(Network):
         batch_size: int = 64,
         epochs: int = 1,
     ):
-        state = self.state
-        if state is None:
-            state = TrainState.create(
-                apply_fn=self.network.apply,
-                tx=optax.adam(learning_rate=0.001),
-                params=self.variables["params"],
-                batch_stats=self.variables.get("batch_stats", {}),
-            )
+        assert self.network is not None
+        assert self.state is not None
+        assert self.input_shape is not None
+        assert self._inited
 
         # The density of labels is not uniform over [0, 1], so we weight the
         # loss for each instance by the inverse density at that point.
@@ -884,7 +862,7 @@ class Surrogate(Network):
             loss_sum = 0
             n = 0
             for batch in batchify(train_ds, batch_size):
-                state, loss = _train_step_surrogate(state, batch)
+                self.state, loss = _train_step_surrogate(self.state, batch)
                 loss_sum += loss
                 n += 1
             train_loss = loss_sum / n
@@ -893,7 +871,7 @@ class Surrogate(Network):
                 n = 0
                 loss_sum = 0
                 for batch in batchify(test_ds, batch_size):
-                    loss_sum += _train_step_surrogate(state, batch, update=False)
+                    loss_sum += _train_step_surrogate(self.state, batch, update=False)
                     n += 1
                 test_loss = loss_sum / n
 
@@ -905,28 +883,21 @@ class Surrogate(Network):
             else:
                 print()
 
-        assert state is not None
-        self.state = state
         self.trained = True
-        self.variables = jax.tree_map(
-            np.array,
-            dict(
-                params=jax.device_get(state.params),
-                batch_stats=jax.device_get(state.batch_stats),
-            ),
-        )
 
     def predict(self, x, *, batch_size: int = 1024) -> np.ndarray:
+        assert self.network is not None
+        assert self.state is not None
+        assert self.input_shape is not None
         if not self.trained:
             raise ValueError(
                 "Cannot make predications as the network has not been trained."
             )
         dataset = dict(input=x)
         y = []
+        variables = dict(params=self.state.params, batch_stats=self.state.batch_stats)
         for batch in batchify(dataset, batch_size):
-            y.append(
-                _predict_batch_surrogate(batch, self.variables, self.network.apply)
-            )
+            y.append(_predict_batch_surrogate(batch, variables, self.network.apply))
         return np.concatenate(y, axis=1)
 
 
