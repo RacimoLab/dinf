@@ -203,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev257
+            dinf 0.1.1.dev259
             </div>
             
         </div>
@@ -330,10 +330,10 @@ title="Open an issue"
                 
   <h1>Source code for dinf.discriminator</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">dataclasses</span>
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
-<span class="kn">import</span> <span class="nn">pickle</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span>
@@ -636,174 +636,214 @@ title="Open an issue"
 
 
 <span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
-<span class="k">class</span> <span class="nc">Network</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">_NetworkWrapper</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Base class for Discriminator and Surrogate networks.</span>
-
-
-<span class="sd">    :ivar network: The flax neural network. This has an apply() method.</span>
-<span class="sd">    :ivar input_shape: The shape of the input to the neural network.</span>
-<span class="sd">    :ivar variables: A Pytree of the network parameters.</span>
-<span class="sd">    :ivar train_metrics:</span>
-<span class="sd">        A Pytree containing the loss/accuracy metrics obtained when training</span>
-<span class="sd">        the network.</span>
+<span class="sd">    Base class for Discriminator and Surrogate wrappers.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span>
     <span class="n">input_shape</span><span class="p">:</span> <span class="n">Pytree</span>
-    <span class="n">variables</span><span class="p">:</span> <span class="n">Pytree</span>
-    <span class="n">train_metrics</span><span class="p">:</span> <span class="n">Pytree</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">state</span><span class="p">:</span> <span class="n">TrainState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">trained</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="c1"># Bump this after making internal changes.</span>
-    <span class="n">format_version</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="sd">&quot;&quot;&quot;The shape of the input to the neural network.&quot;&quot;&quot;</span>
 
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_input_shape</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">input_shape</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">,</span>
-        <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
-        <span class="n">network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-    <span class="p">):</span>
+    <span class="n">network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;The flax neural network.&quot;&quot;&quot;</span>
+
+    <span class="n">state</span><span class="p">:</span> <span class="n">TrainState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="sd">&quot;&quot;&quot;Network training state, e.g. network parameters and batch statistics.&quot;&quot;&quot;</span>
+
+    <span class="n">trained</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="sd">&quot;&quot;&quot;True if the network has been trained, False otherwise.&quot;&quot;&quot;</span>
+
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span>
+        <span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;Loss and accuracy metrics obtained when training the network.&quot;&quot;&quot;</span>
+
+    <span class="c1"># Bump this after making internal changes.</span>
+    <span class="n">format_version</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="sd">&quot;&quot;&quot;Version number for the serialised network on disk.&quot;&quot;&quot;</span>
+
+    <span class="n">_add_batch_dim</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">_inited</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">TrainState</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+                <span class="n">apply_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">,</span>
+                <span class="n">tx</span><span class="o">=</span><span class="n">optax</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span>
+                    <span class="n">optax</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
+                    <span class="n">optax</span><span class="o">.</span><span class="n">adam</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.001</span><span class="p">),</span>
+                <span class="p">),</span>
+                <span class="n">params</span><span class="o">=</span><span class="p">{},</span>
+                <span class="n">batch_stats</span><span class="o">=</span><span class="p">{},</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_batch_dim</span><span class="p">:</span>
+            <span class="c1"># Add leading batch dimension.</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span> <span class="o">=</span> <span class="n">tree_cons</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Build a neural network with the given input shape.</span>
 
-<span class="sd">        :param input_shape:</span>
-<span class="sd">            The shape of the input data for the network.</span>
 <span class="sd">        :param numpy.random.Generator rng:</span>
 <span class="sd">            The numpy random number generator.</span>
-<span class="sd">        :param network:</span>
-<span class="sd">            A flax neural network.</span>
+<span class="sd">        :return:</span>
+<span class="sd">            A new network wrapper object.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">63</span><span class="p">))</span>
-
-        <span class="c1"># Add leading batch dimension.</span>
-        <span class="n">input_shape</span> <span class="o">=</span> <span class="n">tree_cons</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)</span>
-        <span class="n">dummy_input</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
-            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-            <span class="n">input_shape</span><span class="p">,</span>
-            <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
-        <span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
         <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
         <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">network</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
+        <span class="n">dummy_input</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span>
+            <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">63</span><span class="p">))</span>
         <span class="n">variables</span> <span class="o">=</span> <span class="n">init</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">dummy_input</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">network</span><span class="o">=</span><span class="n">network</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="n">variables</span><span class="p">,</span> <span class="n">input_shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">)</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+            <span class="n">apply_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">apply_fn</span><span class="p">,</span>
+            <span class="n">tx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">tx</span><span class="p">,</span>
+            <span class="n">params</span><span class="o">=</span><span class="n">variables</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">],</span>
+            <span class="n">batch_stats</span><span class="o">=</span><span class="n">variables</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;batch_stats&quot;</span><span class="p">,</span> <span class="p">{}),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">,</span> <span class="n">_add_batch_dim</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">_inited</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
 
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Load neural network from the given file.</span>
+<span class="sd">        Load neural network training state from the given file.</span>
 
-<span class="sd">        :param filename: The filename of the saved model.</span>
-<span class="sd">        :return: The network object.</span>
+<span class="sd">        :param filename:</span>
+<span class="sd">            The filename of the saved model.</span>
+<span class="sd">        :return:</span>
+<span class="sd">            A new network wrapper object.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;format_version&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">format_version</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: saved network is not compatible with this &quot;</span>
-                <span class="s2">&quot;version of dinf. Either train a new network or use an &quot;</span>
-                <span class="s2">&quot;older version of dinf.&quot;</span>
-            <span class="p">)</span>
-        <span class="n">expected_fields</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)))</span>
-        <span class="n">expected_fields</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;format_version&quot;</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">==</span> <span class="n">expected_fields</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">flax</span><span class="o">.</span><span class="n">serialization</span><span class="o">.</span><span class="n">msgpack_restore</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fromdict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">_err_prefix</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: &quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save neural network to the given file.</span>
 
 <span class="sd">        :param filename: The path where the model will be saved.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;network&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span>  <span class="c1"># asdict converts this to a dict</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asdict</span><span class="p">()</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">flax</span><span class="o">.</span><span class="n">serialization</span><span class="o">.</span><span class="n">msgpack_serialize</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">fromdict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">_err_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="n">format_version</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;format_version&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">format_version</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">format_version</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">format_version</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_err_prefix</span><span class="si">}</span><span class="s2">saved network is not compatible with this &quot;</span>
+                <span class="s2">&quot;version of dinf. Either train a new network or use an &quot;</span>
+                <span class="s2">&quot;older version of dinf.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">expected_fields</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;input_shape&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;state&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;trained&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;metrics&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;format_version&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">!=</span> <span class="n">expected_fields</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_err_prefix</span><span class="si">}</span><span class="s2">not recognisable as a Dinf network.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="n">expected_fields</span><span class="si">}</span><span class="s2">,</span><span class="se">\n</span><span class="s2">but got </span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;input_shape&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
+            <span class="nb">tuple</span><span class="p">,</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;input_shape&quot;</span><span class="p">],</span>
+            <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+            <span class="n">apply_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">apply_fn</span><span class="p">,</span>
+            <span class="n">tx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">tx</span><span class="p">,</span>
+            <span class="n">params</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">][</span><span class="s2">&quot;params&quot;</span><span class="p">],</span>
+            <span class="n">batch_stats</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;batch_stats&quot;</span><span class="p">,</span> <span class="p">{}),</span>
+        <span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;metrics&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="o">**</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;metrics&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_add_batch_dim</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">_inited</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">input_shape</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
+            <span class="nb">list</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span>
+            <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">flax</span><span class="o">.</span><span class="n">serialization</span><span class="o">.</span><span class="n">to_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">input_shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">,</span>
+            <span class="n">state</span><span class="o">=</span><span class="n">state</span><span class="p">,</span>
+            <span class="n">trained</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trained</span><span class="p">,</span>
+            <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
+            <span class="n">format_version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">format_version</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Print a summary of the neural network.&quot;&quot;&quot;</span>
+        <span class="c1"># XXX: The order of layers in the CNN are lost because of</span>
+        <span class="c1"># https://github.com/google/jax/issues/4085</span>
+
         <span class="n">a</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
             <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span>
             <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">,</span>
-            <span class="n">a</span><span class="p">,</span>
-            <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">capture_intermediates</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">mutable</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;intermediates&quot;</span><span class="p">],</span>
-        <span class="p">)</span>
-        <span class="c1"># TODO: this sucks. The order of layers in the CNN are lost, because of</span>
-        <span class="c1"># https://github.com/google/jax/issues/4085</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;intermediates&quot;</span><span class="p">]))</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">))</span>
-
-        <span class="n">num_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
-            <span class="n">jax</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span>
-                <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">])</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Total number of trainable parameters:&quot;</span><span class="p">,</span> <span class="n">num_params</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">tabulate</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">a</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
 
 
 <div class="viewcode-block" id="Discriminator"><a class="viewcode-back" href="../../api.html#dinf.Discriminator">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
-<span class="k">class</span> <span class="nc">Discriminator</span><span class="p">(</span><span class="n">Network</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">Discriminator</span><span class="p">(</span><span class="n">_NetworkWrapper</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A discriminator network that classifies the origin of feature matrices.</span>
+<span class="sd">    Wrapper of the discriminator network for classifying genotype matrices.</span>
 
-<span class="sd">    To instantiate, use the :meth:`from_file()` or :meth:`from_input_shape()`</span>
-<span class="sd">    class methods.</span>
+<span class="sd">    :param input_shape:</span>
+<span class="sd">        The shape of the input data for the network. This is a dictionary</span>
+<span class="sd">        that maps a label to a feature array. Each feature array has shape</span>
+<span class="sd">        (n, m, c), where</span>
+<span class="sd">        n &gt;= 2 is the number of (pseudo)haplotypes,</span>
+<span class="sd">        m &gt;= 4 is the length of the (pseudo)haplotypes,</span>
+<span class="sd">        and c &lt;= 4 is the number of channels.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Discriminator.from_input_shape"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.from_input_shape">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_input_shape</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">input_shape</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">,</span>
-        <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
-        <span class="n">network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Discriminator</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Build a discriminator neural network with the given input shape.</span>
+    <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">ExchangeableCNN</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__post_init__</span><span class="p">()</span>
 
-<span class="sd">        :param input_shape:</span>
-<span class="sd">            The shape of the input data for the network. This is a dictionary</span>
-<span class="sd">            that maps a label to a feature array. Each feature array has shape</span>
-<span class="sd">            (n, m, c), where</span>
-<span class="sd">            n &gt;= 2 is the number of (pseudo)haplotypes,</span>
-<span class="sd">            m &gt;= 4 is the length of the (pseudo)haplotypes,</span>
-<span class="sd">            and c &lt;= 4 is the number of channels.</span>
-<span class="sd">        :param numpy.random.Generator rng:</span>
-<span class="sd">            The numpy random number generator.</span>
-<span class="sd">        :param network:</span>
-<span class="sd">            A :doc:`flax &lt;flax:index&gt;` neural network.</span>
-<span class="sd">            If not specified, :class:`ExchangeableCNN` will be used.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">network</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">network</span> <span class="o">=</span> <span class="n">ExchangeableCNN</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
 
         <span class="c1"># Sanity checks.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_all</span><span class="p">(</span>
             <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
-                <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mi">3</span><span class="p">,)</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">,</span>
-                <span class="n">input_shape</span><span class="p">,</span>
+                <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mi">4</span><span class="p">,)</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span>
                 <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Input features must each have shape (n, m, c), where &quot;</span>
+                <span class="s2">&quot;Input features must each have shape (b, n, m, c), where &quot;</span>
+                <span class="s2">&quot;b is the number of batches,&quot;</span>
                 <span class="s2">&quot;n &gt;= 2 is the number of (pseudo)haplotypes, &quot;</span>
                 <span class="s2">&quot;m &gt;= 4 is the length of the (pseudo)haplotypes, &quot;</span>
                 <span class="s2">&quot;and c &lt;= 4 is the number of channels.</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;input_shape=</span><span class="si">{</span><span class="n">input_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;input_shape=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
-
-        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">network</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Discriminator.fit"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -815,8 +855,6 @@ title="Open an issue"
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
         <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
-        <span class="c1"># TODO: tensorboard output</span>
-        <span class="c1"># tensorboard_log_dir=None,</span>
         <span class="n">reset_metrics</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">entropy_regularisation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
@@ -836,6 +874,10 @@ title="Open an issue"
 <span class="sd">            fit() (if any). If false, loss/accuracy metrics will be appended</span>
 <span class="sd">            to the existing metrics.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inited</span>
         <span class="k">if</span> <span class="n">leading_dim_size</span><span class="p">(</span><span class="n">train_x</span><span class="p">)</span> <span class="o">!=</span> <span class="n">leading_dim_size</span><span class="p">(</span><span class="n">train_y</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;Leading dimensions of train_x and train_y must be the same.</span><span class="se">\n</span><span class="s2">&quot;</span>
@@ -933,63 +975,34 @@ title="Open an issue"
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;; test loss </span><span class="si">{</span><span class="n">loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, accuracy </span><span class="si">{</span><span class="n">accuracy</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">accuracy</span>
 
-        <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span>
-        <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">state</span> <span class="o">=</span> <span class="n">TrainState</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-                <span class="n">apply_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">,</span>
-                <span class="n">tx</span><span class="o">=</span><span class="n">optax</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span>
-                    <span class="n">optax</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
-                    <span class="n">optax</span><span class="o">.</span><span class="n">adam</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.001</span><span class="p">),</span>
-                <span class="p">),</span>
-                <span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">],</span>
-                <span class="n">batch_stats</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;batch_stats&quot;</span><span class="p">,</span> <span class="p">{}),</span>
-            <span class="p">)</span>
-
         <span class="n">train_ds</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">train_x</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="n">train_y</span><span class="p">)</span>
         <span class="n">test_ds</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">val_x</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="n">val_y</span><span class="p">)</span>
         <span class="n">do_eval</span> <span class="o">=</span> <span class="n">val_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
-        <span class="k">if</span> <span class="n">reset_metrics</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-                <span class="n">train_loss</span><span class="o">=</span><span class="p">[],</span>
-                <span class="n">train_accuracy</span><span class="o">=</span><span class="p">[],</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">do_eval</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-                    <span class="n">test_loss</span><span class="o">=</span><span class="p">[],</span>
-                    <span class="n">test_accuracy</span><span class="o">=</span><span class="p">[],</span>
-                <span class="p">)</span>
+        <span class="k">if</span> <span class="n">reset_metrics</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 
         <span class="n">dropout_rng1</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">63</span><span class="p">))</span>
 
         <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
             <span class="n">dropout_rng1</span><span class="p">,</span> <span class="n">dropout_rng2</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">dropout_rng1</span><span class="p">)</span>
-            <span class="n">train_loss</span><span class="p">,</span> <span class="n">train_accuracy</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">train_epoch</span><span class="p">(</span>
-                <span class="n">state</span><span class="p">,</span> <span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">dropout_rng2</span>
+            <span class="n">train_loss</span><span class="p">,</span> <span class="n">train_accuracy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">train_epoch</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">dropout_rng2</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span><span class="p">[</span><span class="s2">&quot;train_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_loss</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span><span class="p">[</span><span class="s2">&quot;train_accuracy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_accuracy</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;train_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_loss</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;train_accuracy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_accuracy</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">do_eval</span><span class="p">:</span>
-                <span class="n">test_loss</span><span class="p">,</span> <span class="n">test_accuracy</span> <span class="o">=</span> <span class="n">eval_model</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">test_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">test_loss</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span><span class="p">[</span><span class="s2">&quot;test_accuracy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">test_accuracy</span><span class="p">)</span>
+                <span class="n">test_loss</span><span class="p">,</span> <span class="n">test_accuracy</span> <span class="o">=</span> <span class="n">eval_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">test_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">test_loss</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;test_accuracy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">test_accuracy</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">()</span>
 
-        <span class="k">assert</span> <span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">trained</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">variables</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
-            <span class="nb">dict</span><span class="p">(</span>
-                <span class="n">params</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">device_get</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">params</span><span class="p">),</span>
-                <span class="n">batch_stats</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">device_get</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">batch_stats</span><span class="p">),</span>
-            <span class="p">),</span>
-        <span class="p">)</span>
 
         <span class="c1"># Return the metrics from the last epoch of training.</span>
-        <span class="n">metrics_conclusion</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">metrics_conclusion</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
         <span class="k">return</span> <span class="n">metrics_conclusion</span></div>
 
 <div class="viewcode-block" id="Discriminator.predict"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -1000,7 +1013,9 @@ title="Open an issue"
 <span class="sd">        :param batch_size: Size of data batches for prediction.</span>
 <span class="sd">        :return: A vector of predictions, one for each input instance.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">assert</span> <span class="n">leading_dim_size</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">tree_equal</span><span class="p">(</span><span class="o">*</span><span class="nb">map</span><span class="p">(</span><span class="n">tree_cdr</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">tree_shape</span><span class="p">(</span><span class="n">x</span><span class="p">)])):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -1016,8 +1031,9 @@ title="Open an issue"
 
         <span class="n">dataset</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
         <span class="n">y</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">variables</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">batch_stats</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">batch_stats</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-            <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_predict_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">))</span>
+            <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_predict_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">y</span><span class="p">)</span></div></div>
 
 
@@ -1127,51 +1143,17 @@ title="Open an issue"
 
 
 <span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
-<span class="k">class</span> <span class="nc">Surrogate</span><span class="p">(</span><span class="n">Network</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">Surrogate</span><span class="p">(</span><span class="n">_NetworkWrapper</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A surrogate network for the beta-estimation model of ALFI.</span>
+<span class="sd">    Wrapper of the surrogate network for the beta-estimation model of ALFI.</span>
 
 <span class="sd">    This network predicts the output of the discriminator network</span>
 <span class="sd">    from a set of dinf model parameters, thus bypassing the generator.</span>
 <span class="sd">    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1</span>
-
-<span class="sd">    To instantiate, use the :meth:`from_file()` or :meth:`from_input_shape()`</span>
-<span class="sd">    class methods.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_input_shape</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">input_shape</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
-        <span class="n">network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Surrogate</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Build a surrogate neural network with the given input shape.</span>
-
-<span class="sd">        :param input_shape:</span>
-<span class="sd">            The shape of the input data for the network.</span>
-<span class="sd">        :param numpy.random.Generator rng:</span>
-<span class="sd">            The numpy random number generator.</span>
-<span class="sd">        :param network:</span>
-<span class="sd">            A neural network. If not specified, a simple MLP will be used.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">network</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">network</span> <span class="o">=</span> <span class="n">SurrogateMLP</span><span class="p">()</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">63</span><span class="p">))</span>
-
-        <span class="k">assert</span> <span class="n">input_shape</span> <span class="o">&gt;=</span> <span class="mi">1</span>
-
-        <span class="c1"># Add leading batch dimension.</span>
-        <span class="n">input_shape2</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)</span>
-        <span class="n">dummy_input</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">input_shape2</span><span class="p">)</span>
-
-        <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
-        <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">network</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-        <span class="n">variables</span> <span class="o">=</span> <span class="n">init</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">dummy_input</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">network</span><span class="o">=</span><span class="n">network</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="n">variables</span><span class="p">,</span> <span class="n">input_shape</span><span class="o">=</span><span class="n">input_shape2</span><span class="p">)</span>
+    <span class="n">network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">SurrogateMLP</span><span class="p">()</span>
+    <span class="sd">&quot;&quot;&quot;The flax neural network module used as the surrogate.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1183,14 +1165,10 @@ title="Open an issue"
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
         <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span>
-        <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">state</span> <span class="o">=</span> <span class="n">TrainState</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
-                <span class="n">apply_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">,</span>
-                <span class="n">tx</span><span class="o">=</span><span class="n">optax</span><span class="o">.</span><span class="n">adam</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.001</span><span class="p">),</span>
-                <span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">],</span>
-                <span class="n">batch_stats</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;batch_stats&quot;</span><span class="p">,</span> <span class="p">{}),</span>
-            <span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inited</span>
 
         <span class="c1"># The density of labels is not uniform over [0, 1], so we weight the</span>
         <span class="c1"># loss for each instance by the inverse density at that point.</span>
@@ -1215,7 +1193,7 @@ title="Open an issue"
             <span class="n">loss_sum</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-                <span class="n">state</span><span class="p">,</span> <span class="n">loss</span> <span class="o">=</span> <span class="n">_train_step_surrogate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">loss</span> <span class="o">=</span> <span class="n">_train_step_surrogate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
                 <span class="n">loss_sum</span> <span class="o">+=</span> <span class="n">loss</span>
                 <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="n">train_loss</span> <span class="o">=</span> <span class="n">loss_sum</span> <span class="o">/</span> <span class="n">n</span>
@@ -1224,7 +1202,7 @@ title="Open an issue"
                 <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="n">loss_sum</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">test_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-                    <span class="n">loss_sum</span> <span class="o">+=</span> <span class="n">_train_step_surrogate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                    <span class="n">loss_sum</span> <span class="o">+=</span> <span class="n">_train_step_surrogate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
                     <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
                 <span class="n">test_loss</span> <span class="o">=</span> <span class="n">loss_sum</span> <span class="o">/</span> <span class="n">n</span>
 
@@ -1236,28 +1214,21 @@ title="Open an issue"
             <span class="k">else</span><span class="p">:</span>
                 <span class="nb">print</span><span class="p">()</span>
 
-        <span class="k">assert</span> <span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">trained</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">variables</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span>
-            <span class="nb">dict</span><span class="p">(</span>
-                <span class="n">params</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">device_get</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">params</span><span class="p">),</span>
-                <span class="n">batch_stats</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">device_get</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">batch_stats</span><span class="p">),</span>
-            <span class="p">),</span>
-        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">trained</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;Cannot make predications as the network has not been trained.&quot;</span>
             <span class="p">)</span>
         <span class="n">dataset</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
         <span class="n">y</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">variables</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">batch_stats</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">batch_stats</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-            <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="n">_predict_batch_surrogate</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">variables</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">)</span>
-            <span class="p">)</span>
+            <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_predict_batch_surrogate</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
 
@@ -1326,7 +1297,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev257+gfbb5dc1
+      dinf 0.1.1.dev259+g8ea55fb
     </div>
 </p>
         </footer>

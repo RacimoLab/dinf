@@ -208,7 +208,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev257
+            dinf 0.1.1.dev259
             </div>
             
         </div>
@@ -740,8 +740,8 @@ title="Print to PDF"
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.Discriminator" title="dinf.Discriminator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Discriminator</span></code></a>(network, input_shape, variables)</p></td>
-<td><p>A discriminator network that classifies the origin of feature matrices.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.Discriminator" title="dinf.Discriminator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Discriminator</span></code></a>(input_shape[, network, state, ...])</p></td>
+<td><p>Wrapper of the discriminator network for classifying genotype matrices.</p></td>
 </tr>
 </tbody>
 </table>
@@ -809,8 +809,8 @@ title="Print to PDF"
 <tr class="row-even"><td><p><a class="reference internal" href="#dinf.plot.features" title="dinf.plot.features"><code class="xref py py-obj docutils literal notranslate"><span class="pre">features</span></code></a>(mats, /, *[, subplots_kw])</p></td>
 <td><p>Plot multiple feature matrices as heatmaps.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.plot.metrics" title="dinf.plot.metrics"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metrics</span></code></a>(*, networks[, legend_title, ...])</p></td>
-<td><p>Plot training metrics for a discriminator neural network.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.plot.metrics" title="dinf.plot.metrics"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metrics</span></code></a>(metrics_collection, /, *[, ...])</p></td>
+<td><p>Plot training metrics from a discriminator neural network.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#dinf.plot.hist" title="dinf.plot.hist"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hist</span></code></a>(x, /, *[, ax, ci, truth, hist_kw])</p></td>
 <td><p>Plot a histogram.</p></td>
@@ -2033,20 +2033,24 @@ directory will be used.</p></li>
 <span id="id6"></span><h3>Classification<a class="headerlink" href="#sec-api-classification" title="Permalink to this headline">#</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="dinf.Discriminator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">Discriminator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trained</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator" title="Permalink to this definition">#</a></dt>
-<dd><p>A discriminator network that classifies the origin of feature matrices.</p>
-<p>To instantiate, use the <a class="reference internal" href="#dinf.Discriminator.from_file" title="dinf.Discriminator.from_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_file()</span></code></a> or <a class="reference internal" href="#dinf.Discriminator.from_input_shape" title="dinf.Discriminator.from_input_shape"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_input_shape()</span></code></a>
-class methods.</p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">Discriminator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">network=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trained=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_version=3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_add_batch_dim=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_inited=False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator" title="Permalink to this definition">#</a></dt>
+<dd><p>Wrapper of the discriminator network for classifying genotype matrices.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>network</strong> (<em>nn.Module</em>) – </p></li>
-<li><p><strong>input_shape</strong> (<em>Pytree</em>) – </p></li>
-<li><p><strong>variables</strong> (<em>Pytree</em>) – </p></li>
-<li><p><strong>train_metrics</strong> (<em>Pytree</em><em> | </em><em>None</em>) – </p></li>
+<li><p><strong>input_shape</strong> (<em>Pytree</em>) – The shape of the input data for the network. This is a dictionary
+that maps a label to a feature array. Each feature array has shape
+(n, m, c), where
+n &gt;= 2 is the number of (pseudo)haplotypes,
+m &gt;= 4 is the length of the (pseudo)haplotypes,
+and c &lt;= 4 is the number of channels.</p></li>
+<li><p><strong>network</strong> (<em>nn.Module</em><em> | </em><em>None</em>) – </p></li>
 <li><p><strong>state</strong> (<em>TrainState</em><em> | </em><em>None</em>) – </p></li>
 <li><p><strong>trained</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – </p></li>
+<li><p><strong>metrics</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.10)"><em>collections.abc.Mapping</em></a>) – </p></li>
 <li><p><strong>format_version</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – </p></li>
+<li><p><strong>_add_batch_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – </p></li>
+<li><p><strong>_inited</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Return type</dt>
@@ -2054,50 +2058,40 @@ class methods.</p>
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="dinf.Discriminator.from_input_shape">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_input_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">network</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.from_input_shape"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.from_input_shape" title="Permalink to this definition">#</a></dt>
-<dd><p>Build a discriminator neural network with the given input shape.</p>
+<dt class="sig sig-object py" id="dinf.Discriminator.init">
+<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.Discriminator.init" title="Permalink to this definition">#</a></dt>
+<dd><p>Build a neural network with the given input shape.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>input_shape</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.10)"><em>Any</em></a>) – The shape of the input data for the network. This is a dictionary
-that maps a label to a feature array. Each feature array has shape
-(n, m, c), where
-n &gt;= 2 is the number of (pseudo)haplotypes,
-m &gt;= 4 is the length of the (pseudo)haplotypes,
-and c &lt;= 4 is the number of channels.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
-<li><p><strong>network</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.10)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://flax.readthedocs.io/en/latest/flax.linen.html#flax.linen.Module" title="(in Flax)"><em>flax.linen.module.Module</em></a><em>]</em>) – A <a class="reference external" href="https://flax.readthedocs.io/en/latest/index.html" title="(in Flax)"><span class="xref std std-doc">flax</span></a> neural network.
-If not specified, <a class="reference internal" href="#dinf.ExchangeableCNN" title="dinf.ExchangeableCNN"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExchangeableCNN</span></code></a> will be used.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p>
 </dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p><a class="reference internal" href="#dinf.Discriminator" title="dinf.discriminator.Discriminator">dinf.discriminator.Discriminator</a></p>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A new network wrapper object.</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.from_file">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.Discriminator.from_file" title="Permalink to this definition">#</a></dt>
-<dd><p>Load neural network from the given file.</p>
+<span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.Discriminator.from_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Load neural network training state from the given file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – The filename of the saved model.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The network object.</p>
+<dd class="field-even"><p>A new network wrapper object.</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.to_file">
-<span class="sig-name descname"><span class="pre">to_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.Discriminator.to_file" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.Discriminator.to_file" title="Permalink to this definition">#</a></dt>
 <dd><p>Save neural network to the given file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>filename</strong> – The path where the model will be saved.</p>
+<dd class="field-odd"><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – The path where the model will be saved.</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p>None</p>
@@ -2474,12 +2468,12 @@ values in the feature matrix.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.plot.metrics">
-<span class="sig-prename descclassname"><span class="pre">dinf.plot.</span></span><span class="sig-name descname"><span class="pre">metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">networks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">legend_title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subplot_mosaic_kw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/plot.html#metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.plot.metrics" title="Permalink to this definition">#</a></dt>
-<dd><p>Plot training metrics for a discriminator neural network.</p>
+<span class="sig-prename descclassname"><span class="pre">dinf.plot.</span></span><span class="sig-name descname"><span class="pre">metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics_collection</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">legend_title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subplot_mosaic_kw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/plot.html#metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.plot.metrics" title="Permalink to this definition">#</a></dt>
+<dd><p>Plot training metrics from a discriminator neural network.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>networks</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference internal" href="#dinf.Discriminator" title="dinf.Discriminator"><em>dinf.Discriminator</em></a><em>]</em>) – A dictionary mapping labels to Discriminator objects.
+<li><p><strong>metrics_collection</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><em>Any</em><em>]</em><em>]</em>) – A dictionary mapping labels to metrics dictionaries.
 The labels will be used in the legend to identify each
 discriminator.</p></li>
 <li><p><strong>legend_title</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><em>None</em>) – A title for the legend.</p></li>
@@ -2605,7 +2599,7 @@ If None, an axes will be created with <a class="reference external" href="https:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev257+gfbb5dc1
+      dinf 0.1.1.dev259+g8ea55fb
     </div>
 </p>
         </footer>

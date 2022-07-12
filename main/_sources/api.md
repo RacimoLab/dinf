@@ -173,7 +173,7 @@
 ```{eval-rst}
 .. autoclass:: dinf.Discriminator
 
-    .. automethod:: from_input_shape
+    .. automethod:: init
     .. automethod:: from_file
     .. automethod:: to_file
     .. automethod:: fit

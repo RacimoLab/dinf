@@ -203,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev257
+            dinf 0.1.1.dev259
             </div>
             
         </div>
@@ -801,9 +801,9 @@ title="Open an issue"
 
     <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
 
-    <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
-    <span class="p">)</span>
+    <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
+        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
     <span class="c1"># discriminator.summary()</span>
 
     <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
@@ -950,8 +950,11 @@ title="Open an issue"
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> is incomplete. Delete and try again?&quot;</span><span class="p">)</span>
         <span class="n">resume</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span>
 
+    <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
+        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
-        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
+        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
         <span class="n">thetas</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_load_results_unstructured</span><span class="p">(</span>
             <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.npz&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
         <span class="p">)</span>
@@ -970,9 +973,7 @@ title="Open an issue"
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span>
-            <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
-        <span class="p">)</span>
+        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
         <span class="c1"># Starting point for the mcmc chain.</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">walkers</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
 
@@ -1137,8 +1138,11 @@ title="Open an issue"
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> is incomplete. Delete and try again?&quot;</span><span class="p">)</span>
         <span class="n">resume</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span>
 
+    <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
+        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
-        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
+        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
         <span class="n">thetas</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_load_results_unstructured</span><span class="p">(</span>
             <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;abc.npz&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
         <span class="p">)</span>
@@ -1147,10 +1151,7 @@ title="Open an issue"
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span>
-            <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
-        <span class="p">)</span>
-
+        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
 
@@ -1216,9 +1217,9 @@ title="Open an issue"
 <span class="sd">    max_pretraining_iterations times, each with training_replicates reps.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
-    <span class="p">)</span>
+    <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
+        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
     <span class="n">acc_best</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">theta_best</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -1274,9 +1275,9 @@ title="Open an issue"
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span>
-    <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
-    <span class="p">)</span>
+    <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
+        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_pretraining_iterations</span><span class="p">):</span>
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
@@ -1530,7 +1531,9 @@ title="Open an issue"
         <span class="n">resume</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
-        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
+        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
+            <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
         <span class="n">proposal_thetas</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="n">_load_results_unstructured</span><span class="p">(</span>
             <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;pg-gan-proposals.npz&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
         <span class="p">)</span>
@@ -1739,9 +1742,13 @@ title="Open an issue"
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> is incomplete. Delete and try again?&quot;</span><span class="p">)</span>
         <span class="n">resume</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span>
 
+    <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
+        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+    <span class="p">)</span>
+    <span class="n">surrogate</span> <span class="o">=</span> <span class="n">Surrogate</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
-        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
-        <span class="n">surrogate</span> <span class="o">=</span> <span class="n">Surrogate</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;surrogate.pkl&quot;</span><span class="p">)</span>
+        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.pkl&quot;</span><span class="p">)</span>
+        <span class="n">surrogate</span> <span class="o">=</span> <span class="n">surrogate</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;surrogate.pkl&quot;</span><span class="p">)</span>
         <span class="n">thetas</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_load_results_unstructured</span><span class="p">(</span>
             <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;mcmc.npz&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
         <span class="p">)</span>
@@ -1762,10 +1769,8 @@ title="Open an issue"
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[:</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">sampled_thetas</span><span class="p">[</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span>
-            <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
-        <span class="p">)</span>
-        <span class="n">surrogate</span> <span class="o">=</span> <span class="n">Surrogate</span><span class="o">.</span><span class="n">from_input_shape</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">),</span> <span class="n">rng</span><span class="p">)</span>
+        <span class="n">discriminator</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">surrogate</span> <span class="o">=</span> <span class="n">surrogate</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
         <span class="c1"># Starting point for the mcmc chain.</span>
         <span class="n">start</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">walkers</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
 
@@ -1875,7 +1880,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev257+gfbb5dc1
+      dinf 0.1.1.dev259+g8ea55fb
     </div>
 </p>
         </footer>

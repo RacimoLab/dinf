@@ -203,7 +203,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev257
+            dinf 0.1.1.dev259
             </div>
             
         </div>
@@ -334,7 +334,7 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
 <span class="kn">import</span> <span class="nn">textwrap</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span>
 
 <span class="kn">from</span> <span class="nn">adjustText</span> <span class="kn">import</span> <span class="n">adjust_text</span>
 <span class="kn">import</span> <span class="nn">matplotlib</span>
@@ -511,16 +511,17 @@ title="Open an issue"
 
 
 <div class="viewcode-block" id="metrics"><a class="viewcode-back" href="../../api.html#dinf.plot.metrics">[docs]</a><span class="k">def</span> <span class="nf">metrics</span><span class="p">(</span>
+    <span class="n">metrics_collection</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="o">/</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">networks</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Discriminator</span><span class="p">],</span>
     <span class="n">legend_title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">subplot_mosaic_kw</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Plot training metrics for a discriminator neural network.</span>
+<span class="sd">    Plot training metrics from a discriminator neural network.</span>
 
-<span class="sd">    :param networks:</span>
-<span class="sd">        A dictionary mapping labels to Discriminator objects.</span>
+<span class="sd">    :param metrics_collection:</span>
+<span class="sd">        A dictionary mapping labels to metrics dictionaries.</span>
 <span class="sd">        The labels will be used in the legend to identify each</span>
 <span class="sd">        discriminator.</span>
 <span class="sd">    :param legend_title:</span>
@@ -552,12 +553,10 @@ title="Open an issue"
         <span class="n">axs</span><span class="p">[</span><span class="s2">&quot;train_accuracy&quot;</span><span class="p">],</span> <span class="n">axs</span><span class="p">[</span><span class="s2">&quot;test_accuracy&quot;</span><span class="p">]</span>
     <span class="p">)</span>
 
-    <span class="n">metrics</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;train_loss&quot;</span><span class="p">,</span> <span class="s2">&quot;test_loss&quot;</span><span class="p">,</span> <span class="s2">&quot;train_accuracy&quot;</span><span class="p">,</span> <span class="s2">&quot;test_accuracy&quot;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">network</span> <span class="ow">in</span> <span class="n">networks</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">assert</span> <span class="n">network</span><span class="o">.</span><span class="n">trained</span>
-        <span class="k">assert</span> <span class="n">network</span><span class="o">.</span><span class="n">train_metrics</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
-            <span class="n">y</span> <span class="o">=</span> <span class="n">network</span><span class="o">.</span><span class="n">train_metrics</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span>
+    <span class="n">mkeys</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;train_loss&quot;</span><span class="p">,</span> <span class="s2">&quot;test_loss&quot;</span><span class="p">,</span> <span class="s2">&quot;train_accuracy&quot;</span><span class="p">,</span> <span class="s2">&quot;test_accuracy&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">metrics</span> <span class="ow">in</span> <span class="n">metrics_collection</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">mkeys</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span>
             <span class="n">epoch</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
             <span class="n">axs</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">epoch</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
             <span class="n">axs</span><span class="p">[</span><span class="n">metric</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">metric</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">))</span>
@@ -567,7 +566,7 @@ title="Open an issue"
     <span class="n">axs</span><span class="p">[</span><span class="s2">&quot;train_accuracy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;epoch&quot;</span><span class="p">)</span>
     <span class="n">axs</span><span class="p">[</span><span class="s2">&quot;test_accuracy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;epoch&quot;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">networks</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">metrics_collection</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">handles</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">axs</span><span class="p">[</span><span class="s2">&quot;train_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_legend_handles_labels</span><span class="p">()</span>
         <span class="c1"># Put legend to the right of the test loss.</span>
         <span class="n">axs</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span>
@@ -947,12 +946,12 @@ title="Open an issue"
         <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_discriminators</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="n">discriminators</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">metrics_collection</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Discriminator</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">metrics</span>
             <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">discriminators</span>
         <span class="p">}</span>
         <span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">(</span>
-            <span class="n">networks</span><span class="o">=</span><span class="n">discriminators</span><span class="p">,</span>
+            <span class="n">metrics_collection</span><span class="p">,</span>
             <span class="n">subplot_mosaic_kw</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">figaspect</span><span class="p">(</span><span class="mi">9</span> <span class="o">/</span> <span class="mi">16</span><span class="p">)),</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">output_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1230,7 +1229,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev257+gfbb5dc1
+      dinf 0.1.1.dev259+g8ea55fb
     </div>
 </p>
         </footer>
