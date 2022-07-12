@@ -18,8 +18,10 @@ def get_genobuilder():
     return copy.deepcopy(examples.bottleneck.model.genobuilder)
 
 
-def check_discriminator(filename: str | pathlib.Path):
-    dinf.Discriminator.from_file(filename)
+def check_discriminator(filename: str | pathlib.Path, genobuilder: dinf.Genobuilder):
+    dinf.Discriminator(
+        genobuilder.feature_shape, network=genobuilder.discriminator_network
+    ).from_file(filename)
 
 
 def check_npz(
@@ -55,7 +57,9 @@ def test_abc_gan(tmp_path):
     )
     assert working_directory.exists()
     for i in range(2):
-        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_discriminator(
+            working_directory / f"{i}" / "discriminator.pkl", genobuilder
+        )
         check_npz(
             working_directory / f"{i}" / "abc.npz",
             chains=1,
@@ -76,7 +80,9 @@ def test_abc_gan(tmp_path):
         rng=rng,
     )
     for i in range(3):
-        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_discriminator(
+            working_directory / f"{i}" / "discriminator.pkl", genobuilder
+        )
         check_npz(
             working_directory / f"{i}" / "abc.npz",
             chains=1,
@@ -142,7 +148,9 @@ def test_mcmc_gan(tmp_path):
     )
     assert working_directory.exists()
     for i in range(2):
-        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_discriminator(
+            working_directory / f"{i}" / "discriminator.pkl", genobuilder
+        )
         check_npz(
             working_directory / f"{i}" / "mcmc.npz",
             chains=6,
@@ -164,7 +172,9 @@ def test_mcmc_gan(tmp_path):
         rng=rng,
     )
     for i in range(3):
-        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_discriminator(
+            working_directory / f"{i}" / "discriminator.pkl", genobuilder
+        )
         check_npz(
             working_directory / f"{i}" / "mcmc.npz",
             chains=6,
@@ -245,7 +255,9 @@ def test_alfi_mcmc_gan(tmp_path):
     )
     assert working_directory.exists()
     for i in range(2):
-        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_discriminator(
+            working_directory / f"{i}" / "discriminator.pkl", genobuilder
+        )
         check_npz(
             working_directory / f"{i}" / "mcmc.npz",
             chains=6,
@@ -266,7 +278,9 @@ def test_alfi_mcmc_gan(tmp_path):
         rng=rng,
     )
     for i in range(3):
-        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_discriminator(
+            working_directory / f"{i}" / "discriminator.pkl", genobuilder
+        )
         check_npz(
             working_directory / f"{i}" / "mcmc.npz",
             chains=6,
@@ -347,7 +361,9 @@ def test_pg_gan(tmp_path):
     )
     assert working_directory.exists()
     for i in range(2):
-        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_discriminator(
+            working_directory / f"{i}" / "discriminator.pkl", genobuilder
+        )
         check_npz(
             working_directory / f"{i}" / "pg-gan-proposals.npz",
             chains=1,
@@ -368,7 +384,9 @@ def test_pg_gan(tmp_path):
         rng=rng,
     )
     for i in range(3):
-        check_discriminator(working_directory / f"{i}" / "discriminator.pkl")
+        check_discriminator(
+            working_directory / f"{i}" / "discriminator.pkl", genobuilder
+        )
         check_npz(
             working_directory / f"{i}" / "pg-gan-proposals.npz",
             chains=1,
@@ -585,9 +603,7 @@ class TestLogProb:
     def setup_class(cls):
         cls.genobuilder = get_genobuilder()
         rng = np.random.default_rng(111)
-        cls.discriminator = dinf.Discriminator.from_input_shape(
-            cls.genobuilder.feature_shape, rng
-        )
+        cls.discriminator = dinf.Discriminator(cls.genobuilder.feature_shape).init(rng)
         training_thetas = cls.genobuilder.parameters.draw_prior(100, rng=rng)
         test_thetas = cls.genobuilder.parameters.draw_prior(0, rng=rng)
         dinf.dinf._train_discriminator(

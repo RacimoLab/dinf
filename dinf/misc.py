@@ -94,38 +94,13 @@ def tree_equal(tree: Pytree, *others: Pytree) -> bool:
     )
 
 
-class _OpaqueSequence(collections.abc.Sequence):
-    """
-    A wrapper for tuples so they're treated as leaves in a pytree.
-    """
-
-    def __init__(self, t):
-        self._t = t
-
-    def __len__(self):
-        return len(self._t)
-
-    def __getitem__(self, key):
-        if isinstance(key, int):
-            return self._t[key]
-        return _OpaqueSequence(self._t[key])
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self._t})"
-
-    def __eq__(self, other):
-        if isinstance(other, _OpaqueSequence):
-            other = other._t
-        return self._t == other
-
-
 def tree_shape(tree: Pytree) -> Pytree:
     """
     Return a pytree with the same dictionary structure as the given tree,
     but with non-dictionaries replaced by their shape.
     """
     return jax.tree_map(
-        lambda x: _OpaqueSequence(np.shape(x)),
+        lambda x: np.shape(x),
         tree,
         is_leaf=lambda x: isinstance(x, (list, tuple)),
     )
@@ -136,7 +111,7 @@ def tree_cons(a, tree: Pytree) -> Pytree:
     Prepend ``a`` in all tuples of the given tree.
     """
     return jax.tree_map(
-        lambda x: _OpaqueSequence((a,) + tuple(x)),
+        lambda x: tuple((a,) + tuple(x)),
         tree,
         is_leaf=lambda x: isinstance(x, tuple),
     )

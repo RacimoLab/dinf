@@ -470,9 +470,9 @@ def train(
 
     _process_pool_init(parallelism, genobuilder)
 
-    discriminator = Discriminator.from_input_shape(
-        genobuilder.feature_shape, rng, genobuilder.discriminator_network
-    )
+    discriminator = Discriminator(
+        genobuilder.feature_shape, network=genobuilder.discriminator_network
+    ).init(rng)
     # discriminator.summary()
 
     training_thetas = genobuilder.parameters.draw_prior(
@@ -619,8 +619,11 @@ def mcmc_gan(
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
         resume = all(files_exist)
 
+    discriminator = Discriminator(
+        genobuilder.feature_shape, network=genobuilder.discriminator_network
+    )
     if resume:
-        discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
+        discriminator = discriminator.from_file(store[-1] / "discriminator.pkl")
         thetas, _ = _load_results_unstructured(
             store[-1] / "mcmc.npz", parameters=parameters
         )
@@ -639,9 +642,7 @@ def mcmc_gan(
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
-        discriminator = Discriminator.from_input_shape(
-            genobuilder.feature_shape, rng, genobuilder.discriminator_network
-        )
+        discriminator = discriminator.init(rng)
         # Starting point for the mcmc chain.
         start = parameters.draw_prior(walkers, rng=rng)
 
@@ -806,8 +807,11 @@ def abc_gan(
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
         resume = all(files_exist)
 
+    discriminator = Discriminator(
+        genobuilder.feature_shape, network=genobuilder.discriminator_network
+    )
     if resume:
-        discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
+        discriminator = discriminator.from_file(store[-1] / "discriminator.pkl")
         thetas, _ = _load_results_unstructured(
             store[-1] / "abc.npz", parameters=parameters
         )
@@ -816,10 +820,7 @@ def abc_gan(
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
-        discriminator = Discriminator.from_input_shape(
-            genobuilder.feature_shape, rng, genobuilder.discriminator_network
-        )
-
+        discriminator = discriminator.init(rng)
         training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
         test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng)
 
@@ -885,9 +886,9 @@ def pretraining_pg_gan(
     max_pretraining_iterations times, each with training_replicates reps.
     """
 
-    discriminator = Discriminator.from_input_shape(
-        genobuilder.feature_shape, rng, genobuilder.discriminator_network
-    )
+    discriminator = Discriminator(
+        genobuilder.feature_shape, network=genobuilder.discriminator_network
+    ).init(rng)
     acc_best = 0
     theta_best = None
 
@@ -943,9 +944,9 @@ def pretraining_dinf(
     """
 
     parameters = genobuilder.parameters
-    discriminator = Discriminator.from_input_shape(
-        genobuilder.feature_shape, rng, genobuilder.discriminator_network
-    )
+    discriminator = Discriminator(
+        genobuilder.feature_shape, network=genobuilder.discriminator_network
+    ).init(rng)
 
     for k in range(max_pretraining_iterations):
         training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
@@ -1199,7 +1200,9 @@ def pg_gan(
         resume = all(files_exist)
 
     if resume:
-        discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
+        discriminator = Discriminator(
+            genobuilder.feature_shape, network=genobuilder.discriminator_network
+        ).from_file(store[-1] / "discriminator.pkl")
         proposal_thetas, probs = _load_results_unstructured(
             store[-1] / "pg-gan-proposals.npz", parameters=parameters
         )
@@ -1408,9 +1411,13 @@ def alfi_mcmc_gan(
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
         resume = all(files_exist)
 
+    discriminator = Discriminator(
+        genobuilder.feature_shape, network=genobuilder.discriminator_network
+    )
+    surrogate = Surrogate(len(parameters))
     if resume:
-        discriminator = Discriminator.from_file(store[-1] / "discriminator.pkl")
-        surrogate = Surrogate.from_file(store[-1] / "surrogate.pkl")
+        discriminator = discriminator.from_file(store[-1] / "discriminator.pkl")
+        surrogate = surrogate.from_file(store[-1] / "surrogate.pkl")
         thetas, _ = _load_results_unstructured(
             store[-1] / "mcmc.npz", parameters=parameters
         )
@@ -1431,10 +1438,8 @@ def alfi_mcmc_gan(
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
-        discriminator = Discriminator.from_input_shape(
-            genobuilder.feature_shape, rng, genobuilder.discriminator_network
-        )
-        surrogate = Surrogate.from_input_shape(len(parameters), rng)
+        discriminator = discriminator.init(rng)
+        surrogate = surrogate.init(rng)
         # Starting point for the mcmc chain.
         start = parameters.draw_prior(walkers, rng=rng)
 

@@ -459,7 +459,9 @@ class Predict:
     def __call__(self, args: argparse.Namespace):
         rng = np.random.default_rng(args.seed)
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
-        discriminator = dinf.Discriminator.from_file(args.discriminator_file)
+        discriminator = dinf.Discriminator(
+            genobuilder.feature_shape, network=genobuilder.discriminator_network
+        ).from_file(args.discriminator_file)
         check_output_file(args.output_file)
         thetas, probs = dinf.predict(
             discriminator=discriminator,
