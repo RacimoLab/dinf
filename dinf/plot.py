@@ -508,7 +508,7 @@ class _SubCommand:
     def add_argument_discriminators(self):
         self.parser.add_argument(
             "discriminators",
-            metavar="discriminator.pkl",
+            metavar="discriminator.nn",
             nargs="+",
             help="The discriminator network(s) to plot.",
         )

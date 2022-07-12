@@ -1,3 +1,27 @@
+---
+jupytext:
+  formats: md:myst
+  text_representation:
+    extension: .md
+    format_name: myst
+kernelspec:
+  display_name: Python 3
+  language: python
+  name: python3
+---
+
+```{code-cell}
+:tags: ["remove-cell"]
+
+# Use SVG as the output format for notebooks.
+from matplotlib_inline.backend_inline import set_matplotlib_formats
+
+set_matplotlib_formats("svg")
+
+import matplotlib.pyplot as plt
+#plt.rcParams["figure.figsize"] = [10, 8]
+```
+
 (sec_guide_testing_a_dinf_model)=
 # Testing a Dinf model
 
@@ -26,40 +50,86 @@ and confirm that their output matches the specified `feature_shape`.
 If the model is a simulation-only model (i.e. the `target_func` is `None`),
 then the parameters will be checked to ensure they each have a `truth` value.
 
+## Visualising feature matrices
+
+To get some intuition about the features given to the discriminator,
+we can use `dinf-plot` with the `features` subcommand.
+This samples a feature using the generator (with parameter values drawn
+from the prior), and plots the result as a heatmap.
+See [](sec_guide_features) for how to interpret feature matrices.
+
+```
+dinf-plot features --seed 1 examples/bottleneck/model.py
+```
+```{code-cell}
+:tags: ["remove-input"]
+import dinf.plot
+
+dinf.plot.main(
+    "features -S 1 ../../examples/bottleneck/model.py".split()
+)
+```
+
 ## Training a discriminator
 
-As an additional check of the model, it is useful to train a discriminator
+As an additional check of the model, it's useful to train a discriminator
 with a modest number of replicates to confirm that the discriminator
-can learn from the training data.
+can learn from the training data. We'll use `dinf` with
+the `train` subcommand to train the model for 10 epochs (i.e. 10 full
+passes over the training data). Note that short options are available
+(e.g. `-S` for `--seed`), but the documentation uses long options for clarity.
 
 ```
 dinf train \
+    --seed 1 \
     --epochs 10 \
     --training-replicates 1000 \
     --test-replicates 1000 \
     examples/bottleneck/model.py \
-    /tmp/discriminator.pkl
+    /tmp/discriminator.nn
+```
+```{code-cell}
+:tags: ["remove-cell"]
+import dinf.cli
+import pathlib
+
+pathlib.Path("/tmp/discriminator.nn").unlink(missing_ok=True)
+
+dinf.cli.main(
+    """
+    train
+        --seed 1
+        --epochs 10
+        --training-replicates 1000
+        --test-replicates 1000
+        ../../examples/bottleneck/model.py
+        /tmp/discriminator.nn
+    """.split()
+)
 ```
 
 Msprime simulations are quite fast, and on an 8-core i7-8665U laptop with
 CPU-only training, this completes in about 40 seconds.
-The output indicates that the test loss is decreasing over time, and the
+Loss and accuracy metrics are printed to the console by default,
+but they can also be plotted using `dinf-plot` with the `metrics` subcommand.
+
+```
+dinf-plot metrics /tmp/discriminator.nn
+```
+```{code-cell}
+:tags: ["remove-input"]
+import dinf.plot
+
+dinf.plot.main(
+    """
+    metrics /tmp/discriminator.nn
+    """.split()
+)
+```
+
+The plot shows that the test loss is decreasing over time, and the
 test accuracy is increasing. This suggests that the discriminator is capable
 of learning from the model.
-
-```
-[epoch 1|1000] train loss 0.4213, accuracy 0.7710; test loss 1.0608, accuracy 0.4990
-[epoch 2|1000] train loss 0.3079, accuracy 0.8310; test loss 0.7033, accuracy 0.5080
-[epoch 3|1000] train loss 0.2651, accuracy 0.8800; test loss 0.6397, accuracy 0.5490
-[epoch 4|1000] train loss 0.2268, accuracy 0.9460; test loss 0.6157, accuracy 0.6350
-[epoch 5|1000] train loss 0.1947, accuracy 0.9680; test loss 0.5933, accuracy 0.6830
-[epoch 6|1000] train loss 0.1703, accuracy 0.9700; test loss 0.5763, accuracy 0.7070
-[epoch 7|1000] train loss 0.1439, accuracy 0.9830; test loss 0.5415, accuracy 0.7620
-[epoch 8|1000] train loss 0.1331, accuracy 0.9840; test loss 0.5123, accuracy 0.7970
-[epoch 9|1000] train loss 0.1087, accuracy 0.9920; test loss 0.4876, accuracy 0.8160
-[epoch 10|1000] train loss 0.0930, accuracy 0.9870; test loss 0.4353, accuracy 0.8420
-```
-
 To obtain more impressive accuracy, additional replicates will be needed.
 Other ways to improve the accuracy are discussed on the
 [](sec_guide_accuracy) page.
