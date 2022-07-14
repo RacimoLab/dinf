@@ -388,24 +388,25 @@ class Train:
         )
         group.add_argument(
             "discriminator_file",
-            metavar="discriminator.pkl",
+            metavar="discriminator.nn",
             type=pathlib.Path,
             help="Output file where the discriminator will be saved.",
         )
 
     def __call__(self, args: argparse.Namespace):
-        rng = np.random.default_rng(args.seed)
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
-        check_output_file(args.discriminator_file)
+        if args.epochs > 0:
+            check_output_file(args.discriminator_file)
         discriminator = dinf.train(
             genobuilder=genobuilder,
             training_replicates=args.training_replicates,
             test_replicates=args.test_replicates,
             epochs=args.epochs,
             parallelism=args.parallelism,
-            rng=rng,
+            seed=args.seed,
         )
-        discriminator.to_file(args.discriminator_file)
+        if args.epochs > 0:
+            discriminator.to_file(args.discriminator_file)
 
 
 class Predict:
@@ -445,7 +446,7 @@ class Predict:
         )
         group.add_argument(
             "discriminator_file",
-            metavar="discriminator.pkl",
+            metavar="discriminator.nn",
             type=pathlib.Path,
             help="Discriminator to use for predictions.",
         )
@@ -457,7 +458,6 @@ class Predict:
         )
 
     def __call__(self, args: argparse.Namespace):
-        rng = np.random.default_rng(args.seed)
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         discriminator = dinf.Discriminator(
             genobuilder.feature_shape, network=genobuilder.discriminator_network
@@ -468,7 +468,7 @@ class Predict:
             genobuilder=genobuilder,
             replicates=args.replicates,
             parallelism=args.parallelism,
-            rng=rng,
+            seed=args.seed,
         )
         dinf.save_results(
             args.output_file,

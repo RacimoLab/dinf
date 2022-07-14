@@ -382,7 +382,7 @@ class TestDiscriminator:
         d1 = discriminator.Discriminator(input_shape).init(rng)
         d1.fit(train_x=x, train_y=y, rng=rng)
         d1_y = d1.predict(x)
-        filename = tmp_path / "discriminator.pkl"
+        filename = tmp_path / "discriminator.nn"
         d1.to_file(filename)
         d2 = discriminator.Discriminator(input_shape).from_file(filename)
         d2_y = d2.predict(x)
@@ -396,7 +396,7 @@ class TestDiscriminator:
         rng = np.random.default_rng(1234)
         d1 = discriminator.Discriminator((30, 40, 1)).init(rng)
         d1.format_version = discriminator_format
-        filename = tmp_path / "discriminator.pkl"
+        filename = tmp_path / "discriminator.nn"
         d1.to_file(filename)
         with pytest.raises(ValueError, match="network is not compatible"):
             discriminator.Discriminator((30, 40, 1)).from_file(filename)

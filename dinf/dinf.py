@@ -132,13 +132,20 @@ def _observe_data(*, target, num_replicates, parallelism, rng):
     return data
 
 
-def _generate_training_data(*, target, generator, thetas, parallelism, rng):
+def _generate_training_data(*, target, generator, thetas, parallelism, ss):
+    ss_generator, ss_target = ss.spawn(("generator", "target"))
     num_replicates = len(thetas)
     x_generator = _generate_data(
-        generator=generator, thetas=thetas, parallelism=parallelism, rng=rng
+        generator=generator,
+        thetas=thetas,
+        parallelism=parallelism,
+        rng=np.random.default_rng(ss_generator),
     )
     x_target = _observe_data(
-        target=target, num_replicates=num_replicates, parallelism=parallelism, rng=rng
+        target=target,
+        num_replicates=num_replicates,
+        parallelism=parallelism,
+        rng=np.random.default_rng(ss_target),
     )
     # XXX: Large copy doubles peak memory.
     x = jax.tree_map(lambda *l: np.concatenate(l), x_generator, x_target)
@@ -181,7 +188,10 @@ def save_results(
         "_Pr": probs,
         **{par_name: thetas[..., j] for j, par_name in enumerate(parameters)},
     }
-    np.savez(filename, **kw)
+    # We open the file ourselves to stop numpy from adding a .npz extension,
+    # e.g. if the filename is /dev/null or a fifo.
+    with open(filename, "wb") as f:
+        np.savez(f, **kw)
 
 
 def _npz_array_metadata(filename: str | pathlib.Path, /):
@@ -359,6 +369,27 @@ def _run_mcmc_emcee(
     return thetas, probs
 
 
+class NamedSeedSequence(np.random.SeedSequence):
+    """
+    Extends numpy SeedSequence to support string-valued spawn_key.
+    """
+
+    def __init__(self, entropy=None, *, spawn_key=(), **kwargs):
+        if isinstance(spawn_key, str):
+            spawn_key = tuple(map(ord, spawn_key))
+        if isinstance(entropy, np.random.SeedSequence):
+            if entropy.spawn_key != ():
+                spawn_key = entropy.spawn_key + (ord(":"),) + spawn_key
+            entropy = entropy.entropy
+        super().__init__(entropy, spawn_key=spawn_key, **kwargs)
+
+    def spawn(self, n: int | Tuple[str, ...]):
+        if isinstance(n, int):
+            return super().spawn(n)
+        else:
+            return [type(self)(self, spawn_key=nj) for nj in n]
+
+
 def _train_discriminator(
     *,
     discriminator: Discriminator,
@@ -367,15 +398,18 @@ def _train_discriminator(
     test_thetas: np.ndarray,
     epochs: int,
     parallelism: int,
-    rng: np.random.Generator,
+    ss: NamedSeedSequence,
     entropy_regularisation: bool = False,
 ):
+    ss_train, ss_val, ss_fit = ss.spawn(
+        ("features:train", "features:val", "discriminator:fit")
+    )
     train_x, train_y, train_x_generator = _generate_training_data(
         target=genobuilder.target_func,
         generator=genobuilder.generator_func,
         thetas=training_thetas,
         parallelism=parallelism,
-        rng=rng,
+        ss=ss_train,
     )
 
     val_x, val_y, val_x_generator = None, None, None
@@ -385,7 +419,7 @@ def _train_discriminator(
             generator=genobuilder.generator_func,
             thetas=test_thetas,
             parallelism=parallelism,
-            rng=rng,
+            ss=ss_val,
         )
 
     metrics = discriminator.fit(
@@ -394,11 +428,9 @@ def _train_discriminator(
         val_x=val_x,
         val_y=val_y,
         epochs=epochs,
-        rng=rng,
+        rng=np.random.default_rng(ss_fit),
         # Clear the training loss/accuracy metrics from last iteration.
         reset_metrics=True,
-        # TODO
-        # tensorboard_log_dir=working_directory / "tensorboard" / "fit",
         entropy_regularisation=entropy_regularisation,
     )
 
@@ -441,7 +473,7 @@ def train(
     test_replicates: int,
     epochs: int,
     parallelism: None | int = None,
-    rng: np.random.Generator,
+    seed: None | int = None,
 ) -> Discriminator:
     """
     Train a discriminator network.
@@ -460,8 +492,8 @@ def train(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param numpy.random.Generator rng:
-        Numpy random number generator.
+    :param seed:
+        Seed for the random number generator.
     :return:
         The trained discriminator.
     """
@@ -470,15 +502,23 @@ def train(
 
     _process_pool_init(parallelism, genobuilder)
 
-    discriminator = Discriminator(
-        genobuilder.feature_shape, network=genobuilder.discriminator_network
-    ).init(rng)
-    # discriminator.summary()
+    ss = NamedSeedSequence(seed)
+    ss_train, ss_test, ss_discr_init = ss.spawn(
+        ("thetas:train", "thetas:test", "discriminator:init")
+    )
 
     training_thetas = genobuilder.parameters.draw_prior(
-        training_replicates // 2, rng=rng
+        training_replicates // 2, rng=np.random.default_rng(ss_train)
     )
-    test_thetas = genobuilder.parameters.draw_prior(test_replicates // 2, rng=rng)
+    test_thetas = genobuilder.parameters.draw_prior(
+        test_replicates // 2, rng=np.random.default_rng(ss_test)
+    )
+
+    discriminator = Discriminator(
+        genobuilder.feature_shape, network=genobuilder.discriminator_network
+    ).init(np.random.default_rng(ss_discr_init))
+    # discriminator.summary()
+
     _train_discriminator(
         discriminator=discriminator,
         genobuilder=genobuilder,
@@ -486,7 +526,7 @@ def train(
         test_thetas=test_thetas,
         epochs=epochs,
         parallelism=parallelism,
-        rng=rng,
+        ss=ss,
     )
     return discriminator
 
@@ -498,7 +538,7 @@ def predict(
     genobuilder: Genobuilder,
     replicates: int,
     parallelism: None | int = None,
-    rng: np.random.Generator,
+    seed: int | None = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Sample generator features and make predictions using the discriminator.
@@ -511,8 +551,8 @@ def predict(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param numpy.random.Generator rng:
-        Numpy random number generator.
+    :param seed:
+        Seed for the random number generator.
     :return:
         A 2-tuple of (thetas, probs), where ``thetas`` are the drawn parameters
         and ``probs`` are the discriminator predictions.
@@ -524,12 +564,17 @@ def predict(
 
     _process_pool_init(parallelism, genobuilder)
 
-    thetas = genobuilder.parameters.draw_prior(replicates, rng=rng)
+    ss = NamedSeedSequence(seed)
+    ss_train, ss_generator = ss.spawn(("thetas:train", "features:train:generator"))
+
+    thetas = genobuilder.parameters.draw_prior(
+        replicates, rng=np.random.default_rng(ss_train)
+    )
     x = _generate_data(
         generator=genobuilder.generator_func,
         thetas=thetas,
         parallelism=parallelism,
-        rng=rng,
+        rng=np.random.default_rng(ss_generator),
     )
     probs = discriminator.predict(x)
     return thetas, probs
@@ -613,7 +658,7 @@ def mcmc_gan(
     resume = False
     if len(store) > 0:
         files_exist = [
-            (store[-1] / fn).exists() for fn in ("discriminator.pkl", "mcmc.npz")
+            (store[-1] / fn).exists() for fn in ("discriminator.nn", "mcmc.npz")
         ]
         if sum(files_exist) == 1:
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
@@ -623,7 +668,7 @@ def mcmc_gan(
         genobuilder.feature_shape, network=genobuilder.discriminator_network
     )
     if resume:
-        discriminator = discriminator.from_file(store[-1] / "discriminator.pkl")
+        discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
         thetas, _ = _load_results_unstructured(
             store[-1] / "mcmc.npz", parameters=parameters
         )
@@ -678,7 +723,7 @@ def mcmc_gan(
             parallelism=parallelism,
             rng=rng,
         )
-        discriminator.to_file(store[-1] / "discriminator.pkl")
+        discriminator.to_file(store[-1] / "discriminator.nn")
 
         thetas, probs = _run_mcmc_emcee(
             start=start,
@@ -801,7 +846,7 @@ def abc_gan(
     resume = False
     if len(store) > 0:
         files_exist = [
-            (store[-1] / fn).exists() for fn in ("discriminator.pkl", "abc.npz")
+            (store[-1] / fn).exists() for fn in ("discriminator.nn", "abc.npz")
         ]
         if sum(files_exist) == 1:
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
@@ -811,7 +856,7 @@ def abc_gan(
         genobuilder.feature_shape, network=genobuilder.discriminator_network
     )
     if resume:
-        discriminator = discriminator.from_file(store[-1] / "discriminator.pkl")
+        discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
         thetas, _ = _load_results_unstructured(
             store[-1] / "abc.npz", parameters=parameters
         )
@@ -840,7 +885,7 @@ def abc_gan(
             parallelism=parallelism,
             rng=rng,
         )
-        discriminator.to_file(store[-1] / "discriminator.pkl")
+        discriminator.to_file(store[-1] / "discriminator.nn")
 
         proposal_thetas = parameters.draw_prior(proposals, rng=rng)
         thetas, probs = _run_abc(
@@ -1193,7 +1238,7 @@ def pg_gan(
     if len(store) > 0:
         files_exist = [
             (store[-1] / fn).exists()
-            for fn in ("discriminator.pkl", "pg-gan-proposals.npz")
+            for fn in ("discriminator.nn", "pg-gan-proposals.npz")
         ]
         if sum(files_exist) == 1:
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
@@ -1202,7 +1247,7 @@ def pg_gan(
     if resume:
         discriminator = Discriminator(
             genobuilder.feature_shape, network=genobuilder.discriminator_network
-        ).from_file(store[-1] / "discriminator.pkl")
+        ).from_file(store[-1] / "discriminator.nn")
         proposal_thetas, probs = _load_results_unstructured(
             store[-1] / "pg-gan-proposals.npz", parameters=parameters
         )
@@ -1324,7 +1369,7 @@ def pg_gan(
             n_target_calls += num_replicates
             n_generator_calls += num_replicates
 
-        discriminator.to_file(store[-1] / "discriminator.pkl")
+        discriminator.to_file(store[-1] / "discriminator.nn")
 
         print(f"Target called {n_target_calls} times.")
         print(f"Generator called {n_generator_calls} times.")
@@ -1405,7 +1450,7 @@ def alfi_mcmc_gan(
     if len(store) > 0:
         files_exist = [
             (store[-1] / fn).exists()
-            for fn in ("discriminator.pkl", "surrogate.pkl", "mcmc.npz")
+            for fn in ("discriminator.nn", "surrogate.nn", "mcmc.npz")
         ]
         if sum(files_exist) not in (0, len(files_exist)):
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
@@ -1416,8 +1461,8 @@ def alfi_mcmc_gan(
     )
     surrogate = Surrogate(len(parameters))
     if resume:
-        discriminator = discriminator.from_file(store[-1] / "discriminator.pkl")
-        surrogate = surrogate.from_file(store[-1] / "surrogate.pkl")
+        discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
+        surrogate = surrogate.from_file(store[-1] / "surrogate.nn")
         thetas, _ = _load_results_unstructured(
             store[-1] / "mcmc.npz", parameters=parameters
         )
@@ -1471,7 +1516,7 @@ def alfi_mcmc_gan(
         )
         n_target_calls += num_replicates
         n_generator_calls += num_replicates
-        discriminator.to_file(store[-1] / "discriminator.pkl")
+        discriminator.to_file(store[-1] / "discriminator.nn")
 
         train_y_pred, alpha, beta = _train_surrogate(
             discriminator=discriminator,
@@ -1482,10 +1527,10 @@ def alfi_mcmc_gan(
             train_x_generator=train_x_generator,
             test_x_generator=test_x_generator,
         )
-        surrogate.to_file(store[-1] / "surrogate.pkl")
+        surrogate.to_file(store[-1] / "surrogate.nn")
 
         # import pickle
-        # with open(store[-1] / "s.pkl", "wb") as f:
+        # with open(store[-1] / "s.nn", "wb") as f:
         #    pickle.dump((training_thetas, train_y_pred, alpha, beta), f)
 
         s_pred = alpha / (alpha + beta)

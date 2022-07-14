@@ -548,6 +548,59 @@ class _SubCommand:
         return data
 
 
+class _Demes(_SubCommand):
+    """
+    Plot a demes-as-tubes demographic model using DemesDraw.
+    """
+
+    def __init__(self, subparsers):
+        super().__init__(subparsers, "demes")
+        self.add_argument_output_file()
+        self.add_argument_genob_model()
+
+    def __call__(self, args: argparse.Namespace):
+        parameters = dinf.Genobuilder.from_file(args.genob_model).parameters
+
+        # _dinf_user_module is the name given to the args.genob_model module in
+        # Genobuilder.from_file(), which gets cached in sys.modules.
+        # As a side-effect, we can now import it with this name to look for
+        # a demography function.
+        import _dinf_user_module
+        import inspect
+        import demesdraw
+
+        demography = getattr(_dinf_user_module, "demography", None)
+        if not inspect.isfunction(demography):
+            raise AttributeError(
+                f"{args.genob_model}: demography() function not found."
+            )
+
+        sig = inspect.signature(demography)
+        if inspect._VAR_KEYWORD in {v.kind for v in sig.parameters.values()}:
+            # The function uses **kwargs, so we don't know what parameters
+            # it expects. Just guess and pass all the genobuilder.parameters.
+            demog_params = set(parameters)
+        else:
+            demog_params = set(sig.parameters)
+
+        # If the parameter has a truth value, use that. Otherwise, use the
+        # mid point of the parameter's range.
+        param_kwargs = {
+            name: p.truth if p.truth is not None else (p.high + p.low) / 2
+            for name, p in parameters.items()
+            if name in demog_params
+        }
+
+        graph = demography(**param_kwargs)
+        fig, ax = plt.subplots(figsize=plt.figaspect(9 / 16))
+        demesdraw.tubes(graph, ax=ax)
+
+        if args.output_file is None:
+            plt.show()
+        else:
+            fig.savefig(args.output_file)
+
+
 class _Features(_SubCommand):
     """
     Plot a feature matrix or matrices as heatmaps.
@@ -864,6 +917,7 @@ def main(args_list=None):
     )
 
     subparsers = top_parser.add_subparsers(dest="subcommand")
+    _Demes(subparsers)
     _Features(subparsers)
     _Metrics(subparsers)
     _Hist(subparsers)

@@ -197,7 +197,11 @@
 
 .. autofunction:: dinf.save_results
 .. autofunction:: dinf.load_results
+
 .. autofunction:: dinf.misc.ts_individuals
+.. autofunction:: dinf.misc.cache
+.. autofunction:: dinf.misc.sqlite_cache
+
 .. autofunction:: dinf.get_samples_from_1kgp_metadata
 .. autofunction:: dinf.get_contig_lengths
 

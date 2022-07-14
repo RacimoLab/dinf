@@ -118,7 +118,7 @@ class TestAbcGan:
         genobuilder = dinf.Genobuilder.from_file(ex)
         for i in range(2):
             check_discriminator(
-                working_directory / f"{i}" / "discriminator.pkl", genobuilder
+                working_directory / f"{i}" / "discriminator.nn", genobuilder
             )
             check_npz(
                 working_directory / f"{i}" / "abc.npz",
@@ -168,7 +168,7 @@ class TestAlfiMcmcGan:
         genobuilder = dinf.Genobuilder.from_file(ex)
         for i in range(2):
             check_discriminator(
-                working_directory / f"{i}" / "discriminator.pkl", genobuilder
+                working_directory / f"{i}" / "discriminator.nn", genobuilder
             )
             check_npz(
                 working_directory / f"{i}" / "mcmc.npz",
@@ -215,7 +215,7 @@ class TestMcmcGan:
         genobuilder = dinf.Genobuilder.from_file(ex)
         for i in range(2):
             check_discriminator(
-                working_directory / f"{i}" / "discriminator.pkl", genobuilder
+                working_directory / f"{i}" / "discriminator.nn", genobuilder
             )
             check_npz(
                 working_directory / f"{i}" / "mcmc.npz",
@@ -263,7 +263,7 @@ class TestPgGan:
         num_parameters = len(genobuilder.parameters)
         for i in range(2):
             check_discriminator(
-                working_directory / f"{i}" / "discriminator.pkl", genobuilder
+                working_directory / f"{i}" / "discriminator.nn", genobuilder
             )
             check_npz(
                 working_directory / f"{i}" / "pg-gan-proposals.npz",
@@ -285,7 +285,7 @@ class TestTrain:
 
     @pytest.mark.usefixtures("tmp_path")
     def test_train_example(self, tmp_path):
-        discriminator_file = tmp_path / "discriminator.pkl"
+        discriminator_file = tmp_path / "discriminator.nn"
         ex = "examples/bottleneck/model.py"
         subprocess.run(
             f"""
@@ -318,7 +318,7 @@ class TestPredict:
 
     @pytest.mark.usefixtures("tmp_path")
     def test_predict_example(self, tmp_path):
-        discriminator_file = tmp_path / "discriminator.pkl"
+        discriminator_file = tmp_path / "discriminator.nn"
         ex = "examples/bottleneck/model.py"
         subprocess.run(
             f"""
