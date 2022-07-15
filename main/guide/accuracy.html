@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
-    <title>4. Improving discriminator accuracy &#8212; Dinf</title>
+    <title>Improving discriminator accuracy &#8212; Dinf</title>
     
   <!-- Loaded before other Sphinx assets -->
   <link href="../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
@@ -52,7 +52,7 @@ const thebe_selector_output = ".output, .cell_output"
     <script async="async" src="../_static/sphinx-thebe.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="5. Feature matrices" href="features.html" />
+    <link rel="next" title="Feature matrices" href="features.html" />
     <link rel="prev" title="3. An ABC analysis" href="abc.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="docsearch:language" content="None">
@@ -122,10 +122,10 @@ const thebe_selector_output = ".output, .cell_output"
 </ul>
 <p aria-level="2" class="caption" role="heading">
  <span class="caption-text">
-  User guide
+  Tutorial
  </span>
 </p>
-<ul class="current nav bd-sidenav">
+<ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="creating_a_model.html">
    1. Creating a Dinf model
@@ -141,44 +141,51 @@ const thebe_selector_output = ".output, .cell_output"
    3. An ABC analysis
   </a>
  </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Topic guides
+ </span>
+</p>
+<ul class="current nav bd-sidenav">
  <li class="toctree-l1 current active">
   <a class="current reference internal" href="#">
-   4. Improving discriminator accuracy
+   Improving discriminator accuracy
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="features.html">
-   5. Feature matrices
+   Feature matrices
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="performance.html">
-   6. Performance characteristics
+   Performance characteristics
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="multiple_demes.html">
-   7. Models with multiple demes
+   Models with multiple demes
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="empirical_data.html">
-   8. Empirical data
+   Empirical data
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="mcmc-gan.html">
-   9. MCMC-GAN
+   MCMC-GAN
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="pg-gan.html">
-   10. PG-GAN (simulated annealing)
+   PG-GAN (simulated annealing)
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="gfo.html">
-   11. Gradient-free optimisation
+   Gradient-free optimisation
   </a>
  </li>
 </ul>
@@ -206,7 +213,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev261
+            dinf 0.1.1.dev269
             </div>
             
         </div>
@@ -423,17 +430,17 @@ title="Print to PDF"
         <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#training-replicates">
-   4.1. Training replicates
+   Training replicates
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#information-content-of-features">
-   4.2. Information content of features
+   Information content of features
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#discriminator-network-capacity">
-   4.3. Discriminator network capacity
+   Discriminator network capacity
   </a>
  </li>
 </ul>
@@ -457,17 +464,17 @@ title="Print to PDF"
                             <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#training-replicates">
-   4.1. Training replicates
+   Training replicates
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#information-content-of-features">
-   4.2. Information content of features
+   Information content of features
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#discriminator-network-capacity">
-   4.3. Discriminator network capacity
+   Discriminator network capacity
   </a>
  </li>
 </ul>
@@ -481,10 +488,10 @@ title="Print to PDF"
               <div>
                 
   <section class="tex2jax_ignore mathjax_ignore" id="improving-discriminator-accuracy">
-<span id="sec-guide-accuracy"></span><h1><span class="section-number">4. </span>Improving discriminator accuracy<a class="headerlink" href="#improving-discriminator-accuracy" title="Permalink to this headline">#</a></h1>
+<span id="sec-guide-accuracy"></span><h1>Improving discriminator accuracy<a class="headerlink" href="#improving-discriminator-accuracy" title="Permalink to this headline">#</a></h1>
 <p>This page explores the accuracy of the discriminator when modifying various hyperparameters.</p>
 <section id="training-replicates">
-<h2><span class="section-number">4.1. </span>Training replicates<a class="headerlink" href="#training-replicates" title="Permalink to this headline">#</a></h2>
+<h2>Training replicates<a class="headerlink" href="#training-replicates" title="Permalink to this headline">#</a></h2>
 <p>In general, more training replicates will improve the accuracy of
 the discriminator. It’s often reasonable to train for multiple epochs
 (one epoch is a full pass over the training data), although overfitting
@@ -622,7 +629,7 @@ but the threshold at which this happens will vary depending on
 the network architecture and capacity.</p>
 </section>
 <section id="information-content-of-features">
-<h2><span class="section-number">4.2. </span>Information content of features<a class="headerlink" href="#information-content-of-features" title="Permalink to this headline">#</a></h2>
+<h2>Information content of features<a class="headerlink" href="#information-content-of-features" title="Permalink to this headline">#</a></h2>
 <ul class="simple">
 <li><p>Bigger feature arrays hold more information.</p></li>
 <li><p>Does the feature matrix constitute a sufficient statistic
@@ -1223,7 +1230,7 @@ num_loci=128 sequence_length=5000000
 </div>
 </section>
 <section id="discriminator-network-capacity">
-<h2><span class="section-number">4.3. </span>Discriminator network capacity<a class="headerlink" href="#discriminator-network-capacity" title="Permalink to this headline">#</a></h2>
+<h2>Discriminator network capacity<a class="headerlink" href="#discriminator-network-capacity" title="Permalink to this headline">#</a></h2>
 <p>Assuming the features contain sufficient information,
 the discriminator network needs to be able to extract this.
 The capacity of the network can be increased by increasing
@@ -1278,7 +1285,7 @@ the number of trainable neural network parameters</p>
     <a class='right-next' id="next-link" href="features.html" title="next page">
     <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title"><span class="section-number">5. </span>Feature matrices</p>
+        <p class="prev-next-title">Feature matrices</p>
     </div>
     <i class="fas fa-angle-right"></i>
     </a>
@@ -1293,7 +1300,7 @@ the number of trainable neural network parameters</p>
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev261+g5b392e0
+      dinf 0.1.1.dev269+g3719aba
     </div>
 </p>
         </footer>

@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
-    <title>5. Feature matrices &#8212; Dinf</title>
+    <title>Feature matrices &#8212; Dinf</title>
     
   <!-- Loaded before other Sphinx assets -->
   <link href="../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
@@ -52,8 +52,8 @@ const thebe_selector_output = ".output, .cell_output"
     <script async="async" src="../_static/sphinx-thebe.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="6. Performance characteristics" href="performance.html" />
-    <link rel="prev" title="4. Improving discriminator accuracy" href="accuracy.html" />
+    <link rel="next" title="Performance characteristics" href="performance.html" />
+    <link rel="prev" title="Improving discriminator accuracy" href="accuracy.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="docsearch:language" content="None">
     
@@ -122,10 +122,10 @@ const thebe_selector_output = ".output, .cell_output"
 </ul>
 <p aria-level="2" class="caption" role="heading">
  <span class="caption-text">
-  User guide
+  Tutorial
  </span>
 </p>
-<ul class="current nav bd-sidenav">
+<ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="creating_a_model.html">
    1. Creating a Dinf model
@@ -141,44 +141,51 @@ const thebe_selector_output = ".output, .cell_output"
    3. An ABC analysis
   </a>
  </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Topic guides
+ </span>
+</p>
+<ul class="current nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="accuracy.html">
-   4. Improving discriminator accuracy
+   Improving discriminator accuracy
   </a>
  </li>
  <li class="toctree-l1 current active">
   <a class="current reference internal" href="#">
-   5. Feature matrices
+   Feature matrices
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="performance.html">
-   6. Performance characteristics
+   Performance characteristics
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="multiple_demes.html">
-   7. Models with multiple demes
+   Models with multiple demes
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="empirical_data.html">
-   8. Empirical data
+   Empirical data
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="mcmc-gan.html">
-   9. MCMC-GAN
+   MCMC-GAN
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="pg-gan.html">
-   10. PG-GAN (simulated annealing)
+   PG-GAN (simulated annealing)
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="gfo.html">
-   11. Gradient-free optimisation
+   Gradient-free optimisation
   </a>
  </li>
 </ul>
@@ -206,7 +213,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev261
+            dinf 0.1.1.dev269
             </div>
             
         </div>
@@ -440,32 +447,32 @@ title="Print to PDF"
         <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#model">
-   5.1. Model
+   Model
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#plotting-a-feature">
-   5.2. Plotting a feature
+   Plotting a feature
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#binned-versus-unbinned">
-   5.3. Binned versus unbinned
+   Binned versus unbinned
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#sequence-length">
-   5.4. Sequence length
+   Sequence length
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#number-of-loci">
-   5.5. Number of loci
+   Number of loci
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#multiple-feature-matrices">
-   5.6. Multiple feature matrices
+   Multiple feature matrices
   </a>
  </li>
 </ul>
@@ -489,32 +496,32 @@ title="Print to PDF"
                             <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#model">
-   5.1. Model
+   Model
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#plotting-a-feature">
-   5.2. Plotting a feature
+   Plotting a feature
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#binned-versus-unbinned">
-   5.3. Binned versus unbinned
+   Binned versus unbinned
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#sequence-length">
-   5.4. Sequence length
+   Sequence length
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#number-of-loci">
-   5.5. Number of loci
+   Number of loci
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#multiple-feature-matrices">
-   5.6. Multiple feature matrices
+   Multiple feature matrices
   </a>
  </li>
 </ul>
@@ -528,11 +535,11 @@ title="Print to PDF"
               <div>
                 
   <section class="tex2jax_ignore mathjax_ignore" id="feature-matrices">
-<span id="sec-guide-features"></span><h1><span class="section-number">5. </span>Feature matrices<a class="headerlink" href="#feature-matrices" title="Permalink to this headline">#</a></h1>
+<span id="sec-guide-features"></span><h1>Feature matrices<a class="headerlink" href="#feature-matrices" title="Permalink to this headline">#</a></h1>
 <p>This page provides a visual tour of the feature matrices provided
 by Dinf.</p>
 <section id="model">
-<h2><span class="section-number">5.1. </span>Model<a class="headerlink" href="#model" title="Permalink to this headline">#</a></h2>
+<h2>Model<a class="headerlink" href="#model" title="Permalink to this headline">#</a></h2>
 <p>To observe how changes to various variables will change the
 resulting feature matrices, we define a <code class="docutils literal notranslate"><span class="pre">sim()</span></code> function.
 This function is derived from the generator function of the bottleneck model
@@ -586,7 +593,7 @@ we’ve seen previously, and returns a feature matrix.</p>
 </div>
 </section>
 <section id="plotting-a-feature">
-<h2><span class="section-number">5.2. </span>Plotting a feature<a class="headerlink" href="#plotting-a-feature" title="Permalink to this headline">#</a></h2>
+<h2>Plotting a feature<a class="headerlink" href="#plotting-a-feature" title="Permalink to this headline">#</a></h2>
 <p>We’ll also need some code to plot the feature matrices.</p>
 <div class="cell tag_hide-input docutils container">
 <div class="cell_input docutils container">
@@ -646,7 +653,7 @@ we’ve seen previously, and returns a feature matrix.</p>
 </div>
 </section>
 <section id="binned-versus-unbinned">
-<h2><span class="section-number">5.3. </span>Binned versus unbinned<a class="headerlink" href="#binned-versus-unbinned" title="Permalink to this headline">#</a></h2>
+<h2>Binned versus unbinned<a class="headerlink" href="#binned-versus-unbinned" title="Permalink to this headline">#</a></h2>
 <p>Dinf supports two styles of feature matrices,
 which encode information about genotypes in different ways.</p>
 <p><a class="reference internal" href="../api.html#dinf.HaplotypeMatrix" title="dinf.HaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">HaplotypeMatrix</span></code></a> takes the central <code class="docutils literal notranslate"><span class="pre">num_loci</span></code>
@@ -721,7 +728,7 @@ sites relative to the size of each bin.
 </div>
 </section>
 <section id="sequence-length">
-<h2><span class="section-number">5.4. </span>Sequence length<a class="headerlink" href="#sequence-length" title="Permalink to this headline">#</a></h2>
+<h2>Sequence length<a class="headerlink" href="#sequence-length" title="Permalink to this headline">#</a></h2>
 <p>The sequence length for a feature matrix is the size of the genomic
 window that was simulated or sampled from a vcf.</p>
 <p>For <a class="reference internal" href="../api.html#dinf.HaplotypeMatrix" title="dinf.HaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">HaplotypeMatrix</span></code></a>, the sequence length should be sufficiently
@@ -787,7 +794,7 @@ matrices), this may lead to information loss rather than information gain.</p>
 </div>
 </section>
 <section id="number-of-loci">
-<h2><span class="section-number">5.5. </span>Number of loci<a class="headerlink" href="#number-of-loci" title="Permalink to this headline">#</a></h2>
+<h2>Number of loci<a class="headerlink" href="#number-of-loci" title="Permalink to this headline">#</a></h2>
 <p>Recall that the <code class="docutils literal notranslate"><span class="pre">num_loci</span></code> feature variable indicates the number of SNPs
 for a <a class="reference internal" href="../api.html#dinf.HaplotypeMatrix" title="dinf.HaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">HaplotypeMatrix</span></code></a>, but indicates the number of genomic bins for a
 <a class="reference internal" href="../api.html#dinf.BinnedHaplotypeMatrix" title="dinf.BinnedHaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinnedHaplotypeMatrix</span></code></a>.</p>
@@ -836,7 +843,7 @@ for a <a class="reference internal" href="../api.html#dinf.HaplotypeMatrix" titl
 </div>
 </section>
 <section id="multiple-feature-matrices">
-<h2><span class="section-number">5.6. </span>Multiple feature matrices<a class="headerlink" href="#multiple-feature-matrices" title="Permalink to this headline">#</a></h2>
+<h2>Multiple feature matrices<a class="headerlink" href="#multiple-feature-matrices" title="Permalink to this headline">#</a></h2>
 <p>Dinf provides feature extraction classes <a class="reference internal" href="../api.html#dinf.MultipleHaplotypeMatrices" title="dinf.MultipleHaplotypeMatrices"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultipleHaplotypeMatrices</span></code></a>
 and <a class="reference internal" href="../api.html#dinf.MultipleBinnedHaplotypeMatrices" title="dinf.MultipleBinnedHaplotypeMatrices"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultipleBinnedHaplotypeMatrices</span></code></a> that are simple extensions of
 the <a class="reference internal" href="../api.html#dinf.HaplotypeMatrix" title="dinf.HaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">HaplotypeMatrix</span></code></a> and <a class="reference internal" href="../api.html#dinf.BinnedHaplotypeMatrix" title="dinf.BinnedHaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinnedHaplotypeMatrix</span></code></a> repectively.
@@ -982,13 +989,13 @@ fixed differences between the labelled groups.</p>
         <i class="fas fa-angle-left"></i>
         <div class="prev-next-info">
             <p class="prev-next-subtitle">previous</p>
-            <p class="prev-next-title"><span class="section-number">4. </span>Improving discriminator accuracy</p>
+            <p class="prev-next-title">Improving discriminator accuracy</p>
         </div>
     </a>
     <a class='right-next' id="next-link" href="performance.html" title="next page">
     <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title"><span class="section-number">6. </span>Performance characteristics</p>
+        <p class="prev-next-title">Performance characteristics</p>
     </div>
     <i class="fas fa-angle-right"></i>
     </a>
@@ -1003,7 +1010,7 @@ fixed differences between the labelled groups.</p>
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev261+g5b392e0
+      dinf 0.1.1.dev269+g3719aba
     </div>
 </p>
         </footer>

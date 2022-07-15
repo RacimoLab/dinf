@@ -119,7 +119,7 @@ const thebe_selector_output = ".output, .cell_output"
 </ul>
 <p aria-level="2" class="caption" role="heading">
  <span class="caption-text">
-  User guide
+  Tutorial
  </span>
 </p>
 <ul class="nav bd-sidenav">
@@ -138,44 +138,51 @@ const thebe_selector_output = ".output, .cell_output"
    3. An ABC analysis
   </a>
  </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Topic guides
+ </span>
+</p>
+<ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="../../guide/accuracy.html">
-   4. Improving discriminator accuracy
+   Improving discriminator accuracy
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="../../guide/features.html">
-   5. Feature matrices
+   Feature matrices
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="../../guide/performance.html">
-   6. Performance characteristics
+   Performance characteristics
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="../../guide/multiple_demes.html">
-   7. Models with multiple demes
+   Models with multiple demes
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="../../guide/empirical_data.html">
-   8. Empirical data
+   Empirical data
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="../../guide/mcmc-gan.html">
-   9. MCMC-GAN
+   MCMC-GAN
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="../../guide/pg-gan.html">
-   10. PG-GAN (simulated annealing)
+   PG-GAN (simulated annealing)
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="../../guide/gfo.html">
-   11. Gradient-free optimisation
+   Gradient-free optimisation
   </a>
  </li>
 </ul>
@@ -203,7 +210,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev261
+            dinf 0.1.1.dev269
             </div>
             
         </div>
@@ -331,7 +338,12 @@ title="Open an issue"
   <h1>Source code for dinf.misc</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">collections</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">sqlite3</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span>
+<span class="kn">import</span> <span class="nn">zlib</span>
 
 <span class="kn">import</span> <span class="nn">jax</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -468,6 +480,155 @@ title="Open an issue"
     <span class="c1"># All features should have the same size for the leading dimension.</span>
     <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
     <span class="k">return</span> <span class="n">sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="cache"><a class="viewcode-back" href="../../api.html#dinf.misc.cache">[docs]</a><span class="k">def</span> <span class="nf">cache</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">split</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A decorator to cache the output of generator and/or target functions.</span>
+
+<span class="sd">    This is analogous to {func}`functools.cache`, except each function&#39;s</span>
+<span class="sd">    result is stored in a file under the given directory. Caching can create</span>
+<span class="sd">    a large number of small files, so the files are split into subdirectories</span>
+<span class="sd">    to mitigate possible problems.</span>
+
+<span class="sd">    :param path:</span>
+<span class="sd">        The directory to use for the cache.</span>
+<span class="sd">    :param split:</span>
+<span class="sd">        The number of subdirectories into which the cache files will be split.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># Split cache into subfolders.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">split</span><span class="p">):</span>
+        <span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">))</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">outer_wrapper</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
+        <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">inner_wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span>
+                <span class="o">+</span> <span class="s2">&quot;.&quot;</span>
+                <span class="o">+</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+                <span class="o">+</span> <span class="s2">&quot;.&quot;</span>
+                <span class="o">+</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+            <span class="p">)</span>
+            <span class="c1"># Use a fast hash of the filename to choose a subdirectory.</span>
+            <span class="n">subdir</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">zlib</span><span class="o">.</span><span class="n">adler32</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;ascii&quot;</span><span class="p">))</span> <span class="o">%</span> <span class="n">split</span><span class="p">)</span>
+            <span class="n">cache_file</span> <span class="o">=</span> <span class="n">path</span> <span class="o">/</span> <span class="n">subdir</span> <span class="o">/</span> <span class="n">filename</span>
+            <span class="k">if</span> <span class="n">cache_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">cache_file</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">npyio</span><span class="o">.</span><span class="n">NpzFile</span><span class="p">):</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="c1"># We open the file ourselves, to stop numpy from adding</span>
+                <span class="c1"># a .npy or .npz extension to the filename.</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">cache_file</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="o">**</span><span class="n">data</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">data</span>
+
+        <span class="k">return</span> <span class="n">inner_wrapper</span>
+
+    <span class="k">return</span> <span class="n">outer_wrapper</span></div>
+
+
+<div class="viewcode-block" id="sqlite_cache"><a class="viewcode-back" href="../../api.html#dinf.misc.sqlite_cache">[docs]</a><span class="k">def</span> <span class="nf">sqlite_cache</span><span class="p">(</span><span class="n">db_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">/</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A decorator for generator or target functions that caches features to disk.</span>
+
+<span class="sd">    This is analogous to {func}`functools.cache`, except the cache is</span>
+<span class="sd">    persisted to disk in an sqlite database.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        Do not use a network filesystem for the database filename.</span>
+<span class="sd">        Writing to an sqlite database depends on file locking support to</span>
+<span class="sd">        safely deal with concurrent writers. File locking support is known</span>
+<span class="sd">        to be broken for many network filesystems (e.g. NFS).</span>
+<span class="sd">        After dinf has finished writing to the database file, it can be</span>
+<span class="sd">        safely copied to a network filesystem for storage---just remember</span>
+<span class="sd">        to copy it back to a local filesystem when updating the cache.</span>
+
+<span class="sd">    :param db_file:</span>
+<span class="sd">        The filename of the sqlite database.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">adapt_array</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">arr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Binary</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">getvalue</span><span class="p">())</span>
+
+    <span class="c1"># Register numpy arrays to be converted to an sqlite BLOB.</span>
+    <span class="n">sqlite3</span><span class="o">.</span><span class="n">register_adapter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">adapt_array</span><span class="p">)</span>
+    <span class="n">sqlite3</span><span class="o">.</span><span class="n">register_converter</span><span class="p">(</span><span class="s2">&quot;ARRAY&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+
+    <span class="n">con</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">db_file</span><span class="p">,</span> <span class="n">detect_types</span><span class="o">=</span><span class="n">sqlite3</span><span class="o">.</span><span class="n">PARSE_DECLTYPES</span><span class="p">)</span>
+
+    <span class="n">cur</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> ARRAY&quot;</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">shape</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">qry_columns</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;?&quot;</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">shape</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="s2">&quot;feature ARRAY&quot;</span>
+        <span class="n">qry_columns</span> <span class="o">=</span> <span class="s2">&quot;?&quot;</span>
+    <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        CREATE TABLE IF NOT EXISTS features (</span>
+<span class="s2">            function TEXT,</span>
+<span class="s2">            args TEXT,</span>
+<span class="s2">            kwargs TEXT,</span>
+<span class="s2">            </span><span class="si">{</span><span class="n">columns</span><span class="si">}</span><span class="s2">,</span>
+<span class="s2">            PRIMARY KEY (function, args, kwargs)</span>
+<span class="s2">        )</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+    <span class="p">)</span>
+    <span class="n">con</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">outer_wrapper</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">):</span>
+        <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">inner_wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="n">args_str</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+            <span class="n">kwargs_str</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+            <span class="n">cur</span> <span class="o">=</span> <span class="n">con</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+            <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                SELECT </span><span class="si">{</span><span class="n">columns</span><span class="si">}</span><span class="s2"> FROM features WHERE</span>
+<span class="s2">                    function = :function AND args = :args AND kwargs = :kwargs</span>
+<span class="s2">                &quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="nb">dict</span><span class="p">(</span><span class="n">function</span><span class="o">=</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">args_str</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs_str</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">cur</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="p">(</span><span class="n">features</span><span class="p">,)</span> <span class="o">=</span> <span class="n">results</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">features</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="p">(</span><span class="n">feature</span><span class="p">,)</span> <span class="o">=</span> <span class="n">features</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">feature</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">f</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">features</span><span class="p">)}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">feature</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">feature</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+                    <span class="n">features</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">features</span> <span class="o">=</span> <span class="p">(</span><span class="n">feature</span><span class="p">,)</span>
+                <span class="n">cur</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                    INSERT INTO features VALUES (?, ?, ?, </span><span class="si">{</span><span class="n">qry_columns</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                    &quot;&quot;&quot;</span><span class="p">,</span>
+                    <span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">args_str</span><span class="p">,</span> <span class="n">kwargs_str</span><span class="p">,</span> <span class="o">*</span><span class="n">features</span><span class="p">),</span>
+                <span class="p">)</span>
+                <span class="n">con</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+            <span class="k">return</span> <span class="n">feature</span>
+
+        <span class="k">return</span> <span class="n">inner_wrapper</span>
+
+    <span class="k">return</span> <span class="n">outer_wrapper</span></div>
 </pre></div>
 
               </div>
@@ -488,7 +649,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev261+g5b392e0
+      dinf 0.1.1.dev269+g3719aba
     </div>
 </p>
         </footer>

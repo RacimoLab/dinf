@@ -121,7 +121,7 @@ const thebe_selector_output = ".output, .cell_output"
 </ul>
 <p aria-level="2" class="caption" role="heading">
  <span class="caption-text">
-  User guide
+  Tutorial
  </span>
 </p>
 <ul class="nav bd-sidenav">
@@ -140,44 +140,51 @@ const thebe_selector_output = ".output, .cell_output"
    3. An ABC analysis
   </a>
  </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Topic guides
+ </span>
+</p>
+<ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="guide/accuracy.html">
-   4. Improving discriminator accuracy
+   Improving discriminator accuracy
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/features.html">
-   5. Feature matrices
+   Feature matrices
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/performance.html">
-   6. Performance characteristics
+   Performance characteristics
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/multiple_demes.html">
-   7. Models with multiple demes
+   Models with multiple demes
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/empirical_data.html">
-   8. Empirical data
+   Empirical data
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/mcmc-gan.html">
-   9. MCMC-GAN
+   MCMC-GAN
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/pg-gan.html">
-   10. PG-GAN (simulated annealing)
+   PG-GAN (simulated annealing)
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/gfo.html">
-   11. Gradient-free optimisation
+   Gradient-free optimisation
   </a>
  </li>
 </ul>
@@ -205,7 +212,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev261
+            dinf 0.1.1.dev269
             </div>
             
         </div>
@@ -748,18 +755,18 @@ optional arguments:
 </div>
 <section id="dinf-check">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">check</span></code><a class="headerlink" href="#dinf-check" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf check [-h] user_model.py
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf check [-h] model.py
 
 Check a genobuilder object by calling the target and generator functions.
 
 positional arguments:
-  user_model.py  Python script from which to import the variable
-                 &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
-                 describes the GAN. See the examples/ folder for example
-                 models.
+  model.py    Python script from which to import the variable &quot;genobuilder&quot;.
+              This is a dinf.Genobuilder object that describes the GAN. See
+              the examples/ folder of the git repository for example models.
+              https://github.com/RacimoLab/dinf
 
 optional arguments:
-  -h, --help     show this help message and exit
+  -h, --help  show this help message and exit
 </pre></div>
 </div>
 </section>
@@ -767,7 +774,7 @@ optional arguments:
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">train</span></code><a class="headerlink" href="#dinf-train" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf train [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
                   [-R TEST_REPLICATES] [-e EPOCHS]
-                  user_model.py discriminator.pkl
+                  model.py discriminator.nn
 
 Train a discriminator.
 
@@ -775,16 +782,26 @@ optional arguments:
   -h, --help            show this help message and exit
 
 common arguments:
-  -S SEED, --seed SEED  Seed for the random number generator. (default: None)
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
   -j PARALLELISM, --parallelism PARALLELISM
                         Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func.
+                        the Genobuilder&#39;s generator_func and target_func. If
+                        not specified, all CPU cores will be used. The number
+                        of cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
                         (default: None)
 
 training arguments:
   -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
                         Size of the dataset used to train the discriminator.
-                        This dataset is constructed once each GAN iteration.
                         (default: 1000)
   -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
                         Size of the test dataset used to evaluate the
@@ -794,18 +811,19 @@ training arguments:
                         Number of full passes over the training dataset when
                         training the discriminator. (default: 1)
 
-  user_model.py         Python script from which to import the variable
+  model.py              Python script from which to import the variable
                         &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
-                        describes the GAN. See the examples/ folder for
-                        example models.
-  discriminator.pkl     Output file where the discriminator will be saved.
+                        describes the GAN. See the examples/ folder of the git
+                        repository for example models.
+                        https://github.com/RacimoLab/dinf
+  discriminator.nn      Output file where the discriminator will be saved.
 </pre></div>
 </div>
 </section>
 <section id="dinf-predict">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">predict</span></code><a class="headerlink" href="#dinf-predict" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf predict [-h] [-S SEED] [-j PARALLELISM] [-r REPLICATES]
-                    user_model.py discriminator.pkl output.npz
+                    model.py discriminator.nn output.npz
 
 Predict.
 
@@ -813,10 +831,21 @@ optional arguments:
   -h, --help            show this help message and exit
 
 common arguments:
-  -S SEED, --seed SEED  Seed for the random number generator. (default: None)
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
   -j PARALLELISM, --parallelism PARALLELISM
                         Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func.
+                        the Genobuilder&#39;s generator_func and target_func. If
+                        not specified, all CPU cores will be used. The number
+                        of cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
                         (default: None)
 
 predict arguments:
@@ -824,11 +853,12 @@ predict arguments:
                         Number of theta replicates to generate and predict
                         with the discriminator. (default: 1000)
 
-  user_model.py         Python script from which to import the variable
+  model.py              Python script from which to import the variable
                         &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
-                        describes the GAN. See the examples/ folder for
-                        example models.
-  discriminator.pkl     Discriminator to use for predictions.
+                        describes the GAN. See the examples/ folder of the git
+                        repository for example models.
+                        https://github.com/RacimoLab/dinf
+  discriminator.nn      Discriminator to use for predictions.
   output.npz            Output data, matching thetas to discriminator
                         predictions.
 </pre></div>
@@ -857,16 +887,26 @@ optional arguments:
   -h, --help            show this help message and exit
 
 common arguments:
-  -S SEED, --seed SEED  Seed for the random number generator. (default: None)
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
   -j PARALLELISM, --parallelism PARALLELISM
                         Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func.
+                        the Genobuilder&#39;s generator_func and target_func. If
+                        not specified, all CPU cores will be used. The number
+                        of cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
                         (default: None)
 
 training arguments:
   -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
                         Size of the dataset used to train the discriminator.
-                        This dataset is constructed once each GAN iteration.
                         (default: 1000)
   -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
                         Size of the test dataset used to evaluate the
@@ -891,8 +931,9 @@ GAN arguments:
                         current directory will be used. (default: None)
   model.py              Python script from which to import the variable
                         &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
-                        describes the GAN. See the examples/ folder for
-                        example models.
+                        describes the GAN. See the examples/ folder of the git
+                        repository for example models.
+                        https://github.com/RacimoLab/dinf
 </pre></div>
 </div>
 </section>
@@ -913,16 +954,26 @@ optional arguments:
   -h, --help            show this help message and exit
 
 common arguments:
-  -S SEED, --seed SEED  Seed for the random number generator. (default: None)
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
   -j PARALLELISM, --parallelism PARALLELISM
                         Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func.
+                        the Genobuilder&#39;s generator_func and target_func. If
+                        not specified, all CPU cores will be used. The number
+                        of cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
                         (default: None)
 
 training arguments:
   -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
                         Size of the dataset used to train the discriminator.
-                        This dataset is constructed once each GAN iteration.
                         (default: 1000)
   -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
                         Size of the test dataset used to evaluate the
@@ -946,8 +997,9 @@ GAN arguments:
                         current directory will be used. (default: None)
   model.py              Python script from which to import the variable
                         &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
-                        describes the GAN. See the examples/ folder for
-                        example models.
+                        describes the GAN. See the examples/ folder of the git
+                        repository for example models.
+                        https://github.com/RacimoLab/dinf
 </pre></div>
 </div>
 </section>
@@ -975,16 +1027,26 @@ optional arguments:
   -h, --help            show this help message and exit
 
 common arguments:
-  -S SEED, --seed SEED  Seed for the random number generator. (default: None)
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
   -j PARALLELISM, --parallelism PARALLELISM
                         Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func.
+                        the Genobuilder&#39;s generator_func and target_func. If
+                        not specified, all CPU cores will be used. The number
+                        of cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
                         (default: None)
 
 training arguments:
   -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
                         Size of the dataset used to train the discriminator.
-                        This dataset is constructed once each GAN iteration.
                         (default: 1000)
   -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
                         Size of the test dataset used to evaluate the
@@ -1011,8 +1073,9 @@ GAN arguments:
                         current directory will be used. (default: None)
   model.py              Python script from which to import the variable
                         &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
-                        describes the GAN. See the examples/ folder for
-                        example models.
+                        describes the GAN. See the examples/ folder of the git
+                        repository for example models.
+                        https://github.com/RacimoLab/dinf
 </pre></div>
 </div>
 </section>
@@ -1032,16 +1095,26 @@ optional arguments:
   -h, --help            show this help message and exit
 
 common arguments:
-  -S SEED, --seed SEED  Seed for the random number generator. (default: None)
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
   -j PARALLELISM, --parallelism PARALLELISM
                         Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func.
+                        the Genobuilder&#39;s generator_func and target_func. If
+                        not specified, all CPU cores will be used. The number
+                        of cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
                         (default: None)
 
 training arguments:
   -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
                         Size of the dataset used to train the discriminator.
-                        This dataset is constructed once each GAN iteration.
                         (default: 1000)
   -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
                         Size of the test dataset used to evaluate the
@@ -1069,20 +1142,23 @@ GAN arguments:
                         current directory will be used. (default: None)
   model.py              Python script from which to import the variable
                         &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
-                        describes the GAN. See the examples/ folder for
-                        example models.
+                        describes the GAN. See the examples/ folder of the git
+                        repository for example models.
+                        https://github.com/RacimoLab/dinf
 </pre></div>
 </div>
 </section>
 </section>
 <section id="plotting-commands">
 <span id="sec-cli-dinf-plot"></span><h2>Plotting commands<a class="headerlink" href="#plotting-commands" title="Permalink to this headline">#</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot [-h] {features,metrics,hist,hist2d} ...
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot [-h] {demes,features,metrics,hist,hist2d} ...
 
 Dinf plotting tools.
 
 positional arguments:
-  {features,metrics,hist,hist2d}
+  {demes,features,metrics,hist,hist2d}
+    demes               Plot a demes-as-tubes demographic model using
+                        DemesDraw.
     features            Plot a feature matrix or matrices as heatmaps.
     metrics             Plot loss and accuracy of discriminator(s).
     hist                Plot marginal posterior densities.
@@ -1095,7 +1171,7 @@ optional arguments:
 <section id="dinf-plot-metrics">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">metrics</span></code><a class="headerlink" href="#dinf-plot-metrics" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot metrics [-h] [-o output.pdf]
-                         discriminator.pkl [discriminator.pkl ...]
+                         discriminator.nn [discriminator.nn ...]
 
 Plot loss and accuracy of discriminator(s).
 
@@ -1111,14 +1187,16 @@ each file are indicated by a different colour. The legend shows the
 corresponding filename.
 
 positional arguments:
-  discriminator.pkl     The discriminator network(s) to plot.
+  discriminator.nn      The discriminator network(s) to plot.
 
 optional arguments:
   -h, --help            show this help message and exit
   -o output.pdf, --output-file output.pdf
-                        Output file for the figure. If no output file is
-                        specified, an interactive plot window will be opened.
-                        (default: None)
+                        Output file for the figure. The file extension
+                        determines the filetype, which can be any format
+                        supported by Matplotlib (e.g. pdf, svg, png).If no
+                        output file is specified, an interactive plot window
+                        will be opened. (default: None)
 </pre></div>
 </div>
 </section>
@@ -1135,15 +1213,18 @@ target dataset, use the --target option.
 positional arguments:
   model.py              Python script from which to import the variable
                         &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
-                        describes the GAN. See the examples/ folder for
-                        example models.
+                        describes the GAN. See the examples/ folder of the git
+                        repository for example models.
+                        https://github.com/RacimoLab/dinf
 
 optional arguments:
   -h, --help            show this help message and exit
   -o output.pdf, --output-file output.pdf
-                        Output file for the figure. If no output file is
-                        specified, an interactive plot window will be opened.
-                        (default: None)
+                        Output file for the figure. The file extension
+                        determines the filetype, which can be any format
+                        supported by Matplotlib (e.g. pdf, svg, png).If no
+                        output file is specified, an interactive plot window
+                        will be opened. (default: None)
   -S SEED, --seed SEED  Seed for the random number generator (default: None)
   --target              Extract feature(s) from the target dataset. (default:
                         False)
@@ -1164,6 +1245,11 @@ parameter to plot can be specified using the -x option,
 with the special value &quot;_Pr&quot; indicating the discriminator
 probabilities.
 
+If a pdf requested with the -o option, a multipage pdf is
+created. If another format is requested, then one file is
+created for each figure (the requested filename will be
+modified to include the parameter name).
+
 The resulting figure is a histogram. If the data correspond
 to a simulation-only model (provided via the -m option),
 then the parameter&#39;s truth value will be shown as a vertical
@@ -1182,9 +1268,11 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -o output.pdf, --output-file output.pdf
-                        Output file for the figure. If no output file is
-                        specified, an interactive plot window will be opened.
-                        (default: None)
+                        Output file for the figure. The file extension
+                        determines the filetype, which can be any format
+                        supported by Matplotlib (e.g. pdf, svg, png).If no
+                        output file is specified, an interactive plot window
+                        will be opened. (default: None)
   -n N, --top-n N       Accept only the N top parameter values, ranked by log
                         probability. (default: None)
   -t P, --probability-threshold P
@@ -1216,6 +1304,11 @@ As this may lead to a large number of plots (particularly
 for interactive use!), the choice of which parameters to
 plot can be specified using the -x and -y options.
 
+If a pdf requested with the -o option, a multipage pdf is
+created. If another format is requested, then one file is
+created for each figure (the requested filename will be
+modified to include the parameter names).
+
 The resulting figure is a 2d histogram, with darker squares
 indicating higher densities. If the data correspond to a
 simulation-only model, then the parameters&#39; truth values will
@@ -1234,9 +1327,11 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -o output.pdf, --output-file output.pdf
-                        Output file for the figure. If no output file is
-                        specified, an interactive plot window will be opened.
-                        (default: None)
+                        Output file for the figure. The file extension
+                        determines the filetype, which can be any format
+                        supported by Matplotlib (e.g. pdf, svg, png).If no
+                        output file is specified, an interactive plot window
+                        will be opened. (default: None)
   -n N, --top-n N       Accept only the N top parameter values, ranked by log
                         probability. (default: None)
   -t P, --probability-threshold P
@@ -1304,7 +1399,7 @@ optional arguments:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev261+g5b392e0
+      dinf 0.1.1.dev269+g3719aba
     </div>
 </p>
         </footer>

@@ -122,7 +122,7 @@ const thebe_selector_output = ".output, .cell_output"
 </ul>
 <p aria-level="2" class="caption" role="heading">
  <span class="caption-text">
-  User guide
+  Tutorial
  </span>
 </p>
 <ul class="nav bd-sidenav">
@@ -141,44 +141,51 @@ const thebe_selector_output = ".output, .cell_output"
    3. An ABC analysis
   </a>
  </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Topic guides
+ </span>
+</p>
+<ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="guide/accuracy.html">
-   4. Improving discriminator accuracy
+   Improving discriminator accuracy
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/features.html">
-   5. Feature matrices
+   Feature matrices
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/performance.html">
-   6. Performance characteristics
+   Performance characteristics
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/multiple_demes.html">
-   7. Models with multiple demes
+   Models with multiple demes
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/empirical_data.html">
-   8. Empirical data
+   Empirical data
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/mcmc-gan.html">
-   9. MCMC-GAN
+   MCMC-GAN
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/pg-gan.html">
-   10. PG-GAN (simulated annealing)
+   PG-GAN (simulated annealing)
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/gfo.html">
-   11. Gradient-free optimisation
+   Gradient-free optimisation
   </a>
  </li>
 </ul>
@@ -206,7 +213,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev261
+            dinf 0.1.1.dev269
             </div>
             
         </div>
@@ -477,7 +484,7 @@ needs to be installed. See the JAX documentation
   <span class="o">-</span><span class="n">f</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">storage</span><span class="o">.</span><span class="n">googleapis</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">jax</span><span class="o">-</span><span class="n">releases</span><span class="o">/</span><span class="n">jax_cuda_releases</span><span class="o">.</span><span class="n">html</span>
 </pre></div>
 </div>
-<p>Check that your GPU devices are recognised by jax.</p>
+<p>Check that your GPU device(s) are recognised by jax.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python
 Python 3.9.13 | packaged by conda-forge | (main, May 27 2022, 16:56:21)
 [GCC 10.3.0] on linux
@@ -491,8 +498,9 @@ Type &quot;help&quot;, &quot;copyright&quot;, &quot;credits&quot; or &quot;licen
 </section>
 <section id="conda-mamba-installation">
 <h2>Conda/mamba installation<a class="headerlink" href="#conda-mamba-installation" title="Permalink to this headline">#</a></h2>
-<p>Clone the repository, create a virtual environment using mamba
-(substitute <code class="docutils literal notranslate"><span class="pre">conda</span></code> if you don’t have mamba), activate, then install.</p>
+<p><a class="reference external" href="https://github.com/mamba-org/mamba">Mamba</a> is a faster implementation
+of conda. Substitute <code class="docutils literal notranslate"><span class="pre">conda</span></code> below if you don’t have mamba.
+Clone the repository, create a conda virtual environment, activate, then install.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">RacimoLab</span><span class="o">/</span><span class="n">dinf</span><span class="o">.</span><span class="n">git</span>
 <span class="n">cd</span> <span class="n">dinf</span>
 <span class="n">mamba</span> <span class="n">env</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">dinf</span> <span class="o">--</span><span class="n">file</span> <span class="n">environment</span><span class="o">.</span><span class="n">yml</span>
@@ -501,7 +509,8 @@ Type &quot;help&quot;, &quot;copyright&quot;, &quot;credits&quot; or &quot;licen
 </pre></div>
 </div>
 <p>The conda-forge jaxlib packages are cuda-enabled by default,
-so GPU support should just work.</p>
+so GPU support should just work. See pip instructions for checking
+that your GPU device(s) are recognised.</p>
 </section>
 </section>
 
@@ -557,7 +566,7 @@ so GPU support should just work.</p>
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev261+g5b392e0
+      dinf 0.1.1.dev269+g3719aba
     </div>
 </p>
         </footer>

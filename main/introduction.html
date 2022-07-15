@@ -121,7 +121,7 @@ const thebe_selector_output = ".output, .cell_output"
 </ul>
 <p aria-level="2" class="caption" role="heading">
  <span class="caption-text">
-  User guide
+  Tutorial
  </span>
 </p>
 <ul class="nav bd-sidenav">
@@ -140,44 +140,51 @@ const thebe_selector_output = ".output, .cell_output"
    3. An ABC analysis
   </a>
  </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Topic guides
+ </span>
+</p>
+<ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="guide/accuracy.html">
-   4. Improving discriminator accuracy
+   Improving discriminator accuracy
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/features.html">
-   5. Feature matrices
+   Feature matrices
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/performance.html">
-   6. Performance characteristics
+   Performance characteristics
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/multiple_demes.html">
-   7. Models with multiple demes
+   Models with multiple demes
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/empirical_data.html">
-   8. Empirical data
+   Empirical data
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/mcmc-gan.html">
-   9. MCMC-GAN
+   MCMC-GAN
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/pg-gan.html">
-   10. PG-GAN (simulated annealing)
+   PG-GAN (simulated annealing)
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="guide/gfo.html">
-   11. Gradient-free optimisation
+   Gradient-free optimisation
   </a>
  </li>
 </ul>
@@ -205,7 +212,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev261
+            dinf 0.1.1.dev269
             </div>
             
         </div>
@@ -369,12 +376,36 @@ title="Print to PDF"
     </ul>
   </div>
 </div>
+<label for="__page-toc"
+  class="headerbtn headerbtn-page-toc"
+  
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-list"></i>
+  </span>
+
+</label>
 
     </div>
 </div>
 
 <!-- Table of contents -->
 <div class="col-md-3 bd-toc show noprint">
+    <div class="tocsection onthispage pt-5 pb-3">
+        <i class="fas fa-list"></i> Contents
+    </div>
+    <nav id="bd-toc-nav" aria-label="Page">
+        <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#standing-on-the-shoulders-of-giants">
+   Standing on the shoulders of giants
+  </a>
+ </li>
+</ul>
+
+    </nav>
 </div>
     </div>
     <div class="article row">
@@ -386,6 +417,19 @@ title="Print to PDF"
                 <div id="print-main-content">
                     <div id="jb-print-toc">
                         
+                        <div>
+                            <h2> Contents </h2>
+                        </div>
+                        <nav aria-label="Page">
+                            <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#standing-on-the-shoulders-of-giants">
+   Standing on the shoulders of giants
+  </a>
+ </li>
+</ul>
+
+                        </nav>
                     </div>
                 </div>
             </div>
@@ -401,7 +445,28 @@ and a simulated dataset.
 Inference is done by finding simulation parameters that produce
 data closely matching the target dataset.
 Dinf provides a <a class="reference internal" href="api.html#sec-api"><span class="std std-ref">Python API</span></a> for creating simulation models,
-and a <a class="reference internal" href="cli.html#sec-cli"><span class="std std-ref">CLI</span></a> for discriminator training and inference.</p>
+and a <a class="reference internal" href="cli.html#sec-cli"><span class="std std-ref">CLI</span></a> for discriminator training, inference, and plotting.</p>
+<section id="standing-on-the-shoulders-of-giants">
+<h2>Standing on the shoulders of giants<a class="headerlink" href="#standing-on-the-shoulders-of-giants" title="Permalink to this headline">#</a></h2>
+<p>Dinf uses and takes inspiration from the following projects.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://jax.readthedocs.io/">JAX</a>,
+<a class="reference external" href="https://flax.readthedocs.io/">flax</a>,
+and <a class="reference external" href="https://optax.readthedocs.io/">optax</a>
+for training neural networks.</p></li>
+<li><p><a class="reference external" href="https://tskit.dev/msprime/docs/">msprime</a>
+and the <a class="reference external" href="https://tskit.dev/">tskit ecosystem</a> for simulations.</p></li>
+<li><p><a class="reference external" href="https://github.com/brentp/cyvcf2">cyvcf2</a> for reading vcf and bcf files
+(which itself uses <a class="reference external" href="https://github.com/samtools/htslib">htslib</a>).</p></li>
+<li><p><a class="reference external" href="https://matplotlib.org/">matplotlib</a> for creating plots.</p></li>
+<li><p><a class="reference external" href="https://github.com/mathiesonlab/pg-gan">pg-gan</a>
+does discriminator-based inference using simulated annealing
+in a GAN (generative adversarial network).
+Dinf implements and extends many ideas from pg-gan.</p></li>
+</ul>
+</section>
+<div class="toctree-wrapper compound">
+</div>
 <div class="toctree-wrapper compound">
 </div>
 <div class="toctree-wrapper compound">
@@ -455,7 +520,7 @@ and a <a class="reference internal" href="cli.html#sec-cli"><span class="std std
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev261+g5b392e0
+      dinf 0.1.1.dev269+g3719aba
     </div>
 </p>
         </footer>

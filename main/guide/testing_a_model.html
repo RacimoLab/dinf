@@ -122,7 +122,7 @@ const thebe_selector_output = ".output, .cell_output"
 </ul>
 <p aria-level="2" class="caption" role="heading">
  <span class="caption-text">
-  User guide
+  Tutorial
  </span>
 </p>
 <ul class="current nav bd-sidenav">
@@ -141,44 +141,51 @@ const thebe_selector_output = ".output, .cell_output"
    3. An ABC analysis
   </a>
  </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Topic guides
+ </span>
+</p>
+<ul class="nav bd-sidenav">
  <li class="toctree-l1">
   <a class="reference internal" href="accuracy.html">
-   4. Improving discriminator accuracy
+   Improving discriminator accuracy
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="features.html">
-   5. Feature matrices
+   Feature matrices
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="performance.html">
-   6. Performance characteristics
+   Performance characteristics
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="multiple_demes.html">
-   7. Models with multiple demes
+   Models with multiple demes
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="empirical_data.html">
-   8. Empirical data
+   Empirical data
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="mcmc-gan.html">
-   9. MCMC-GAN
+   MCMC-GAN
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="pg-gan.html">
-   10. PG-GAN (simulated annealing)
+   PG-GAN (simulated annealing)
   </a>
  </li>
  <li class="toctree-l1">
   <a class="reference internal" href="gfo.html">
-   11. Gradient-free optimisation
+   Gradient-free optimisation
   </a>
  </li>
 </ul>
@@ -206,7 +213,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev261
+            dinf 0.1.1.dev269
             </div>
             
         </div>
@@ -249,6 +256,35 @@ title="Toggle navigation"
         
     </div>
     <div class="header-article__right">
+<div class="menu-dropdown menu-dropdown-launch-buttons">
+  <button class="headerbtn menu-dropdown__trigger"
+      aria-label="Launch interactive content">
+      <i class="fas fa-rocket"></i>
+  </button>
+  <div class="menu-dropdown__content">
+    <ul>
+      <li>
+        <a href="https://mybinder.org/v2/gh/RacimoLab/dinf/main?urlpath=tree/docs/guide/testing_a_model.md"
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Launch on Binder"
+>
+  
+
+<span class="headerbtn__icon-container">
+  
+    <img src="../_static/images/logo_binder.svg">
+  </span>
+<span class="headerbtn__text-container">Binder</span>
+</a>
+
+      </li>
+      
+    </ul>
+  </div>
+</div>
+
 <button onclick="toggleFullScreen()"
   class="headerbtn"
   data-toggle="tooltip"
@@ -333,6 +369,23 @@ title="Edit this page"
   <div class="menu-dropdown__content">
     <ul>
       <li>
+        <a href="../_sources/guide/testing_a_model.ipynb"
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Download notebook file"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-code"></i>
+  </span>
+<span class="headerbtn__text-container">.ipynb</span>
+</a>
+
+      </li>
+      
+      <li>
         <a href="../_sources/guide/testing_a_model.md"
    class="headerbtn"
    data-toggle="tooltip"
@@ -403,8 +456,13 @@ title="Print to PDF"
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#visualising-feature-matrices">
+   2.3. Visualising feature matrices
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#training-a-discriminator">
-   2.3. Training a discriminator
+   2.4. Training a discriminator
   </a>
  </li>
 </ul>
@@ -437,8 +495,13 @@ title="Print to PDF"
   </a>
  </li>
  <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#visualising-feature-matrices">
+   2.3. Visualising feature matrices
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
   <a class="reference internal nav-link" href="#training-a-discriminator">
-   2.3. Training a discriminator
+   2.4. Training a discriminator
   </a>
  </li>
 </ul>
@@ -475,37 +538,53 @@ and confirm that their output matches the specified <code class="docutils litera
 If the model is a simulation-only model (i.e. the <code class="docutils literal notranslate"><span class="pre">target_func</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code>),
 then the parameters will be checked to ensure they each have a <code class="docutils literal notranslate"><span class="pre">truth</span></code> value.</p>
 </section>
+<section id="visualising-feature-matrices">
+<h2><span class="section-number">2.3. </span>Visualising feature matrices<a class="headerlink" href="#visualising-feature-matrices" title="Permalink to this headline">#</a></h2>
+<p>To get some intuition about the features given to the discriminator,
+we can use <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> with the <code class="docutils literal notranslate"><span class="pre">features</span></code> subcommand.
+This samples a feature using the generator (with parameter values drawn
+from the prior), and plots the result as a heatmap.
+See <a class="reference internal" href="features.html#sec-guide-features"><span class="std std-ref">Feature matrices</span></a> for how to interpret feature matrices.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dinf</span><span class="o">-</span><span class="n">plot</span> <span class="n">features</span> <span class="o">--</span><span class="n">seed</span> <span class="mi">1</span> <span class="n">examples</span><span class="o">/</span><span class="n">bottleneck</span><span class="o">/</span><span class="n">model</span><span class="o">.</span><span class="n">py</span>
+</pre></div>
+</div>
+<div class="cell tag_remove-input docutils container">
+<div class="cell_output docutils container">
+<img alt="../_images/testing_a_model_2_0.svg" src="../_images/testing_a_model_2_0.svg" /></div>
+</div>
+</section>
 <section id="training-a-discriminator">
-<h2><span class="section-number">2.3. </span>Training a discriminator<a class="headerlink" href="#training-a-discriminator" title="Permalink to this headline">#</a></h2>
-<p>As an additional check of the model, it is useful to train a discriminator
+<h2><span class="section-number">2.4. </span>Training a discriminator<a class="headerlink" href="#training-a-discriminator" title="Permalink to this headline">#</a></h2>
+<p>As an additional check of the model, it’s useful to train a discriminator
 with a modest number of replicates to confirm that the discriminator
-can learn from the training data.</p>
+can learn from the training data. We’ll use <code class="docutils literal notranslate"><span class="pre">dinf</span></code> with
+the <code class="docutils literal notranslate"><span class="pre">train</span></code> subcommand to train the model for 10 epochs (i.e. 10 full
+passes over the training data). Note that short options are available
+(e.g. <code class="docutils literal notranslate"><span class="pre">-S</span></code> for <code class="docutils literal notranslate"><span class="pre">--seed</span></code>), but the documentation uses long options for clarity.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dinf</span> <span class="n">train</span> \
+    <span class="o">--</span><span class="n">seed</span> <span class="mi">1</span> \
     <span class="o">--</span><span class="n">epochs</span> <span class="mi">10</span> \
     <span class="o">--</span><span class="n">training</span><span class="o">-</span><span class="n">replicates</span> <span class="mi">1000</span> \
     <span class="o">--</span><span class="n">test</span><span class="o">-</span><span class="n">replicates</span> <span class="mi">1000</span> \
     <span class="n">examples</span><span class="o">/</span><span class="n">bottleneck</span><span class="o">/</span><span class="n">model</span><span class="o">.</span><span class="n">py</span> \
-    <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">discriminator</span><span class="o">.</span><span class="n">pkl</span>
+    <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">discriminator</span><span class="o">.</span><span class="n">nn</span>
 </pre></div>
 </div>
 <p>Msprime simulations are quite fast, and on an 8-core i7-8665U laptop with
 CPU-only training, this completes in about 40 seconds.
-The output indicates that the test loss is decreasing over time, and the
-test accuracy is increasing. This suggests that the discriminator is capable
-of learning from the model.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">epoch</span> <span class="mi">1</span><span class="o">|</span><span class="mi">1000</span><span class="p">]</span> <span class="n">train</span> <span class="n">loss</span> <span class="mf">0.4213</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.7710</span><span class="p">;</span> <span class="n">test</span> <span class="n">loss</span> <span class="mf">1.0608</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.4990</span>
-<span class="p">[</span><span class="n">epoch</span> <span class="mi">2</span><span class="o">|</span><span class="mi">1000</span><span class="p">]</span> <span class="n">train</span> <span class="n">loss</span> <span class="mf">0.3079</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.8310</span><span class="p">;</span> <span class="n">test</span> <span class="n">loss</span> <span class="mf">0.7033</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.5080</span>
-<span class="p">[</span><span class="n">epoch</span> <span class="mi">3</span><span class="o">|</span><span class="mi">1000</span><span class="p">]</span> <span class="n">train</span> <span class="n">loss</span> <span class="mf">0.2651</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.8800</span><span class="p">;</span> <span class="n">test</span> <span class="n">loss</span> <span class="mf">0.6397</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.5490</span>
-<span class="p">[</span><span class="n">epoch</span> <span class="mi">4</span><span class="o">|</span><span class="mi">1000</span><span class="p">]</span> <span class="n">train</span> <span class="n">loss</span> <span class="mf">0.2268</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.9460</span><span class="p">;</span> <span class="n">test</span> <span class="n">loss</span> <span class="mf">0.6157</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.6350</span>
-<span class="p">[</span><span class="n">epoch</span> <span class="mi">5</span><span class="o">|</span><span class="mi">1000</span><span class="p">]</span> <span class="n">train</span> <span class="n">loss</span> <span class="mf">0.1947</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.9680</span><span class="p">;</span> <span class="n">test</span> <span class="n">loss</span> <span class="mf">0.5933</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.6830</span>
-<span class="p">[</span><span class="n">epoch</span> <span class="mi">6</span><span class="o">|</span><span class="mi">1000</span><span class="p">]</span> <span class="n">train</span> <span class="n">loss</span> <span class="mf">0.1703</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.9700</span><span class="p">;</span> <span class="n">test</span> <span class="n">loss</span> <span class="mf">0.5763</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.7070</span>
-<span class="p">[</span><span class="n">epoch</span> <span class="mi">7</span><span class="o">|</span><span class="mi">1000</span><span class="p">]</span> <span class="n">train</span> <span class="n">loss</span> <span class="mf">0.1439</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.9830</span><span class="p">;</span> <span class="n">test</span> <span class="n">loss</span> <span class="mf">0.5415</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.7620</span>
-<span class="p">[</span><span class="n">epoch</span> <span class="mi">8</span><span class="o">|</span><span class="mi">1000</span><span class="p">]</span> <span class="n">train</span> <span class="n">loss</span> <span class="mf">0.1331</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.9840</span><span class="p">;</span> <span class="n">test</span> <span class="n">loss</span> <span class="mf">0.5123</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.7970</span>
-<span class="p">[</span><span class="n">epoch</span> <span class="mi">9</span><span class="o">|</span><span class="mi">1000</span><span class="p">]</span> <span class="n">train</span> <span class="n">loss</span> <span class="mf">0.1087</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.9920</span><span class="p">;</span> <span class="n">test</span> <span class="n">loss</span> <span class="mf">0.4876</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.8160</span>
-<span class="p">[</span><span class="n">epoch</span> <span class="mi">10</span><span class="o">|</span><span class="mi">1000</span><span class="p">]</span> <span class="n">train</span> <span class="n">loss</span> <span class="mf">0.0930</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.9870</span><span class="p">;</span> <span class="n">test</span> <span class="n">loss</span> <span class="mf">0.4353</span><span class="p">,</span> <span class="n">accuracy</span> <span class="mf">0.8420</span>
+Loss and accuracy metrics are printed to the console by default,
+but they can also be plotted using <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> with the <code class="docutils literal notranslate"><span class="pre">metrics</span></code> subcommand.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dinf</span><span class="o">-</span><span class="n">plot</span> <span class="n">metrics</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">discriminator</span><span class="o">.</span><span class="n">nn</span>
 </pre></div>
 </div>
-<p>To obtain more impressive accuracy, additional replicates will be needed.
+<div class="cell tag_remove-input docutils container">
+<div class="cell_output docutils container">
+<img alt="../_images/testing_a_model_6_0.svg" src="../_images/testing_a_model_6_0.svg" /></div>
+</div>
+<p>The plot shows that the test loss is decreasing over time, and the
+test accuracy is increasing. This suggests that the discriminator is capable
+of learning from the model.
+To obtain more impressive accuracy, additional replicates will be needed.
 Other ways to improve the accuracy are discussed on the
 <a class="reference internal" href="accuracy.html#sec-guide-accuracy"><span class="std std-ref">Improving discriminator accuracy</span></a> page.</p>
 </section>
@@ -563,7 +642,7 @@ Other ways to improve the accuracy are discussed on the
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev261+g5b392e0
+      dinf 0.1.1.dev269+g3719aba
     </div>
 </p>
         </footer>
