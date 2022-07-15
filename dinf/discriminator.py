@@ -594,7 +594,7 @@ class Discriminator(_NetworkWrapper):
             )
             return n + batch_size, new_metrics
 
-        def train_epoch(state, train_ds, batch_size, epoch, dropout_rng):
+        def train_epoch(state, train_ds, batch_size, epoch, dropout_rng, rng=rng):
             """Train for a single epoch."""
 
             def print_metrics(n, metrics_sum, end):
@@ -656,7 +656,7 @@ class Discriminator(_NetworkWrapper):
         for epoch in range(1, epochs + 1):
             dropout_rng1, dropout_rng2 = jax.random.split(dropout_rng1)
             train_loss, train_accuracy, self.state = train_epoch(
-                self.state, train_ds, batch_size, epoch, dropout_rng2
+                self.state, train_ds, batch_size, epoch, dropout_rng2, rng=rng
             )
             self.metrics["train_loss"].append(train_loss)
             self.metrics["train_accuracy"].append(train_accuracy)

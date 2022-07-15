@@ -565,7 +565,7 @@ def predict(
     _process_pool_init(parallelism, genobuilder)
 
     ss = NamedSeedSequence(seed)
-    ss_train, ss_generator = ss.spawn(("thetas:train", "features:train:generator"))
+    ss_train, ss_generator = ss.spawn(("thetas:predict", "features:predict:generator"))
 
     thetas = genobuilder.parameters.draw_prior(
         replicates, rng=np.random.default_rng(ss_train)
@@ -593,7 +593,7 @@ def mcmc_gan(
     Dx_replicates: int,
     working_directory: None | str | pathlib.Path = None,
     parallelism: None | int = None,
-    rng: np.random.Generator,
+    seed: None | int = None,
 ):
     """
     Run the MCMC GAN.
@@ -635,8 +635,8 @@ def mcmc_gan(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param numpy.random.Generator rng:
-        Numpy random number generator.
+    :param seed:
+        Seed for the random number generator.
     """
     num_replicates = math.ceil((training_replicates + test_replicates) / 2)
     if steps * walkers < num_replicates:
@@ -652,6 +652,13 @@ def mcmc_gan(
 
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
+
+    ss = NamedSeedSequence(seed)
+    ss_loop, ss_mcmc, ss_thetas, ss_discr_init = ss.spawn(
+        ("mcmc-gan:loop", "mcmc-gan:mcmc", "abc-gan:thetas", "discriminator:init")
+    )
+    rng_thetas = np.random.default_rng(ss_thetas)
+    rng_mcmc = np.random.default_rng(ss_mcmc)
 
     _process_pool_init(parallelism, genobuilder)
     parameters = genobuilder.parameters
@@ -681,18 +688,20 @@ def mcmc_gan(
                 f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
             )
 
-        sampled_thetas = rng.choice(
+        sampled_thetas = rng_thetas.choice(
             thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
         )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
-        discriminator = discriminator.init(rng)
+        discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
         # Starting point for the mcmc chain.
-        start = parameters.draw_prior(walkers, rng=rng)
+        start = parameters.draw_prior(walkers, rng=rng_thetas)
 
-        training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng)
+        training_thetas = parameters.draw_prior(
+            training_replicates // 2, rng=rng_thetas
+        )
+        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng_thetas)
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))
@@ -707,13 +716,14 @@ def mcmc_gan(
         parameters=parameters,
         parallelism=parallelism,
         num_replicates=Dx_replicates,
-        rng=rng,
+        rng=rng_thetas,
     )
 
     for i in range(len(store) + 1, len(store) + 1 + iterations):
         print(f"MCMC GAN iteration {i}")
         store.increment()
 
+        (ss_loop,) = ss_loop.spawn(1)
         _train_discriminator(
             discriminator=discriminator,
             genobuilder=genobuilder,
@@ -721,7 +731,7 @@ def mcmc_gan(
             test_thetas=test_thetas,
             epochs=epochs,
             parallelism=parallelism,
-            rng=rng,
+            ss=ss_loop,
         )
         discriminator.to_file(store[-1] / "discriminator.nn")
 
@@ -730,7 +740,7 @@ def mcmc_gan(
             parameters=parameters,
             walkers=walkers,
             steps=steps,
-            rng=rng,
+            rng=rng_mcmc,
             log_prob_func=log_prob_func,
         )
         assert thetas.shape == (steps, walkers, len(parameters))
@@ -741,7 +751,7 @@ def mcmc_gan(
         # The chain for next iteration starts at the end of this chain.
         start = thetas[-1]
 
-        sampled_thetas = rng.choice(
+        sampled_thetas = rng_thetas.choice(
             thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
         )
         training_thetas = sampled_thetas[: training_replicates // 2]
@@ -783,7 +793,7 @@ def abc_gan(
     posteriors: int,
     working_directory: None | str | pathlib.Path = None,
     parallelism: None | int = None,
-    rng: np.random.Generator,
+    seed: None | int = None,
 ):
     """
     Run the ABC GAN.
@@ -823,8 +833,8 @@ def abc_gan(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param numpy.random.Generator rng:
-        Numpy random number generator.
+    :param seed:
+        Seed for the random number generator.
     """
     if posteriors > proposals:
         raise ValueError(
@@ -839,6 +849,12 @@ def abc_gan(
 
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
+
+    ss = NamedSeedSequence(seed)
+    ss_loop, ss_thetas, ss_discr_init = ss.spawn(
+        ("abc-gan:loop", "abc-gan:thetas", "discriminator:init")
+    )
+    rng_thetas = np.random.default_rng(ss_thetas)
 
     _process_pool_init(parallelism, genobuilder)
 
@@ -861,13 +877,15 @@ def abc_gan(
             store[-1] / "abc.npz", parameters=parameters
         )
         assert len(thetas.shape) == 2
-        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=True)
+        sampled_thetas = rng_thetas.choice(thetas, size=num_replicates, replace=True)
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
-        discriminator = discriminator.init(rng)
-        training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng)
+        discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
+        training_thetas = parameters.draw_prior(
+            training_replicates // 2, rng=rng_thetas
+        )
+        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng_thetas)
 
     n_target_calls = 0
     n_generator_calls = 0
@@ -876,6 +894,7 @@ def abc_gan(
         print(f"ABC GAN iteration {i}")
         store.increment()
 
+        (ss_loop,) = ss_loop.spawn(1)
         _train_discriminator(
             discriminator=discriminator,
             genobuilder=genobuilder,
@@ -883,11 +902,11 @@ def abc_gan(
             test_thetas=test_thetas,
             epochs=epochs,
             parallelism=parallelism,
-            rng=rng,
+            ss=ss_loop,
         )
         discriminator.to_file(store[-1] / "discriminator.nn")
 
-        proposal_thetas = parameters.draw_prior(proposals, rng=rng)
+        proposal_thetas = parameters.draw_prior(proposals, rng=rng_thetas)
         thetas, probs = _run_abc(
             discriminator=discriminator,
             generator=genobuilder.generator_func,
@@ -895,13 +914,13 @@ def abc_gan(
             thetas=proposal_thetas,
             posteriors=posteriors,
             parallelism=parallelism,
-            rng=rng,
+            rng=rng_thetas,
         )
         save_results(
             store[-1] / "abc.npz", probs=probs, thetas=thetas, parameters=parameters
         )
 
-        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=True)
+        sampled_thetas = rng_thetas.choice(thetas, size=num_replicates, replace=True)
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
 
@@ -919,7 +938,7 @@ def pretraining_pg_gan(
     epochs: int,
     parallelism: int,
     max_pretraining_iterations: int,
-    rng,
+    ss: NamedSeedSequence,
 ):
     """
     Pretraining roughly like PG-GAN.
@@ -931,14 +950,17 @@ def pretraining_pg_gan(
     max_pretraining_iterations times, each with training_replicates reps.
     """
 
+    ss_discr_init, ss_thetas = ss.spawn(("discriminator:init", "thetas"))
+    rng_thetas = np.random.default_rng(ss_thetas)
+
     discriminator = Discriminator(
         genobuilder.feature_shape, network=genobuilder.discriminator_network
-    ).init(rng)
+    ).init(np.random.default_rng(ss_discr_init))
     acc_best = 0
     theta_best = None
 
     for k in range(max_pretraining_iterations):
-        theta = genobuilder.parameters.draw_prior(1, rng=rng)[0]
+        theta = genobuilder.parameters.draw_prior(1, rng=rng_thetas)[0]
         training_thetas = np.tile(theta, (training_replicates // 2, 1))
         test_thetas = np.tile(theta, (test_replicates // 2, 1))
 
@@ -949,7 +971,7 @@ def pretraining_pg_gan(
             test_thetas=test_thetas,
             epochs=epochs,
             parallelism=parallelism,
-            rng=rng,
+            ss=ss,
         )
         # Use the test accuracy, unless there's no test data.
         acc = metrics.get("test_accuracy", metrics["train_accuracy"])
@@ -975,7 +997,7 @@ def pretraining_dinf(
     epochs: int,
     parallelism: int,
     max_pretraining_iterations: int,
-    rng,
+    ss: NamedSeedSequence,
 ):
     """
     Train the discriminator on data sampled from the prior, until it can
@@ -987,11 +1009,13 @@ def pretraining_dinf(
     with the highest log probability from a fresh set of candidates
     drawn from the prior.
     """
+    ss_discr_init, ss_thetas = ss.spawn(("discriminator:init", "thetas"))
+    rng = np.random.default_rng(ss_thetas)
 
     parameters = genobuilder.parameters
     discriminator = Discriminator(
         genobuilder.feature_shape, network=genobuilder.discriminator_network
-    ).init(rng)
+    ).init(np.random.default_rng(ss_discr_init))
 
     for k in range(max_pretraining_iterations):
         training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
@@ -1004,7 +1028,7 @@ def pretraining_dinf(
             test_thetas=test_thetas,
             epochs=epochs,
             parallelism=parallelism,
-            rng=rng,
+            ss=ss,
         )
 
         # Use the test accuracy, unless there's no test data.
@@ -1124,7 +1148,7 @@ def pg_gan(
     max_pretraining_iterations: int = 100,
     working_directory: None | str | pathlib.Path = None,
     parallelism: None | int = None,
-    rng: np.random.Generator,
+    seed: None | int = None,
 ):
     """
     PG-GAN style simulated annealing.
@@ -1219,8 +1243,8 @@ def pg_gan(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param numpy.random.Generator rng:
-        Numpy random number generator.
+    :param seed:
+        Seed for the random number generator.
     """
     num_replicates = training_replicates // 2 + test_replicates // 2
 
@@ -1232,6 +1256,13 @@ def pg_gan(
         parallelism = cast(int, os.cpu_count())
 
     _process_pool_init(parallelism, genobuilder)
+
+    ss = NamedSeedSequence(seed)
+    ss_accept, ss_pretraining, ss_proposals, ss_loop = ss.spawn(
+        ("pg-gan:acceptance", "pg-gan:pretraining", "pg-gan:proposals", "pg-gan:loop")
+    )
+    rng_accept = np.random.default_rng(ss_accept)
+    rng_proposals = np.random.default_rng(ss_proposals)
 
     parameters = genobuilder.parameters
     resume = False
@@ -1258,7 +1289,7 @@ def pg_gan(
         current_lp = lp[0]
         best = 1 + np.argmax(lp[1:])
         best_lp = lp[best]
-        U = rng.uniform()
+        U = rng_accept.uniform()
         if best_lp > current_lp or U < (current_lp / best_lp):
             theta = proposal_thetas[best]
 
@@ -1281,7 +1312,7 @@ def pg_gan(
             epochs=epochs,
             parallelism=parallelism,
             max_pretraining_iterations=max_pretraining_iterations,
-            rng=rng,
+            ss=ss_pretraining,
         )
 
     if proposals_method == "pg-gan":
@@ -1304,7 +1335,7 @@ def pg_gan(
         proposal_thetas = proposals_func(
             theta=theta,
             temperature=temperature,
-            rng=rng,
+            rng=rng_proposals,
             num_proposals=num_proposals,
             parameters=parameters,
             proposal_stddev=proposal_stddev,
@@ -1317,7 +1348,7 @@ def pg_gan(
             parameters=parameters,
             num_replicates=Dx_replicates,
             parallelism=parallelism,
-            rng=rng,
+            rng=rng_proposals,
         )
         n_generator_calls += len(proposal_thetas) * Dx_replicates
 
@@ -1332,7 +1363,7 @@ def pg_gan(
         best = 1 + np.argmax(lp[1:])
         best_lp = lp[best]
         accept = False
-        U = rng.uniform()
+        U = rng_accept.uniform()
         if best_lp > current_lp or U < (current_lp / best_lp) * temperature:
             # Accept the proposal.
             accept = True
@@ -1355,6 +1386,7 @@ def pg_gan(
             # PG-GAN does 5000/5000 (real/fake) reps.
             training_thetas = np.tile(theta, (training_replicates // 2, 1))
             test_thetas = np.tile(theta, (test_replicates // 2, 1))
+            (ss_loop,) = ss_loop.spawn(1)
             _train_discriminator(
                 discriminator=discriminator,
                 genobuilder=genobuilder,
@@ -1362,7 +1394,7 @@ def pg_gan(
                 test_thetas=test_thetas,
                 epochs=epochs,
                 parallelism=parallelism,
-                rng=rng,
+                ss=ss_loop,
                 # XXX: Is this helpful?
                 entropy_regularisation=True,
             )
@@ -1388,7 +1420,7 @@ def alfi_mcmc_gan(
     steps: int,
     working_directory: None | str | pathlib.Path = None,
     parallelism: None | int = None,
-    rng: np.random.Generator,
+    seed: None | int = None,
 ):
     """
     Run the ALFI MCMC GAN.
@@ -1425,8 +1457,8 @@ def alfi_mcmc_gan(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param numpy.random.Generator rng:
-        Numpy random number generator.
+    :param seed:
+        Seed for the random number generator.
     """
     num_replicates = math.ceil((training_replicates + test_replicates) / 2)
     if steps * walkers < num_replicates:
@@ -1444,6 +1476,19 @@ def alfi_mcmc_gan(
         parallelism = cast(int, os.cpu_count())
 
     _process_pool_init(parallelism, genobuilder)
+
+    ss = NamedSeedSequence(seed)
+    ss_loop, ss_mcmc, ss_thetas, ss_discr_init, ss_surrogate_init = ss.spawn(
+        (
+            "mcmc-gan:loop",
+            "mcmc-gan:mcmc",
+            "abc-gan:thetas",
+            "discriminator:init",
+            "surrogate:init",
+        )
+    )
+    rng_thetas = np.random.default_rng(ss_thetas)
+    rng_mcmc = np.random.default_rng(ss_mcmc)
 
     parameters = genobuilder.parameters
     resume = False
@@ -1477,19 +1522,21 @@ def alfi_mcmc_gan(
                 f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
             )
 
-        sampled_thetas = rng.choice(
+        sampled_thetas = rng_thetas.choice(
             thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
         )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
-        discriminator = discriminator.init(rng)
-        surrogate = surrogate.init(rng)
+        discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
+        surrogate = surrogate.init(np.random.default_rng(ss_surrogate_init))
         # Starting point for the mcmc chain.
-        start = parameters.draw_prior(walkers, rng=rng)
+        start = parameters.draw_prior(walkers, rng=rng_thetas)
 
-        training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng)
+        training_thetas = parameters.draw_prior(
+            training_replicates // 2, rng=rng_thetas
+        )
+        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng_thetas)
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))
@@ -1505,6 +1552,7 @@ def alfi_mcmc_gan(
         print(f"ALFI MCMC GAN iteration {i}")
         store.increment()
 
+        (ss_loop,) = ss_loop.spawn(1)
         _, train_x_generator, test_x_generator = _train_discriminator(
             discriminator=discriminator,
             genobuilder=genobuilder,
@@ -1512,7 +1560,7 @@ def alfi_mcmc_gan(
             test_thetas=test_thetas,
             epochs=epochs,
             parallelism=parallelism,
-            rng=rng,
+            ss=ss_loop,
         )
         n_target_calls += num_replicates
         n_generator_calls += num_replicates
@@ -1550,7 +1598,7 @@ def alfi_mcmc_gan(
             parameters=parameters,
             walkers=walkers,
             steps=2 * steps,
-            rng=rng,
+            rng=rng_mcmc,
             log_prob_func=log_prob_func,
         )
         assert thetas.shape == (2 * steps, walkers, len(parameters))
@@ -1564,7 +1612,7 @@ def alfi_mcmc_gan(
         # The chain for next iteration starts at the end of this chain.
         start = thetas[-1]
 
-        sampled_thetas = rng.choice(
+        sampled_thetas = rng_thetas.choice(
             thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
         )
         training_thetas = sampled_thetas[: training_replicates // 2]

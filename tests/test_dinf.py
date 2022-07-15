@@ -40,7 +40,6 @@ def check_npz(
 
 @pytest.mark.usefixtures("tmp_path")
 def test_abc_gan(tmp_path):
-    rng = np.random.default_rng(123)
     genobuilder = get_genobuilder()
     working_directory = tmp_path / "work_dir"
     dinf.dinf.abc_gan(
@@ -53,7 +52,7 @@ def test_abc_gan(tmp_path):
         posteriors=7,
         working_directory=working_directory,
         parallelism=2,
-        rng=rng,
+        seed=1,
     )
     assert working_directory.exists()
     for i in range(2):
@@ -77,7 +76,7 @@ def test_abc_gan(tmp_path):
         epochs=1,
         proposals=20,
         posteriors=7,
-        rng=rng,
+        seed=2,
     )
     for i in range(3):
         check_discriminator(
@@ -103,7 +102,7 @@ def test_abc_gan(tmp_path):
             posteriors=70,
             working_directory=working_directory,
             parallelism=2,
-            rng=rng,
+            seed=1,
         )
 
     backup = working_directory / "bak"
@@ -123,14 +122,13 @@ def test_abc_gan(tmp_path):
                 posteriors=7,
                 working_directory=working_directory,
                 parallelism=2,
-                rng=rng,
+                seed=1,
             )
         backup.rename(file)
 
 
 @pytest.mark.usefixtures("tmp_path")
 def test_mcmc_gan(tmp_path):
-    rng = np.random.default_rng(1234)
     genobuilder = get_genobuilder()
     working_directory = tmp_path / "workdir"
     dinf.mcmc_gan(
@@ -144,7 +142,7 @@ def test_mcmc_gan(tmp_path):
         Dx_replicates=2,
         working_directory=working_directory,
         parallelism=2,
-        rng=rng,
+        seed=1,
     )
     assert working_directory.exists()
     for i in range(2):
@@ -169,7 +167,7 @@ def test_mcmc_gan(tmp_path):
         walkers=6,
         steps=1,
         Dx_replicates=2,
-        rng=rng,
+        seed=2,
     )
     for i in range(3):
         check_discriminator(
@@ -194,7 +192,7 @@ def test_mcmc_gan(tmp_path):
             Dx_replicates=2,
             working_directory=working_directory,
             parallelism=2,
-            rng=rng,
+            seed=1,
         )
 
     with pytest.raises(ValueError, match="Insufficient MCMC samples"):
@@ -209,7 +207,7 @@ def test_mcmc_gan(tmp_path):
             Dx_replicates=2,
             working_directory=working_directory,
             parallelism=2,
-            rng=rng,
+            seed=1,
         )
 
     backup = working_directory / "bak"
@@ -230,14 +228,13 @@ def test_mcmc_gan(tmp_path):
                 Dx_replicates=2,
                 working_directory=working_directory,
                 parallelism=2,
-                rng=rng,
+                seed=1,
             )
         backup.rename(file)
 
 
 @pytest.mark.usefixtures("tmp_path")
 def test_alfi_mcmc_gan(tmp_path):
-    rng = np.random.default_rng(1234)
     genobuilder = get_genobuilder()
     working_directory = tmp_path / "workdir"
     steps = 1
@@ -251,7 +248,7 @@ def test_alfi_mcmc_gan(tmp_path):
         steps=steps,
         working_directory=working_directory,
         parallelism=2,
-        rng=rng,
+        seed=1,
     )
     assert working_directory.exists()
     for i in range(2):
@@ -275,7 +272,7 @@ def test_alfi_mcmc_gan(tmp_path):
         epochs=1,
         walkers=6,
         steps=steps,
-        rng=rng,
+        seed=2,
     )
     for i in range(3):
         check_discriminator(
@@ -299,7 +296,7 @@ def test_alfi_mcmc_gan(tmp_path):
             steps=1,
             working_directory=working_directory,
             parallelism=2,
-            rng=rng,
+            seed=1,
         )
 
     with pytest.raises(ValueError, match="Insufficient MCMC samples"):
@@ -313,7 +310,7 @@ def test_alfi_mcmc_gan(tmp_path):
             steps=1,
             working_directory=working_directory,
             parallelism=2,
-            rng=rng,
+            seed=1,
         )
 
     backup = working_directory / "bak"
@@ -334,14 +331,13 @@ def test_alfi_mcmc_gan(tmp_path):
                 steps=1,
                 working_directory=working_directory,
                 parallelism=2,
-                rng=rng,
+                seed=1,
             )
         backup.rename(file)
 
 
 @pytest.mark.usefixtures("tmp_path")
 def test_pg_gan(tmp_path):
-    rng = np.random.default_rng(1234)
     genobuilder = get_genobuilder()
     num_params = len(genobuilder.parameters)
     num_proposals = 2
@@ -357,7 +353,7 @@ def test_pg_gan(tmp_path):
         max_pretraining_iterations=1,
         working_directory=working_directory,
         parallelism=2,
-        rng=rng,
+        seed=1,
     )
     assert working_directory.exists()
     for i in range(2):
@@ -381,7 +377,7 @@ def test_pg_gan(tmp_path):
         epochs=1,
         Dx_replicates=2,
         num_proposals=num_proposals,
-        rng=rng,
+        seed=2,
     )
     for i in range(3):
         check_discriminator(
@@ -411,7 +407,7 @@ def test_pg_gan(tmp_path):
                 num_proposals=num_proposals,
                 working_directory=working_directory,
                 parallelism=2,
-                rng=rng,
+                seed=3,
             )
         backup.rename(file)
 
@@ -429,7 +425,7 @@ def test_pg_gan(tmp_path):
             max_pretraining_iterations=1,
             working_directory=tmp_path / pretraining_method,
             parallelism=2,
-            rng=rng,
+            seed=4,
         )
     with pytest.raises(ValueError, match="pretraining_method"):
         dinf.pg_gan(
@@ -444,7 +440,7 @@ def test_pg_gan(tmp_path):
             max_pretraining_iterations=1,
             working_directory=tmp_path / "somewhere-new",
             parallelism=2,
-            rng=rng,
+            seed=1,
         )
 
     # TODO: check the right proposals function is called.
@@ -460,7 +456,7 @@ def test_pg_gan(tmp_path):
             proposals_method=proposals_method,
             working_directory=working_directory,
             parallelism=2,
-            rng=rng,
+            seed=1,
         )
     with pytest.raises(ValueError, match="proposals_method"):
         dinf.pg_gan(
@@ -474,7 +470,7 @@ def test_pg_gan(tmp_path):
             proposals_method="not-a-valid-method",
             working_directory=working_directory,
             parallelism=2,
-            rng=rng,
+            seed=1,
         )
 
 
@@ -613,7 +609,7 @@ class TestLogProb:
             test_thetas=test_thetas,
             epochs=1,
             parallelism=1,
-            rng=rng,
+            ss=dinf.dinf.NamedSeedSequence(1),
         )
 
     def test_log_prob(self):

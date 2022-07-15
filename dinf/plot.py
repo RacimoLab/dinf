@@ -620,7 +620,7 @@ class _Demes(_SubCommand):
         # Genobuilder.from_file(), which gets cached in sys.modules.
         # As a side-effect, we can now import it with this name to look for
         # a demography function.
-        import _dinf_user_module
+        import _dinf_user_module  # type: ignore
         import inspect
         import demesdraw
 
@@ -631,7 +631,7 @@ class _Demes(_SubCommand):
             )
 
         sig = inspect.signature(demography)
-        if inspect._VAR_KEYWORD in {v.kind for v in sig.parameters.values()}:
+        if inspect.Parameter.VAR_KEYWORD in {v.kind for v in sig.parameters.values()}:
             # The function uses **kwargs, so we don't know what parameters
             # it expects. Just guess and pass all the genobuilder.parameters.
             demog_params = set(parameters)
@@ -812,7 +812,7 @@ class _Hist2d(_SubCommand):
 
         # Count the number of figures.
         n_figures = 0
-        done = set()
+        done: set = set()
         for x_param in args.x_param:
             for y_param in args.y_param:
                 if x_param == y_param or (y_param, x_param) in done:

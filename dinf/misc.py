@@ -1,8 +1,10 @@
 from __future__ import annotations
 import collections
 import functools
+import io
 import pathlib
-from typing import Any
+import sqlite3
+from typing import Any, Callable
 import zlib
 
 import jax
@@ -215,7 +217,6 @@ def sqlite_cache(db_file: str | pathlib.Path, shape, /):
     :param db_file:
         The filename of the sqlite database.
     """
-    import sqlite3, io
 
     def adapt_array(arr):
         out = io.BytesIO()
