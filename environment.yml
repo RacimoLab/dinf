@@ -13,6 +13,7 @@ dependencies:
   - cyvcf2 >= 0.30.14
   - emcee
   - demes >= 0.2.1
+  - demesdraw
   - msprime >= 1.0.4
   - matplotlib
   - multiprocess
