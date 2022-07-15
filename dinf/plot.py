@@ -1,6 +1,5 @@
 from __future__ import annotations
 import argparse
-import contextlib
 import pathlib
 import textwrap
 from typing import Any, Dict
@@ -13,6 +12,49 @@ import numpy as np
 
 from .cli import ADRDFormatter, _GENOB_MODEL_HELP
 import dinf
+
+
+class MultiPage:
+    """
+    PdfPages-like context manager that also handles non-pdfs.
+
+    For pdf output, PdfPages is used to create a multi-page pdf with
+    one page per figure. For non-pdf output, separate files are created
+    for each figure, where the filenames are constructed by inserting
+    the figure number into the filename.
+    """
+
+    def __init__(self, filename, n_figures):
+        self.filename = None
+        self.pdf = None
+        if filename is not None:
+            if filename.endswith(".pdf"):
+                self.pdf = PdfPages(filename)
+            self.filename = pathlib.Path(filename)
+        self.n_figures = n_figures
+
+    def __enter__(self):
+        if self.pdf is not None:
+            self.pdf.__enter__()
+        return self
+
+    def __exit__(self, *args):
+        if self.pdf is not None:
+            return self.pdf.__exit__(*args)
+
+    def savefig(self, fig, *, hint):
+        if self.filename is None:
+            plt.show()
+            return
+
+        if self.pdf is not None:
+            self.pdf.savefig(fig)
+        else:
+            filename = self.filename
+            if self.n_figures > 1:
+                # Insert the hint into the filename.
+                filename = filename.with_stem(f"{self.filename.stem}_{hint}")
+            fig.savefig(filename)
 
 
 def feature(
@@ -406,32 +448,43 @@ def hist(
         xq = _quantile(x, q=q, weights=kw.get("weights"))
 
         # Show interval as a horizontal line with whiskers.
-        ylim = ax.get_ylim()
-        ys = (ylim[0] - ylim[1]) * np.array([0.03, 0.03, 0.04, 0.05, 0.06])
-        line_kw = dict(colors="k", lw=3, zorder=5)
-        ax.hlines(ys[2], xq[0], xq[2], **line_kw)
-        ax.vlines(xq, ys[3], ys[1], **line_kw)
+        # It would be easier to use hlines() and vlines() here,
+        # but blended transforms are broken. So we use plot() instead.
+        # https://github.com/matplotlib/matplotlib/issues/23171
+        ys = 0.1 + np.array([0.0, 0.04, 0.05, 0.06, 0.07])
+        line_kw = dict(c="k", lw=3, zorder=5, transform=ax.get_xaxis_transform())
+        # hline
+        ax.plot([xq[0], xq[2]], [ys[2], ys[2]], **line_kw)
+        # vlines
+        for j in range(len(xq)):
+            ax.plot([xq[j], xq[j]], [ys[1], ys[3]], **line_kw)
 
         # Annotate with the median and CI values.
         txt_kw = dict(
             ha="center",
             va="center",
             zorder=10,
-            bbox=dict(boxstyle="round", fc="white", ec="none", alpha=0.6),
+            bbox=dict(boxstyle="round", fc="white", ec="none", alpha=0.6, pad=0),
+            transform=ax.get_xaxis_transform(),
         )
         texts = []
         for j in range(len(xq)):
             t1 = ax.text(xq[j], ys[0], f"{100*q[j]:g}%", **txt_kw)
             t2 = ax.text(xq[j], ys[4], _num2str(xq[j]), **txt_kw)
             texts.extend([t1, t2])
-        # Fix text items from overlapping. Maybe!
-        adjust_text(
-            texts,
-            ax=ax,
-            only_move=dict(points="", objects="", text="x"),
-            avoid_points=False,
-            avoid_self=False,
-        )
+
+        def adjust(event_=None):
+            # Fix text items from overlapping. Maybe!
+            adjust_text(
+                texts,
+                ax=ax,
+                only_move=dict(points="", objects="", text="x"),
+                avoid_points=False,
+                avoid_self=False,
+            )
+
+        adjust()
+        ax.figure.canvas.mpl_connect("resize_event", adjust)
 
     return ax.figure, ax
 
@@ -459,6 +512,8 @@ class _SubCommand:
             metavar="output.pdf",
             help=(
                 "Output file for the figure. "
+                "The file extension determines the filetype, which can be "
+                "any format supported by Matplotlib (e.g. pdf, svg, png)."
                 "If no output file is specified, an interactive plot window "
                 "will be opened."
             ),
@@ -508,7 +563,7 @@ class _SubCommand:
     def add_argument_discriminators(self):
         self.parser.add_argument(
             "discriminators",
-            metavar="discriminator.pkl",
+            metavar="discriminator.nn",
             nargs="+",
             help="The discriminator network(s) to plot.",
         )
@@ -546,6 +601,59 @@ class _SubCommand:
             data = data[np.where(data["_Pr"] > args.probability_threshold)]
 
         return data
+
+
+class _Demes(_SubCommand):
+    """
+    Plot a demes-as-tubes demographic model using DemesDraw.
+    """
+
+    def __init__(self, subparsers):
+        super().__init__(subparsers, "demes")
+        self.add_argument_output_file()
+        self.add_argument_genob_model()
+
+    def __call__(self, args: argparse.Namespace):
+        parameters = dinf.Genobuilder.from_file(args.genob_model).parameters
+
+        # _dinf_user_module is the name given to the args.genob_model module in
+        # Genobuilder.from_file(), which gets cached in sys.modules.
+        # As a side-effect, we can now import it with this name to look for
+        # a demography function.
+        import _dinf_user_module  # type: ignore
+        import inspect
+        import demesdraw
+
+        demography = getattr(_dinf_user_module, "demography", None)
+        if not inspect.isfunction(demography):
+            raise AttributeError(
+                f"{args.genob_model}: demography() function not found."
+            )
+
+        sig = inspect.signature(demography)
+        if inspect.Parameter.VAR_KEYWORD in {v.kind for v in sig.parameters.values()}:
+            # The function uses **kwargs, so we don't know what parameters
+            # it expects. Just guess and pass all the genobuilder.parameters.
+            demog_params = set(parameters)
+        else:
+            demog_params = set(sig.parameters)
+
+        # If the parameter has a truth value, use that. Otherwise, use the
+        # mid point of the parameter's range.
+        param_kwargs = {
+            name: p.truth if p.truth is not None else (p.high + p.low) / 2
+            for name, p in parameters.items()
+            if name in demog_params
+        }
+
+        graph = demography(**param_kwargs)
+        fig, ax = plt.subplots(figsize=plt.figaspect(9 / 16))
+        demesdraw.tubes(graph, ax=ax)
+
+        if args.output_file is None:
+            plt.show()
+        else:
+            fig.savefig(args.output_file)
 
 
 class _Features(_SubCommand):
@@ -638,6 +746,11 @@ class _Hist2d(_SubCommand):
     for interactive use!), the choice of which parameters to
     plot can be specified using the -x and -y options.
 
+    If a pdf requested with the -o option, a multipage pdf is
+    created. If another format is requested, then one file is
+    created for each figure (the requested filename will be
+    modified to include the parameter names).
+
     The resulting figure is a 2d histogram, with darker squares
     indicating higher densities. If the data correspond to a
     simulation-only model, then the parameters' truth values will
@@ -693,18 +806,22 @@ class _Hist2d(_SubCommand):
             if param not in param_names:
                 raise ValueError(f"{args.data_file}: parameter {param} not found")
 
-        if args.output_file:
-            cm = lambda: PdfPages(args.output_file)  # noqa: E731
-        else:
-            # Do-nothing context manager. Yields None in an 'as' statement.
-            cm = contextlib.nullcontext
-
         hist2d_kw = {}
         if args.weighted:
             hist2d_kw["weights"] = data["_Pr"]
 
+        # Count the number of figures.
+        n_figures = 0
+        done: set = set()
+        for x_param in args.x_param:
+            for y_param in args.y_param:
+                if x_param == y_param or (y_param, x_param) in done:
+                    continue
+                    done.add((x_param, y_param))
+                    n_figures += 1
+
         done = set()
-        with cm() as pdf:
+        with MultiPage(args.output_file, n_figures) as pages:
             for x_param in args.x_param:
                 x = data[x_param]
                 x_truth = None
@@ -741,10 +858,7 @@ class _Hist2d(_SubCommand):
                         y_truth=y_truth,
                         hist2d_kw=hist2d_kw,
                     )
-                    if pdf is None:
-                        plt.show()
-                    else:
-                        pdf.savefig(fig)
+                    pages.savefig(fig, hint=f"{x_param}_{y_param}")
                     plt.close(fig)
 
 
@@ -757,6 +871,11 @@ class _Hist(_SubCommand):
     parameter to plot can be specified using the -x option,
     with the special value "_Pr" indicating the discriminator
     probabilities.
+
+    If a pdf requested with the -o option, a multipage pdf is
+    created. If another format is requested, then one file is
+    created for each figure (the requested filename will be
+    modified to include the parameter name).
 
     The resulting figure is a histogram. If the data correspond
     to a simulation-only model (provided via the -m option),
@@ -812,13 +931,7 @@ class _Hist(_SubCommand):
             if param not in data.dtype.names:
                 raise ValueError(f"{args.data_file}: parameter {param} not found")
 
-        if args.output_file:
-            cm = lambda: PdfPages(args.output_file)  # noqa: E731
-        else:
-            # Do-nothing context manager. Yields None in an 'as' statement.
-            cm = contextlib.nullcontext
-
-        with cm() as pdf:
+        with MultiPage(args.output_file, len(args.x_param)) as pages:
             for x_param in args.x_param:
                 fig, ax = plt.subplots(
                     figsize=plt.figaspect(9 / 16), constrained_layout=True
@@ -851,10 +964,7 @@ class _Hist(_SubCommand):
                 else:
                     ax.set_ylabel("density")
 
-                if args.output_file is None:
-                    plt.show()
-                else:
-                    pdf.savefig(fig)
+                pages.savefig(fig, hint="Pr" if x_param == "_Pr" else x_param)
                 plt.close(fig)
 
 
@@ -864,6 +974,7 @@ def main(args_list=None):
     )
 
     subparsers = top_parser.add_subparsers(dest="subcommand")
+    _Demes(subparsers)
     _Features(subparsers)
     _Metrics(subparsers)
     _Hist(subparsers)
@@ -873,6 +984,13 @@ def main(args_list=None):
     if args.subcommand is None:
         top_parser.print_help()
         exit(1)
+
+    if hasattr(args, "output_file") and args.output_file is None:
+        # Interactive figure. Default dpi is 100, which makes the scale
+        # of interactive figures quite different to that of saved files.
+        # Bumping the dpi to 140 provides greater parity.
+        plt.rc("figure", dpi=140)
+
     args.func(args)
 
 

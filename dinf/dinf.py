@@ -132,13 +132,20 @@ def _observe_data(*, target, num_replicates, parallelism, rng):
     return data
 
 
-def _generate_training_data(*, target, generator, thetas, parallelism, rng):
+def _generate_training_data(*, target, generator, thetas, parallelism, ss):
+    ss_generator, ss_target = ss.spawn(("generator", "target"))
     num_replicates = len(thetas)
     x_generator = _generate_data(
-        generator=generator, thetas=thetas, parallelism=parallelism, rng=rng
+        generator=generator,
+        thetas=thetas,
+        parallelism=parallelism,
+        rng=np.random.default_rng(ss_generator),
     )
     x_target = _observe_data(
-        target=target, num_replicates=num_replicates, parallelism=parallelism, rng=rng
+        target=target,
+        num_replicates=num_replicates,
+        parallelism=parallelism,
+        rng=np.random.default_rng(ss_target),
     )
     # XXX: Large copy doubles peak memory.
     x = jax.tree_map(lambda *l: np.concatenate(l), x_generator, x_target)
@@ -181,7 +188,10 @@ def save_results(
         "_Pr": probs,
         **{par_name: thetas[..., j] for j, par_name in enumerate(parameters)},
     }
-    np.savez(filename, **kw)
+    # We open the file ourselves to stop numpy from adding a .npz extension,
+    # e.g. if the filename is /dev/null or a fifo.
+    with open(filename, "wb") as f:
+        np.savez(f, **kw)
 
 
 def _npz_array_metadata(filename: str | pathlib.Path, /):
@@ -359,6 +369,27 @@ def _run_mcmc_emcee(
     return thetas, probs
 
 
+class NamedSeedSequence(np.random.SeedSequence):
+    """
+    Extends numpy SeedSequence to support string-valued spawn_key.
+    """
+
+    def __init__(self, entropy=None, *, spawn_key=(), **kwargs):
+        if isinstance(spawn_key, str):
+            spawn_key = tuple(map(ord, spawn_key))
+        if isinstance(entropy, np.random.SeedSequence):
+            if entropy.spawn_key != ():
+                spawn_key = entropy.spawn_key + (ord(":"),) + spawn_key
+            entropy = entropy.entropy
+        super().__init__(entropy, spawn_key=spawn_key, **kwargs)
+
+    def spawn(self, n: int | Tuple[str, ...]):
+        if isinstance(n, int):
+            return super().spawn(n)
+        else:
+            return [type(self)(self, spawn_key=nj) for nj in n]
+
+
 def _train_discriminator(
     *,
     discriminator: Discriminator,
@@ -367,15 +398,18 @@ def _train_discriminator(
     test_thetas: np.ndarray,
     epochs: int,
     parallelism: int,
-    rng: np.random.Generator,
+    ss: NamedSeedSequence,
     entropy_regularisation: bool = False,
 ):
+    ss_train, ss_val, ss_fit = ss.spawn(
+        ("features:train", "features:val", "discriminator:fit")
+    )
     train_x, train_y, train_x_generator = _generate_training_data(
         target=genobuilder.target_func,
         generator=genobuilder.generator_func,
         thetas=training_thetas,
         parallelism=parallelism,
-        rng=rng,
+        ss=ss_train,
     )
 
     val_x, val_y, val_x_generator = None, None, None
@@ -385,7 +419,7 @@ def _train_discriminator(
             generator=genobuilder.generator_func,
             thetas=test_thetas,
             parallelism=parallelism,
-            rng=rng,
+            ss=ss_val,
         )
 
     metrics = discriminator.fit(
@@ -394,11 +428,9 @@ def _train_discriminator(
         val_x=val_x,
         val_y=val_y,
         epochs=epochs,
-        rng=rng,
+        rng=np.random.default_rng(ss_fit),
         # Clear the training loss/accuracy metrics from last iteration.
         reset_metrics=True,
-        # TODO
-        # tensorboard_log_dir=working_directory / "tensorboard" / "fit",
         entropy_regularisation=entropy_regularisation,
     )
 
@@ -441,7 +473,7 @@ def train(
     test_replicates: int,
     epochs: int,
     parallelism: None | int = None,
-    rng: np.random.Generator,
+    seed: None | int = None,
 ) -> Discriminator:
     """
     Train a discriminator network.
@@ -460,8 +492,8 @@ def train(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param numpy.random.Generator rng:
-        Numpy random number generator.
+    :param seed:
+        Seed for the random number generator.
     :return:
         The trained discriminator.
     """
@@ -470,15 +502,23 @@ def train(
 
     _process_pool_init(parallelism, genobuilder)
 
-    discriminator = Discriminator(
-        genobuilder.feature_shape, network=genobuilder.discriminator_network
-    ).init(rng)
-    # discriminator.summary()
+    ss = NamedSeedSequence(seed)
+    ss_train, ss_test, ss_discr_init = ss.spawn(
+        ("thetas:train", "thetas:test", "discriminator:init")
+    )
 
     training_thetas = genobuilder.parameters.draw_prior(
-        training_replicates // 2, rng=rng
+        training_replicates // 2, rng=np.random.default_rng(ss_train)
     )
-    test_thetas = genobuilder.parameters.draw_prior(test_replicates // 2, rng=rng)
+    test_thetas = genobuilder.parameters.draw_prior(
+        test_replicates // 2, rng=np.random.default_rng(ss_test)
+    )
+
+    discriminator = Discriminator(
+        genobuilder.feature_shape, network=genobuilder.discriminator_network
+    ).init(np.random.default_rng(ss_discr_init))
+    # discriminator.summary()
+
     _train_discriminator(
         discriminator=discriminator,
         genobuilder=genobuilder,
@@ -486,7 +526,7 @@ def train(
         test_thetas=test_thetas,
         epochs=epochs,
         parallelism=parallelism,
-        rng=rng,
+        ss=ss,
     )
     return discriminator
 
@@ -498,7 +538,7 @@ def predict(
     genobuilder: Genobuilder,
     replicates: int,
     parallelism: None | int = None,
-    rng: np.random.Generator,
+    seed: int | None = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Sample generator features and make predictions using the discriminator.
@@ -511,8 +551,8 @@ def predict(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param numpy.random.Generator rng:
-        Numpy random number generator.
+    :param seed:
+        Seed for the random number generator.
     :return:
         A 2-tuple of (thetas, probs), where ``thetas`` are the drawn parameters
         and ``probs`` are the discriminator predictions.
@@ -524,12 +564,17 @@ def predict(
 
     _process_pool_init(parallelism, genobuilder)
 
-    thetas = genobuilder.parameters.draw_prior(replicates, rng=rng)
+    ss = NamedSeedSequence(seed)
+    ss_train, ss_generator = ss.spawn(("thetas:predict", "features:predict:generator"))
+
+    thetas = genobuilder.parameters.draw_prior(
+        replicates, rng=np.random.default_rng(ss_train)
+    )
     x = _generate_data(
         generator=genobuilder.generator_func,
         thetas=thetas,
         parallelism=parallelism,
-        rng=rng,
+        rng=np.random.default_rng(ss_generator),
     )
     probs = discriminator.predict(x)
     return thetas, probs
@@ -548,7 +593,7 @@ def mcmc_gan(
     Dx_replicates: int,
     working_directory: None | str | pathlib.Path = None,
     parallelism: None | int = None,
-    rng: np.random.Generator,
+    seed: None | int = None,
 ):
     """
     Run the MCMC GAN.
@@ -590,8 +635,8 @@ def mcmc_gan(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param numpy.random.Generator rng:
-        Numpy random number generator.
+    :param seed:
+        Seed for the random number generator.
     """
     num_replicates = math.ceil((training_replicates + test_replicates) / 2)
     if steps * walkers < num_replicates:
@@ -608,12 +653,19 @@ def mcmc_gan(
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
+    ss = NamedSeedSequence(seed)
+    ss_loop, ss_mcmc, ss_thetas, ss_discr_init = ss.spawn(
+        ("mcmc-gan:loop", "mcmc-gan:mcmc", "abc-gan:thetas", "discriminator:init")
+    )
+    rng_thetas = np.random.default_rng(ss_thetas)
+    rng_mcmc = np.random.default_rng(ss_mcmc)
+
     _process_pool_init(parallelism, genobuilder)
     parameters = genobuilder.parameters
     resume = False
     if len(store) > 0:
         files_exist = [
-            (store[-1] / fn).exists() for fn in ("discriminator.pkl", "mcmc.npz")
+            (store[-1] / fn).exists() for fn in ("discriminator.nn", "mcmc.npz")
         ]
         if sum(files_exist) == 1:
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
@@ -623,7 +675,7 @@ def mcmc_gan(
         genobuilder.feature_shape, network=genobuilder.discriminator_network
     )
     if resume:
-        discriminator = discriminator.from_file(store[-1] / "discriminator.pkl")
+        discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
         thetas, _ = _load_results_unstructured(
             store[-1] / "mcmc.npz", parameters=parameters
         )
@@ -636,18 +688,20 @@ def mcmc_gan(
                 f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
             )
 
-        sampled_thetas = rng.choice(
+        sampled_thetas = rng_thetas.choice(
             thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
         )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
-        discriminator = discriminator.init(rng)
+        discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
         # Starting point for the mcmc chain.
-        start = parameters.draw_prior(walkers, rng=rng)
+        start = parameters.draw_prior(walkers, rng=rng_thetas)
 
-        training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng)
+        training_thetas = parameters.draw_prior(
+            training_replicates // 2, rng=rng_thetas
+        )
+        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng_thetas)
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))
@@ -662,13 +716,14 @@ def mcmc_gan(
         parameters=parameters,
         parallelism=parallelism,
         num_replicates=Dx_replicates,
-        rng=rng,
+        rng=rng_thetas,
     )
 
     for i in range(len(store) + 1, len(store) + 1 + iterations):
         print(f"MCMC GAN iteration {i}")
         store.increment()
 
+        (ss_loop,) = ss_loop.spawn(1)
         _train_discriminator(
             discriminator=discriminator,
             genobuilder=genobuilder,
@@ -676,16 +731,16 @@ def mcmc_gan(
             test_thetas=test_thetas,
             epochs=epochs,
             parallelism=parallelism,
-            rng=rng,
+            ss=ss_loop,
         )
-        discriminator.to_file(store[-1] / "discriminator.pkl")
+        discriminator.to_file(store[-1] / "discriminator.nn")
 
         thetas, probs = _run_mcmc_emcee(
             start=start,
             parameters=parameters,
             walkers=walkers,
             steps=steps,
-            rng=rng,
+            rng=rng_mcmc,
             log_prob_func=log_prob_func,
         )
         assert thetas.shape == (steps, walkers, len(parameters))
@@ -696,7 +751,7 @@ def mcmc_gan(
         # The chain for next iteration starts at the end of this chain.
         start = thetas[-1]
 
-        sampled_thetas = rng.choice(
+        sampled_thetas = rng_thetas.choice(
             thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
         )
         training_thetas = sampled_thetas[: training_replicates // 2]
@@ -738,7 +793,7 @@ def abc_gan(
     posteriors: int,
     working_directory: None | str | pathlib.Path = None,
     parallelism: None | int = None,
-    rng: np.random.Generator,
+    seed: None | int = None,
 ):
     """
     Run the ABC GAN.
@@ -778,8 +833,8 @@ def abc_gan(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param numpy.random.Generator rng:
-        Numpy random number generator.
+    :param seed:
+        Seed for the random number generator.
     """
     if posteriors > proposals:
         raise ValueError(
@@ -795,13 +850,19 @@ def abc_gan(
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
+    ss = NamedSeedSequence(seed)
+    ss_loop, ss_thetas, ss_discr_init = ss.spawn(
+        ("abc-gan:loop", "abc-gan:thetas", "discriminator:init")
+    )
+    rng_thetas = np.random.default_rng(ss_thetas)
+
     _process_pool_init(parallelism, genobuilder)
 
     parameters = genobuilder.parameters
     resume = False
     if len(store) > 0:
         files_exist = [
-            (store[-1] / fn).exists() for fn in ("discriminator.pkl", "abc.npz")
+            (store[-1] / fn).exists() for fn in ("discriminator.nn", "abc.npz")
         ]
         if sum(files_exist) == 1:
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
@@ -811,18 +872,20 @@ def abc_gan(
         genobuilder.feature_shape, network=genobuilder.discriminator_network
     )
     if resume:
-        discriminator = discriminator.from_file(store[-1] / "discriminator.pkl")
+        discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
         thetas, _ = _load_results_unstructured(
             store[-1] / "abc.npz", parameters=parameters
         )
         assert len(thetas.shape) == 2
-        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=True)
+        sampled_thetas = rng_thetas.choice(thetas, size=num_replicates, replace=True)
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
-        discriminator = discriminator.init(rng)
-        training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng)
+        discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
+        training_thetas = parameters.draw_prior(
+            training_replicates // 2, rng=rng_thetas
+        )
+        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng_thetas)
 
     n_target_calls = 0
     n_generator_calls = 0
@@ -831,6 +894,7 @@ def abc_gan(
         print(f"ABC GAN iteration {i}")
         store.increment()
 
+        (ss_loop,) = ss_loop.spawn(1)
         _train_discriminator(
             discriminator=discriminator,
             genobuilder=genobuilder,
@@ -838,11 +902,11 @@ def abc_gan(
             test_thetas=test_thetas,
             epochs=epochs,
             parallelism=parallelism,
-            rng=rng,
+            ss=ss_loop,
         )
-        discriminator.to_file(store[-1] / "discriminator.pkl")
+        discriminator.to_file(store[-1] / "discriminator.nn")
 
-        proposal_thetas = parameters.draw_prior(proposals, rng=rng)
+        proposal_thetas = parameters.draw_prior(proposals, rng=rng_thetas)
         thetas, probs = _run_abc(
             discriminator=discriminator,
             generator=genobuilder.generator_func,
@@ -850,13 +914,13 @@ def abc_gan(
             thetas=proposal_thetas,
             posteriors=posteriors,
             parallelism=parallelism,
-            rng=rng,
+            rng=rng_thetas,
         )
         save_results(
             store[-1] / "abc.npz", probs=probs, thetas=thetas, parameters=parameters
         )
 
-        sampled_thetas = rng.choice(thetas, size=num_replicates, replace=True)
+        sampled_thetas = rng_thetas.choice(thetas, size=num_replicates, replace=True)
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
 
@@ -874,7 +938,7 @@ def pretraining_pg_gan(
     epochs: int,
     parallelism: int,
     max_pretraining_iterations: int,
-    rng,
+    ss: NamedSeedSequence,
 ):
     """
     Pretraining roughly like PG-GAN.
@@ -886,14 +950,17 @@ def pretraining_pg_gan(
     max_pretraining_iterations times, each with training_replicates reps.
     """
 
+    ss_discr_init, ss_thetas = ss.spawn(("discriminator:init", "thetas"))
+    rng_thetas = np.random.default_rng(ss_thetas)
+
     discriminator = Discriminator(
         genobuilder.feature_shape, network=genobuilder.discriminator_network
-    ).init(rng)
+    ).init(np.random.default_rng(ss_discr_init))
     acc_best = 0
     theta_best = None
 
     for k in range(max_pretraining_iterations):
-        theta = genobuilder.parameters.draw_prior(1, rng=rng)[0]
+        theta = genobuilder.parameters.draw_prior(1, rng=rng_thetas)[0]
         training_thetas = np.tile(theta, (training_replicates // 2, 1))
         test_thetas = np.tile(theta, (test_replicates // 2, 1))
 
@@ -904,7 +971,7 @@ def pretraining_pg_gan(
             test_thetas=test_thetas,
             epochs=epochs,
             parallelism=parallelism,
-            rng=rng,
+            ss=ss,
         )
         # Use the test accuracy, unless there's no test data.
         acc = metrics.get("test_accuracy", metrics["train_accuracy"])
@@ -930,7 +997,7 @@ def pretraining_dinf(
     epochs: int,
     parallelism: int,
     max_pretraining_iterations: int,
-    rng,
+    ss: NamedSeedSequence,
 ):
     """
     Train the discriminator on data sampled from the prior, until it can
@@ -942,11 +1009,13 @@ def pretraining_dinf(
     with the highest log probability from a fresh set of candidates
     drawn from the prior.
     """
+    ss_discr_init, ss_thetas = ss.spawn(("discriminator:init", "thetas"))
+    rng = np.random.default_rng(ss_thetas)
 
     parameters = genobuilder.parameters
     discriminator = Discriminator(
         genobuilder.feature_shape, network=genobuilder.discriminator_network
-    ).init(rng)
+    ).init(np.random.default_rng(ss_discr_init))
 
     for k in range(max_pretraining_iterations):
         training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
@@ -959,7 +1028,7 @@ def pretraining_dinf(
             test_thetas=test_thetas,
             epochs=epochs,
             parallelism=parallelism,
-            rng=rng,
+            ss=ss,
         )
 
         # Use the test accuracy, unless there's no test data.
@@ -1079,7 +1148,7 @@ def pg_gan(
     max_pretraining_iterations: int = 100,
     working_directory: None | str | pathlib.Path = None,
     parallelism: None | int = None,
-    rng: np.random.Generator,
+    seed: None | int = None,
 ):
     """
     PG-GAN style simulated annealing.
@@ -1174,8 +1243,8 @@ def pg_gan(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param numpy.random.Generator rng:
-        Numpy random number generator.
+    :param seed:
+        Seed for the random number generator.
     """
     num_replicates = training_replicates // 2 + test_replicates // 2
 
@@ -1188,12 +1257,19 @@ def pg_gan(
 
     _process_pool_init(parallelism, genobuilder)
 
+    ss = NamedSeedSequence(seed)
+    ss_accept, ss_pretraining, ss_proposals, ss_loop = ss.spawn(
+        ("pg-gan:acceptance", "pg-gan:pretraining", "pg-gan:proposals", "pg-gan:loop")
+    )
+    rng_accept = np.random.default_rng(ss_accept)
+    rng_proposals = np.random.default_rng(ss_proposals)
+
     parameters = genobuilder.parameters
     resume = False
     if len(store) > 0:
         files_exist = [
             (store[-1] / fn).exists()
-            for fn in ("discriminator.pkl", "pg-gan-proposals.npz")
+            for fn in ("discriminator.nn", "pg-gan-proposals.npz")
         ]
         if sum(files_exist) == 1:
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
@@ -1202,7 +1278,7 @@ def pg_gan(
     if resume:
         discriminator = Discriminator(
             genobuilder.feature_shape, network=genobuilder.discriminator_network
-        ).from_file(store[-1] / "discriminator.pkl")
+        ).from_file(store[-1] / "discriminator.nn")
         proposal_thetas, probs = _load_results_unstructured(
             store[-1] / "pg-gan-proposals.npz", parameters=parameters
         )
@@ -1213,7 +1289,7 @@ def pg_gan(
         current_lp = lp[0]
         best = 1 + np.argmax(lp[1:])
         best_lp = lp[best]
-        U = rng.uniform()
+        U = rng_accept.uniform()
         if best_lp > current_lp or U < (current_lp / best_lp):
             theta = proposal_thetas[best]
 
@@ -1236,7 +1312,7 @@ def pg_gan(
             epochs=epochs,
             parallelism=parallelism,
             max_pretraining_iterations=max_pretraining_iterations,
-            rng=rng,
+            ss=ss_pretraining,
         )
 
     if proposals_method == "pg-gan":
@@ -1259,7 +1335,7 @@ def pg_gan(
         proposal_thetas = proposals_func(
             theta=theta,
             temperature=temperature,
-            rng=rng,
+            rng=rng_proposals,
             num_proposals=num_proposals,
             parameters=parameters,
             proposal_stddev=proposal_stddev,
@@ -1272,7 +1348,7 @@ def pg_gan(
             parameters=parameters,
             num_replicates=Dx_replicates,
             parallelism=parallelism,
-            rng=rng,
+            rng=rng_proposals,
         )
         n_generator_calls += len(proposal_thetas) * Dx_replicates
 
@@ -1287,7 +1363,7 @@ def pg_gan(
         best = 1 + np.argmax(lp[1:])
         best_lp = lp[best]
         accept = False
-        U = rng.uniform()
+        U = rng_accept.uniform()
         if best_lp > current_lp or U < (current_lp / best_lp) * temperature:
             # Accept the proposal.
             accept = True
@@ -1310,6 +1386,7 @@ def pg_gan(
             # PG-GAN does 5000/5000 (real/fake) reps.
             training_thetas = np.tile(theta, (training_replicates // 2, 1))
             test_thetas = np.tile(theta, (test_replicates // 2, 1))
+            (ss_loop,) = ss_loop.spawn(1)
             _train_discriminator(
                 discriminator=discriminator,
                 genobuilder=genobuilder,
@@ -1317,14 +1394,14 @@ def pg_gan(
                 test_thetas=test_thetas,
                 epochs=epochs,
                 parallelism=parallelism,
-                rng=rng,
+                ss=ss_loop,
                 # XXX: Is this helpful?
                 entropy_regularisation=True,
             )
             n_target_calls += num_replicates
             n_generator_calls += num_replicates
 
-        discriminator.to_file(store[-1] / "discriminator.pkl")
+        discriminator.to_file(store[-1] / "discriminator.nn")
 
         print(f"Target called {n_target_calls} times.")
         print(f"Generator called {n_generator_calls} times.")
@@ -1343,7 +1420,7 @@ def alfi_mcmc_gan(
     steps: int,
     working_directory: None | str | pathlib.Path = None,
     parallelism: None | int = None,
-    rng: np.random.Generator,
+    seed: None | int = None,
 ):
     """
     Run the ALFI MCMC GAN.
@@ -1380,8 +1457,8 @@ def alfi_mcmc_gan(
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
         :meth:`Genobuilder.target_func`.
-    :param numpy.random.Generator rng:
-        Numpy random number generator.
+    :param seed:
+        Seed for the random number generator.
     """
     num_replicates = math.ceil((training_replicates + test_replicates) / 2)
     if steps * walkers < num_replicates:
@@ -1400,12 +1477,25 @@ def alfi_mcmc_gan(
 
     _process_pool_init(parallelism, genobuilder)
 
+    ss = NamedSeedSequence(seed)
+    ss_loop, ss_mcmc, ss_thetas, ss_discr_init, ss_surrogate_init = ss.spawn(
+        (
+            "mcmc-gan:loop",
+            "mcmc-gan:mcmc",
+            "abc-gan:thetas",
+            "discriminator:init",
+            "surrogate:init",
+        )
+    )
+    rng_thetas = np.random.default_rng(ss_thetas)
+    rng_mcmc = np.random.default_rng(ss_mcmc)
+
     parameters = genobuilder.parameters
     resume = False
     if len(store) > 0:
         files_exist = [
             (store[-1] / fn).exists()
-            for fn in ("discriminator.pkl", "surrogate.pkl", "mcmc.npz")
+            for fn in ("discriminator.nn", "surrogate.nn", "mcmc.npz")
         ]
         if sum(files_exist) not in (0, len(files_exist)):
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
@@ -1416,8 +1506,8 @@ def alfi_mcmc_gan(
     )
     surrogate = Surrogate(len(parameters))
     if resume:
-        discriminator = discriminator.from_file(store[-1] / "discriminator.pkl")
-        surrogate = surrogate.from_file(store[-1] / "surrogate.pkl")
+        discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
+        surrogate = surrogate.from_file(store[-1] / "surrogate.nn")
         thetas, _ = _load_results_unstructured(
             store[-1] / "mcmc.npz", parameters=parameters
         )
@@ -1432,19 +1522,21 @@ def alfi_mcmc_gan(
                 f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
             )
 
-        sampled_thetas = rng.choice(
+        sampled_thetas = rng_thetas.choice(
             thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
         )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
-        discriminator = discriminator.init(rng)
-        surrogate = surrogate.init(rng)
+        discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
+        surrogate = surrogate.init(np.random.default_rng(ss_surrogate_init))
         # Starting point for the mcmc chain.
-        start = parameters.draw_prior(walkers, rng=rng)
+        start = parameters.draw_prior(walkers, rng=rng_thetas)
 
-        training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng)
+        training_thetas = parameters.draw_prior(
+            training_replicates // 2, rng=rng_thetas
+        )
+        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng_thetas)
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))
@@ -1460,6 +1552,7 @@ def alfi_mcmc_gan(
         print(f"ALFI MCMC GAN iteration {i}")
         store.increment()
 
+        (ss_loop,) = ss_loop.spawn(1)
         _, train_x_generator, test_x_generator = _train_discriminator(
             discriminator=discriminator,
             genobuilder=genobuilder,
@@ -1467,11 +1560,11 @@ def alfi_mcmc_gan(
             test_thetas=test_thetas,
             epochs=epochs,
             parallelism=parallelism,
-            rng=rng,
+            ss=ss_loop,
         )
         n_target_calls += num_replicates
         n_generator_calls += num_replicates
-        discriminator.to_file(store[-1] / "discriminator.pkl")
+        discriminator.to_file(store[-1] / "discriminator.nn")
 
         train_y_pred, alpha, beta = _train_surrogate(
             discriminator=discriminator,
@@ -1482,10 +1575,10 @@ def alfi_mcmc_gan(
             train_x_generator=train_x_generator,
             test_x_generator=test_x_generator,
         )
-        surrogate.to_file(store[-1] / "surrogate.pkl")
+        surrogate.to_file(store[-1] / "surrogate.nn")
 
         # import pickle
-        # with open(store[-1] / "s.pkl", "wb") as f:
+        # with open(store[-1] / "s.nn", "wb") as f:
         #    pickle.dump((training_thetas, train_y_pred, alpha, beta), f)
 
         s_pred = alpha / (alpha + beta)
@@ -1505,7 +1598,7 @@ def alfi_mcmc_gan(
             parameters=parameters,
             walkers=walkers,
             steps=2 * steps,
-            rng=rng,
+            rng=rng_mcmc,
             log_prob_func=log_prob_func,
         )
         assert thetas.shape == (2 * steps, walkers, len(parameters))
@@ -1519,7 +1612,7 @@ def alfi_mcmc_gan(
         # The chain for next iteration starts at the end of this chain.
         start = thetas[-1]
 
-        sampled_thetas = rng.choice(
+        sampled_thetas = rng_thetas.choice(
             thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
         )
         training_thetas = sampled_thetas[: training_replicates // 2]

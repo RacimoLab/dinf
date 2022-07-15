@@ -4,8 +4,6 @@ import os
 import pathlib
 import textwrap
 
-import numpy as np
-
 import dinf
 
 
@@ -36,7 +34,17 @@ def check_output_file(path):
 def _add_common_parser_group(parser):
     group = parser.add_argument_group(title="common arguments")
     group.add_argument(
-        "-S", "--seed", type=int, help="Seed for the random number generator."
+        "-S",
+        "--seed",
+        type=int,
+        help=(
+            "Seed for the random number generator. "
+            "CPU-based training is expected to produce deterministic results. "
+            "Results may differ between CPU and GPU trained networks for the "
+            "same seed value. Also note that operations on a GPU are not "
+            "fully determinstic, so training or applying a neural network "
+            "twice with the same seed value will not produce identical results."
+        ),
     )
     group.add_argument(
         "-j",
@@ -44,7 +52,12 @@ def _add_common_parser_group(parser):
         type=int,
         help=(
             "Number of processes to use for parallelising calls to the "
-            "Genobuilder's generator_func and target_func."
+            "Genobuilder's generator_func and target_func. "
+            "If not specified, all CPU cores will be used. "
+            "The number of cores used for CPU-based neural networks "
+            "is not set with this parameter---instead use the"
+            "`taskset` command. See "
+            "https://github.com/google/jax/issues/1539"
         ),
     )
 
@@ -56,10 +69,7 @@ def _add_train_parser_group(parser):
         "--training-replicates",
         type=int,
         default=1000,
-        help=(
-            "Size of the dataset used to train the discriminator. "
-            "This dataset is constructed once each GAN iteration."
-        ),
+        help=("Size of the dataset used to train the discriminator."),
     )
     group.add_argument(
         "-R",
@@ -86,7 +96,8 @@ def _add_train_parser_group(parser):
 _GENOB_MODEL_HELP = (
     'Python script from which to import the variable "genobuilder". '
     "This is a dinf.Genobuilder object that describes the GAN. "
-    "See the examples/ folder for example models."
+    "See the examples/ folder of the git repository for example models. "
+    "https://github.com/RacimoLab/dinf"
 )
 
 
@@ -165,7 +176,6 @@ class AbcGan:
         _add_gan_parser_group(parser)
 
     def __call__(self, args: argparse.Namespace):
-        rng = np.random.default_rng(args.seed)
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         dinf.dinf.abc_gan(
             genobuilder=genobuilder,
@@ -177,7 +187,7 @@ class AbcGan:
             posteriors=args.posteriors,
             working_directory=args.working_directory,
             parallelism=args.parallelism,
-            rng=rng,
+            seed=args.seed,
         )
 
 
@@ -220,7 +230,6 @@ class AlfiMcmcGan:
         _add_gan_parser_group(parser)
 
     def __call__(self, args: argparse.Namespace):
-        rng = np.random.default_rng(args.seed)
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         dinf.alfi_mcmc_gan(
             genobuilder=genobuilder,
@@ -232,7 +241,7 @@ class AlfiMcmcGan:
             steps=args.steps,
             working_directory=args.working_directory,
             parallelism=args.parallelism,
-            rng=rng,
+            seed=args.seed,
         )
 
 
@@ -288,7 +297,6 @@ class McmcGan:
         _add_gan_parser_group(parser)
 
     def __call__(self, args: argparse.Namespace):
-        rng = np.random.default_rng(args.seed)
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         dinf.mcmc_gan(
             genobuilder=genobuilder,
@@ -301,7 +309,7 @@ class McmcGan:
             Dx_replicates=args.Dx_replicates,
             working_directory=args.working_directory,
             parallelism=args.parallelism,
-            rng=rng,
+            seed=args.seed,
         )
 
 
@@ -345,7 +353,6 @@ class PgGan:
         _add_gan_parser_group(parser)
 
     def __call__(self, args: argparse.Namespace):
-        rng = np.random.default_rng(args.seed)
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         dinf.pg_gan(
             genobuilder=genobuilder,
@@ -358,7 +365,7 @@ class PgGan:
             max_pretraining_iterations=args.max_pretraining_iterations,
             working_directory=args.working_directory,
             parallelism=args.parallelism,
-            rng=rng,
+            seed=args.seed,
         )
 
 
@@ -382,30 +389,31 @@ class Train:
         group = parser.add_argument_group()
         group.add_argument(
             "genob_model",
-            metavar="user_model.py",
+            metavar="model.py",
             type=pathlib.Path,
             help=_GENOB_MODEL_HELP,
         )
         group.add_argument(
             "discriminator_file",
-            metavar="discriminator.pkl",
+            metavar="discriminator.nn",
             type=pathlib.Path,
             help="Output file where the discriminator will be saved.",
         )
 
     def __call__(self, args: argparse.Namespace):
-        rng = np.random.default_rng(args.seed)
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
-        check_output_file(args.discriminator_file)
+        if args.epochs > 0:
+            check_output_file(args.discriminator_file)
         discriminator = dinf.train(
             genobuilder=genobuilder,
             training_replicates=args.training_replicates,
             test_replicates=args.test_replicates,
             epochs=args.epochs,
             parallelism=args.parallelism,
-            rng=rng,
+            seed=args.seed,
         )
-        discriminator.to_file(args.discriminator_file)
+        if args.epochs > 0:
+            discriminator.to_file(args.discriminator_file)
 
 
 class Predict:
@@ -439,13 +447,13 @@ class Predict:
         group = parser.add_argument_group()
         group.add_argument(
             "genob_model",
-            metavar="user_model.py",
+            metavar="model.py",
             type=pathlib.Path,
             help=_GENOB_MODEL_HELP,
         )
         group.add_argument(
             "discriminator_file",
-            metavar="discriminator.pkl",
+            metavar="discriminator.nn",
             type=pathlib.Path,
             help="Discriminator to use for predictions.",
         )
@@ -457,7 +465,6 @@ class Predict:
         )
 
     def __call__(self, args: argparse.Namespace):
-        rng = np.random.default_rng(args.seed)
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
         discriminator = dinf.Discriminator(
             genobuilder.feature_shape, network=genobuilder.discriminator_network
@@ -468,7 +475,7 @@ class Predict:
             genobuilder=genobuilder,
             replicates=args.replicates,
             parallelism=args.parallelism,
-            rng=rng,
+            seed=args.seed,
         )
         dinf.save_results(
             args.output_file,
@@ -494,7 +501,7 @@ class Check:
 
         parser.add_argument(
             "genob_model",
-            metavar="user_model.py",
+            metavar="model.py",
             type=pathlib.Path,
             help=_GENOB_MODEL_HELP,
         )
@@ -527,4 +534,5 @@ def main(args_list=None):
     if args.subcommand is None:
         top_parser.print_help()
         exit(1)
+
     args.func(args)

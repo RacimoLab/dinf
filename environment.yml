@@ -4,15 +4,17 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  # https://docs.anaconda.com/mkl-optimizations/index.html
-  - mkl
   - numpy
   # Jax and friends.
   - jax
-  - flax
+  - flax >= 0.5.2
   - optax
   # The rest.
   - cyvcf2 >= 0.30.14
   - emcee
   - demes >= 0.2.1
+  - demesdraw
   - msprime >= 1.0.4
+  - matplotlib
+  - multiprocess
+  - adjustText
