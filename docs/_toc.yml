@@ -4,12 +4,14 @@ parts:
 - caption: Getting started
   chapters:
   - file: installation
-- caption: User guide
+- caption: Tutorial
   numbered: true
   chapters:
   - file: guide/creating_a_model
   - file: guide/testing_a_model
   - file: guide/abc
+- caption: Topic guides
+  chapters:
   - file: guide/accuracy
   - file: guide/features
   - file: guide/performance

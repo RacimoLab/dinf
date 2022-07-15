@@ -25,7 +25,7 @@ pip install "jax[cuda11_cudnn82]" \
   -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ```
 
-Check that your GPU devices are recognised by jax.
+Check that your GPU device(s) are recognised by jax.
 ```
 $ python
 Python 3.9.13 | packaged by conda-forge | (main, May 27 2022, 16:56:21)
@@ -38,8 +38,9 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 ## Conda/mamba installation
 
-Clone the repository, create a virtual environment using mamba
-(substitute `conda` if you don't have mamba), activate, then install.
+[Mamba](https://github.com/mamba-org/mamba) is a faster implementation
+of conda. Substitute `conda` below if you don't have mamba.
+Clone the repository, create a conda virtual environment, activate, then install.
 ```
 git clone https://github.com/RacimoLab/dinf.git
 cd dinf
@@ -49,4 +50,5 @@ pip install .
 ```
 
 The conda-forge jaxlib packages are cuda-enabled by default,
-so GPU support should just work.
+so GPU support should just work. See pip instructions for checking
+that your GPU device(s) are recognised.
