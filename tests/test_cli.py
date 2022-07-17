@@ -316,8 +316,9 @@ class TestPredict:
         )
         assert out1.stdout == out2.stdout
 
+    @pytest.mark.parametrize("sample_target", [True, False])
     @pytest.mark.usefixtures("tmp_path")
-    def test_predict_example(self, tmp_path):
+    def test_predict_example(self, tmp_path, sample_target):
         discriminator_file = tmp_path / "discriminator.nn"
         ex = "examples/bottleneck/model.py"
         subprocess.run(
@@ -338,6 +339,7 @@ class TestPredict:
         genobuilder = dinf.Genobuilder.from_file(ex)
         check_discriminator(discriminator_file, genobuilder)
 
+        target = "--target" if sample_target else ""
         output_file = tmp_path / "output.npz"
         subprocess.run(
             f"""
@@ -345,6 +347,7 @@ class TestPredict:
                 --seed 1
                 --parallelism 2
                 --replicates 10
+                {target}
                 {ex}
                 {discriminator_file}
                 {output_file}
@@ -354,9 +357,11 @@ class TestPredict:
             stderr=subprocess.PIPE,
         )
 
-        check_npz(
+        data = check_npz(
             output_file,
             chains=1,
             draws=10,
-            parameters=genobuilder.parameters,
+            parameters=genobuilder.parameters if not sample_target else None,
         )
+        if sample_target:
+            assert data.dtype.names == ("_Pr",)

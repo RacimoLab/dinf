@@ -159,7 +159,7 @@ def save_results(
     filename: str | pathlib.Path,
     /,
     *,
-    thetas: np.ndarray,
+    thetas: np.ndarray | None,
     probs: np.ndarray,
     parameters: Parameters,
 ):
@@ -175,19 +175,21 @@ def save_results(
     :param parameters:
         Sequence of parameter names.
     """
-    if thetas.shape[-1] != len(parameters):
-        raise ValueError(
-            f"thetas.shape={thetas.shape}, but got {len(parameters)} parameters"
-        )
-    if thetas.shape[:-1] != probs.shape:
-        raise ValueError(
-            f"thetas.shape={thetas.shape}, but got probs.shape={probs.shape}"
-        )
+    if thetas is not None:
+        if thetas.shape[-1] != len(parameters):
+            raise ValueError(
+                f"thetas.shape={thetas.shape}, but got {len(parameters)} parameters"
+            )
+        if thetas.shape[:-1] != probs.shape:
+            raise ValueError(
+                f"thetas.shape={thetas.shape}, but got probs.shape={probs.shape}"
+            )
     assert "_Pr" not in parameters
-    kw = {
-        "_Pr": probs,
-        **{par_name: thetas[..., j] for j, par_name in enumerate(parameters)},
-    }
+    kw = {"_Pr": probs}
+    if thetas is not None:
+        kw.update(
+            **{par_name: thetas[..., j] for j, par_name in enumerate(parameters)},
+        )
     # We open the file ourselves to stop numpy from adding a .npz extension,
     # e.g. if the filename is /dev/null or a fifo.
     with open(filename, "wb") as f:
@@ -537,16 +539,24 @@ def predict(
     discriminator: Discriminator,
     genobuilder: Genobuilder,
     replicates: int,
+    sample_target: bool = False,
     parallelism: None | int = None,
     seed: int | None = None,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray | None, np.ndarray]:
     """
-    Sample generator features and make predictions using the discriminator.
+    Sample features and make predictions using the discriminator.
+
+    Features are sampled from the generator by default.
+    To instead sample features from the target dataset, use the
+    ``sample_target`` option.
 
     :param genobuilder:
         Genobuilder object that describes the GAN.
     :param replicates:
         Number of features to extract.
+    :param sample_target:
+        If True, sample features from the target dataset.
+        If False (the default), features are sampled from the generator.
     :param parallelism:
         Number of processes to use for parallelising calls to the
         :meth:`Genobuilder.generator_func` and
@@ -555,27 +565,39 @@ def predict(
         Seed for the random number generator.
     :return:
         A 2-tuple of (thetas, probs), where ``thetas`` are the drawn parameters
-        and ``probs`` are the discriminator predictions.
-        theta[j][k] is the j'th draw for the k'th parameter, and
+        (or ``None`` if ``sample_target`` is True) and ``probs`` are the
+        discriminator predictions.
+        thetas[j][k] is the j'th draw for the k'th parameter, and
         probs[j] is the discriminator prediction for the j'th draw.
     """
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
     _process_pool_init(parallelism, genobuilder)
-
     ss = NamedSeedSequence(seed)
-    ss_train, ss_generator = ss.spawn(("thetas:predict", "features:predict:generator"))
 
-    thetas = genobuilder.parameters.draw_prior(
-        replicates, rng=np.random.default_rng(ss_train)
-    )
-    x = _generate_data(
-        generator=genobuilder.generator_func,
-        thetas=thetas,
-        parallelism=parallelism,
-        rng=np.random.default_rng(ss_generator),
-    )
+    if sample_target:
+        (ss_target,) = ss.spawn(("features:predict:target",))
+        x = _observe_data(
+            target=genobuilder.target_func,
+            num_replicates=replicates,
+            parallelism=parallelism,
+            rng=np.random.default_rng(ss_target),
+        )
+        thetas = None
+    else:
+        ss_thetas, ss_generator = ss.spawn(
+            ("thetas:predict", "features:predict:generator")
+        )
+        thetas = genobuilder.parameters.draw_prior(
+            replicates, rng=np.random.default_rng(ss_thetas)
+        )
+        x = _generate_data(
+            generator=genobuilder.generator_func,
+            thetas=thetas,
+            parallelism=parallelism,
+            rng=np.random.default_rng(ss_generator),
+        )
     probs = discriminator.predict(x)
     return thetas, probs
 
