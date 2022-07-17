@@ -20,7 +20,7 @@
     href="../../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
 
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
-    <link rel="stylesheet" href="../../_static/styles/sphinx-book-theme.css?digest=62ba249389abaaa9ffc34bf36a076bdc1d65ee18" type="text/css" />
+    <link rel="stylesheet" href="../../_static/styles/sphinx-book-theme.css?digest=5115cc725059bd94278eecd172e13a965bf8f5a9" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.css" />
@@ -36,7 +36,7 @@
     <script src="../../_static/doctools.js"></script>
     <script src="../../_static/clipboard.min.js"></script>
     <script src="../../_static/copybutton.js"></script>
-    <script src="../../_static/scripts/sphinx-book-theme.js?digest=f31d14ad54b65d19161ba51d4ffff3a77ae00456"></script>
+    <script src="../../_static/scripts/sphinx-book-theme.js?digest=9c920249402e914e316237a7dbc6769907cce411"></script>
     <script>let toggleHintShow = 'Click to show';</script>
     <script>let toggleHintHide = 'Click to hide';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
@@ -210,7 +210,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev269
+            dinf 0.1.1.dev272
             </div>
             
         </div>
@@ -497,7 +497,7 @@ title="Open an issue"
     <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span>
     <span class="o">/</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span><span class="p">,</span>
 <span class="p">):</span>
@@ -513,19 +513,21 @@ title="Open an issue"
 <span class="sd">    :param parameters:</span>
 <span class="sd">        Sequence of parameter names.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;thetas.shape=</span><span class="si">{</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, but got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span><span class="si">}</span><span class="s2"> parameters&quot;</span>
-        <span class="p">)</span>
-    <span class="k">if</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">probs</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;thetas.shape=</span><span class="si">{</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, but got probs.shape=</span><span class="si">{</span><span class="n">probs</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">thetas</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;thetas.shape=</span><span class="si">{</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, but got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span><span class="si">}</span><span class="s2"> parameters&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">probs</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;thetas.shape=</span><span class="si">{</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, but got probs.shape=</span><span class="si">{</span><span class="n">probs</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
     <span class="k">assert</span> <span class="s2">&quot;_Pr&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parameters</span>
-    <span class="n">kw</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;_Pr&quot;</span><span class="p">:</span> <span class="n">probs</span><span class="p">,</span>
-        <span class="o">**</span><span class="p">{</span><span class="n">par_name</span><span class="p">:</span> <span class="n">thetas</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">par_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parameters</span><span class="p">)},</span>
-    <span class="p">}</span>
+    <span class="n">kw</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;_Pr&quot;</span><span class="p">:</span> <span class="n">probs</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">thetas</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">kw</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="o">**</span><span class="p">{</span><span class="n">par_name</span><span class="p">:</span> <span class="n">thetas</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">par_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parameters</span><span class="p">)},</span>
+        <span class="p">)</span>
     <span class="c1"># We open the file ourselves to stop numpy from adding a .npz extension,</span>
     <span class="c1"># e.g. if the filename is /dev/null or a fifo.</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -875,16 +877,24 @@ title="Open an issue"
     <span class="n">discriminator</span><span class="p">:</span> <span class="n">Discriminator</span><span class="p">,</span>
     <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
     <span class="n">replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">sample_target</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">parallelism</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Sample generator features and make predictions using the discriminator.</span>
+<span class="sd">    Sample features and make predictions using the discriminator.</span>
+
+<span class="sd">    Features are sampled from the generator by default.</span>
+<span class="sd">    To instead sample features from the target dataset, use the</span>
+<span class="sd">    ``sample_target`` option.</span>
 
 <span class="sd">    :param genobuilder:</span>
 <span class="sd">        Genobuilder object that describes the GAN.</span>
 <span class="sd">    :param replicates:</span>
 <span class="sd">        Number of features to extract.</span>
+<span class="sd">    :param sample_target:</span>
+<span class="sd">        If True, sample features from the target dataset.</span>
+<span class="sd">        If False (the default), features are sampled from the generator.</span>
 <span class="sd">    :param parallelism:</span>
 <span class="sd">        Number of processes to use for parallelising calls to the</span>
 <span class="sd">        :meth:`Genobuilder.generator_func` and</span>
@@ -893,27 +903,39 @@ title="Open an issue"
 <span class="sd">        Seed for the random number generator.</span>
 <span class="sd">    :return:</span>
 <span class="sd">        A 2-tuple of (thetas, probs), where ``thetas`` are the drawn parameters</span>
-<span class="sd">        and ``probs`` are the discriminator predictions.</span>
-<span class="sd">        theta[j][k] is the j&#39;th draw for the k&#39;th parameter, and</span>
+<span class="sd">        (or ``None`` if ``sample_target`` is True) and ``probs`` are the</span>
+<span class="sd">        discriminator predictions.</span>
+<span class="sd">        thetas[j][k] is the j&#39;th draw for the k&#39;th parameter, and</span>
 <span class="sd">        probs[j] is the discriminator prediction for the j&#39;th draw.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">parallelism</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
 
     <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
-
     <span class="n">ss</span> <span class="o">=</span> <span class="n">NamedSeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-    <span class="n">ss_train</span><span class="p">,</span> <span class="n">ss_generator</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">((</span><span class="s2">&quot;thetas:predict&quot;</span><span class="p">,</span> <span class="s2">&quot;features:predict:generator&quot;</span><span class="p">))</span>
 
-    <span class="n">thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-        <span class="n">replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_train</span><span class="p">)</span>
-    <span class="p">)</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">_generate_data</span><span class="p">(</span>
-        <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
-        <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
-        <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
-        <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_generator</span><span class="p">),</span>
-    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">sample_target</span><span class="p">:</span>
+        <span class="p">(</span><span class="n">ss_target</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">((</span><span class="s2">&quot;features:predict:target&quot;</span><span class="p">,))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">_observe_data</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
+            <span class="n">num_replicates</span><span class="o">=</span><span class="n">replicates</span><span class="p">,</span>
+            <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_target</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ss_thetas</span><span class="p">,</span> <span class="n">ss_generator</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span>
+            <span class="p">(</span><span class="s2">&quot;thetas:predict&quot;</span><span class="p">,</span> <span class="s2">&quot;features:predict:generator&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
+            <span class="n">replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">_generate_data</span><span class="p">(</span>
+            <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+            <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
+            <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
+            <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_generator</span><span class="p">),</span>
+        <span class="p">)</span>
     <span class="n">probs</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span></div>
 
@@ -1980,7 +2002,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev269+g3719aba
+      dinf 0.1.1.dev272+gd35d2b0
     </div>
 </p>
         </footer>

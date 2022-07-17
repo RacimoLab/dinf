@@ -21,7 +21,7 @@
     href="_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
 
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" href="_static/styles/sphinx-book-theme.css?digest=62ba249389abaaa9ffc34bf36a076bdc1d65ee18" type="text/css" />
+    <link rel="stylesheet" href="_static/styles/sphinx-book-theme.css?digest=5115cc725059bd94278eecd172e13a965bf8f5a9" type="text/css" />
     <link rel="stylesheet" type="text/css" href="_static/togglebutton.css" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="_static/mystnb.css" />
@@ -37,7 +37,7 @@
     <script src="_static/doctools.js"></script>
     <script src="_static/clipboard.min.js"></script>
     <script src="_static/copybutton.js"></script>
-    <script src="_static/scripts/sphinx-book-theme.js?digest=f31d14ad54b65d19161ba51d4ffff3a77ae00456"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?digest=9c920249402e914e316237a7dbc6769907cce411"></script>
     <script>let toggleHintShow = 'Click to show';</script>
     <script>let toggleHintHide = 'Click to hide';</script>
     <script>let toggleOpenOnPrint = 'true';</script>
@@ -212,7 +212,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev269
+            dinf 0.1.1.dev272
             </div>
             
         </div>
@@ -734,19 +734,20 @@ The module hooks can be useful for running the commands from a
 cloned git repository without requiring installation (e.g. during development).</p>
 <section id="analysis-commands">
 <span id="sec-cli-dinf"></span><h2>Analysis commands<a class="headerlink" href="#analysis-commands" title="Permalink to this headline">#</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [--version] {check,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan} ...
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [--version]
+            {check,train,predict,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan} ...
 
 Discriminator-based inference of population parameters.
 
 positional arguments:
-  {check,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan}
-    check               Basic genobuilder health checks
-    abc-gan             Run the ABC GAN
-    alfi-mcmc-gan       Run the ALFI MCMC GAN
-    mcmc-gan            Run the MCMC GAN
-    pg-gan              Run PG-GAN style simulated annealing
-    predict             Predict
-    train               Train a discriminator
+  {check,train,predict,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan}
+    check               Basic genobuilder health checks.
+    train               Train a discriminator.
+    predict             Make predictions using a trained discriminator.
+    abc-gan             Run the ABC GAN.
+    alfi-mcmc-gan       Run the ALFI MCMC GAN.
+    mcmc-gan            Run the MCMC GAN.
+    pg-gan              Run PG-GAN style simulated annealing.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -757,7 +758,10 @@ optional arguments:
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">check</span></code><a class="headerlink" href="#dinf-check" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf check [-h] model.py
 
-Check a genobuilder object by calling the target and generator functions.
+Basic genobuilder health checks.
+
+Checks that the target and generator functions work and return the
+same feature shapes.
 
 positional arguments:
   model.py    Python script from which to import the variable &quot;genobuilder&quot;.
@@ -822,13 +826,20 @@ training arguments:
 </section>
 <section id="dinf-predict">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">predict</span></code><a class="headerlink" href="#dinf-predict" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf predict [-h] [-S SEED] [-j PARALLELISM] [-r REPLICATES]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf predict [-h] [-S SEED] [-j PARALLELISM] [-r REPLICATES] [--target]
                     model.py discriminator.nn output.npz
 
-Predict.
+Make predictions using a trained discriminator.
+
+By default, features will be obtained by sampling replicates from
+the generator (using parameters from the prior distribution).
+To instead sample features from the target dataset, use the
+--target option.
 
 optional arguments:
   -h, --help            show this help message and exit
+  --target              Sample features from the target dataset. (default:
+                        False)
 
 common arguments:
   -S SEED, --seed SEED  Seed for the random number generator. CPU-based
@@ -1233,9 +1244,9 @@ optional arguments:
 </section>
 <section id="dinf-plot-hist">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code><a class="headerlink" href="#dinf-plot-hist" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist [-h] [-o output.pdf] [-n N | -t P] [-W] [-c]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist [-h] [-o output.pdf] [-n N | -p P] [-W] [-c]
                       [-x X_PARAM] [-m model.py]
-                      data.npz
+                      data.npz [data.npz ...]
 
 Plot marginal posterior densities.
 
@@ -1263,7 +1274,7 @@ using the -W option. Alternately, the data file can be filtered
 to obtain a posterior sample using the -n or -t options.
 
 positional arguments:
-  data.npz              The datafile containing discriminator predictions.
+  data.npz              Data file containing discriminator predictions.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -1273,13 +1284,13 @@ optional arguments:
                         supported by Matplotlib (e.g. pdf, svg, png).If no
                         output file is specified, an interactive plot window
                         will be opened. (default: None)
-  -n N, --top-n N       Accept only the N top parameter values, ranked by log
-                        probability. (default: None)
-  -t P, --probability-threshold P
-                        Accept only the parameter values with probabilities
+  -n N, --top-n N       Accept only the N top samples, ranked by probability.
+                        (default: None)
+  -p P, --probability-threshold P
+                        Accept only the samples with prediction probabilities
                         greater than P. (default: None)
-  -W, --weighted        Weight the parameter values by probability. (default:
-                        False)
+  -W, --weighted        Weight the parameter contributions by their
+                        probability. (default: False)
   -c, --cumulative      Plot cumulative distribution. (default: False)
   -x X_PARAM, --x-param X_PARAM
                         Name of parameter to plot. The special name &quot;_Pr&quot; is
@@ -1293,7 +1304,7 @@ optional arguments:
 </section>
 <section id="dinf-plot-hist2d">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist2d</span></code><a class="headerlink" href="#dinf-plot-hist2d" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist2d [-h] [-o output.pdf] [-n N | -t P] [-W] [-x X_PARAM]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist2d [-h] [-o output.pdf] [-n N | -p P] [-W] [-x X_PARAM]
                         [-y Y_PARAM] [-m model.py]
                         data.npz
 
@@ -1322,7 +1333,7 @@ can be filtered to obtain a posterior sample using the -n
 or -t options.
 
 positional arguments:
-  data.npz              The datafile containing discriminator predictions.
+  data.npz              Data file containing discriminator predictions.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -1332,13 +1343,13 @@ optional arguments:
                         supported by Matplotlib (e.g. pdf, svg, png).If no
                         output file is specified, an interactive plot window
                         will be opened. (default: None)
-  -n N, --top-n N       Accept only the N top parameter values, ranked by log
-                        probability. (default: None)
-  -t P, --probability-threshold P
-                        Accept only the parameter values with probabilities
+  -n N, --top-n N       Accept only the N top samples, ranked by probability.
+                        (default: None)
+  -p P, --probability-threshold P
+                        Accept only the samples with prediction probabilities
                         greater than P. (default: None)
-  -W, --weighted        Weight the parameter values by probability. (default:
-                        False)
+  -W, --weighted        Weight the parameter contributions by their
+                        probability. (default: False)
   -x X_PARAM, --x-param X_PARAM
                         Name of parameter to plot on horizontal axis.
                         (default: None)
@@ -1399,7 +1410,7 @@ optional arguments:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev269+g3719aba
+      dinf 0.1.1.dev272+gd35d2b0
     </div>
 </p>
         </footer>
