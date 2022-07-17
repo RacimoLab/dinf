@@ -20,7 +20,7 @@ from numpy.lib.recfunctions import structured_to_unstructured
 import multiprocess as multiprocessing
 
 from .discriminator import Discriminator, Surrogate
-from .genobuilder import Genobuilder
+from .dinf_model import DinfModel
 from .parameters import Parameters
 from .store import Store
 
@@ -32,12 +32,12 @@ _pool = None
 def _initializer(filename):
     # Ignore ctrl-c in workers. This is handled in the main process.
     signal.signal(signal.SIGINT, signal.SIG_IGN)
-    # Ensure symbols from the user's genobuilder are avilable to workers.
+    # Ensure symbols from the user's dinf_model are avilable to workers.
     if filename is not None:
-        Genobuilder.from_file(filename)
+        DinfModel.from_file(filename)
 
 
-def _process_pool_init(parallelism, genobuilder):
+def _process_pool_init(parallelism, dinf_model):
     # Start the process pool before the GPU has been initialised, or using
     # the "spawn" start method, otherwise we get weird GPU resource issues
     # because the subprocesses are holding onto some CUDA thing.
@@ -51,7 +51,7 @@ def _process_pool_init(parallelism, genobuilder):
     _pool = ctx.Pool(
         processes=parallelism,
         initializer=_initializer,
-        initargs=(genobuilder._filename,),
+        initargs=(dinf_model._filename,),
     )
 
 
@@ -395,7 +395,7 @@ class NamedSeedSequence(np.random.SeedSequence):
 def _train_discriminator(
     *,
     discriminator: Discriminator,
-    genobuilder: Genobuilder,
+    dinf_model: DinfModel,
     training_thetas: np.ndarray,
     test_thetas: np.ndarray,
     epochs: int,
@@ -407,8 +407,8 @@ def _train_discriminator(
         ("features:train", "features:val", "discriminator:fit")
     )
     train_x, train_y, train_x_generator = _generate_training_data(
-        target=genobuilder.target_func,
-        generator=genobuilder.generator_func,
+        target=dinf_model.target_func,
+        generator=dinf_model.generator_func,
         thetas=training_thetas,
         parallelism=parallelism,
         ss=ss_train,
@@ -417,8 +417,8 @@ def _train_discriminator(
     val_x, val_y, val_x_generator = None, None, None
     if test_thetas is not None and len(test_thetas) > 0:
         val_x, val_y, val_x_generator = _generate_training_data(
-            target=genobuilder.target_func,
-            generator=genobuilder.generator_func,
+            target=dinf_model.target_func,
+            generator=dinf_model.generator_func,
             thetas=test_thetas,
             parallelism=parallelism,
             ss=ss_val,
@@ -470,7 +470,7 @@ def _train_surrogate(
 @cleanup_process_pool_afterwards
 def train(
     *,
-    genobuilder: Genobuilder,
+    dinf_model: DinfModel,
     training_replicates: int,
     test_replicates: int,
     epochs: int,
@@ -480,8 +480,8 @@ def train(
     """
     Train a discriminator network.
 
-    :param genobuilder:
-        Genobuilder object that describes the GAN.
+    :param dinf_model:
+        DinfModel object that describes the GAN.
     :param training_replicates:
         Size of the dataset used to train the discriminator.
     :param test_replicates:
@@ -492,8 +492,8 @@ def train(
         the discriminator.
     :param parallelism:
         Number of processes to use for parallelising calls to the
-        :meth:`Genobuilder.generator_func` and
-        :meth:`Genobuilder.target_func`.
+        :meth:`DinfModel.generator_func` and
+        :meth:`DinfModel.target_func`.
     :param seed:
         Seed for the random number generator.
     :return:
@@ -502,28 +502,28 @@ def train(
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
-    _process_pool_init(parallelism, genobuilder)
+    _process_pool_init(parallelism, dinf_model)
 
     ss = NamedSeedSequence(seed)
     ss_train, ss_test, ss_discr_init = ss.spawn(
         ("thetas:train", "thetas:test", "discriminator:init")
     )
 
-    training_thetas = genobuilder.parameters.draw_prior(
+    training_thetas = dinf_model.parameters.draw_prior(
         training_replicates // 2, rng=np.random.default_rng(ss_train)
     )
-    test_thetas = genobuilder.parameters.draw_prior(
+    test_thetas = dinf_model.parameters.draw_prior(
         test_replicates // 2, rng=np.random.default_rng(ss_test)
     )
 
     discriminator = Discriminator(
-        genobuilder.feature_shape, network=genobuilder.discriminator_network
+        dinf_model.feature_shape, network=dinf_model.discriminator_network
     ).init(np.random.default_rng(ss_discr_init))
     # discriminator.summary()
 
     _train_discriminator(
         discriminator=discriminator,
-        genobuilder=genobuilder,
+        dinf_model=dinf_model,
         training_thetas=training_thetas,
         test_thetas=test_thetas,
         epochs=epochs,
@@ -537,7 +537,7 @@ def train(
 def predict(
     *,
     discriminator: Discriminator,
-    genobuilder: Genobuilder,
+    dinf_model: DinfModel,
     replicates: int,
     sample_target: bool = False,
     parallelism: None | int = None,
@@ -550,8 +550,8 @@ def predict(
     To instead sample features from the target dataset, use the
     ``sample_target`` option.
 
-    :param genobuilder:
-        Genobuilder object that describes the GAN.
+    :param dinf_model:
+        DinfModel object that describes the GAN.
     :param replicates:
         Number of features to extract.
     :param sample_target:
@@ -559,8 +559,8 @@ def predict(
         If False (the default), features are sampled from the generator.
     :param parallelism:
         Number of processes to use for parallelising calls to the
-        :meth:`Genobuilder.generator_func` and
-        :meth:`Genobuilder.target_func`.
+        :meth:`DinfModel.generator_func` and
+        :meth:`DinfModel.target_func`.
     :param seed:
         Seed for the random number generator.
     :return:
@@ -573,13 +573,13 @@ def predict(
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
-    _process_pool_init(parallelism, genobuilder)
+    _process_pool_init(parallelism, dinf_model)
     ss = NamedSeedSequence(seed)
 
     if sample_target:
         (ss_target,) = ss.spawn(("features:predict:target",))
         x = _observe_data(
-            target=genobuilder.target_func,
+            target=dinf_model.target_func,
             num_replicates=replicates,
             parallelism=parallelism,
             rng=np.random.default_rng(ss_target),
@@ -589,11 +589,11 @@ def predict(
         ss_thetas, ss_generator = ss.spawn(
             ("thetas:predict", "features:predict:generator")
         )
-        thetas = genobuilder.parameters.draw_prior(
+        thetas = dinf_model.parameters.draw_prior(
             replicates, rng=np.random.default_rng(ss_thetas)
         )
         x = _generate_data(
-            generator=genobuilder.generator_func,
+            generator=dinf_model.generator_func,
             thetas=thetas,
             parallelism=parallelism,
             rng=np.random.default_rng(ss_generator),
@@ -605,7 +605,7 @@ def predict(
 @cleanup_process_pool_afterwards
 def mcmc_gan(
     *,
-    genobuilder: Genobuilder,
+    dinf_model: DinfModel,
     iterations: int,
     training_replicates: int,
     test_replicates: int,
@@ -631,8 +631,8 @@ def mcmc_gan(
     distribution. In subsequent iterations, the parameter values are drawn
     by sampling without replacement from the previous iteration's MCMC chains.
 
-    :param genobuilder:
-        Genobuilder object that describes the GAN.
+    :param dinf_model:
+        DinfModel object that describes the GAN.
     :param iterations:
         Number of GAN iterations.
     :param training_replicates:
@@ -655,8 +655,8 @@ def mcmc_gan(
         directory will be used.
     :param parallelism:
         Number of processes to use for parallelising calls to the
-        :meth:`Genobuilder.generator_func` and
-        :meth:`Genobuilder.target_func`.
+        :meth:`DinfModel.generator_func` and
+        :meth:`DinfModel.target_func`.
     :param seed:
         Seed for the random number generator.
     """
@@ -682,8 +682,8 @@ def mcmc_gan(
     rng_thetas = np.random.default_rng(ss_thetas)
     rng_mcmc = np.random.default_rng(ss_mcmc)
 
-    _process_pool_init(parallelism, genobuilder)
-    parameters = genobuilder.parameters
+    _process_pool_init(parallelism, dinf_model)
+    parameters = dinf_model.parameters
     resume = False
     if len(store) > 0:
         files_exist = [
@@ -694,7 +694,7 @@ def mcmc_gan(
         resume = all(files_exist)
 
     discriminator = Discriminator(
-        genobuilder.feature_shape, network=genobuilder.discriminator_network
+        dinf_model.feature_shape, network=dinf_model.discriminator_network
     )
     if resume:
         discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
@@ -734,7 +734,7 @@ def mcmc_gan(
     log_prob_func = functools.partial(
         _log_prob,
         discriminator=discriminator,
-        generator=genobuilder.generator_func,
+        generator=dinf_model.generator_func,
         parameters=parameters,
         parallelism=parallelism,
         num_replicates=Dx_replicates,
@@ -748,7 +748,7 @@ def mcmc_gan(
         (ss_loop,) = ss_loop.spawn(1)
         _train_discriminator(
             discriminator=discriminator,
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             training_thetas=training_thetas,
             test_thetas=test_thetas,
             epochs=epochs,
@@ -806,7 +806,7 @@ def _run_abc(
 @cleanup_process_pool_afterwards
 def abc_gan(
     *,
-    genobuilder: Genobuilder,
+    dinf_model: DinfModel,
     iterations: int,
     training_replicates: int,
     test_replicates: int,
@@ -831,8 +831,8 @@ def abc_gan(
     distribution. In subsequent iterations, the parameter values are drawn
     by sampling with replacement from the previous iteration's ABC posterior.
 
-    :param genobuilder:
-        Genobuilder object that describes the dinf model.
+    :param dinf_model:
+        DinfModel object that describes the dinf model.
     :param iterations:
         Number of GAN iterations.
     :param training_replicates:
@@ -853,8 +853,8 @@ def abc_gan(
         directory will be used.
     :param parallelism:
         Number of processes to use for parallelising calls to the
-        :meth:`Genobuilder.generator_func` and
-        :meth:`Genobuilder.target_func`.
+        :meth:`DinfModel.generator_func` and
+        :meth:`DinfModel.target_func`.
     :param seed:
         Seed for the random number generator.
     """
@@ -878,9 +878,9 @@ def abc_gan(
     )
     rng_thetas = np.random.default_rng(ss_thetas)
 
-    _process_pool_init(parallelism, genobuilder)
+    _process_pool_init(parallelism, dinf_model)
 
-    parameters = genobuilder.parameters
+    parameters = dinf_model.parameters
     resume = False
     if len(store) > 0:
         files_exist = [
@@ -891,7 +891,7 @@ def abc_gan(
         resume = all(files_exist)
 
     discriminator = Discriminator(
-        genobuilder.feature_shape, network=genobuilder.discriminator_network
+        dinf_model.feature_shape, network=dinf_model.discriminator_network
     )
     if resume:
         discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
@@ -919,7 +919,7 @@ def abc_gan(
         (ss_loop,) = ss_loop.spawn(1)
         _train_discriminator(
             discriminator=discriminator,
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             training_thetas=training_thetas,
             test_thetas=test_thetas,
             epochs=epochs,
@@ -931,7 +931,7 @@ def abc_gan(
         proposal_thetas = parameters.draw_prior(proposals, rng=rng_thetas)
         thetas, probs = _run_abc(
             discriminator=discriminator,
-            generator=genobuilder.generator_func,
+            generator=dinf_model.generator_func,
             parameters=parameters,
             thetas=proposal_thetas,
             posteriors=posteriors,
@@ -954,7 +954,7 @@ def abc_gan(
 
 def pretraining_pg_gan(
     *,
-    genobuilder,
+    dinf_model,
     training_replicates: int,
     test_replicates: int,
     epochs: int,
@@ -976,19 +976,19 @@ def pretraining_pg_gan(
     rng_thetas = np.random.default_rng(ss_thetas)
 
     discriminator = Discriminator(
-        genobuilder.feature_shape, network=genobuilder.discriminator_network
+        dinf_model.feature_shape, network=dinf_model.discriminator_network
     ).init(np.random.default_rng(ss_discr_init))
     acc_best = 0
     theta_best = None
 
     for k in range(max_pretraining_iterations):
-        theta = genobuilder.parameters.draw_prior(1, rng=rng_thetas)[0]
+        theta = dinf_model.parameters.draw_prior(1, rng=rng_thetas)[0]
         training_thetas = np.tile(theta, (training_replicates // 2, 1))
         test_thetas = np.tile(theta, (test_replicates // 2, 1))
 
         metrics, _, _ = _train_discriminator(
             discriminator=discriminator,
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             training_thetas=training_thetas,
             test_thetas=test_thetas,
             epochs=epochs,
@@ -1013,7 +1013,7 @@ def pretraining_pg_gan(
 
 def pretraining_dinf(
     *,
-    genobuilder,
+    dinf_model,
     training_replicates: int,
     test_replicates: int,
     epochs: int,
@@ -1034,9 +1034,9 @@ def pretraining_dinf(
     ss_discr_init, ss_thetas = ss.spawn(("discriminator:init", "thetas"))
     rng = np.random.default_rng(ss_thetas)
 
-    parameters = genobuilder.parameters
+    parameters = dinf_model.parameters
     discriminator = Discriminator(
-        genobuilder.feature_shape, network=genobuilder.discriminator_network
+        dinf_model.feature_shape, network=dinf_model.discriminator_network
     ).init(np.random.default_rng(ss_discr_init))
 
     for k in range(max_pretraining_iterations):
@@ -1045,7 +1045,7 @@ def pretraining_dinf(
 
         metrics, _, _ = _train_discriminator(
             discriminator=discriminator,
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             training_thetas=training_thetas,
             test_thetas=test_thetas,
             epochs=epochs,
@@ -1062,7 +1062,7 @@ def pretraining_dinf(
     lp = _log_prob(
         thetas,
         discriminator=discriminator,
-        generator=genobuilder.generator_func,
+        generator=dinf_model.generator_func,
         parameters=parameters,
         num_replicates=1,
         parallelism=parallelism,
@@ -1157,7 +1157,7 @@ def sanneal_proposals_mvn(
 @cleanup_process_pool_afterwards
 def pg_gan(
     *,
-    genobuilder: Genobuilder,
+    dinf_model: DinfModel,
     iterations: int,
     training_replicates: int,
     test_replicates: int,
@@ -1177,8 +1177,8 @@ def pg_gan(
 
     Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386
 
-    :param genobuilder:
-        Genobuilder object that describes the dinf model.
+    :param dinf_model:
+        DinfModel object that describes the dinf model.
     :param iterations:
         Number of GAN iterations.
     :param training_replicates:
@@ -1263,8 +1263,8 @@ def pg_gan(
         directory will be used.
     :param parallelism:
         Number of processes to use for parallelising calls to the
-        :meth:`Genobuilder.generator_func` and
-        :meth:`Genobuilder.target_func`.
+        :meth:`DinfModel.generator_func` and
+        :meth:`DinfModel.target_func`.
     :param seed:
         Seed for the random number generator.
     """
@@ -1277,7 +1277,7 @@ def pg_gan(
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
-    _process_pool_init(parallelism, genobuilder)
+    _process_pool_init(parallelism, dinf_model)
 
     ss = NamedSeedSequence(seed)
     ss_accept, ss_pretraining, ss_proposals, ss_loop = ss.spawn(
@@ -1286,7 +1286,7 @@ def pg_gan(
     rng_accept = np.random.default_rng(ss_accept)
     rng_proposals = np.random.default_rng(ss_proposals)
 
-    parameters = genobuilder.parameters
+    parameters = dinf_model.parameters
     resume = False
     if len(store) > 0:
         files_exist = [
@@ -1299,7 +1299,7 @@ def pg_gan(
 
     if resume:
         discriminator = Discriminator(
-            genobuilder.feature_shape, network=genobuilder.discriminator_network
+            dinf_model.feature_shape, network=dinf_model.discriminator_network
         ).from_file(store[-1] / "discriminator.nn")
         proposal_thetas, probs = _load_results_unstructured(
             store[-1] / "pg-gan-proposals.npz", parameters=parameters
@@ -1328,7 +1328,7 @@ def pg_gan(
             raise ValueError(f"unknown pretraining_method {pretraining_method}")
 
         discriminator, theta, n_target_calls, n_generator_calls = pretraining_func(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             training_replicates=training_replicates,
             test_replicates=test_replicates,
             epochs=epochs,
@@ -1366,7 +1366,7 @@ def pg_gan(
         lp = _log_prob(
             proposal_thetas,
             discriminator=discriminator,
-            generator=genobuilder.generator_func,
+            generator=dinf_model.generator_func,
             parameters=parameters,
             num_replicates=Dx_replicates,
             parallelism=parallelism,
@@ -1411,7 +1411,7 @@ def pg_gan(
             (ss_loop,) = ss_loop.spawn(1)
             _train_discriminator(
                 discriminator=discriminator,
-                genobuilder=genobuilder,
+                dinf_model=dinf_model,
                 training_thetas=training_thetas,
                 test_thetas=test_thetas,
                 epochs=epochs,
@@ -1433,7 +1433,7 @@ def pg_gan(
 @cleanup_process_pool_afterwards
 def alfi_mcmc_gan(
     *,
-    genobuilder: Genobuilder,
+    dinf_model: DinfModel,
     iterations: int,
     training_replicates: int,
     test_replicates: int,
@@ -1455,8 +1455,8 @@ def alfi_mcmc_gan(
 
     Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
 
-    :param genobuilder:
-        Genobuilder object that describes the dinf model.
+    :param dinf_model:
+        DinfModel object that describes the dinf model.
     :param iterations:
         Number of GAN iterations.
     :param training_replicates:
@@ -1477,8 +1477,8 @@ def alfi_mcmc_gan(
         directory will be used.
     :param parallelism:
         Number of processes to use for parallelising calls to the
-        :meth:`Genobuilder.generator_func` and
-        :meth:`Genobuilder.target_func`.
+        :meth:`DinfModel.generator_func` and
+        :meth:`DinfModel.target_func`.
     :param seed:
         Seed for the random number generator.
     """
@@ -1497,7 +1497,7 @@ def alfi_mcmc_gan(
     if parallelism is None:
         parallelism = cast(int, os.cpu_count())
 
-    _process_pool_init(parallelism, genobuilder)
+    _process_pool_init(parallelism, dinf_model)
 
     ss = NamedSeedSequence(seed)
     ss_loop, ss_mcmc, ss_thetas, ss_discr_init, ss_surrogate_init = ss.spawn(
@@ -1512,7 +1512,7 @@ def alfi_mcmc_gan(
     rng_thetas = np.random.default_rng(ss_thetas)
     rng_mcmc = np.random.default_rng(ss_mcmc)
 
-    parameters = genobuilder.parameters
+    parameters = dinf_model.parameters
     resume = False
     if len(store) > 0:
         files_exist = [
@@ -1524,7 +1524,7 @@ def alfi_mcmc_gan(
         resume = all(files_exist)
 
     discriminator = Discriminator(
-        genobuilder.feature_shape, network=genobuilder.discriminator_network
+        dinf_model.feature_shape, network=dinf_model.discriminator_network
     )
     surrogate = Surrogate(len(parameters))
     if resume:
@@ -1577,7 +1577,7 @@ def alfi_mcmc_gan(
         (ss_loop,) = ss_loop.spawn(1)
         _, train_x_generator, test_x_generator = _train_discriminator(
             discriminator=discriminator,
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             training_thetas=training_thetas,
             test_thetas=test_thetas,
             epochs=epochs,

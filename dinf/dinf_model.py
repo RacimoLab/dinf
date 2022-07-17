@@ -24,7 +24,7 @@ def _sim_shim(args, *, func, keys):
 
 
 @dataclasses.dataclass
-class Genobuilder:
+class DinfModel:
     """
     A container that describes the components of a Dinf model.
 
@@ -60,7 +60,7 @@ class Genobuilder:
             ...
             return features.from_vcf(vcfs, ...)
 
-        genobuilder = dinf.Genobuilder(
+        dinf_model = dinf.DinfModel(
             parameters=parameters,
             generator_func=generator,
             target_func=target,
@@ -194,7 +194,7 @@ class Genobuilder:
             if len(truth_missing) > 0:
                 raise ValueError(
                     "For a simulation-only model "
-                    "(with genobuilder.target_func=None), "
+                    "(with dinf_model.target_func=None), "
                     "all parameters must have `truth' values defined.\n"
                     f"Truth values missing for: {', '.join(truth_missing)}."
                 )
@@ -214,7 +214,7 @@ class Genobuilder:
         """
         Basic health checks: draw parameters and call the functions.
 
-        We don't do this when initialising the Genobuilder, because calling
+        We don't do this when initialising the DinfModel, because calling
         :attr:`.generator_func()` and :attr:`.target_func()` are potentially
         time consuming, which could lead to annoying delays for the command
         line interface.
@@ -244,9 +244,9 @@ class Genobuilder:
             )
 
     @staticmethod
-    def from_file(filename: str | pathlib.Path) -> Genobuilder:
+    def from_file(filename: str | pathlib.Path) -> DinfModel:
         """
-        Load the symbol "genobuilder" from a file.
+        Load the symbol "dinf_model" from a file.
 
         https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly
         """
@@ -254,7 +254,7 @@ class Genobuilder:
         spec = importlib.util.spec_from_file_location(module_name, filename)
         if spec is None:
             raise ImportError(
-                f"Could not load spec for `{filename}'. "
+                f"{filename}: couldn't load spec. "
                 "Check that the file exists and has a .py extension."
             )
         # Pacify mypy.
@@ -264,10 +264,10 @@ class Genobuilder:
         sys.modules[module_name] = user_module
         spec.loader.exec_module(user_module)
 
-        genobuilder = getattr(user_module, "genobuilder", None)
-        if genobuilder is None:
-            raise AttributeError(f"genobuilder not found in {filename}")
-        if not isinstance(genobuilder, Genobuilder):
-            raise TypeError(f"{filename}: genobuilder is not a dinf.Genobuilder object")
-        genobuilder._filename = filename
-        return genobuilder
+        dinf_model = getattr(user_module, "dinf_model", None)
+        if dinf_model is None:
+            raise AttributeError(f"{filename}: variable 'dinf_model' not found")
+        if not isinstance(dinf_model, DinfModel):
+            raise TypeError(f"{filename}: dinf_model is not a dinf.DinfModel object")
+        dinf_model._filename = filename
+        return dinf_model

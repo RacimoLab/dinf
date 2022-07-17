@@ -20,7 +20,7 @@ produce data closely resembling some target empirical dataset.
 In the diagram below, the rectangles represent the major components of
 a Dinf model, and the arrows indicate the flow of data.
 
-![Dinf model diagram](genobuilder.svg)
+![Dinf model diagram](dinf_model.svg)
 
 - $\theta$ are the model parameters,
   such as population sizes, split times, or migration rates.
@@ -37,14 +37,14 @@ a Dinf model, and the arrows indicate the flow of data.
   a given input feature is from the target distribution.
 
 A Dinf model is organised as a Python script (a `.py` file)
-containing a `genobuilder` variable,
-which must be an instance of the {class}`.Genobuilder` class.
+containing a `dinf_model` variable,
+which must be an instance of the {class}`.DinfModel` class.
 This object describes various components of the model.
 
 ```python
 import dinf
 
-genobuilder = dinf.Genobuilder(
+dinf_model = dinf.DinfModel(
     parameters=parameters,
     feature_shape=features.shape,
     generator_func=generator,
@@ -64,7 +64,7 @@ It's not necessary to specify the architecture of the discriminator.
 In this example, we'll have two inferrable parameters,
 `N0` and `N1`, which correspond to the population sizes of a
 deme before and after a bottleneck.
-{attr}`.Genobuilder.parameters` are defined via the {class}`.Parameters` class,
+{attr}`.DinfModel.parameters` are defined via the {class}`.Parameters` class,
 whose constructor accepts named {class}`.Param` instances by keyword.
 Each keyword is the name of a parameter (`N0` and `N1` in the code below)
 and each parameter has a lower bound (`low`) and an upper bound (`high`).
@@ -124,11 +124,11 @@ multidimensional arrays (or a collection of multidimensional arrays,
 when modelling multiple populations), where the feature shape is a tuple of
 array dimensions of the feature.
 The `features` object defined above has a `shape` property that can used for the
-{attr}`.Genobuilder.feature_shape`.
+{attr}`.DinfModel.feature_shape`.
 
 ### Genetic simulator
 
-{attr}`.Genobuilder.generator_func` is a user-defined function that produces data
+{attr}`.DinfModel.generator_func` is a user-defined function that produces data
 features matching the `feature_shape`.
 The function accepts a single positional argument `seed`,
 followed by one keyword argument for each inferrable parameter.
@@ -212,7 +212,7 @@ and testing.
 
 ## Target
 
-When defining the {class}`.Genobuilder` object above,
+When defining the {class}`.DinfModel` object above,
 we set `target_func=None`. This means that Dinf will reuse the
 generator function to create the target dataset. When simulating the
 target dataset, the `truth` values specified for the parameters

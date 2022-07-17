@@ -131,7 +131,7 @@ def target(seed):
     return labelled_matrices
 
 
-genobuilder = dinf.Genobuilder(
+dinf_model = dinf.DinfModel(
     target_func=target,
     generator_func=generator,
     parameters=parameters,
