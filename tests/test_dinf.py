@@ -36,6 +36,7 @@ def check_npz(
         assert data.shape == (draws,)
     else:
         assert data.shape == (draws, chains)
+    return data
 
 
 @pytest.mark.usefixtures("tmp_path")

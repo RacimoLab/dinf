@@ -1,8 +1,8 @@
 from __future__ import annotations
 import argparse
+import inspect
 import os
 import pathlib
-import textwrap
 
 import dinf
 
@@ -31,96 +31,12 @@ def check_output_file(path):
     path.unlink()
 
 
-def _add_common_parser_group(parser):
-    group = parser.add_argument_group(title="common arguments")
-    group.add_argument(
-        "-S",
-        "--seed",
-        type=int,
-        help=(
-            "Seed for the random number generator. "
-            "CPU-based training is expected to produce deterministic results. "
-            "Results may differ between CPU and GPU trained networks for the "
-            "same seed value. Also note that operations on a GPU are not "
-            "fully determinstic, so training or applying a neural network "
-            "twice with the same seed value will not produce identical results."
-        ),
-    )
-    group.add_argument(
-        "-j",
-        "--parallelism",
-        type=int,
-        help=(
-            "Number of processes to use for parallelising calls to the "
-            "Genobuilder's generator_func and target_func. "
-            "If not specified, all CPU cores will be used. "
-            "The number of cores used for CPU-based neural networks "
-            "is not set with this parameter---instead use the"
-            "`taskset` command. See "
-            "https://github.com/google/jax/issues/1539"
-        ),
-    )
-
-
-def _add_train_parser_group(parser):
-    group = parser.add_argument_group(title="training arguments")
-    group.add_argument(
-        "-r",
-        "--training-replicates",
-        type=int,
-        default=1000,
-        help=("Size of the dataset used to train the discriminator."),
-    )
-    group.add_argument(
-        "-R",
-        "--test-replicates",
-        type=int,
-        default=1000,
-        help=(
-            "Size of the test dataset used to evaluate the discriminator "
-            "after each training epoch."
-        ),
-    )
-    group.add_argument(
-        "-e",
-        "--epochs",
-        type=int,
-        default=1,
-        help=(
-            "Number of full passes over the training dataset when training "
-            "the discriminator."
-        ),
-    )
-
-
 _GENOB_MODEL_HELP = (
     'Python script from which to import the variable "genobuilder". '
     "This is a dinf.Genobuilder object that describes the GAN. "
     "See the examples/ folder of the git repository for example models. "
     "https://github.com/RacimoLab/dinf"
 )
-
-
-def _add_gan_parser_group(parser):
-    group = parser.add_argument_group(title="GAN arguments")
-    group.add_argument(
-        "-i", "--iterations", type=int, default=1, help="Number of GAN iterations."
-    )
-    group.add_argument(
-        "-d",
-        "--working-directory",
-        type=str,
-        help=(
-            "Folder to output results. If not specified, the current "
-            "directory will be used."
-        ),
-    )
-    group.add_argument(
-        "genob_model",
-        metavar="model.py",
-        type=pathlib.Path,
-        help=_GENOB_MODEL_HELP,
-    )
 
 
 class ADRDFormatter(
@@ -130,7 +46,104 @@ class ADRDFormatter(
     pass
 
 
-class AbcGan:
+class _SubCommand:
+    """
+    Base class for subcommands.
+    """
+
+    def __init__(self, subparsers, command):
+        docstring = inspect.getdoc(self)
+        self.parser = subparsers.add_parser(
+            command,
+            help=docstring.splitlines()[0],
+            description=docstring,
+            formatter_class=ADRDFormatter,
+        )
+        self.parser.set_defaults(func=self)
+
+    def add_common_parser_group(self):
+        group = self.parser.add_argument_group(title="common arguments")
+        group.add_argument(
+            "-S",
+            "--seed",
+            type=int,
+            help=(
+                "Seed for the random number generator. "
+                "CPU-based training is expected to produce deterministic results. "
+                "Results may differ between CPU and GPU trained networks for the "
+                "same seed value. Also note that operations on a GPU are not "
+                "fully determinstic, so training or applying a neural network "
+                "twice with the same seed value will not produce identical results."
+            ),
+        )
+        group.add_argument(
+            "-j",
+            "--parallelism",
+            type=int,
+            help=(
+                "Number of processes to use for parallelising calls to the "
+                "Genobuilder's generator_func and target_func. "
+                "If not specified, all CPU cores will be used. "
+                "The number of cores used for CPU-based neural networks "
+                "is not set with this parameter---instead use the"
+                "`taskset` command. See "
+                "https://github.com/google/jax/issues/1539"
+            ),
+        )
+
+    def add_train_parser_group(self):
+        group = self.parser.add_argument_group(title="training arguments")
+        group.add_argument(
+            "-r",
+            "--training-replicates",
+            type=int,
+            default=1000,
+            help=("Size of the dataset used to train the discriminator."),
+        )
+        group.add_argument(
+            "-R",
+            "--test-replicates",
+            type=int,
+            default=1000,
+            help=(
+                "Size of the test dataset used to evaluate the discriminator "
+                "after each training epoch."
+            ),
+        )
+        group.add_argument(
+            "-e",
+            "--epochs",
+            type=int,
+            default=1,
+            help=(
+                "Number of full passes over the training dataset when training "
+                "the discriminator."
+            ),
+        )
+
+    def add_gan_parser_group(self):
+        group = self.parser.add_argument_group(title="GAN arguments")
+        group.add_argument(
+            "-i", "--iterations", type=int, default=1, help="Number of GAN iterations."
+        )
+        group.add_argument(
+            "-d",
+            "--working-directory",
+            type=str,
+            help=(
+                "Folder to output results. If not specified, the current "
+                "directory will be used."
+            ),
+        )
+        group.add_argument(
+            "genob_model",
+            metavar="model.py",
+            type=pathlib.Path,
+            help=_GENOB_MODEL_HELP,
+        )
+
+
+class AbcGan(_SubCommand):
     """
     Run the ABC GAN.
 
@@ -146,18 +159,12 @@ class AbcGan:
     """
 
     def __init__(self, subparsers):
-        parser = subparsers.add_parser(
-            "abc-gan",
-            help="Run the ABC GAN",
-            description=textwrap.dedent(self.__doc__),
-            formatter_class=ADRDFormatter,
-        )
-        parser.set_defaults(func=self)
+        super().__init__(subparsers, "abc-gan")
 
-        _add_common_parser_group(parser)
-        _add_train_parser_group(parser)
+        self.add_common_parser_group()
+        self.add_train_parser_group()
 
-        group = parser.add_argument_group("ABC arguments")
+        group = self.parser.add_argument_group("ABC arguments")
         group.add_argument(
             "-p",
             "--proposals",
@@ -173,7 +180,7 @@ class AbcGan:
             help="Number of top-ranked ABC sample draws to keep.",
         )
 
-        _add_gan_parser_group(parser)
+        self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
@@ -191,7 +198,7 @@ class AbcGan:
         )
 
 
-class AlfiMcmcGan:
+class AlfiMcmcGan(_SubCommand):
     """
     Run the ALFI MCMC GAN.
 
@@ -200,18 +207,12 @@ class AlfiMcmcGan:
     """
 
     def __init__(self, subparsers):
-        parser = subparsers.add_parser(
-            "alfi-mcmc-gan",
-            help="Run the ALFI MCMC GAN",
-            description=textwrap.dedent(self.__doc__),
-            formatter_class=ADRDFormatter,
-        )
-        parser.set_defaults(func=self)
+        super().__init__(subparsers, "alfi-mcmc-gan")
 
-        _add_common_parser_group(parser)
-        _add_train_parser_group(parser)
+        self.add_common_parser_group()
+        self.add_train_parser_group()
 
-        group = parser.add_argument_group("MCMC arguments")
+        group = self.parser.add_argument_group("MCMC arguments")
         group.add_argument(
             "-w",
             "--walkers",
@@ -227,7 +228,7 @@ class AlfiMcmcGan:
             help="The chain length for each MCMC walker.",
         )
 
-        _add_gan_parser_group(parser)
+        self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
@@ -245,7 +246,7 @@ class AlfiMcmcGan:
         )
 
 
-class McmcGan:
+class McmcGan(_SubCommand):
     """
     Run the MCMC GAN.
 
@@ -261,18 +262,12 @@ class McmcGan:
     """
 
     def __init__(self, subparsers):
-        parser = subparsers.add_parser(
-            "mcmc-gan",
-            help="Run the MCMC GAN",
-            description=textwrap.dedent(self.__doc__),
-            formatter_class=ADRDFormatter,
-        )
-        parser.set_defaults(func=self)
+        super().__init__(subparsers, "mcmc-gan")
 
-        _add_common_parser_group(parser)
-        _add_train_parser_group(parser)
+        self.add_common_parser_group()
+        self.add_train_parser_group()
 
-        group = parser.add_argument_group("MCMC arguments")
+        group = self.parser.add_argument_group("MCMC arguments")
         group.add_argument(
             "-w",
             "--walkers",
@@ -294,7 +289,7 @@ class McmcGan:
             help="Number of generator replicates for approximating E[D(x)|θ].",
         )
 
-        _add_gan_parser_group(parser)
+        self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
@@ -313,24 +308,18 @@ class McmcGan:
         )
 
 
-class PgGan:
+class PgGan(_SubCommand):
     """
     Run PG-GAN style simulated annealing.
     """
 
     def __init__(self, subparsers):
-        parser = subparsers.add_parser(
-            "pg-gan",
-            help="Run PG-GAN style simulated annealing",
-            description=textwrap.dedent(self.__doc__),
-            formatter_class=ADRDFormatter,
-        )
-        parser.set_defaults(func=self)
+        super().__init__(subparsers, "pg-gan")
 
-        _add_common_parser_group(parser)
-        _add_train_parser_group(parser)
+        self.add_common_parser_group()
+        self.add_train_parser_group()
 
-        group = parser.add_argument_group("PG-GAN arguments")
+        group = self.parser.add_argument_group("PG-GAN arguments")
         group.add_argument(
             "--Dx-replicates",
             type=int,
@@ -350,7 +339,7 @@ class PgGan:
             help="Maximum number of pretraining rounds.",
         )
 
-        _add_gan_parser_group(parser)
+        self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
         genobuilder = dinf.Genobuilder.from_file(args.genob_model)
@@ -369,24 +358,18 @@ class PgGan:
         )
 
 
-class Train:
+class Train(_SubCommand):
     """
     Train a discriminator.
     """
 
     def __init__(self, subparsers):
-        parser = subparsers.add_parser(
-            "train",
-            help="Train a discriminator",
-            description=textwrap.dedent(self.__doc__),
-            formatter_class=ADRDFormatter,
-        )
-        parser.set_defaults(func=self)
+        super().__init__(subparsers, "train")
 
-        _add_common_parser_group(parser)
-        _add_train_parser_group(parser)
+        self.add_common_parser_group()
+        self.add_train_parser_group()
 
-        group = parser.add_argument_group()
+        group = self.parser.add_argument_group()
         group.add_argument(
             "genob_model",
             metavar="model.py",
@@ -416,23 +399,21 @@ class Train:
             discriminator.to_file(args.discriminator_file)
 
 
-class Predict:
+class Predict(_SubCommand):
     """
-    Predict.
+    Make predictions using a trained discriminator.
+
+    By default, features will be obtained by sampling replicates from
+    the generator (using parameters from the prior distribution).
+    To instead sample features from the target dataset, use the
+    --target option.
     """
 
     def __init__(self, subparsers):
-        parser = subparsers.add_parser(
-            "predict",
-            help="Predict",
-            description=textwrap.dedent(self.__doc__),
-            formatter_class=ADRDFormatter,
-        )
-        parser.set_defaults(func=self)
+        super().__init__(subparsers, "predict")
+        self.add_common_parser_group()
 
-        _add_common_parser_group(parser)
-
-        group = parser.add_argument_group(title="predict arguments")
+        group = self.parser.add_argument_group(title="predict arguments")
         group.add_argument(
             "-r",
             "--replicates",
@@ -444,7 +425,13 @@ class Predict:
             ),
         )
 
-        group = parser.add_argument_group()
+        self.parser.add_argument(
+            "--target",
+            action="store_true",
+            help="Sample features from the target dataset.",
+        )
+
+        group = self.parser.add_argument_group()
         group.add_argument(
             "genob_model",
             metavar="model.py",
@@ -474,6 +461,7 @@ class Predict:
             discriminator=discriminator,
             genobuilder=genobuilder,
             replicates=args.replicates,
+            sample_target=args.target,
             parallelism=args.parallelism,
             seed=args.seed,
         )
@@ -485,21 +473,18 @@ class Predict:
         )
 
 
-class Check:
+class Check(_SubCommand):
     """
-    Check a genobuilder object by calling the target and generator functions.
+    Basic genobuilder health checks.
+
+    Checks that the target and generator functions work and return the
+    same feature shapes.
     """
 
     def __init__(self, subparsers):
-        parser = subparsers.add_parser(
-            "check",
-            help="Basic genobuilder health checks",
-            description=textwrap.dedent(self.__doc__),
-            formatter_class=ADRDFormatter,
-        )
-        parser.set_defaults(func=self)
+        super().__init__(subparsers, "check")
 
-        parser.add_argument(
+        self.parser.add_argument(
             "genob_model",
             metavar="model.py",
             type=pathlib.Path,
@@ -519,16 +504,16 @@ def main(args_list=None):
     top_parser.add_argument("--version", action="version", version=dinf.__version__)
 
     subparsers = top_parser.add_subparsers(
-        dest="subcommand", metavar="{check,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan}"
+        dest="subcommand",  # metavar="{check,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan}"
     )
     Check(subparsers)
+    Train(subparsers)
+    Predict(subparsers)
+
     AbcGan(subparsers)
     AlfiMcmcGan(subparsers)
     McmcGan(subparsers)
     PgGan(subparsers)
-
-    Predict(subparsers)
-    Train(subparsers)
 
     args = top_parser.parse_args(args_list)
     if args.subcommand is None:
