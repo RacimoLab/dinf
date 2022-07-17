@@ -624,10 +624,10 @@ class _Demes(_SubCommand):
         self.add_argument_genob_model()
 
     def __call__(self, args: argparse.Namespace):
-        parameters = dinf.Genobuilder.from_file(args.genob_model).parameters
+        parameters = dinf.DinfModel.from_file(args.genob_model).parameters
 
         # _dinf_user_module is the name given to the args.genob_model module in
-        # Genobuilder.from_file(), which gets cached in sys.modules.
+        # DinfModel.from_file(), which gets cached in sys.modules.
         # As a side-effect, we can now import it with this name to look for
         # a demography function.
         import _dinf_user_module  # type: ignore
@@ -643,7 +643,7 @@ class _Demes(_SubCommand):
         sig = inspect.signature(demography)
         if inspect.Parameter.VAR_KEYWORD in {v.kind for v in sig.parameters.values()}:
             # The function uses **kwargs, so we don't know what parameters
-            # it expects. Just guess and pass all the genobuilder.parameters.
+            # it expects. Just guess and pass all the dinf_model.parameters.
             demog_params = set(parameters)
         else:
             demog_params = set(sig.parameters)
@@ -687,15 +687,15 @@ class _Features(_SubCommand):
         self.add_argument_genob_model()
 
     def __call__(self, args: argparse.Namespace):
-        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.genob_model)
 
         if args.target:
-            assert genobuilder.target_func is not None
-            mats = genobuilder.target_func(args.seed)
+            assert dinf_model.target_func is not None
+            mats = dinf_model.target_func(args.seed)
         else:
             rng = np.random.default_rng(args.seed)
-            thetas = genobuilder.parameters.draw_prior(1, rng=rng)
-            mats = genobuilder.generator_func(
+            thetas = dinf_model.parameters.draw_prior(1, rng=rng)
+            mats = dinf_model.generator_func(
                 (rng.integers(low=0, high=2**31), thetas[0])
             )
 
@@ -799,7 +799,7 @@ class _Hist2d(_SubCommand):
     def __call__(self, args: argparse.Namespace):
         parameters = None
         if args.model is not None:
-            parameters = dinf.Genobuilder.from_file(args.model).parameters
+            parameters = dinf.DinfModel.from_file(args.model).parameters
 
         datasets = self.get_abc_datasets(args)
         assert len(datasets) == 1
@@ -932,7 +932,7 @@ class _Hist(_SubCommand):
     def __call__(self, args: argparse.Namespace):
         parameters = None
         if args.model is not None:
-            parameters = dinf.Genobuilder.from_file(args.model).parameters
+            parameters = dinf.DinfModel.from_file(args.model).parameters
         datasets = self.get_abc_datasets(args)
 
         if args.x_param is None:

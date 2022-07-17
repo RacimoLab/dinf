@@ -64,7 +64,7 @@ def generator(seed, *, N0, N1):
     return feature_matrix
 
 
-genobuilder = dinf.Genobuilder(
+dinf_model = dinf.DinfModel(
     target_func=None,
     generator_func=generator,
     parameters=parameters,

@@ -31,9 +31,9 @@ for how to write a model file.
 
 ## Dinf model files
 
-When Dinf reads a model file (a `.py` file), it looks for a `genobuilder`
-variable which must be an instance of the {class}`.Genobuilder` class.
-The genobuilder contains all the information needed to train a discriminator
+When Dinf reads a model file (a `.py` file), it looks for a `dinf_model`
+variable which must be an instance of the {class}`.DinfModel` class.
+This object contains all the information needed to train a discriminator
 network.
 
 ## Checking a model file

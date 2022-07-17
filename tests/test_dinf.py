@@ -14,13 +14,13 @@ import dinf
 import examples.bottleneck.model  # type: ignore[import]
 
 
-def get_genobuilder():
-    return copy.deepcopy(examples.bottleneck.model.genobuilder)
+def get_dinf_model():
+    return copy.deepcopy(examples.bottleneck.model.dinf_model)
 
 
-def check_discriminator(filename: str | pathlib.Path, genobuilder: dinf.Genobuilder):
+def check_discriminator(filename: str | pathlib.Path, dinf_model: dinf.DinfModel):
     dinf.Discriminator(
-        genobuilder.feature_shape, network=genobuilder.discriminator_network
+        dinf_model.feature_shape, network=dinf_model.discriminator_network
     ).from_file(filename)
 
 
@@ -41,10 +41,10 @@ def check_npz(
 
 @pytest.mark.usefixtures("tmp_path")
 def test_abc_gan(tmp_path):
-    genobuilder = get_genobuilder()
+    dinf_model = get_dinf_model()
     working_directory = tmp_path / "work_dir"
     dinf.dinf.abc_gan(
-        genobuilder=genobuilder,
+        dinf_model=dinf_model,
         iterations=2,
         training_replicates=16,
         test_replicates=0,
@@ -57,20 +57,18 @@ def test_abc_gan(tmp_path):
     )
     assert working_directory.exists()
     for i in range(2):
-        check_discriminator(
-            working_directory / f"{i}" / "discriminator.nn", genobuilder
-        )
+        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
             working_directory / f"{i}" / "abc.npz",
             chains=1,
             draws=7,
-            parameters=genobuilder.parameters,
+            parameters=dinf_model.parameters,
         )
 
     # resume
     os.chdir(working_directory)
     dinf.dinf.abc_gan(
-        genobuilder=genobuilder,
+        dinf_model=dinf_model,
         iterations=1,
         training_replicates=16,
         test_replicates=2,
@@ -80,21 +78,19 @@ def test_abc_gan(tmp_path):
         seed=2,
     )
     for i in range(3):
-        check_discriminator(
-            working_directory / f"{i}" / "discriminator.nn", genobuilder
-        )
+        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
             working_directory / f"{i}" / "abc.npz",
             chains=1,
             draws=7,
-            parameters=genobuilder.parameters,
+            parameters=dinf_model.parameters,
         )
 
     with pytest.raises(
         ValueError, match="Cannot subsample .* posteriors from .* proposals"
     ):
         dinf.dinf.abc_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=2,
             training_replicates=16,
             test_replicates=0,
@@ -114,7 +110,7 @@ def test_abc_gan(tmp_path):
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
             dinf.dinf.abc_gan(
-                genobuilder=genobuilder,
+                dinf_model=dinf_model,
                 iterations=2,
                 training_replicates=16,
                 test_replicates=0,
@@ -130,10 +126,10 @@ def test_abc_gan(tmp_path):
 
 @pytest.mark.usefixtures("tmp_path")
 def test_mcmc_gan(tmp_path):
-    genobuilder = get_genobuilder()
+    dinf_model = get_dinf_model()
     working_directory = tmp_path / "workdir"
     dinf.mcmc_gan(
-        genobuilder=genobuilder,
+        dinf_model=dinf_model,
         iterations=2,
         training_replicates=10,
         test_replicates=0,
@@ -147,20 +143,18 @@ def test_mcmc_gan(tmp_path):
     )
     assert working_directory.exists()
     for i in range(2):
-        check_discriminator(
-            working_directory / f"{i}" / "discriminator.nn", genobuilder
-        )
+        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
             working_directory / f"{i}" / "mcmc.npz",
             chains=6,
             draws=1,
-            parameters=genobuilder.parameters,
+            parameters=dinf_model.parameters,
         )
 
     # resume
     os.chdir(working_directory)
     dinf.mcmc_gan(
-        genobuilder=genobuilder,
+        dinf_model=dinf_model,
         iterations=1,
         training_replicates=10,
         test_replicates=2,
@@ -171,19 +165,17 @@ def test_mcmc_gan(tmp_path):
         seed=2,
     )
     for i in range(3):
-        check_discriminator(
-            working_directory / f"{i}" / "discriminator.nn", genobuilder
-        )
+        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
             working_directory / f"{i}" / "mcmc.npz",
             chains=6,
             draws=1,
-            parameters=genobuilder.parameters,
+            parameters=dinf_model.parameters,
         )
 
     with pytest.raises(ValueError, match="resuming from .* which used .* walkers"):
         dinf.mcmc_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=2,
             training_replicates=10,
             test_replicates=0,
@@ -198,7 +190,7 @@ def test_mcmc_gan(tmp_path):
 
     with pytest.raises(ValueError, match="Insufficient MCMC samples"):
         dinf.mcmc_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=2,
             training_replicates=100,
             test_replicates=0,
@@ -219,7 +211,7 @@ def test_mcmc_gan(tmp_path):
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
             dinf.mcmc_gan(
-                genobuilder=genobuilder,
+                dinf_model=dinf_model,
                 iterations=2,
                 training_replicates=10,
                 test_replicates=0,
@@ -236,11 +228,11 @@ def test_mcmc_gan(tmp_path):
 
 @pytest.mark.usefixtures("tmp_path")
 def test_alfi_mcmc_gan(tmp_path):
-    genobuilder = get_genobuilder()
+    dinf_model = get_dinf_model()
     working_directory = tmp_path / "workdir"
     steps = 1
     dinf.alfi_mcmc_gan(
-        genobuilder=genobuilder,
+        dinf_model=dinf_model,
         iterations=2,
         training_replicates=10,
         test_replicates=0,
@@ -253,20 +245,18 @@ def test_alfi_mcmc_gan(tmp_path):
     )
     assert working_directory.exists()
     for i in range(2):
-        check_discriminator(
-            working_directory / f"{i}" / "discriminator.nn", genobuilder
-        )
+        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
             working_directory / f"{i}" / "mcmc.npz",
             chains=6,
             draws=2 * steps,
-            parameters=genobuilder.parameters,
+            parameters=dinf_model.parameters,
         )
 
     # resume
     os.chdir(working_directory)
     dinf.alfi_mcmc_gan(
-        genobuilder=genobuilder,
+        dinf_model=dinf_model,
         iterations=1,
         training_replicates=4,
         test_replicates=4,
@@ -276,19 +266,17 @@ def test_alfi_mcmc_gan(tmp_path):
         seed=2,
     )
     for i in range(3):
-        check_discriminator(
-            working_directory / f"{i}" / "discriminator.nn", genobuilder
-        )
+        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
             working_directory / f"{i}" / "mcmc.npz",
             chains=6,
             draws=2 * steps,
-            parameters=genobuilder.parameters,
+            parameters=dinf_model.parameters,
         )
 
     with pytest.raises(ValueError, match="resuming from .* which used .* walkers"):
         dinf.alfi_mcmc_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=2,
             training_replicates=10,
             test_replicates=0,
@@ -302,7 +290,7 @@ def test_alfi_mcmc_gan(tmp_path):
 
     with pytest.raises(ValueError, match="Insufficient MCMC samples"):
         dinf.alfi_mcmc_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=2,
             training_replicates=100,
             test_replicates=0,
@@ -323,7 +311,7 @@ def test_alfi_mcmc_gan(tmp_path):
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
             dinf.alfi_mcmc_gan(
-                genobuilder=genobuilder,
+                dinf_model=dinf_model,
                 iterations=2,
                 training_replicates=10,
                 test_replicates=0,
@@ -339,12 +327,12 @@ def test_alfi_mcmc_gan(tmp_path):
 
 @pytest.mark.usefixtures("tmp_path")
 def test_pg_gan(tmp_path):
-    genobuilder = get_genobuilder()
-    num_params = len(genobuilder.parameters)
+    dinf_model = get_dinf_model()
+    num_params = len(dinf_model.parameters)
     num_proposals = 2
     working_directory = tmp_path / "workdir"
     dinf.pg_gan(
-        genobuilder=genobuilder,
+        dinf_model=dinf_model,
         iterations=2,
         training_replicates=10,
         test_replicates=0,
@@ -358,20 +346,18 @@ def test_pg_gan(tmp_path):
     )
     assert working_directory.exists()
     for i in range(2):
-        check_discriminator(
-            working_directory / f"{i}" / "discriminator.nn", genobuilder
-        )
+        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
             working_directory / f"{i}" / "pg-gan-proposals.npz",
             chains=1,
             draws=num_params * num_proposals + 1,
-            parameters=genobuilder.parameters,
+            parameters=dinf_model.parameters,
         )
 
     # resume
     os.chdir(working_directory)
     dinf.pg_gan(
-        genobuilder=genobuilder,
+        dinf_model=dinf_model,
         iterations=1,
         training_replicates=10,
         test_replicates=2,
@@ -381,14 +367,12 @@ def test_pg_gan(tmp_path):
         seed=2,
     )
     for i in range(3):
-        check_discriminator(
-            working_directory / f"{i}" / "discriminator.nn", genobuilder
-        )
+        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
             working_directory / f"{i}" / "pg-gan-proposals.npz",
             chains=1,
             draws=num_params * num_proposals + 1,
-            parameters=genobuilder.parameters,
+            parameters=dinf_model.parameters,
         )
 
     backup = working_directory / "bak"
@@ -399,7 +383,7 @@ def test_pg_gan(tmp_path):
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
             dinf.pg_gan(
-                genobuilder=genobuilder,
+                dinf_model=dinf_model,
                 iterations=2,
                 training_replicates=10,
                 test_replicates=0,
@@ -415,7 +399,7 @@ def test_pg_gan(tmp_path):
     # TODO: check the right pretraining function is called.
     for pretraining_method in ("pg-gan", "dinf"):
         dinf.pg_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=0,
             training_replicates=10,
             test_replicates=0,
@@ -430,7 +414,7 @@ def test_pg_gan(tmp_path):
         )
     with pytest.raises(ValueError, match="pretraining_method"):
         dinf.pg_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=0,
             training_replicates=10,
             test_replicates=0,
@@ -447,7 +431,7 @@ def test_pg_gan(tmp_path):
     # TODO: check the right proposals function is called.
     for proposals_method in ("pg-gan", "rr", "mvn"):
         dinf.pg_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=1,
             training_replicates=10,
             test_replicates=0,
@@ -461,7 +445,7 @@ def test_pg_gan(tmp_path):
         )
     with pytest.raises(ValueError, match="proposals_method"):
         dinf.pg_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=1,
             training_replicates=10,
             test_replicates=0,
@@ -486,56 +470,56 @@ def elementwise_allclose(array):
         return True
 
 
-def check_proposals(proposal_thetas, theta, genobuilder, num_proposals):
-    num_params = len(genobuilder.parameters)
+def check_proposals(proposal_thetas, theta, dinf_model, num_proposals):
+    num_params = len(dinf_model.parameters)
     assert proposal_thetas.shape == (num_proposals * num_params + 1, num_params)
     np.testing.assert_array_equal(theta, proposal_thetas[0])
-    for i, p in enumerate(genobuilder.parameters.values()):
+    for i, p in enumerate(dinf_model.parameters.values()):
         # All proposals should be within the bounds.
         assert np.all(p.bounds_contain(proposal_thetas[:, i]))
 
 
 def test_sanneal_proposals_pg_gan():
     rng = np.random.default_rng(4321)
-    genobuilder = get_genobuilder()
+    dinf_model = get_dinf_model()
     num_proposals = 10
 
     for i in range(100):
-        theta = genobuilder.parameters.draw_prior(1, rng=rng)[0]
+        theta = dinf_model.parameters.draw_prior(1, rng=rng)[0]
         proposal_thetas = dinf.dinf.sanneal_proposals_pg_gan(
             theta=theta,
             temperature=1,
             num_proposals=num_proposals,
-            parameters=genobuilder.parameters,
+            parameters=dinf_model.parameters,
             proposal_stddev=1 / 15,
             rng=rng,
         )
-        check_proposals(proposal_thetas, theta, genobuilder, num_proposals)
-        for i, p in enumerate(genobuilder.parameters.values()):
+        check_proposals(proposal_thetas, theta, dinf_model, num_proposals)
+        for i, p in enumerate(dinf_model.parameters.values()):
             assert not elementwise_allclose(proposal_thetas[:, i])
 
 
 def test_sanneal_proposals_rr():
     rng = np.random.default_rng(4321)
-    genobuilder = get_genobuilder()
+    dinf_model = get_dinf_model()
     num_proposals = 10
-    num_params = len(genobuilder.parameters)
+    num_params = len(dinf_model.parameters)
 
     iteration = itertools.count()
     for i in range(100):
-        theta = genobuilder.parameters.draw_prior(1, rng=rng)[0]
+        theta = dinf_model.parameters.draw_prior(1, rng=rng)[0]
         proposal_thetas = dinf.dinf.sanneal_proposals_rr(
             theta=theta,
             temperature=1,
             num_proposals=num_proposals,
-            parameters=genobuilder.parameters,
+            parameters=dinf_model.parameters,
             proposal_stddev=1 / 15,
             rng=rng,
             iteration=iteration,
         )
-        check_proposals(proposal_thetas, theta, genobuilder, num_proposals)
+        check_proposals(proposal_thetas, theta, dinf_model, num_proposals)
 
-        for j, p in enumerate(genobuilder.parameters.values()):
+        for j, p in enumerate(dinf_model.parameters.values()):
             # Check that all proposals are for only one parameter.
             if j == i % num_params:
                 assert not elementwise_allclose(proposal_thetas[:, j]), (i, j)
@@ -545,21 +529,21 @@ def test_sanneal_proposals_rr():
 
 def test_sanneal_proposals_mvn():
     rng = np.random.default_rng(4321)
-    genobuilder = get_genobuilder()
+    dinf_model = get_dinf_model()
     num_proposals = 10
 
     for i in range(100):
-        theta = genobuilder.parameters.draw_prior(1, rng=rng)[0]
+        theta = dinf_model.parameters.draw_prior(1, rng=rng)[0]
         proposal_thetas = dinf.dinf.sanneal_proposals_mvn(
             theta=theta,
             temperature=1,
             num_proposals=num_proposals,
-            parameters=genobuilder.parameters,
+            parameters=dinf_model.parameters,
             proposal_stddev=1 / 15,
             rng=rng,
         )
-        check_proposals(proposal_thetas, theta, genobuilder, num_proposals)
-        for i, p in enumerate(genobuilder.parameters.values()):
+        check_proposals(proposal_thetas, theta, dinf_model, num_proposals)
+        for i, p in enumerate(dinf_model.parameters.values()):
             assert not elementwise_allclose(proposal_thetas[:, i])
 
 
@@ -598,14 +582,14 @@ def log_prob(
 class TestLogProb:
     @classmethod
     def setup_class(cls):
-        cls.genobuilder = get_genobuilder()
+        cls.dinf_model = get_dinf_model()
         rng = np.random.default_rng(111)
-        cls.discriminator = dinf.Discriminator(cls.genobuilder.feature_shape).init(rng)
-        training_thetas = cls.genobuilder.parameters.draw_prior(100, rng=rng)
-        test_thetas = cls.genobuilder.parameters.draw_prior(0, rng=rng)
+        cls.discriminator = dinf.Discriminator(cls.dinf_model.feature_shape).init(rng)
+        training_thetas = cls.dinf_model.parameters.draw_prior(100, rng=rng)
+        test_thetas = cls.dinf_model.parameters.draw_prior(0, rng=rng)
         dinf.dinf._train_discriminator(
             discriminator=cls.discriminator,
-            genobuilder=cls.genobuilder,
+            dinf_model=cls.dinf_model,
             training_thetas=training_thetas,
             test_thetas=test_thetas,
             epochs=1,
@@ -618,8 +602,8 @@ class TestLogProb:
         log_prob_1 = functools.partial(
             log_prob,
             discriminator=self.discriminator,
-            generator=self.genobuilder.generator_func,
-            parameters=self.genobuilder.parameters,
+            generator=self.dinf_model.generator_func,
+            parameters=self.dinf_model.parameters,
             rng=np.random.default_rng(1),
             num_replicates=2,
             parallelism=1,
@@ -628,14 +612,14 @@ class TestLogProb:
         log_prob_n = functools.partial(
             dinf.dinf._log_prob,
             discriminator=self.discriminator,
-            generator=self.genobuilder.generator_func,
-            parameters=self.genobuilder.parameters,
+            generator=self.dinf_model.generator_func,
+            parameters=self.dinf_model.parameters,
             rng=np.random.default_rng(1),
             num_replicates=2,
             parallelism=1,
         )
 
-        parameters = tuple(self.genobuilder.parameters.values())
+        parameters = tuple(self.dinf_model.parameters.values())
         true_params = [p.truth for p in parameters]
         thetas = np.array(
             [
@@ -660,7 +644,7 @@ class TestLogProb:
             assert np.isclose(log_D_1, log_D[j])
 
         # Random thetas.
-        thetas = self.genobuilder.parameters.draw_prior(
+        thetas = self.dinf_model.parameters.draw_prior(
             20, rng=np.random.default_rng(123)
         )
         log_D = log_prob_n(thetas)

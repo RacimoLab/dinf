@@ -46,7 +46,7 @@ from .feature_extractor import (
     BinnedHaplotypeMatrix,
     MultipleBinnedHaplotypeMatrices,
 )
-from .genobuilder import Genobuilder
+from .dinf_model import DinfModel
 from .parameters import Param, Parameters
 from .store import Store
 from .vcf import BagOfVcf, get_contig_lengths, get_samples_from_1kgp_metadata
@@ -60,7 +60,7 @@ __all__ = [
     "ExchangeablePGGAN",
     "MultipleBinnedHaplotypeMatrices",
     "MultipleHaplotypeMatrices",
-    "Genobuilder",
+    "DinfModel",
     "HaplotypeMatrix",
     "Param",
     "Parameters",

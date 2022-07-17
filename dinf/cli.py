@@ -32,8 +32,8 @@ def check_output_file(path):
 
 
 _GENOB_MODEL_HELP = (
-    'Python script from which to import the variable "genobuilder". '
-    "This is a dinf.Genobuilder object that describes the GAN. "
+    'Python script from which to import the variable "dinf_model". '
+    "This is a dinf.DinfModel object that describes the GAN. "
     "See the examples/ folder of the git repository for example models. "
     "https://github.com/RacimoLab/dinf"
 )
@@ -82,7 +82,7 @@ class _SubCommand:
             type=int,
             help=(
                 "Number of processes to use for parallelising calls to the "
-                "Genobuilder's generator_func and target_func. "
+                "DinfModel's generator_func and target_func. "
                 "If not specified, all CPU cores will be used. "
                 "The number of cores used for CPU-based neural networks "
                 "is not set with this parameter---instead use the"
@@ -183,9 +183,9 @@ class AbcGan(_SubCommand):
         self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
-        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.genob_model)
         dinf.dinf.abc_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=args.iterations,
             training_replicates=args.training_replicates,
             test_replicates=args.test_replicates,
@@ -231,9 +231,9 @@ class AlfiMcmcGan(_SubCommand):
         self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
-        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.genob_model)
         dinf.alfi_mcmc_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=args.iterations,
             training_replicates=args.training_replicates,
             test_replicates=args.test_replicates,
@@ -292,9 +292,9 @@ class McmcGan(_SubCommand):
         self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
-        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.genob_model)
         dinf.mcmc_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=args.iterations,
             training_replicates=args.training_replicates,
             test_replicates=args.test_replicates,
@@ -342,9 +342,9 @@ class PgGan(_SubCommand):
         self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
-        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.genob_model)
         dinf.pg_gan(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             iterations=args.iterations,
             training_replicates=args.training_replicates,
             test_replicates=args.test_replicates,
@@ -384,11 +384,11 @@ class Train(_SubCommand):
         )
 
     def __call__(self, args: argparse.Namespace):
-        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.genob_model)
         if args.epochs > 0:
             check_output_file(args.discriminator_file)
         discriminator = dinf.train(
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             training_replicates=args.training_replicates,
             test_replicates=args.test_replicates,
             epochs=args.epochs,
@@ -452,14 +452,14 @@ class Predict(_SubCommand):
         )
 
     def __call__(self, args: argparse.Namespace):
-        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.genob_model)
         discriminator = dinf.Discriminator(
-            genobuilder.feature_shape, network=genobuilder.discriminator_network
+            dinf_model.feature_shape, network=dinf_model.discriminator_network
         ).from_file(args.discriminator_file)
         check_output_file(args.output_file)
         thetas, probs = dinf.predict(
             discriminator=discriminator,
-            genobuilder=genobuilder,
+            dinf_model=dinf_model,
             replicates=args.replicates,
             sample_target=args.target,
             parallelism=args.parallelism,
@@ -469,13 +469,13 @@ class Predict(_SubCommand):
             args.output_file,
             thetas=thetas,
             probs=probs,
-            parameters=genobuilder.parameters,
+            parameters=dinf_model.parameters,
         )
 
 
 class Check(_SubCommand):
     """
-    Basic genobuilder health checks.
+    Basic dinf_model health checks.
 
     Checks that the target and generator functions work and return the
     same feature shapes.
@@ -492,8 +492,8 @@ class Check(_SubCommand):
         )
 
     def __call__(self, args: argparse.Namespace):
-        genobuilder = dinf.Genobuilder.from_file(args.genob_model)
-        genobuilder.check()
+        dinf_model = dinf.DinfModel.from_file(args.genob_model)
+        dinf_model.check()
 
 
 def main(args_list=None):

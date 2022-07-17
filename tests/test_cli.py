@@ -115,16 +115,16 @@ class TestAbcGan:
             stderr=subprocess.PIPE,
         )
         assert working_directory.exists()
-        genobuilder = dinf.Genobuilder.from_file(ex)
+        dinf_model = dinf.DinfModel.from_file(ex)
         for i in range(2):
             check_discriminator(
-                working_directory / f"{i}" / "discriminator.nn", genobuilder
+                working_directory / f"{i}" / "discriminator.nn", dinf_model
             )
             check_npz(
                 working_directory / f"{i}" / "abc.npz",
                 chains=1,
                 draws=7,
-                parameters=genobuilder.parameters,
+                parameters=dinf_model.parameters,
             )
 
 
@@ -165,16 +165,16 @@ class TestAlfiMcmcGan:
             stderr=subprocess.PIPE,
         )
         assert working_directory.exists()
-        genobuilder = dinf.Genobuilder.from_file(ex)
+        dinf_model = dinf.DinfModel.from_file(ex)
         for i in range(2):
             check_discriminator(
-                working_directory / f"{i}" / "discriminator.nn", genobuilder
+                working_directory / f"{i}" / "discriminator.nn", dinf_model
             )
             check_npz(
                 working_directory / f"{i}" / "mcmc.npz",
                 chains=6,
                 draws=2,
-                parameters=genobuilder.parameters,
+                parameters=dinf_model.parameters,
             )
 
 
@@ -212,16 +212,16 @@ class TestMcmcGan:
             stderr=subprocess.PIPE,
         )
         assert working_directory.exists()
-        genobuilder = dinf.Genobuilder.from_file(ex)
+        dinf_model = dinf.DinfModel.from_file(ex)
         for i in range(2):
             check_discriminator(
-                working_directory / f"{i}" / "discriminator.nn", genobuilder
+                working_directory / f"{i}" / "discriminator.nn", dinf_model
             )
             check_npz(
                 working_directory / f"{i}" / "mcmc.npz",
                 chains=6,
                 draws=1,
-                parameters=genobuilder.parameters,
+                parameters=dinf_model.parameters,
             )
 
 
@@ -259,17 +259,17 @@ class TestPgGan:
             stderr=subprocess.PIPE,
         )
         assert working_directory.exists()
-        genobuilder = dinf.Genobuilder.from_file(ex)
-        num_parameters = len(genobuilder.parameters)
+        dinf_model = dinf.DinfModel.from_file(ex)
+        num_parameters = len(dinf_model.parameters)
         for i in range(2):
             check_discriminator(
-                working_directory / f"{i}" / "discriminator.nn", genobuilder
+                working_directory / f"{i}" / "discriminator.nn", dinf_model
             )
             check_npz(
                 working_directory / f"{i}" / "pg-gan-proposals.npz",
                 chains=1,
                 draws=num_parameters * num_proposals + 1,
-                parameters=genobuilder.parameters,
+                parameters=dinf_model.parameters,
             )
 
 
@@ -302,8 +302,8 @@ class TestTrain:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        genobuilder = dinf.Genobuilder.from_file(ex)
-        check_discriminator(discriminator_file, genobuilder)
+        dinf_model = dinf.DinfModel.from_file(ex)
+        check_discriminator(discriminator_file, dinf_model)
 
 
 class TestPredict:
@@ -336,8 +336,8 @@ class TestPredict:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        genobuilder = dinf.Genobuilder.from_file(ex)
-        check_discriminator(discriminator_file, genobuilder)
+        dinf_model = dinf.DinfModel.from_file(ex)
+        check_discriminator(discriminator_file, dinf_model)
 
         target = "--target" if sample_target else ""
         output_file = tmp_path / "output.npz"
@@ -361,7 +361,7 @@ class TestPredict:
             output_file,
             chains=1,
             draws=10,
-            parameters=genobuilder.parameters if not sample_target else None,
+            parameters=dinf_model.parameters if not sample_target else None,
         )
         if sample_target:
             assert data.dtype.names == ("_Pr",)

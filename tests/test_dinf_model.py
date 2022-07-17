@@ -3,7 +3,7 @@ import pytest
 
 import dinf
 
-# minimal genobuilder.
+# minimal dinf_model.
 
 
 def _generator_func(seed, my_param):
@@ -20,9 +20,9 @@ feature_shape = {"a": np.array([10])}
 _parameters = dinf.Parameters(my_param=dinf.Param(low=0, high=100))
 
 
-class TestGenobuilder:
+class TestDinfModel:
     def test_basic(self):
-        g = dinf.Genobuilder(
+        g = dinf.DinfModel(
             target_func=_target_func,
             generator_func=_generator_func,
             parameters=_parameters,
@@ -32,7 +32,7 @@ class TestGenobuilder:
 
     def test_zero_parameters(self):
         with pytest.raises(ValueError, match="Must define one or more parameters"):
-            dinf.Genobuilder(
+            dinf.DinfModel(
                 target_func=_target_func,
                 generator_func=_generator_func,
                 parameters=dinf.Parameters(),
@@ -43,7 +43,7 @@ class TestGenobuilder:
         def generator(seed, my_param):
             return {"a": np.array([1.0, 2.0])}
 
-        g = dinf.Genobuilder(
+        g = dinf.DinfModel(
             target_func=_target_func,
             generator_func=generator,
             parameters=_parameters,
@@ -56,7 +56,7 @@ class TestGenobuilder:
         def target(seed):
             return {"a": np.array([1.0, 2.0])}
 
-        g = dinf.Genobuilder(
+        g = dinf.DinfModel(
             target_func=target,
             generator_func=_generator_func,
             parameters=_parameters,
@@ -73,7 +73,7 @@ class TestGenobuilder:
                 return rng.triangular(left=self.low, mode=mid, right=self.high)
 
         parameters = dinf.Parameters(a=TriangleParam(low=0, high=100))
-        g = dinf.Genobuilder(
+        g = dinf.DinfModel(
             target_func=_target_func,
             generator_func=_generator_func,
             parameters=parameters,
@@ -84,7 +84,7 @@ class TestGenobuilder:
 
     def test_missing_truth_values(self):
         with pytest.raises(ValueError, match="Truth values missing.*my_param"):
-            dinf.Genobuilder(
+            dinf.DinfModel(
                 target_func=None,
                 generator_func=_generator_func,
                 parameters=_parameters,
@@ -93,24 +93,24 @@ class TestGenobuilder:
 
     def test_from_file_no_spec(self):
         with pytest.raises(ImportError, match=r"nonexistent.txt"):
-            dinf.Genobuilder.from_file("nonexistent.txt")
+            dinf.DinfModel.from_file("nonexistent.txt")
 
     def test_from_file_file_not_found(self):
         with pytest.raises(FileNotFoundError, match=r"nonexistent.py"):
-            dinf.Genobuilder.from_file("nonexistent.py")
+            dinf.DinfModel.from_file("nonexistent.py")
 
     @pytest.mark.usefixtures("tmp_path")
     def test_from_file_obj_not_found(self, tmp_path):
         filename = tmp_path / "model.py"
         with open(filename, "w") as f:
             f.write("geeenobilder = {}\n")
-        with pytest.raises(AttributeError, match="genobuilder not found"):
-            dinf.Genobuilder.from_file(filename)
+        with pytest.raises(AttributeError, match="variable 'dinf_model' not found"):
+            dinf.DinfModel.from_file(filename)
 
     @pytest.mark.usefixtures("tmp_path")
     def test_from_file_obj_wrong_type(self, tmp_path):
         filename = tmp_path / "model.py"
         with open(filename, "w") as f:
-            f.write("genobuilder = {}\n")
-        with pytest.raises(TypeError, match="not a .*Genobuilder"):
-            dinf.Genobuilder.from_file(filename)
+            f.write("dinf_model = {}\n")
+        with pytest.raises(TypeError, match="not a .*DinfModel"):
+            dinf.DinfModel.from_file(filename)
