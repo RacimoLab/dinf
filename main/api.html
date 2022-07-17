@@ -215,7 +215,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev272
+            dinf 0.1.1.dev274
             </div>
             
         </div>
@@ -650,7 +650,7 @@ title="Print to PDF"
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.Genobuilder" title="dinf.Genobuilder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Genobuilder</span></code></a>(parameters, generator_func, ...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DinfModel</span></code></a>(parameters, generator_func, ...[, ...])</p></td>
 <td><p>A container that describes the components of a Dinf model.</p></td>
 </tr>
 </tbody>
@@ -707,7 +707,7 @@ title="Print to PDF"
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.train" title="dinf.train"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train</span></code></a>(*, genobuilder, training_replicates, ...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.train" title="dinf.train"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train</span></code></a>(*, dinf_model, training_replicates, ...)</p></td>
 <td><p>Train a discriminator network.</p></td>
 </tr>
 </tbody>
@@ -721,19 +721,19 @@ title="Print to PDF"
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.predict" title="dinf.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a>(*, discriminator, genobuilder, ...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.predict" title="dinf.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a>(*, discriminator, dinf_model, replicates)</p></td>
 <td><p>Sample features and make predictions using the discriminator.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#dinf.abc_gan" title="dinf.abc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">abc_gan</span></code></a>(*, genobuilder, iterations, ...[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#dinf.abc_gan" title="dinf.abc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">abc_gan</span></code></a>(*, dinf_model, iterations, ...[, ...])</p></td>
 <td><p>Run the ABC GAN.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.alfi_mcmc_gan" title="dinf.alfi_mcmc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alfi_mcmc_gan</span></code></a>(*, genobuilder, iterations, ...)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.alfi_mcmc_gan" title="dinf.alfi_mcmc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alfi_mcmc_gan</span></code></a>(*, dinf_model, iterations, ...)</p></td>
 <td><p>Run the ALFI MCMC GAN.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#dinf.mcmc_gan" title="dinf.mcmc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mcmc_gan</span></code></a>(*, genobuilder, iterations, ...[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#dinf.mcmc_gan" title="dinf.mcmc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mcmc_gan</span></code></a>(*, dinf_model, iterations, ...[, ...])</p></td>
 <td><p>Run the MCMC GAN.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.pg_gan" title="dinf.pg_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pg_gan</span></code></a>(*, genobuilder, iterations, ...[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.pg_gan" title="dinf.pg_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pg_gan</span></code></a>(*, dinf_model, iterations, ...[, ...])</p></td>
 <td><p>PG-GAN style simulated annealing.</p></td>
 </tr>
 </tbody>
@@ -834,8 +834,8 @@ title="Print to PDF"
 <section id="sec-api-defining-a-dinf-model">
 <span id="id1"></span><h3>Defining a Dinf model<a class="headerlink" href="#sec-api-defining-a-dinf-model" title="Permalink to this headline">#</a></h3>
 <dl class="py class">
-<dt class="sig sig-object py" id="dinf.Genobuilder">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">Genobuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discriminator_network</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/genobuilder.html#Genobuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Genobuilder" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="dinf.DinfModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">DinfModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discriminator_network</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf_model.html#DinfModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.DinfModel" title="Permalink to this definition">#</a></dt>
 <dd><p>A container that describes the components of a Dinf model.</p>
 <p>Constructing a Dinf model requires:</p>
 <blockquote>
@@ -869,7 +869,7 @@ and the <code class="docutils literal notranslate"><span class="pre">target_func
     <span class="o">...</span>
     <span class="k">return</span> <span class="n">features</span><span class="o">.</span><span class="n">from_vcf</span><span class="p">(</span><span class="n">vcfs</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
 
-<span class="n">genobuilder</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Genobuilder</span><span class="p">(</span>
+<span class="n">dinf_model</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="p">(</span>
     <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
     <span class="n">generator_func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
     <span class="n">target_func</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
@@ -881,12 +881,12 @@ and the <code class="docutils literal notranslate"><span class="pre">target_func
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>parameters</strong> (<a class="reference internal" href="#dinf.Parameters" title="dinf.Parameters"><em>Parameters</em></a>) – A collection of inferrable parameters, one for each keyword argument
-provided to the <a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a>.</p></li>
+provided to the <a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a>.</p></li>
 <li><p><strong>generator_func</strong> (<em>Callable</em>) – <p>A function that returns features for concrete parameter values.</p>
 <p>The first (positional) argument to the function is an integer seed,
 that may be used to seed a random number generator.
 The subsequent (keyword) arguments correspond to concrete values for
-the <a class="reference internal" href="#dinf.Genobuilder.parameters" title="dinf.Genobuilder.parameters"><code class="xref py py-attr docutils literal notranslate"><span class="pre">parameters</span></code></a>.
+the <a class="reference internal" href="#dinf.DinfModel.parameters" title="dinf.DinfModel.parameters"><code class="xref py py-attr docutils literal notranslate"><span class="pre">parameters</span></code></a>.
 The return value is either:</p>
 <blockquote>
 <div><ul>
@@ -898,7 +898,7 @@ such as population names.</p></li>
 </div></blockquote>
 <p>The signature of the function will follow the patterns below,
 where <code class="docutils literal notranslate"><span class="pre">p0</span></code>, <code class="docutils literal notranslate"><span class="pre">p1</span></code>, etc. are the names of the parameters in
-<a class="reference internal" href="#dinf.Genobuilder.parameters" title="dinf.Genobuilder.parameters"><code class="xref py py-attr docutils literal notranslate"><span class="pre">parameters</span></code></a>.
+<a class="reference internal" href="#dinf.DinfModel.parameters" title="dinf.DinfModel.parameters"><code class="xref py py-attr docutils literal notranslate"><span class="pre">parameters</span></code></a>.
 Type annotations are provided here for clarity, but are not required
 in user-defined functions. In function signatures,
 <a class="reference external" href="https://peps.python.org/pep-0570/">positional-only parameters</a>
@@ -939,15 +939,15 @@ follow a <code class="docutils literal notranslate"><span class="pre">*</span></
 </p></li>
 <li><p><strong>target_func</strong> (<em>Callable</em><em> | </em><em>None</em>) – <p>A function that returns features sampled from the target dataset.</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">None</span></code> (which must be specified explicitly),
-the <a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a> will be used to simulate
+the <a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a> will be used to simulate
 the target dataset using each parameter’s <a class="reference internal" href="#dinf.Param.truth" title="dinf.Param.truth"><code class="xref py py-attr docutils literal notranslate"><span class="pre">truth</span></code></a>
 value.</p>
 <p>The function takes a single (positional) argument, an integer seed,
 that may be used to seed a random number generator.
-The return value must match the return value of <a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a>.</p>
+The return value must match the return value of <a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a>.</p>
 </p></li>
 <li><p><strong>feature_shape</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><em>tuple</em></a><em> | </em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><em>tuple</em></a><em>]</em>) – <p>The shape of the feature, or features, returned by
-<a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a> and <a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">target_func</span></code></a>.</p>
+<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a> and <a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">target_func</span></code></a>.</p>
 <blockquote>
 <div><ul>
 <li><p>When a single feature matrix is returned, i.e. an n-dimensional
@@ -969,57 +969,57 @@ If not specified, <a class="reference internal" href="#dinf.ExchangeableCNN" tit
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="dinf.Genobuilder.parameters">
-<span class="sig-name descname"><span class="pre">parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#dinf.Parameters" title="dinf.Parameters"><span class="pre">Parameters</span></a></em><a class="headerlink" href="#dinf.Genobuilder.parameters" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="dinf.DinfModel.parameters">
+<span class="sig-name descname"><span class="pre">parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#dinf.Parameters" title="dinf.Parameters"><span class="pre">Parameters</span></a></em><a class="headerlink" href="#dinf.DinfModel.parameters" title="Permalink to this definition">#</a></dt>
 <dd><p>The inferrable parameters.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="dinf.Genobuilder.generator_func">
-<span class="sig-name descname"><span class="pre">generator_func</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span></em><a class="headerlink" href="#dinf.Genobuilder.generator_func" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="dinf.DinfModel.generator_func">
+<span class="sig-name descname"><span class="pre">generator_func</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span></em><a class="headerlink" href="#dinf.DinfModel.generator_func" title="Permalink to this definition">#</a></dt>
 <dd><p>Function that simulates features using concrete parameter values.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="dinf.Genobuilder.target_func">
-<span class="sig-name descname"><span class="pre">target_func</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></em><a class="headerlink" href="#dinf.Genobuilder.target_func" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="dinf.DinfModel.target_func">
+<span class="sig-name descname"><span class="pre">target_func</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></em><a class="headerlink" href="#dinf.DinfModel.target_func" title="Permalink to this definition">#</a></dt>
 <dd><p>Function that samples features from the target distribution.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="dinf.Genobuilder.feature_shape">
-<span class="sig-name descname"><span class="pre">feature_shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><span class="pre">tuple</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><span class="pre">tuple</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.Genobuilder.feature_shape" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="dinf.DinfModel.feature_shape">
+<span class="sig-name descname"><span class="pre">feature_shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><span class="pre">tuple</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><span class="pre">tuple</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.DinfModel.feature_shape" title="Permalink to this definition">#</a></dt>
 <dd><p>Shape of the feature, or features, produced by
-<a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a> and <a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">target_func</span></code></a>.</p>
+<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a> and <a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">target_func</span></code></a>.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="dinf.Genobuilder.discriminator_network">
-<span class="sig-name descname"><span class="pre">discriminator_network</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">nn.Module</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#dinf.Genobuilder.discriminator_network" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="dinf.DinfModel.discriminator_network">
+<span class="sig-name descname"><span class="pre">discriminator_network</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">nn.Module</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#dinf.DinfModel.discriminator_network" title="Permalink to this definition">#</a></dt>
 <dd><p>A <a class="reference external" href="https://flax.readthedocs.io/en/latest/index.html" title="(in Flax)"><span class="xref std std-doc">flax</span></a> neural network. May be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="dinf.Genobuilder.check">
-<span class="sig-name descname"><span class="pre">check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/genobuilder.html#Genobuilder.check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Genobuilder.check" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="dinf.DinfModel.check">
+<span class="sig-name descname"><span class="pre">check</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf_model.html#DinfModel.check"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.DinfModel.check" title="Permalink to this definition">#</a></dt>
 <dd><p>Basic health checks: draw parameters and call the functions.</p>
-<p>We don’t do this when initialising the Genobuilder, because calling
-<a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func()</span></code></a> and <a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">target_func()</span></code></a> are potentially
+<p>We don’t do this when initialising the DinfModel, because calling
+<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func()</span></code></a> and <a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">target_func()</span></code></a> are potentially
 time consuming, which could lead to annoying delays for the command
 line interface.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="dinf.Genobuilder.from_file">
-<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/genobuilder.html#Genobuilder.from_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Genobuilder.from_file" title="Permalink to this definition">#</a></dt>
-<dd><p>Load the symbol “genobuilder” from a file.</p>
+<dt class="sig sig-object py" id="dinf.DinfModel.from_file">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf_model.html#DinfModel.from_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.DinfModel.from_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Load the symbol “dinf_model” from a file.</p>
 <p><a class="reference external" href="https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly">https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly</a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – </p>
 </dd>
 <dt class="field-even">Return type</dt>
-<dd class="field-even"><p><a class="reference internal" href="#dinf.Genobuilder" title="dinf.Genobuilder">Genobuilder</a></p>
+<dd class="field-even"><p><a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel">DinfModel</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1771,20 +1771,20 @@ the start of the genomic window.</p></li>
 <span id="id4"></span><h3>Training<a class="headerlink" href="#sec-api-train" title="Permalink to this headline">#</a></h3>
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.train">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genobuilder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.train" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.train" title="Permalink to this definition">#</a></dt>
 <dd><p>Train a discriminator network.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>genobuilder</strong> (<a class="reference internal" href="#dinf.Genobuilder" title="dinf.Genobuilder"><em>Genobuilder</em></a>) – Genobuilder object that describes the GAN.</p></li>
+<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the GAN.</p></li>
 <li><p><strong>training_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the dataset used to train the discriminator.</p></li>
 <li><p><strong>test_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the test dataset used to evaluate the discriminator after
 each training epoch.</p></li>
 <li><p><strong>epochs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of full passes over the training dataset when training
 the discriminator.</p></li>
 <li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
-<a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.generator_func()</span></code></a> and
-<a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.target_func()</span></code></a>.</p></li>
+<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.generator_func()</span></code></a> and
+<a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.target_func()</span></code></a>.</p></li>
 <li><p><strong>seed</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Seed for the random number generator.</p></li>
 </ul>
 </dd>
@@ -1802,7 +1802,7 @@ the discriminator.</p></li>
 <span id="id5"></span><h3>Inference<a class="headerlink" href="#sec-api-inference" title="Permalink to this headline">#</a></h3>
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.predict">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discriminator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genobuilder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.predict" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discriminator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.predict" title="Permalink to this definition">#</a></dt>
 <dd><p>Sample features and make predictions using the discriminator.</p>
 <p>Features are sampled from the generator by default.
 To instead sample features from the target dataset, use the
@@ -1810,13 +1810,13 @@ To instead sample features from the target dataset, use the
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>genobuilder</strong> (<a class="reference internal" href="#dinf.Genobuilder" title="dinf.Genobuilder"><em>Genobuilder</em></a>) – Genobuilder object that describes the GAN.</p></li>
+<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the GAN.</p></li>
 <li><p><strong>replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of features to extract.</p></li>
 <li><p><strong>sample_target</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, sample features from the target dataset.
 If False (the default), features are sampled from the generator.</p></li>
 <li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
-<a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.generator_func()</span></code></a> and
-<a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.target_func()</span></code></a>.</p></li>
+<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.generator_func()</span></code></a> and
+<a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.target_func()</span></code></a>.</p></li>
 <li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em> | </em><em>None</em>) – Seed for the random number generator.</p></li>
 <li><p><strong>discriminator</strong> (<a class="reference internal" href="#dinf.Discriminator" title="dinf.Discriminator"><em>Discriminator</em></a>) – </p></li>
 </ul>
@@ -1836,7 +1836,7 @@ probs[j] is the discriminator prediction for the j’th draw.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.abc_gan">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">abc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genobuilder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proposals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posteriors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#abc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.abc_gan" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">abc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proposals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posteriors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#abc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.abc_gan" title="Permalink to this definition">#</a></dt>
 <dd><p>Run the ABC GAN.</p>
 <p>Each iteration of the GAN can be conceptually divided into:</p>
 <blockquote>
@@ -1853,7 +1853,7 @@ by sampling with replacement from the previous iteration’s ABC posterior.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>genobuilder</strong> (<a class="reference internal" href="#dinf.Genobuilder" title="dinf.Genobuilder"><em>Genobuilder</em></a>) – Genobuilder object that describes the dinf model.</p></li>
+<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the dinf model.</p></li>
 <li><p><strong>iterations</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of GAN iterations.</p></li>
 <li><p><strong>training_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the dataset used to train the discriminator.
 This dataset is constructed once each GAN iteration.</p></li>
@@ -1866,8 +1866,8 @@ the discriminator.</p></li>
 <li><p><strong>working_directory</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – Folder to output results. If not specified, the current
 directory will be used.</p></li>
 <li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
-<a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.generator_func()</span></code></a> and
-<a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.target_func()</span></code></a>.</p></li>
+<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.generator_func()</span></code></a> and
+<a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.target_func()</span></code></a>.</p></li>
 <li><p><strong>seed</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Seed for the random number generator.</p></li>
 </ul>
 </dd>
@@ -1876,7 +1876,7 @@ directory will be used.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.alfi_mcmc_gan">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">alfi_mcmc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genobuilder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">walkers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#alfi_mcmc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.alfi_mcmc_gan" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">alfi_mcmc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">walkers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#alfi_mcmc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.alfi_mcmc_gan" title="Permalink to this definition">#</a></dt>
 <dd><p>Run the ALFI MCMC GAN.</p>
 <p>This behaves similarly to <a class="reference internal" href="#dinf.mcmc_gan" title="dinf.mcmc_gan"><code class="xref py py-func docutils literal notranslate"><span class="pre">mcmc_gan()</span></code></a>, but introduces a surrogate
 neural network that predicts the output of the discriminator from a given
@@ -1887,7 +1887,7 @@ deterministic classification of the input parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>genobuilder</strong> (<a class="reference internal" href="#dinf.Genobuilder" title="dinf.Genobuilder"><em>Genobuilder</em></a>) – Genobuilder object that describes the dinf model.</p></li>
+<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the dinf model.</p></li>
 <li><p><strong>iterations</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of GAN iterations.</p></li>
 <li><p><strong>training_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the dataset used to train the discriminator.
 This dataset is constructed once each GAN iteration.</p></li>
@@ -1900,8 +1900,8 @@ the discriminator.</p></li>
 <li><p><strong>working_directory</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – Folder to output results. If not specified, the current
 directory will be used.</p></li>
 <li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
-<a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.generator_func()</span></code></a> and
-<a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.target_func()</span></code></a>.</p></li>
+<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.generator_func()</span></code></a> and
+<a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.target_func()</span></code></a>.</p></li>
 <li><p><strong>seed</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Seed for the random number generator.</p></li>
 </ul>
 </dd>
@@ -1910,7 +1910,7 @@ directory will be used.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.mcmc_gan">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">mcmc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genobuilder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">walkers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Dx_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#mcmc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.mcmc_gan" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">mcmc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">walkers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Dx_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#mcmc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.mcmc_gan" title="Permalink to this definition">#</a></dt>
 <dd><p>Run the MCMC GAN.</p>
 <p>Each iteration of the GAN can be conceptually divided into parts:</p>
 <blockquote>
@@ -1927,7 +1927,7 @@ by sampling without replacement from the previous iteration’s MCMC chains.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>genobuilder</strong> (<a class="reference internal" href="#dinf.Genobuilder" title="dinf.Genobuilder"><em>Genobuilder</em></a>) – Genobuilder object that describes the GAN.</p></li>
+<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the GAN.</p></li>
 <li><p><strong>iterations</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of GAN iterations.</p></li>
 <li><p><strong>training_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the dataset used to train the discriminator.
 This dataset is constructed once each GAN iteration.</p></li>
@@ -1941,8 +1941,8 @@ the discriminator.</p></li>
 <li><p><strong>working_directory</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – Folder to output results. If not specified, the current
 directory will be used.</p></li>
 <li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
-<a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.generator_func()</span></code></a> and
-<a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.target_func()</span></code></a>.</p></li>
+<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.generator_func()</span></code></a> and
+<a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.target_func()</span></code></a>.</p></li>
 <li><p><strong>seed</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Seed for the random number generator.</p></li>
 </ul>
 </dd>
@@ -1951,13 +1951,13 @@ directory will be used.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.pg_gan">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">pg_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">genobuilder</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Dx_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_proposals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proposal_stddev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.06666666666666667</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pretraining_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'dinf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proposals_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'rr'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_pretraining_iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#pg_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.pg_gan" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">pg_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Dx_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_proposals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proposal_stddev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.06666666666666667</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pretraining_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'dinf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proposals_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'rr'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_pretraining_iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#pg_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.pg_gan" title="Permalink to this definition">#</a></dt>
 <dd><p>PG-GAN style simulated annealing.</p>
 <p>Wang et al. 2021, <a class="reference external" href="https://doi.org/10.1111/1755-0998.13386">https://doi.org/10.1111/1755-0998.13386</a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>genobuilder</strong> (<a class="reference internal" href="#dinf.Genobuilder" title="dinf.Genobuilder"><em>Genobuilder</em></a>) – Genobuilder object that describes the dinf model.</p></li>
+<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the dinf model.</p></li>
 <li><p><strong>iterations</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of GAN iterations.</p></li>
 <li><p><strong>training_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the dataset used to train the discriminator.
 This dataset is constructed once each GAN iteration.</p></li>
@@ -2033,8 +2033,8 @@ temperature × <code class="docutils literal notranslate"><span class="pre">prop
 <li><p><strong>working_directory</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – Folder to output results. If not specified, the current
 directory will be used.</p></li>
 <li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
-<a class="reference internal" href="#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.generator_func()</span></code></a> and
-<a class="reference internal" href="#dinf.Genobuilder.target_func" title="dinf.Genobuilder.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Genobuilder.target_func()</span></code></a>.</p></li>
+<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.generator_func()</span></code></a> and
+<a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.target_func()</span></code></a>.</p></li>
 <li><p><strong>seed</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Seed for the random number generator.</p></li>
 </ul>
 </dd>
@@ -2663,7 +2663,7 @@ If None, an axes will be created with <a class="reference external" href="https:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev272+gd35d2b0
+      dinf 0.1.1.dev274+gf5b3110
     </div>
 </p>
         </footer>

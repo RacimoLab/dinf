@@ -212,7 +212,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev272
+            dinf 0.1.1.dev274
             </div>
             
         </div>
@@ -741,7 +741,7 @@ Discriminator-based inference of population parameters.
 
 positional arguments:
   {check,train,predict,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan}
-    check               Basic genobuilder health checks.
+    check               Basic dinf_model health checks.
     train               Train a discriminator.
     predict             Make predictions using a trained discriminator.
     abc-gan             Run the ABC GAN.
@@ -758,15 +758,15 @@ optional arguments:
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">check</span></code><a class="headerlink" href="#dinf-check" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf check [-h] model.py
 
-Basic genobuilder health checks.
+Basic dinf_model health checks.
 
 Checks that the target and generator functions work and return the
 same feature shapes.
 
 positional arguments:
-  model.py    Python script from which to import the variable &quot;genobuilder&quot;.
-              This is a dinf.Genobuilder object that describes the GAN. See
-              the examples/ folder of the git repository for example models.
+  model.py    Python script from which to import the variable &quot;dinf_model&quot;.
+              This is a dinf.DinfModel object that describes the GAN. See the
+              examples/ folder of the git repository for example models.
               https://github.com/RacimoLab/dinf
 
 optional arguments:
@@ -796,9 +796,9 @@ common arguments:
                         (default: None)
   -j PARALLELISM, --parallelism PARALLELISM
                         Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func. If
-                        not specified, all CPU cores will be used. The number
-                        of cores used for CPU-based neural networks is not set
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
                         with this parameter---instead use the`taskset`
                         command. See https://github.com/google/jax/issues/1539
                         (default: None)
@@ -816,7 +816,7 @@ training arguments:
                         training the discriminator. (default: 1)
 
   model.py              Python script from which to import the variable
-                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
                         describes the GAN. See the examples/ folder of the git
                         repository for example models.
                         https://github.com/RacimoLab/dinf
@@ -852,9 +852,9 @@ common arguments:
                         (default: None)
   -j PARALLELISM, --parallelism PARALLELISM
                         Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func. If
-                        not specified, all CPU cores will be used. The number
-                        of cores used for CPU-based neural networks is not set
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
                         with this parameter---instead use the`taskset`
                         command. See https://github.com/google/jax/issues/1539
                         (default: None)
@@ -865,7 +865,7 @@ predict arguments:
                         with the discriminator. (default: 1000)
 
   model.py              Python script from which to import the variable
-                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
                         describes the GAN. See the examples/ folder of the git
                         repository for example models.
                         https://github.com/RacimoLab/dinf
@@ -908,9 +908,9 @@ common arguments:
                         (default: None)
   -j PARALLELISM, --parallelism PARALLELISM
                         Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func. If
-                        not specified, all CPU cores will be used. The number
-                        of cores used for CPU-based neural networks is not set
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
                         with this parameter---instead use the`taskset`
                         command. See https://github.com/google/jax/issues/1539
                         (default: None)
@@ -941,7 +941,7 @@ GAN arguments:
                         Folder to output results. If not specified, the
                         current directory will be used. (default: None)
   model.py              Python script from which to import the variable
-                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
                         describes the GAN. See the examples/ folder of the git
                         repository for example models.
                         https://github.com/RacimoLab/dinf
@@ -975,9 +975,9 @@ common arguments:
                         (default: None)
   -j PARALLELISM, --parallelism PARALLELISM
                         Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func. If
-                        not specified, all CPU cores will be used. The number
-                        of cores used for CPU-based neural networks is not set
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
                         with this parameter---instead use the`taskset`
                         command. See https://github.com/google/jax/issues/1539
                         (default: None)
@@ -1007,7 +1007,7 @@ GAN arguments:
                         Folder to output results. If not specified, the
                         current directory will be used. (default: None)
   model.py              Python script from which to import the variable
-                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
                         describes the GAN. See the examples/ folder of the git
                         repository for example models.
                         https://github.com/RacimoLab/dinf
@@ -1048,9 +1048,9 @@ common arguments:
                         (default: None)
   -j PARALLELISM, --parallelism PARALLELISM
                         Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func. If
-                        not specified, all CPU cores will be used. The number
-                        of cores used for CPU-based neural networks is not set
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
                         with this parameter---instead use the`taskset`
                         command. See https://github.com/google/jax/issues/1539
                         (default: None)
@@ -1083,7 +1083,7 @@ GAN arguments:
                         Folder to output results. If not specified, the
                         current directory will be used. (default: None)
   model.py              Python script from which to import the variable
-                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
                         describes the GAN. See the examples/ folder of the git
                         repository for example models.
                         https://github.com/RacimoLab/dinf
@@ -1116,9 +1116,9 @@ common arguments:
                         (default: None)
   -j PARALLELISM, --parallelism PARALLELISM
                         Number of processes to use for parallelising calls to
-                        the Genobuilder&#39;s generator_func and target_func. If
-                        not specified, all CPU cores will be used. The number
-                        of cores used for CPU-based neural networks is not set
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
                         with this parameter---instead use the`taskset`
                         command. See https://github.com/google/jax/issues/1539
                         (default: None)
@@ -1152,7 +1152,7 @@ GAN arguments:
                         Folder to output results. If not specified, the
                         current directory will be used. (default: None)
   model.py              Python script from which to import the variable
-                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
                         describes the GAN. See the examples/ folder of the git
                         repository for example models.
                         https://github.com/RacimoLab/dinf
@@ -1223,7 +1223,7 @@ target dataset, use the --target option.
 
 positional arguments:
   model.py              Python script from which to import the variable
-                        &quot;genobuilder&quot;. This is a dinf.Genobuilder object that
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
                         describes the GAN. See the examples/ folder of the git
                         repository for example models.
                         https://github.com/RacimoLab/dinf
@@ -1410,7 +1410,7 @@ optional arguments:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev272+gd35d2b0
+      dinf 0.1.1.dev274+gf5b3110
     </div>
 </p>
         </footer>

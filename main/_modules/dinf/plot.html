@@ -210,7 +210,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev272
+            dinf 0.1.1.dev274
             </div>
             
         </div>
@@ -962,10 +962,10 @@ title="Open an issue"
         <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_genob_model</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Genobuilder</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">genob_model</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">genob_model</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
 
         <span class="c1"># _dinf_user_module is the name given to the args.genob_model module in</span>
-        <span class="c1"># Genobuilder.from_file(), which gets cached in sys.modules.</span>
+        <span class="c1"># DinfModel.from_file(), which gets cached in sys.modules.</span>
         <span class="c1"># As a side-effect, we can now import it with this name to look for</span>
         <span class="c1"># a demography function.</span>
         <span class="kn">import</span> <span class="nn">_dinf_user_module</span>  <span class="c1"># type: ignore</span>
@@ -981,7 +981,7 @@ title="Open an issue"
         <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">demography</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">VAR_KEYWORD</span> <span class="ow">in</span> <span class="p">{</span><span class="n">v</span><span class="o">.</span><span class="n">kind</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">()}:</span>
             <span class="c1"># The function uses **kwargs, so we don&#39;t know what parameters</span>
-            <span class="c1"># it expects. Just guess and pass all the genobuilder.parameters.</span>
+            <span class="c1"># it expects. Just guess and pass all the dinf_model.parameters.</span>
             <span class="n">demog_params</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">demog_params</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
@@ -1025,15 +1025,15 @@ title="Open an issue"
         <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_genob_model</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="n">genobuilder</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Genobuilder</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">genob_model</span><span class="p">)</span>
+        <span class="n">dinf_model</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">genob_model</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">target</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">target_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-            <span class="n">mats</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">target_func</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">mats</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
-            <span class="n">thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
-            <span class="n">mats</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">(</span>
+            <span class="n">thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+            <span class="n">mats</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">(</span>
                 <span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">),</span> <span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="p">)</span>
 
@@ -1137,7 +1137,7 @@ title="Open an issue"
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
         <span class="n">parameters</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Genobuilder</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
 
         <span class="n">datasets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_abc_datasets</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">datasets</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
@@ -1270,7 +1270,7 @@ title="Open an issue"
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
         <span class="n">parameters</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Genobuilder</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
         <span class="n">datasets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_abc_datasets</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">x_param</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1374,7 +1374,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev272+gd35d2b0
+      dinf 0.1.1.dev274+gf5b3110
     </div>
 </p>
         </footer>

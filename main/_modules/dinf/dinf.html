@@ -210,7 +210,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev272
+            dinf 0.1.1.dev274
             </div>
             
         </div>
@@ -358,7 +358,7 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">multiprocess</span> <span class="k">as</span> <span class="nn">multiprocessing</span>
 
 <span class="kn">from</span> <span class="nn">.discriminator</span> <span class="kn">import</span> <span class="n">Discriminator</span><span class="p">,</span> <span class="n">Surrogate</span>
-<span class="kn">from</span> <span class="nn">.genobuilder</span> <span class="kn">import</span> <span class="n">Genobuilder</span>
+<span class="kn">from</span> <span class="nn">.dinf_model</span> <span class="kn">import</span> <span class="n">DinfModel</span>
 <span class="kn">from</span> <span class="nn">.parameters</span> <span class="kn">import</span> <span class="n">Parameters</span>
 <span class="kn">from</span> <span class="nn">.store</span> <span class="kn">import</span> <span class="n">Store</span>
 
@@ -370,12 +370,12 @@ title="Open an issue"
 <span class="k">def</span> <span class="nf">_initializer</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
     <span class="c1"># Ignore ctrl-c in workers. This is handled in the main process.</span>
     <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">signal</span><span class="o">.</span><span class="n">SIG_IGN</span><span class="p">)</span>
-    <span class="c1"># Ensure symbols from the user&#39;s genobuilder are avilable to workers.</span>
+    <span class="c1"># Ensure symbols from the user&#39;s dinf_model are avilable to workers.</span>
     <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">Genobuilder</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">dinf_model</span><span class="p">):</span>
     <span class="c1"># Start the process pool before the GPU has been initialised, or using</span>
     <span class="c1"># the &quot;spawn&quot; start method, otherwise we get weird GPU resource issues</span>
     <span class="c1"># because the subprocesses are holding onto some CUDA thing.</span>
@@ -389,7 +389,7 @@ title="Open an issue"
     <span class="n">_pool</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span>
         <span class="n">processes</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
         <span class="n">initializer</span><span class="o">=</span><span class="n">_initializer</span><span class="p">,</span>
-        <span class="n">initargs</span><span class="o">=</span><span class="p">(</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">_filename</span><span class="p">,),</span>
+        <span class="n">initargs</span><span class="o">=</span><span class="p">(</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">_filename</span><span class="p">,),</span>
     <span class="p">)</span>
 
 
@@ -733,7 +733,7 @@ title="Open an issue"
 <span class="k">def</span> <span class="nf">_train_discriminator</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">discriminator</span><span class="p">:</span> <span class="n">Discriminator</span><span class="p">,</span>
-    <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
+    <span class="n">dinf_model</span><span class="p">:</span> <span class="n">DinfModel</span><span class="p">,</span>
     <span class="n">training_thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">test_thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -745,8 +745,8 @@ title="Open an issue"
         <span class="p">(</span><span class="s2">&quot;features:train&quot;</span><span class="p">,</span> <span class="s2">&quot;features:val&quot;</span><span class="p">,</span> <span class="s2">&quot;discriminator:fit&quot;</span><span class="p">)</span>
     <span class="p">)</span>
     <span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">train_x_generator</span> <span class="o">=</span> <span class="n">_generate_training_data</span><span class="p">(</span>
-        <span class="n">target</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
-        <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+        <span class="n">target</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
+        <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
         <span class="n">thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
         <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
         <span class="n">ss</span><span class="o">=</span><span class="n">ss_train</span><span class="p">,</span>
@@ -755,8 +755,8 @@ title="Open an issue"
     <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="p">,</span> <span class="n">val_x_generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">test_thetas</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_thetas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="p">,</span> <span class="n">val_x_generator</span> <span class="o">=</span> <span class="n">_generate_training_data</span><span class="p">(</span>
-            <span class="n">target</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
-            <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
+            <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
             <span class="n">thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
             <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
             <span class="n">ss</span><span class="o">=</span><span class="n">ss_val</span><span class="p">,</span>
@@ -808,7 +808,7 @@ title="Open an issue"
 <div class="viewcode-block" id="train"><a class="viewcode-back" href="../../api.html#dinf.train">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
 <span class="k">def</span> <span class="nf">train</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
+    <span class="n">dinf_model</span><span class="p">:</span> <span class="n">DinfModel</span><span class="p">,</span>
     <span class="n">training_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">test_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -818,8 +818,8 @@ title="Open an issue"
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Train a discriminator network.</span>
 
-<span class="sd">    :param genobuilder:</span>
-<span class="sd">        Genobuilder object that describes the GAN.</span>
+<span class="sd">    :param dinf_model:</span>
+<span class="sd">        DinfModel object that describes the GAN.</span>
 <span class="sd">    :param training_replicates:</span>
 <span class="sd">        Size of the dataset used to train the discriminator.</span>
 <span class="sd">    :param test_replicates:</span>
@@ -830,8 +830,8 @@ title="Open an issue"
 <span class="sd">        the discriminator.</span>
 <span class="sd">    :param parallelism:</span>
 <span class="sd">        Number of processes to use for parallelising calls to the</span>
-<span class="sd">        :meth:`Genobuilder.generator_func` and</span>
-<span class="sd">        :meth:`Genobuilder.target_func`.</span>
+<span class="sd">        :meth:`DinfModel.generator_func` and</span>
+<span class="sd">        :meth:`DinfModel.target_func`.</span>
 <span class="sd">    :param seed:</span>
 <span class="sd">        Seed for the random number generator.</span>
 <span class="sd">    :return:</span>
@@ -840,28 +840,28 @@ title="Open an issue"
     <span class="k">if</span> <span class="n">parallelism</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
 
-    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
+    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">dinf_model</span><span class="p">)</span>
 
     <span class="n">ss</span> <span class="o">=</span> <span class="n">NamedSeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">ss_train</span><span class="p">,</span> <span class="n">ss_test</span><span class="p">,</span> <span class="n">ss_discr_init</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span>
         <span class="p">(</span><span class="s2">&quot;thetas:train&quot;</span><span class="p">,</span> <span class="s2">&quot;thetas:test&quot;</span><span class="p">,</span> <span class="s2">&quot;discriminator:init&quot;</span><span class="p">)</span>
     <span class="p">)</span>
 
-    <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
+    <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
         <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_train</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
+    <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
         <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_test</span><span class="p">)</span>
     <span class="p">)</span>
 
     <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+        <span class="n">dinf_model</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span>
     <span class="p">)</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_discr_init</span><span class="p">))</span>
     <span class="c1"># discriminator.summary()</span>
 
     <span class="n">_train_discriminator</span><span class="p">(</span>
         <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-        <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+        <span class="n">dinf_model</span><span class="o">=</span><span class="n">dinf_model</span><span class="p">,</span>
         <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
         <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
         <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
@@ -875,7 +875,7 @@ title="Open an issue"
 <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">discriminator</span><span class="p">:</span> <span class="n">Discriminator</span><span class="p">,</span>
-    <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
+    <span class="n">dinf_model</span><span class="p">:</span> <span class="n">DinfModel</span><span class="p">,</span>
     <span class="n">replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">sample_target</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">parallelism</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -888,8 +888,8 @@ title="Open an issue"
 <span class="sd">    To instead sample features from the target dataset, use the</span>
 <span class="sd">    ``sample_target`` option.</span>
 
-<span class="sd">    :param genobuilder:</span>
-<span class="sd">        Genobuilder object that describes the GAN.</span>
+<span class="sd">    :param dinf_model:</span>
+<span class="sd">        DinfModel object that describes the GAN.</span>
 <span class="sd">    :param replicates:</span>
 <span class="sd">        Number of features to extract.</span>
 <span class="sd">    :param sample_target:</span>
@@ -897,8 +897,8 @@ title="Open an issue"
 <span class="sd">        If False (the default), features are sampled from the generator.</span>
 <span class="sd">    :param parallelism:</span>
 <span class="sd">        Number of processes to use for parallelising calls to the</span>
-<span class="sd">        :meth:`Genobuilder.generator_func` and</span>
-<span class="sd">        :meth:`Genobuilder.target_func`.</span>
+<span class="sd">        :meth:`DinfModel.generator_func` and</span>
+<span class="sd">        :meth:`DinfModel.target_func`.</span>
 <span class="sd">    :param seed:</span>
 <span class="sd">        Seed for the random number generator.</span>
 <span class="sd">    :return:</span>
@@ -911,13 +911,13 @@ title="Open an issue"
     <span class="k">if</span> <span class="n">parallelism</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
 
-    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
+    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">dinf_model</span><span class="p">)</span>
     <span class="n">ss</span> <span class="o">=</span> <span class="n">NamedSeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">sample_target</span><span class="p">:</span>
         <span class="p">(</span><span class="n">ss_target</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">((</span><span class="s2">&quot;features:predict:target&quot;</span><span class="p">,))</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">_observe_data</span><span class="p">(</span>
-            <span class="n">target</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
             <span class="n">num_replicates</span><span class="o">=</span><span class="n">replicates</span><span class="p">,</span>
             <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_target</span><span class="p">),</span>
@@ -927,11 +927,11 @@ title="Open an issue"
         <span class="n">ss_thetas</span><span class="p">,</span> <span class="n">ss_generator</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span>
             <span class="p">(</span><span class="s2">&quot;thetas:predict&quot;</span><span class="p">,</span> <span class="s2">&quot;features:predict:generator&quot;</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="n">thetas</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
             <span class="n">replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">_generate_data</span><span class="p">(</span>
-            <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+            <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
             <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
             <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_generator</span><span class="p">),</span>
@@ -943,7 +943,7 @@ title="Open an issue"
 <div class="viewcode-block" id="mcmc_gan"><a class="viewcode-back" href="../../api.html#dinf.mcmc_gan">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
 <span class="k">def</span> <span class="nf">mcmc_gan</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
+    <span class="n">dinf_model</span><span class="p">:</span> <span class="n">DinfModel</span><span class="p">,</span>
     <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">training_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">test_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -969,8 +969,8 @@ title="Open an issue"
 <span class="sd">    distribution. In subsequent iterations, the parameter values are drawn</span>
 <span class="sd">    by sampling without replacement from the previous iteration&#39;s MCMC chains.</span>
 
-<span class="sd">    :param genobuilder:</span>
-<span class="sd">        Genobuilder object that describes the GAN.</span>
+<span class="sd">    :param dinf_model:</span>
+<span class="sd">        DinfModel object that describes the GAN.</span>
 <span class="sd">    :param iterations:</span>
 <span class="sd">        Number of GAN iterations.</span>
 <span class="sd">    :param training_replicates:</span>
@@ -993,8 +993,8 @@ title="Open an issue"
 <span class="sd">        directory will be used.</span>
 <span class="sd">    :param parallelism:</span>
 <span class="sd">        Number of processes to use for parallelising calls to the</span>
-<span class="sd">        :meth:`Genobuilder.generator_func` and</span>
-<span class="sd">        :meth:`Genobuilder.target_func`.</span>
+<span class="sd">        :meth:`DinfModel.generator_func` and</span>
+<span class="sd">        :meth:`DinfModel.target_func`.</span>
 <span class="sd">    :param seed:</span>
 <span class="sd">        Seed for the random number generator.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1020,8 +1020,8 @@ title="Open an issue"
     <span class="n">rng_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
     <span class="n">rng_mcmc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_mcmc</span><span class="p">)</span>
 
-    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
-    <span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span>
+    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">dinf_model</span><span class="p">)</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">files_exist</span> <span class="o">=</span> <span class="p">[</span>
@@ -1032,7 +1032,7 @@ title="Open an issue"
         <span class="n">resume</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span>
 
     <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+        <span class="n">dinf_model</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.nn&quot;</span><span class="p">)</span>
@@ -1072,7 +1072,7 @@ title="Open an issue"
     <span class="n">log_prob_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
         <span class="n">_log_prob</span><span class="p">,</span>
         <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-        <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+        <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
         <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
         <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
         <span class="n">num_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
@@ -1086,7 +1086,7 @@ title="Open an issue"
         <span class="p">(</span><span class="n">ss_loop</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">_train_discriminator</span><span class="p">(</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-            <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+            <span class="n">dinf_model</span><span class="o">=</span><span class="n">dinf_model</span><span class="p">,</span>
             <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
             <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
             <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
@@ -1144,7 +1144,7 @@ title="Open an issue"
 <div class="viewcode-block" id="abc_gan"><a class="viewcode-back" href="../../api.html#dinf.abc_gan">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
 <span class="k">def</span> <span class="nf">abc_gan</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
+    <span class="n">dinf_model</span><span class="p">:</span> <span class="n">DinfModel</span><span class="p">,</span>
     <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">training_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">test_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1169,8 +1169,8 @@ title="Open an issue"
 <span class="sd">    distribution. In subsequent iterations, the parameter values are drawn</span>
 <span class="sd">    by sampling with replacement from the previous iteration&#39;s ABC posterior.</span>
 
-<span class="sd">    :param genobuilder:</span>
-<span class="sd">        Genobuilder object that describes the dinf model.</span>
+<span class="sd">    :param dinf_model:</span>
+<span class="sd">        DinfModel object that describes the dinf model.</span>
 <span class="sd">    :param iterations:</span>
 <span class="sd">        Number of GAN iterations.</span>
 <span class="sd">    :param training_replicates:</span>
@@ -1191,8 +1191,8 @@ title="Open an issue"
 <span class="sd">        directory will be used.</span>
 <span class="sd">    :param parallelism:</span>
 <span class="sd">        Number of processes to use for parallelising calls to the</span>
-<span class="sd">        :meth:`Genobuilder.generator_func` and</span>
-<span class="sd">        :meth:`Genobuilder.target_func`.</span>
+<span class="sd">        :meth:`DinfModel.generator_func` and</span>
+<span class="sd">        :meth:`DinfModel.target_func`.</span>
 <span class="sd">    :param seed:</span>
 <span class="sd">        Seed for the random number generator.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1216,9 +1216,9 @@ title="Open an issue"
     <span class="p">)</span>
     <span class="n">rng_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
 
-    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
+    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">dinf_model</span><span class="p">)</span>
 
-    <span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">files_exist</span> <span class="o">=</span> <span class="p">[</span>
@@ -1229,7 +1229,7 @@ title="Open an issue"
         <span class="n">resume</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span>
 
     <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+        <span class="n">dinf_model</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.nn&quot;</span><span class="p">)</span>
@@ -1257,7 +1257,7 @@ title="Open an issue"
         <span class="p">(</span><span class="n">ss_loop</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">_train_discriminator</span><span class="p">(</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-            <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+            <span class="n">dinf_model</span><span class="o">=</span><span class="n">dinf_model</span><span class="p">,</span>
             <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
             <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
             <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
@@ -1269,7 +1269,7 @@ title="Open an issue"
         <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">proposals</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">)</span>
         <span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="n">_run_abc</span><span class="p">(</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-            <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+            <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
             <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">thetas</span><span class="o">=</span><span class="n">proposal_thetas</span><span class="p">,</span>
             <span class="n">posteriors</span><span class="o">=</span><span class="n">posteriors</span><span class="p">,</span>
@@ -1292,7 +1292,7 @@ title="Open an issue"
 
 <span class="k">def</span> <span class="nf">pretraining_pg_gan</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">genobuilder</span><span class="p">,</span>
+    <span class="n">dinf_model</span><span class="p">,</span>
     <span class="n">training_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">test_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1314,19 +1314,19 @@ title="Open an issue"
     <span class="n">rng_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
 
     <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+        <span class="n">dinf_model</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span>
     <span class="p">)</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_discr_init</span><span class="p">))</span>
     <span class="n">acc_best</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">theta_best</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_pretraining_iterations</span><span class="p">):</span>
-        <span class="n">theta</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 
         <span class="n">metrics</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_train_discriminator</span><span class="p">(</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-            <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+            <span class="n">dinf_model</span><span class="o">=</span><span class="n">dinf_model</span><span class="p">,</span>
             <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
             <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
             <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
@@ -1351,7 +1351,7 @@ title="Open an issue"
 
 <span class="k">def</span> <span class="nf">pretraining_dinf</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">genobuilder</span><span class="p">,</span>
+    <span class="n">dinf_model</span><span class="p">,</span>
     <span class="n">training_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">test_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1372,9 +1372,9 @@ title="Open an issue"
     <span class="n">ss_discr_init</span><span class="p">,</span> <span class="n">ss_thetas</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">((</span><span class="s2">&quot;discriminator:init&quot;</span><span class="p">,</span> <span class="s2">&quot;thetas&quot;</span><span class="p">))</span>
     <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
 
-    <span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span>
     <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+        <span class="n">dinf_model</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span>
     <span class="p">)</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_discr_init</span><span class="p">))</span>
 
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_pretraining_iterations</span><span class="p">):</span>
@@ -1383,7 +1383,7 @@ title="Open an issue"
 
         <span class="n">metrics</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_train_discriminator</span><span class="p">(</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-            <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+            <span class="n">dinf_model</span><span class="o">=</span><span class="n">dinf_model</span><span class="p">,</span>
             <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
             <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
             <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
@@ -1400,7 +1400,7 @@ title="Open an issue"
     <span class="n">lp</span> <span class="o">=</span> <span class="n">_log_prob</span><span class="p">(</span>
         <span class="n">thetas</span><span class="p">,</span>
         <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-        <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+        <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
         <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
         <span class="n">num_replicates</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
@@ -1495,7 +1495,7 @@ title="Open an issue"
 <div class="viewcode-block" id="pg_gan"><a class="viewcode-back" href="../../api.html#dinf.pg_gan">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
 <span class="k">def</span> <span class="nf">pg_gan</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
+    <span class="n">dinf_model</span><span class="p">:</span> <span class="n">DinfModel</span><span class="p">,</span>
     <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">training_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">test_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1515,8 +1515,8 @@ title="Open an issue"
 
 <span class="sd">    Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386</span>
 
-<span class="sd">    :param genobuilder:</span>
-<span class="sd">        Genobuilder object that describes the dinf model.</span>
+<span class="sd">    :param dinf_model:</span>
+<span class="sd">        DinfModel object that describes the dinf model.</span>
 <span class="sd">    :param iterations:</span>
 <span class="sd">        Number of GAN iterations.</span>
 <span class="sd">    :param training_replicates:</span>
@@ -1601,8 +1601,8 @@ title="Open an issue"
 <span class="sd">        directory will be used.</span>
 <span class="sd">    :param parallelism:</span>
 <span class="sd">        Number of processes to use for parallelising calls to the</span>
-<span class="sd">        :meth:`Genobuilder.generator_func` and</span>
-<span class="sd">        :meth:`Genobuilder.target_func`.</span>
+<span class="sd">        :meth:`DinfModel.generator_func` and</span>
+<span class="sd">        :meth:`DinfModel.target_func`.</span>
 <span class="sd">    :param seed:</span>
 <span class="sd">        Seed for the random number generator.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1615,7 +1615,7 @@ title="Open an issue"
     <span class="k">if</span> <span class="n">parallelism</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
 
-    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
+    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">dinf_model</span><span class="p">)</span>
 
     <span class="n">ss</span> <span class="o">=</span> <span class="n">NamedSeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">ss_accept</span><span class="p">,</span> <span class="n">ss_pretraining</span><span class="p">,</span> <span class="n">ss_proposals</span><span class="p">,</span> <span class="n">ss_loop</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span>
@@ -1624,7 +1624,7 @@ title="Open an issue"
     <span class="n">rng_accept</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_accept</span><span class="p">)</span>
     <span class="n">rng_proposals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_proposals</span><span class="p">)</span>
 
-    <span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">files_exist</span> <span class="o">=</span> <span class="p">[</span>
@@ -1637,7 +1637,7 @@ title="Open an issue"
 
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
-            <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+            <span class="n">dinf_model</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span>
         <span class="p">)</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.nn&quot;</span><span class="p">)</span>
         <span class="n">proposal_thetas</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="n">_load_results_unstructured</span><span class="p">(</span>
             <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;pg-gan-proposals.npz&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
@@ -1666,7 +1666,7 @@ title="Open an issue"
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unknown pretraining_method </span><span class="si">{</span><span class="n">pretraining_method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="n">discriminator</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_target_calls</span><span class="p">,</span> <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="n">pretraining_func</span><span class="p">(</span>
-            <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+            <span class="n">dinf_model</span><span class="o">=</span><span class="n">dinf_model</span><span class="p">,</span>
             <span class="n">training_replicates</span><span class="o">=</span><span class="n">training_replicates</span><span class="p">,</span>
             <span class="n">test_replicates</span><span class="o">=</span><span class="n">test_replicates</span><span class="p">,</span>
             <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
@@ -1704,7 +1704,7 @@ title="Open an issue"
         <span class="n">lp</span> <span class="o">=</span> <span class="n">_log_prob</span><span class="p">(</span>
             <span class="n">proposal_thetas</span><span class="p">,</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-            <span class="n">generator</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+            <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
             <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">num_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
             <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
@@ -1749,7 +1749,7 @@ title="Open an issue"
             <span class="p">(</span><span class="n">ss_loop</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">_train_discriminator</span><span class="p">(</span>
                 <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-                <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+                <span class="n">dinf_model</span><span class="o">=</span><span class="n">dinf_model</span><span class="p">,</span>
                 <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
                 <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
                 <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
@@ -1771,7 +1771,7 @@ title="Open an issue"
 <div class="viewcode-block" id="alfi_mcmc_gan"><a class="viewcode-back" href="../../api.html#dinf.alfi_mcmc_gan">[docs]</a><span class="nd">@cleanup_process_pool_afterwards</span>
 <span class="k">def</span> <span class="nf">alfi_mcmc_gan</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">genobuilder</span><span class="p">:</span> <span class="n">Genobuilder</span><span class="p">,</span>
+    <span class="n">dinf_model</span><span class="p">:</span> <span class="n">DinfModel</span><span class="p">,</span>
     <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">training_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">test_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1793,8 +1793,8 @@ title="Open an issue"
 
 <span class="sd">    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1</span>
 
-<span class="sd">    :param genobuilder:</span>
-<span class="sd">        Genobuilder object that describes the dinf model.</span>
+<span class="sd">    :param dinf_model:</span>
+<span class="sd">        DinfModel object that describes the dinf model.</span>
 <span class="sd">    :param iterations:</span>
 <span class="sd">        Number of GAN iterations.</span>
 <span class="sd">    :param training_replicates:</span>
@@ -1815,8 +1815,8 @@ title="Open an issue"
 <span class="sd">        directory will be used.</span>
 <span class="sd">    :param parallelism:</span>
 <span class="sd">        Number of processes to use for parallelising calls to the</span>
-<span class="sd">        :meth:`Genobuilder.generator_func` and</span>
-<span class="sd">        :meth:`Genobuilder.target_func`.</span>
+<span class="sd">        :meth:`DinfModel.generator_func` and</span>
+<span class="sd">        :meth:`DinfModel.target_func`.</span>
 <span class="sd">    :param seed:</span>
 <span class="sd">        Seed for the random number generator.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1835,7 +1835,7 @@ title="Open an issue"
     <span class="k">if</span> <span class="n">parallelism</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">parallelism</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
 
-    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">genobuilder</span><span class="p">)</span>
+    <span class="n">_process_pool_init</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">dinf_model</span><span class="p">)</span>
 
     <span class="n">ss</span> <span class="o">=</span> <span class="n">NamedSeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">ss_loop</span><span class="p">,</span> <span class="n">ss_mcmc</span><span class="p">,</span> <span class="n">ss_thetas</span><span class="p">,</span> <span class="n">ss_discr_init</span><span class="p">,</span> <span class="n">ss_surrogate_init</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span>
@@ -1850,7 +1850,7 @@ title="Open an issue"
     <span class="n">rng_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
     <span class="n">rng_mcmc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_mcmc</span><span class="p">)</span>
 
-    <span class="n">parameters</span> <span class="o">=</span> <span class="n">genobuilder</span><span class="o">.</span><span class="n">parameters</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">files_exist</span> <span class="o">=</span> <span class="p">[</span>
@@ -1862,7 +1862,7 @@ title="Open an issue"
         <span class="n">resume</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">files_exist</span><span class="p">)</span>
 
     <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">genobuilder</span><span class="o">.</span><span class="n">discriminator_network</span>
+        <span class="n">dinf_model</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span>
     <span class="p">)</span>
     <span class="n">surrogate</span> <span class="o">=</span> <span class="n">Surrogate</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
@@ -1915,7 +1915,7 @@ title="Open an issue"
         <span class="p">(</span><span class="n">ss_loop</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">train_x_generator</span><span class="p">,</span> <span class="n">test_x_generator</span> <span class="o">=</span> <span class="n">_train_discriminator</span><span class="p">(</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-            <span class="n">genobuilder</span><span class="o">=</span><span class="n">genobuilder</span><span class="p">,</span>
+            <span class="n">dinf_model</span><span class="o">=</span><span class="n">dinf_model</span><span class="p">,</span>
             <span class="n">training_thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
             <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
             <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
@@ -2002,7 +2002,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev272+gd35d2b0
+      dinf 0.1.1.dev274+gf5b3110
     </div>
 </p>
         </footer>

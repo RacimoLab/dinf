@@ -213,7 +213,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev272
+            dinf 0.1.1.dev274
             </div>
             
         </div>
@@ -521,9 +521,9 @@ See the <a class="reference internal" href="creating_a_model.html#sec-guide-crea
 for how to write a model file.</p>
 <section id="dinf-model-files">
 <h2><span class="section-number">2.1. </span>Dinf model files<a class="headerlink" href="#dinf-model-files" title="Permalink to this headline">#</a></h2>
-<p>When Dinf reads a model file (a <code class="docutils literal notranslate"><span class="pre">.py</span></code> file), it looks for a <code class="docutils literal notranslate"><span class="pre">genobuilder</span></code>
-variable which must be an instance of the <a class="reference internal" href="../api.html#dinf.Genobuilder" title="dinf.Genobuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">Genobuilder</span></code></a> class.
-The genobuilder contains all the information needed to train a discriminator
+<p>When Dinf reads a model file (a <code class="docutils literal notranslate"><span class="pre">.py</span></code> file), it looks for a <code class="docutils literal notranslate"><span class="pre">dinf_model</span></code>
+variable which must be an instance of the <a class="reference internal" href="../api.html#dinf.DinfModel" title="dinf.DinfModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DinfModel</span></code></a> class.
+This object contains all the information needed to train a discriminator
 network.</p>
 </section>
 <section id="checking-a-model-file">
@@ -642,7 +642,7 @@ Other ways to improve the accuracy are discussed on the
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev272+gd35d2b0
+      dinf 0.1.1.dev274+gf5b3110
     </div>
 </p>
         </footer>

@@ -12,7 +12,7 @@
 
 ```{eval-rst}
 .. autosummary::
-    Genobuilder
+    DinfModel
 ```
 
 ### Specifying parameters
@@ -99,7 +99,7 @@
 ### Defining a Dinf model
 
 ```{eval-rst}
-.. autoclass:: dinf.Genobuilder
+.. autoclass:: dinf.DinfModel
    :members:
 ```
 

@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>dinf.genobuilder &#8212; Dinf</title>
+    <title>dinf.dinf_model &#8212; Dinf</title>
     
   <!-- Loaded before other Sphinx assets -->
   <link href="../../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
@@ -210,7 +210,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev272
+            dinf 0.1.1.dev274
             </div>
             
         </div>
@@ -292,7 +292,7 @@ title="Source repository"
       </li>
       
       <li>
-        <a href="https://github.com/RacimoLab/dinf/issues/new?title=Issue%20on%20page%20%2F_modules/dinf/genobuilder.html&body=Your%20issue%20content%20here."
+        <a href="https://github.com/RacimoLab/dinf/issues/new?title=Issue%20on%20page%20%2F_modules/dinf/dinf_model.html&body=Your%20issue%20content%20here."
    class="headerbtn"
    data-toggle="tooltip"
 data-placement="left"
@@ -335,7 +335,7 @@ title="Open an issue"
                 
               <div>
                 
-  <h1>Source code for dinf.genobuilder</h1><div class="highlight"><pre>
+  <h1>Source code for dinf.dinf_model</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">dataclasses</span>
 <span class="kn">import</span> <span class="nn">functools</span>
@@ -361,8 +361,8 @@ title="Open an issue"
     <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="Genobuilder"><a class="viewcode-back" href="../../api.html#dinf.Genobuilder">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
-<span class="k">class</span> <span class="nc">Genobuilder</span><span class="p">:</span>
+<div class="viewcode-block" id="DinfModel"><a class="viewcode-back" href="../../api.html#dinf.DinfModel">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
+<span class="k">class</span> <span class="nc">DinfModel</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A container that describes the components of a Dinf model.</span>
 
@@ -398,7 +398,7 @@ title="Open an issue"
 <span class="sd">            ...</span>
 <span class="sd">            return features.from_vcf(vcfs, ...)</span>
 
-<span class="sd">        genobuilder = dinf.Genobuilder(</span>
+<span class="sd">        dinf_model = dinf.DinfModel(</span>
 <span class="sd">            parameters=parameters,</span>
 <span class="sd">            generator_func=generator,</span>
 <span class="sd">            target_func=target,</span>
@@ -532,7 +532,7 @@ title="Open an issue"
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">truth_missing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">&quot;For a simulation-only model &quot;</span>
-                    <span class="s2">&quot;(with genobuilder.target_func=None), &quot;</span>
+                    <span class="s2">&quot;(with dinf_model.target_func=None), &quot;</span>
                     <span class="s2">&quot;all parameters must have `truth&#39; values defined.</span><span class="se">\n</span><span class="s2">&quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;Truth values missing for: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">truth_missing</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
                 <span class="p">)</span>
@@ -548,11 +548,11 @@ title="Open an issue"
         <span class="bp">self</span><span class="o">.</span><span class="n">_orig_generator_func</span> <span class="o">=</span> <span class="n">f</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="Genobuilder.check"><a class="viewcode-back" href="../../api.html#dinf.Genobuilder.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="DinfModel.check"><a class="viewcode-back" href="../../api.html#dinf.DinfModel.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Basic health checks: draw parameters and call the functions.</span>
 
-<span class="sd">        We don&#39;t do this when initialising the Genobuilder, because calling</span>
+<span class="sd">        We don&#39;t do this when initialising the DinfModel, because calling</span>
 <span class="sd">        :attr:`.generator_func()` and :attr:`.target_func()` are potentially</span>
 <span class="sd">        time consuming, which could lead to annoying delays for the command</span>
 <span class="sd">        line interface.</span>
@@ -581,10 +581,10 @@ title="Open an issue"
                 <span class="sa">f</span><span class="s2">&quot;but feature_shape is </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Genobuilder.from_file"><a class="viewcode-back" href="../../api.html#dinf.Genobuilder.from_file">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Genobuilder</span><span class="p">:</span>
+<div class="viewcode-block" id="DinfModel.from_file"><a class="viewcode-back" href="../../api.html#dinf.DinfModel.from_file">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DinfModel</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Load the symbol &quot;genobuilder&quot; from a file.</span>
+<span class="sd">        Load the symbol &quot;dinf_model&quot; from a file.</span>
 
 <span class="sd">        https://docs.python.org/3/library/importlib.html#importing-a-source-file-directly</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -592,7 +592,7 @@ title="Open an issue"
         <span class="n">spec</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">spec_from_file_location</span><span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">spec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Could not load spec for `</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&#39;. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: couldn&#39;t load spec. &quot;</span>
                 <span class="s2">&quot;Check that the file exists and has a .py extension.&quot;</span>
             <span class="p">)</span>
         <span class="c1"># Pacify mypy.</span>
@@ -602,13 +602,13 @@ title="Open an issue"
         <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">module_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">user_module</span>
         <span class="n">spec</span><span class="o">.</span><span class="n">loader</span><span class="o">.</span><span class="n">exec_module</span><span class="p">(</span><span class="n">user_module</span><span class="p">)</span>
 
-        <span class="n">genobuilder</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">user_module</span><span class="p">,</span> <span class="s2">&quot;genobuilder&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">genobuilder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;genobuilder not found in </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">genobuilder</span><span class="p">,</span> <span class="n">Genobuilder</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: genobuilder is not a dinf.Genobuilder object&quot;</span><span class="p">)</span>
-        <span class="n">genobuilder</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">filename</span>
-        <span class="k">return</span> <span class="n">genobuilder</span></div></div>
+        <span class="n">dinf_model</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">user_module</span><span class="p">,</span> <span class="s2">&quot;dinf_model&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dinf_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: variable &#39;dinf_model&#39; not found&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dinf_model</span><span class="p">,</span> <span class="n">DinfModel</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: dinf_model is not a dinf.DinfModel object&quot;</span><span class="p">)</span>
+        <span class="n">dinf_model</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="k">return</span> <span class="n">dinf_model</span></div></div>
 </pre></div>
 
               </div>
@@ -629,7 +629,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev272+gd35d2b0
+      dinf 0.1.1.dev274+gf5b3110
     </div>
 </p>
         </footer>

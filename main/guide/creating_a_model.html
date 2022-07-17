@@ -215,7 +215,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev272
+            dinf 0.1.1.dev274
             </div>
             
         </div>
@@ -533,7 +533,7 @@ APIs.</p>
 produce data closely resembling some target empirical dataset.
 In the diagram below, the rectangles represent the major components of
 a Dinf model, and the arrows indicate the flow of data.</p>
-<p><img alt="Dinf model diagram" src="../_images/genobuilder.svg" /></p>
+<p><img alt="Dinf model diagram" src="../_images/dinf_model.svg" /></p>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(\theta\)</span> are the model parameters,
 such as population sizes, split times, or migration rates.</p></li>
@@ -550,12 +550,12 @@ generator and the target dataset.</p></li>
 a given input feature is from the target distribution.</p></li>
 </ul>
 <p>A Dinf model is organised as a Python script (a <code class="docutils literal notranslate"><span class="pre">.py</span></code> file)
-containing a <code class="docutils literal notranslate"><span class="pre">genobuilder</span></code> variable,
-which must be an instance of the <a class="reference internal" href="../api.html#dinf.Genobuilder" title="dinf.Genobuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">Genobuilder</span></code></a> class.
+containing a <code class="docutils literal notranslate"><span class="pre">dinf_model</span></code> variable,
+which must be an instance of the <a class="reference internal" href="../api.html#dinf.DinfModel" title="dinf.DinfModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DinfModel</span></code></a> class.
 This object describes various components of the model.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">dinf</span>
 
-<span class="n">genobuilder</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Genobuilder</span><span class="p">(</span>
+<span class="n">dinf_model</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="p">(</span>
     <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
     <span class="n">feature_shape</span><span class="o">=</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
     <span class="n">generator_func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
@@ -575,7 +575,7 @@ It’s not necessary to specify the architecture of the discriminator.</p>
 <p>In this example, we’ll have two inferrable parameters,
 <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code>, which correspond to the population sizes of a
 deme before and after a bottleneck.
-<a class="reference internal" href="../api.html#dinf.Genobuilder.parameters" title="dinf.Genobuilder.parameters"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Genobuilder.parameters</span></code></a> are defined via the <a class="reference internal" href="../api.html#dinf.Parameters" title="dinf.Parameters"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parameters</span></code></a> class,
+<a class="reference internal" href="../api.html#dinf.DinfModel.parameters" title="dinf.DinfModel.parameters"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DinfModel.parameters</span></code></a> are defined via the <a class="reference internal" href="../api.html#dinf.Parameters" title="dinf.Parameters"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parameters</span></code></a> class,
 whose constructor accepts named <a class="reference internal" href="../api.html#dinf.Param" title="dinf.Param"><code class="xref py py-class docutils literal notranslate"><span class="pre">Param</span></code></a> instances by keyword.
 Each keyword is the name of a parameter (<code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> in the code below)
 and each parameter has a lower bound (<code class="docutils literal notranslate"><span class="pre">low</span></code>) and an upper bound (<code class="docutils literal notranslate"><span class="pre">high</span></code>).
@@ -627,11 +627,11 @@ multidimensional arrays (or a collection of multidimensional arrays,
 when modelling multiple populations), where the feature shape is a tuple of
 array dimensions of the feature.
 The <code class="docutils literal notranslate"><span class="pre">features</span></code> object defined above has a <code class="docutils literal notranslate"><span class="pre">shape</span></code> property that can used for the
-<a class="reference internal" href="../api.html#dinf.Genobuilder.feature_shape" title="dinf.Genobuilder.feature_shape"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Genobuilder.feature_shape</span></code></a>.</p>
+<a class="reference internal" href="../api.html#dinf.DinfModel.feature_shape" title="dinf.DinfModel.feature_shape"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DinfModel.feature_shape</span></code></a>.</p>
 </section>
 <section id="genetic-simulator">
 <h3><span class="section-number">1.3.2. </span>Genetic simulator<a class="headerlink" href="#genetic-simulator" title="Permalink to this headline">#</a></h3>
-<p><a class="reference internal" href="../api.html#dinf.Genobuilder.generator_func" title="dinf.Genobuilder.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Genobuilder.generator_func</span></code></a> is a user-defined function that produces data
+<p><a class="reference internal" href="../api.html#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DinfModel.generator_func</span></code></a> is a user-defined function that produces data
 features matching the <code class="docutils literal notranslate"><span class="pre">feature_shape</span></code>.
 The function accepts a single positional argument <code class="docutils literal notranslate"><span class="pre">seed</span></code>,
 followed by one keyword argument for each inferrable parameter.
@@ -713,7 +713,7 @@ and testing.</p>
 </section>
 <section id="target">
 <h2><span class="section-number">1.4. </span>Target<a class="headerlink" href="#target" title="Permalink to this headline">#</a></h2>
-<p>When defining the <a class="reference internal" href="../api.html#dinf.Genobuilder" title="dinf.Genobuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">Genobuilder</span></code></a> object above,
+<p>When defining the <a class="reference internal" href="../api.html#dinf.DinfModel" title="dinf.DinfModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DinfModel</span></code></a> object above,
 we set <code class="docutils literal notranslate"><span class="pre">target_func=None</span></code>. This means that Dinf will reuse the
 generator function to create the target dataset. When simulating the
 target dataset, the <code class="docutils literal notranslate"><span class="pre">truth</span></code> values specified for the parameters
@@ -795,7 +795,7 @@ that treats haplotypes within populations as exchangeable.</p>
     <span class="k">return</span> <span class="n">feature_matrix</span>
 
 
-<span class="n">genobuilder</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Genobuilder</span><span class="p">(</span>
+<span class="n">dinf_model</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="p">(</span>
     <span class="n">target_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">generator_func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
     <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
@@ -858,7 +858,7 @@ that treats haplotypes within populations as exchangeable.</p>
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev272+gd35d2b0
+      dinf 0.1.1.dev274+gf5b3110
     </div>
 </p>
         </footer>
