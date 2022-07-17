@@ -534,14 +534,17 @@ class _SubCommand:
             "--top-n",
             metavar="N",
             type=int,
-            help="Accept only the N top parameter values, ranked by log probability.",
+            help="Accept only the N top samples, ranked by probability.",
         )
         group.add_argument(
-            "-t",
+            "-p",
             "--probability-threshold",
             metavar="P",
             type=float,
-            help="Accept only the parameter values with probabilities greater than P.",
+            help=(
+                "Accept only the samples with prediction probabilities "
+                "greater than P."
+            ),
         )
 
     def add_argument_weighted(self):
@@ -549,15 +552,16 @@ class _SubCommand:
             "-W",
             "--weighted",
             action="store_true",
-            help="Weight the parameter values by probability.",
+            help="Weight the parameter contributions by their probability.",
         )
 
-    def add_argument_data_file(self):
+    def add_argument_data_file(self, nargs):
         self.parser.add_argument(
-            "data_file",
+            "data_files",
             metavar="data.npz",
             type=pathlib.Path,
-            help="The datafile containing discriminator predictions.",
+            nargs=nargs,
+            help="Data file containing discriminator predictions.",
         )
 
     def add_argument_discriminators(self):
@@ -585,22 +589,28 @@ class _SubCommand:
             help="Model file from which the parameter truth values with be taken.",
         )
 
-    def get_abc_dataset(self, args):
+    def get_abc_datasets(self, args):
         """Load data file and filter by top-n or by probability."""
-        data = dinf.load_results(args.data_file)
-        shape = data["_Pr"].shape
-        if len(shape) != 1:
-            # Bail for MCMC-GAN datasets.
-            raise ValueError(f"I don't understand GAN datasets (shape={shape}).")
+        datasets = []
+        for filename in args.data_files:
+            data = dinf.load_results(filename)
+            shape = data["_Pr"].shape
+            if len(shape) != 1:
+                # Bail for MCMC-GAN datasets.
+                raise ValueError(
+                    f"{filename}: I don't understand GAN datasets (shape={shape})."
+                )
 
-        assert None in (args.top_n, args.probability_threshold)
-        if args.top_n is not None:
-            idx = np.flip(np.argsort(data["_Pr"]))
-            data = data[idx[: args.top_n]]
-        elif args.probability_threshold is not None:
-            data = data[np.where(data["_Pr"] > args.probability_threshold)]
+            assert None in (args.top_n, args.probability_threshold)
+            if args.top_n is not None:
+                idx = np.flip(np.argsort(data["_Pr"]))
+                data = data[idx[: args.top_n]]
+            elif args.probability_threshold is not None:
+                data = data[np.where(data["_Pr"] > args.probability_threshold)]
 
-        return data
+            datasets.append(data)
+
+        return datasets
 
 
 class _Demes(_SubCommand):
@@ -784,13 +794,16 @@ class _Hist2d(_SubCommand):
             help="Name of parameter to plot on vertical axis.",
         )
         self.add_argument_genob_model_optional()
-        self.add_argument_data_file()
+        self.add_argument_data_file(nargs=1)
 
     def __call__(self, args: argparse.Namespace):
         parameters = None
         if args.model is not None:
             parameters = dinf.Genobuilder.from_file(args.model).parameters
-        data = self.get_abc_dataset(args)
+
+        datasets = self.get_abc_datasets(args)
+        assert len(datasets) == 1
+        data = datasets[0]
         param_names = data.dtype.names[1:]
 
         if args.x_param is None:
@@ -804,7 +817,7 @@ class _Hist2d(_SubCommand):
 
         for param in args.x_param + args.y_param:
             if param not in param_names:
-                raise ValueError(f"{args.data_file}: parameter {param} not found")
+                raise ValueError(f"{args.data_files[0]}: parameter {param} not found")
 
         hist2d_kw = {}
         if args.weighted:
@@ -914,22 +927,25 @@ class _Hist(_SubCommand):
             ),
         )
         self.add_argument_genob_model_optional()
-        self.add_argument_data_file()
+        self.add_argument_data_file(nargs="+")
 
     def __call__(self, args: argparse.Namespace):
         parameters = None
         if args.model is not None:
             parameters = dinf.Genobuilder.from_file(args.model).parameters
-        data = self.get_abc_dataset(args)
+        datasets = self.get_abc_datasets(args)
 
         if args.x_param is None:
-            args.x_param = data.dtype.names
+            args.x_param = datasets[0].dtype.names
         if len(set(args.x_param)) != len(args.x_param):
             raise ValueError(f"--x-param values are not unique: {args.x_param}")
 
-        for param in args.x_param:
-            if param not in data.dtype.names:
-                raise ValueError(f"{args.data_file}: parameter {param} not found")
+        for j, data in enumerate(datasets):
+            for param in args.x_param:
+                if param not in data.dtype.names:
+                    raise ValueError(
+                        f"{args.data_files[j]}: parameter {param} not found"
+                    )
 
         with MultiPage(args.output_file, len(args.x_param)) as pages:
             for x_param in args.x_param:
@@ -950,19 +966,23 @@ class _Hist(_SubCommand):
                         if px is None:
                             raise ValueError(f"{args.model}: couldn't find `{x_param}`")
                         truth = px.truth
-                    x = data[x_param]
                     ax.set_xlabel(x_param)
                     if args.weighted:
                         hist_kw["weights"] = data["_Pr"]
                     ci = True
 
-                x = data[x_param]
-                hist(x, ax=ax, ci=ci, truth=truth, hist_kw=hist_kw)
+                for data, path in zip(datasets, args.data_files):
+                    x = data[x_param]
+                    hist_kw["label"] = path.name
+                    hist(x, ax=ax, ci=ci, truth=truth, hist_kw=hist_kw)
 
                 if args.cumulative:
                     ax.set_ylabel("cumulative density")
                 else:
                     ax.set_ylabel("density")
+
+                if len(datasets) > 1:
+                    ax.legend()
 
                 pages.savefig(fig, hint="Pr" if x_param == "_Pr" else x_param)
                 plt.close(fig)
