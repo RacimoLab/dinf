@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 
-from .cli import ADRDFormatter, _GENOB_MODEL_HELP
+from .cli import ADRDFormatter, _DINF_MODEL_HELP
 import dinf
 
 
@@ -572,15 +572,15 @@ class _SubCommand:
             help="The discriminator network(s) to plot.",
         )
 
-    def add_argument_genob_model(self):
+    def add_argument_model(self):
         self.parser.add_argument(
-            "genob_model",
+            "model",
             metavar="model.py",
             type=pathlib.Path,
-            help=_GENOB_MODEL_HELP,
+            help=_DINF_MODEL_HELP,
         )
 
-    def add_argument_genob_model_optional(self):
+    def add_argument_model_optional(self):
         self.parser.add_argument(
             "-m",
             "--model",
@@ -621,12 +621,12 @@ class _Demes(_SubCommand):
     def __init__(self, subparsers):
         super().__init__(subparsers, "demes")
         self.add_argument_output_file()
-        self.add_argument_genob_model()
+        self.add_argument_model()
 
     def __call__(self, args: argparse.Namespace):
-        parameters = dinf.DinfModel.from_file(args.genob_model).parameters
+        parameters = dinf.DinfModel.from_file(args.model).parameters
 
-        # _dinf_user_module is the name given to the args.genob_model module in
+        # _dinf_user_module is the name given to the args.model module in
         # DinfModel.from_file(), which gets cached in sys.modules.
         # As a side-effect, we can now import it with this name to look for
         # a demography function.
@@ -636,9 +636,7 @@ class _Demes(_SubCommand):
 
         demography = getattr(_dinf_user_module, "demography", None)
         if not inspect.isfunction(demography):
-            raise AttributeError(
-                f"{args.genob_model}: demography() function not found."
-            )
+            raise AttributeError(f"{args.model}: demography() function not found.")
 
         sig = inspect.signature(demography)
         if inspect.Parameter.VAR_KEYWORD in {v.kind for v in sig.parameters.values()}:
@@ -684,10 +682,10 @@ class _Features(_SubCommand):
             action="store_true",
             help="Extract feature(s) from the target dataset.",
         )
-        self.add_argument_genob_model()
+        self.add_argument_model()
 
     def __call__(self, args: argparse.Namespace):
-        dinf_model = dinf.DinfModel.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.model)
 
         if args.target:
             assert dinf_model.target_func is not None
@@ -793,7 +791,7 @@ class _Hist2d(_SubCommand):
             action="append",
             help="Name of parameter to plot on vertical axis.",
         )
-        self.add_argument_genob_model_optional()
+        self.add_argument_model_optional()
         self.add_argument_data_file(nargs=1)
 
     def __call__(self, args: argparse.Namespace):
@@ -926,7 +924,7 @@ class _Hist(_SubCommand):
                 "obtained from the discriminator."
             ),
         )
-        self.add_argument_genob_model_optional()
+        self.add_argument_model_optional()
         self.add_argument_data_file(nargs="+")
 
     def __call__(self, args: argparse.Namespace):
@@ -988,6 +986,52 @@ class _Hist(_SubCommand):
                 plt.close(fig)
 
 
+class _Smooth(_SubCommand):
+    """
+    Smoothed density.
+    """
+
+    def __init__(self, subparsers):
+        super().__init__(subparsers, "smooth")
+
+        self.add_argument_output_file()
+        # self.add_argument_abc_thresholds()
+        # self.add_argument_weighted()
+
+        self.parser.add_argument(
+            "-x",
+            "--x-param",
+            type=str,
+            action="append",
+            help=(
+                "Name of parameter to plot. "
+                'The special name "_Pr" is recognised to plot the probabilities '
+                "obtained from the discriminator."
+            ),
+        )
+        self.add_argument_model()
+        self.add_argument_data_file(nargs=1)
+
+    def __call__(self, args: argparse.Namespace):
+        parameters = dinf.DinfModel.from_file(args.model).parameters
+        assert len(args.data_files) == 1
+        from .dinf import _load_results_unstructured, sample_smooth_transform
+
+        thetas, probs = _load_results_unstructured(
+            args.data_files[0], parameters=parameters
+        )
+
+        rng = np.random.default_rng(123)
+        X = sample_smooth_transform(thetas, probs, 1_000_000, rng, parameters)
+
+        fig, ax = plt.subplots(figsize=plt.figaspect(9 / 16), constrained_layout=True)
+        x = thetas[:, 0]
+        hist(x, ax=ax, ci=True, hist_kw=dict(weights=probs, label="N"))
+        hist(X[:, 0], ax=ax, ci=False, hist_kw=dict(label="smooth", bins=100))
+        ax.legend()
+        plt.show()
+
+
 def main(args_list=None):
     top_parser = argparse.ArgumentParser(
         prog="dinf.plot", description="Dinf plotting tools."
@@ -999,6 +1043,7 @@ def main(args_list=None):
     _Metrics(subparsers)
     _Hist(subparsers)
     _Hist2d(subparsers)
+    _Smooth(subparsers)
 
     args = top_parser.parse_args(args_list)
     if args.subcommand is None:

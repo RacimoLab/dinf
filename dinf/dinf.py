@@ -481,7 +481,7 @@ def train(
     Train a discriminator network.
 
     :param dinf_model:
-        DinfModel object that describes the GAN.
+        DinfModel object that describes the model components.
     :param training_replicates:
         Size of the dataset used to train the discriminator.
     :param test_replicates:
@@ -551,7 +551,7 @@ def predict(
     ``sample_target`` option.
 
     :param dinf_model:
-        DinfModel object that describes the GAN.
+        DinfModel object that describes the model components.
     :param replicates:
         Number of features to extract.
     :param sample_target:
@@ -632,7 +632,7 @@ def mcmc_gan(
     by sampling without replacement from the previous iteration's MCMC chains.
 
     :param dinf_model:
-        DinfModel object that describes the GAN.
+        DinfModel object that describes the model components.
     :param iterations:
         Number of GAN iterations.
     :param training_replicates:
@@ -785,22 +785,66 @@ def mcmc_gan(
         print(f"Generator called {n_generator_calls} times.")
 
 
-def _run_abc(
-    *,
-    discriminator: Discriminator,
-    generator: Callable,
-    parameters: Parameters,
-    thetas: np.ndarray,
-    posteriors: int,
-    parallelism: int,
-    rng: np.random.Generator,
-):
-    x = _generate_data(
-        generator=generator, thetas=thetas, parallelism=parallelism, rng=rng
-    )
-    y = discriminator.predict(x)
-    top = np.argsort(y)[::-1][:posteriors]
-    return thetas[top], y[top]
+def sample_smooth(*, thetas, probs, size: int, rng):
+    """
+    Sample from a smoothed set of weighted observations.
+
+    Samples are drawn from the thetas, weighted by their probability.
+    New points are drawn within a neighbourhood of the sampled thetas
+    using a mulivariate normal whose covariance is calculated from the
+    thetas. This is effectively sampling from a Gaussian KDE, but
+    avoids doing an explicit density estimation.
+    Scott's rule of thumb is used for bandwidth selection
+    (the multiplier of the covariance matrix).
+    """
+    # Weighted sampling of points from the thetas.
+    sample = rng.choice(thetas, size=size, replace=True, p=probs / np.sum(probs))
+    # Calculate bandwidth.
+    _, d = thetas.shape
+    neff = np.sum(probs) ** 2 / np.sum(probs**2)
+    bw_scott = neff ** (-1.0 / (d + 4))  # bandwidth multiplier
+    cov = bw_scott * np.cov(thetas, rowvar=False, aweights=probs)
+    assert not np.any(np.isnan(cov))
+    assert not np.any(np.isinf(cov))
+    # Jitter the sample with an MVN.
+    sample += rng.multivariate_normal(np.zeros(d), cov, size=size)
+    return sample
+
+
+# Seems to produce ABC-GAN degenerate states, as posterior density
+# accumulates at the bounds.
+def sample_smooth_transform(*, thetas, probs, size, rng, parameters):
+    """
+    Sample bounded values from a smoothed set of weighted observations.
+
+    Wrapper for {func}`sample_smooth` that transforms parameter values
+    so that the samples are bounded.
+    """
+    thetas_unbounded = parameters.transform(thetas)
+    X = sample_smooth(thetas=thetas_unbounded, probs=probs, size=size, rng=rng)
+    return parameters.itransform(X)
+
+
+def sample_smooth_truncate(*, thetas, probs, size, rng, parameters):
+    """
+    Sample bounded values from a smoothed set of weighted observations.
+
+    Wrapper for {func}`sample_smooth` that truncates parameter values
+    inside their bounds.
+    """
+    X = sample_smooth(thetas=thetas, probs=probs, size=size, rng=rng)
+    return parameters.truncate(X)
+
+
+def sample_smooth_reflect(*, thetas, probs, size, rng, parameters):
+    """
+    Sample bounded values from a smoothed set of weighted observations.
+
+    Wrapper for {func}`sample_smooth` that reflects parameter values
+    at their boundaries.
+    """
+    X = sample_smooth(thetas=thetas, probs=probs, size=size, rng=rng)
+    return parameters.reflect(X)
 
 
 @cleanup_process_pool_afterwards
@@ -811,8 +855,6 @@ def abc_gan(
     training_replicates: int,
     test_replicates: int,
     epochs: int,
-    proposals: int,
-    posteriors: int,
     working_directory: None | str | pathlib.Path = None,
     parallelism: None | int = None,
     seed: None | int = None,
@@ -820,16 +862,20 @@ def abc_gan(
     """
     Run the ABC GAN.
 
-    Each iteration of the GAN can be conceptually divided into:
+    Conceptually, the GAN takes the following steps for iteration j:
 
-      - constructing train/test datasets for the discriminator,
-      - training the discriminator for a certain number of epochs,
-      - running the ABC.
+      - sample train/test datasets from the prior[j] distribution,
+      - train the discriminator,
+      - make predictions with the discriminator,
+      - construct a posterior[j] sample from the test dataset,
+      - set prior[j+1] = posterior[j].
 
     In the first iteration, the parameter values given to the generator
-    to produce the test/train datasets are drawn from the parameters' prior
-    distribution. In subsequent iterations, the parameter values are drawn
-    by sampling with replacement from the previous iteration's ABC posterior.
+    to produce the test/train datasets are drawn from the parameters'
+    prior distribution. In subsequent iterations, the parameter values
+    are drawn from a posterior ABC sample. The posterior is obtained by
+    weighting the prior distribution by the discriminator predictions,
+    followed by gaussian smoothing.
 
     :param dinf_model:
         DinfModel object that describes the dinf model.
@@ -844,10 +890,6 @@ def abc_gan(
     :param epochs:
         Number of full passes over the training dataset when training
         the discriminator.
-    :param proposals:
-        Number of ABC sample draws.
-    :param posteriors:
-        Number of top-ranked ABC sample draws to keep.
     :param working_directory:
         Folder to output results. If not specified, the current
         directory will be used.
@@ -858,10 +900,6 @@ def abc_gan(
     :param seed:
         Seed for the random number generator.
     """
-    if posteriors > proposals:
-        raise ValueError(
-            f"Cannot subsample {posteriors} posteriors from {proposals} proposals"
-        )
 
     num_replicates = math.ceil((training_replicates + test_replicates) / 2)
 
@@ -895,11 +933,17 @@ def abc_gan(
     )
     if resume:
         discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
-        thetas, _ = _load_results_unstructured(
+        thetas, y = _load_results_unstructured(
             store[-1] / "abc.npz", parameters=parameters
         )
         assert len(thetas.shape) == 2
-        sampled_thetas = rng_thetas.choice(thetas, size=num_replicates, replace=True)
+        sampled_thetas = sample_smooth_reflect(
+            thetas=thetas,
+            probs=y,
+            size=num_replicates,
+            rng=rng_thetas,
+            parameters=parameters,
+        )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
@@ -917,7 +961,7 @@ def abc_gan(
         store.increment()
 
         (ss_loop,) = ss_loop.spawn(1)
-        _train_discriminator(
+        _, _, test_x_generator = _train_discriminator(
             discriminator=discriminator,
             dinf_model=dinf_model,
             training_thetas=training_thetas,
@@ -928,26 +972,26 @@ def abc_gan(
         )
         discriminator.to_file(store[-1] / "discriminator.nn")
 
-        proposal_thetas = parameters.draw_prior(proposals, rng=rng_thetas)
-        thetas, probs = _run_abc(
-            discriminator=discriminator,
-            generator=dinf_model.generator_func,
-            parameters=parameters,
-            thetas=proposal_thetas,
-            posteriors=posteriors,
-            parallelism=parallelism,
-            rng=rng_thetas,
-        )
+        y = discriminator.predict(test_x_generator)
         save_results(
-            store[-1] / "abc.npz", probs=probs, thetas=thetas, parameters=parameters
+            store[-1] / "abc.npz",
+            probs=y,
+            thetas=test_thetas,
+            parameters=parameters,
         )
 
-        sampled_thetas = rng_thetas.choice(thetas, size=num_replicates, replace=True)
+        sampled_thetas = sample_smooth_reflect(
+            thetas=test_thetas,
+            probs=y,
+            size=num_replicates,
+            rng=rng_thetas,
+            parameters=parameters,
+        )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
 
         n_target_calls += num_replicates
-        n_generator_calls += num_replicates + proposals
+        n_generator_calls += num_replicates
         print(f"Target called {n_target_calls} times.")
         print(f"Generator called {n_generator_calls} times.")
 
