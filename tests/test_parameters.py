@@ -245,3 +245,44 @@ class TestParameters:
 
         with pytest.raises(TypeError):
             Parameters(p=MyParam())
+
+    def test_transform_preserves_order(self):
+        params = Parameters(
+            a=Param(low=0, high=10),
+            b=Param(low=-1e6, high=1e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        size = 10_000
+        rng = np.random.default_rng(1234)
+        thetas = params.draw_prior(size, rng)
+        thetas_unbounded = params.transform(thetas)
+        for j in range(thetas.shape[-1]):
+            idx1 = np.argsort(thetas[:, j])
+            idx2 = np.argsort(thetas_unbounded[:, j])
+            np.testing.assert_array_equal(idx1, idx2)
+
+    def test_transform_itransform_inverses(self):
+        params = Parameters(
+            a=Param(low=0, high=10),
+            b=Param(low=-1e6, high=1e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        size = 10_000
+        rng = np.random.default_rng(1234)
+        thetas = params.draw_prior(size, rng)
+        thetas_unbounded = params.transform(thetas)
+        thetas2 = params.itransform(thetas_unbounded)
+        np.testing.assert_allclose(thetas, thetas2)
+
+    def test_itransform_bounded(self):
+        params = Parameters(
+            a=Param(low=0, high=10),
+            b=Param(low=-1e6, high=1e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        size = 10_000
+        rng = np.random.default_rng(1234)
+        for lo, hi in ((0, 1), (-1000, -50), (50, 1000), (-1e50, 1e50)):
+            U = rng.uniform(low=lo, high=hi, size=(size, len(params)))
+            thetas = params.itransform(U)
+            assert np.all(params.bounds_contain(thetas))

@@ -107,7 +107,7 @@ class Param:
             Transformed parameter values.
         """
         x = np.atleast_1d(x)
-        return self.low + expit(x * (self.high - self.low))
+        return self.low + expit(x) * (self.high - self.low)
 
 
 class Parameters(collections.abc.Mapping):
