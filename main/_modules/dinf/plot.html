@@ -210,7 +210,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev274
+            dinf 0.1.1.dev281
             </div>
             
         </div>
@@ -340,16 +340,20 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
 <span class="kn">import</span> <span class="nn">textwrap</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">from</span> <span class="nn">adjustText</span> <span class="kn">import</span> <span class="n">adjust_text</span>
+<span class="kn">from</span> <span class="nn">cycler</span> <span class="kn">import</span> <span class="n">cycler</span>
 <span class="kn">import</span> <span class="nn">matplotlib</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">from</span> <span class="nn">matplotlib.backends.backend_pdf</span> <span class="kn">import</span> <span class="n">PdfPages</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy.lib.recfunctions</span> <span class="kn">import</span> <span class="n">structured_to_unstructured</span>
+<span class="kn">import</span> <span class="nn">scipy.stats</span>
 
-<span class="kn">from</span> <span class="nn">.cli</span> <span class="kn">import</span> <span class="n">ADRDFormatter</span><span class="p">,</span> <span class="n">_GENOB_MODEL_HELP</span>
+<span class="kn">from</span> <span class="nn">.cli</span> <span class="kn">import</span> <span class="n">ADRDFormatter</span><span class="p">,</span> <span class="n">_DINF_MODEL_HELP</span>
 <span class="kn">import</span> <span class="nn">dinf</span>
+<span class="kn">from</span> <span class="nn">.dinf</span> <span class="kn">import</span> <span class="n">sample_smooth</span>
 
 
 <div class="viewcode-block" id="MultiPage"><a class="viewcode-back" href="../../api.html#dinf.plot.MultiPage">[docs]</a><span class="k">class</span> <span class="nc">MultiPage</span><span class="p">:</span>
@@ -910,15 +914,22 @@ title="Open an issue"
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The discriminator network(s) to plot.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">add_argument_genob_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">add_argument_working_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;genob_model&quot;</span><span class="p">,</span>
-            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;model.py&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;working_directory&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="n">_GENOB_MODEL_HELP</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Folder containing results from a GAN run.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">add_argument_genob_model_optional</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">add_argument_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;model&quot;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;model.py&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="n">_DINF_MODEL_HELP</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">add_argument_model_optional</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;-m&quot;</span><span class="p">,</span>
             <span class="s2">&quot;--model&quot;</span><span class="p">,</span>
@@ -936,19 +947,36 @@ title="Open an issue"
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="c1"># Bail for MCMC-GAN datasets.</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: I don&#39;t understand GAN datasets (shape=</span><span class="si">{</span><span class="n">shape</span><span class="si">}</span><span class="s2">).&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: I don&#39;t understand high-dimensional &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;datasets (shape=</span><span class="si">{</span><span class="n">shape</span><span class="si">}</span><span class="s2">).&quot;</span>
                 <span class="p">)</span>
 
             <span class="k">assert</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">top_n</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">probability_threshold</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">top_n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]))</span>
-                <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span> <span class="n">args</span><span class="o">.</span><span class="n">top_n</span><span class="p">]]</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">-</span> <span class="n">args</span><span class="o">.</span><span class="n">top_n</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;_Pr&quot;</span><span class="p">)[</span><span class="n">k</span><span class="p">:]</span>
             <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">probability_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">args</span><span class="o">.</span><span class="n">probability_threshold</span><span class="p">)]</span>
 
             <span class="n">datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">datasets</span>
+
+    <span class="k">def</span> <span class="nf">get_gan_datasets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">discriminators</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">data_files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">store</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Store</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">working_directory</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">dataset_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">store</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;discriminator.nn&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">args</span><span class="o">.</span><span class="n">discriminators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;discriminator.nn&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;abc&quot;</span><span class="p">,</span> <span class="s2">&quot;mcmc&quot;</span><span class="p">,</span> <span class="s2">&quot;pg-gan-proposals&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">.npz&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">dataset_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">dataset_type</span> <span class="o">=</span> <span class="n">prefix</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">assert</span> <span class="n">dataset_type</span> <span class="o">==</span> <span class="n">prefix</span><span class="p">,</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">dataset_type</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
+                    <span class="n">args</span><span class="o">.</span><span class="n">data_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">.npz&quot;</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">_Demes</span><span class="p">(</span><span class="n">_SubCommand</span><span class="p">):</span>
@@ -959,12 +987,12 @@ title="Open an issue"
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subparsers</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subparsers</span><span class="p">,</span> <span class="s2">&quot;demes&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_output_file</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_genob_model</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_model</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">genob_model</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
 
-        <span class="c1"># _dinf_user_module is the name given to the args.genob_model module in</span>
+        <span class="c1"># _dinf_user_module is the name given to the args.model module in</span>
         <span class="c1"># DinfModel.from_file(), which gets cached in sys.modules.</span>
         <span class="c1"># As a side-effect, we can now import it with this name to look for</span>
         <span class="c1"># a demography function.</span>
@@ -974,9 +1002,7 @@ title="Open an issue"
 
         <span class="n">demography</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">_dinf_user_module</span><span class="p">,</span> <span class="s2">&quot;demography&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isfunction</span><span class="p">(</span><span class="n">demography</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">genob_model</span><span class="si">}</span><span class="s2">: demography() function not found.&quot;</span>
-            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="si">}</span><span class="s2">: demography() function not found.&quot;</span><span class="p">)</span>
 
         <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">demography</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">VAR_KEYWORD</span> <span class="ow">in</span> <span class="p">{</span><span class="n">v</span><span class="o">.</span><span class="n">kind</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">()}:</span>
@@ -1022,10 +1048,10 @@ title="Open an issue"
             <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Extract feature(s) from the target dataset.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_genob_model</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_model</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="n">dinf_model</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">genob_model</span><span class="p">)</span>
+        <span class="n">dinf_model</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">target</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -1131,7 +1157,7 @@ title="Open an issue"
             <span class="n">action</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of parameter to plot on vertical axis.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_genob_model_optional</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_model_optional</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_data_file</span><span class="p">(</span><span class="n">nargs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
@@ -1213,6 +1239,55 @@ title="Open an issue"
                     <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
 
 
+<span class="k">def</span> <span class="nf">_kde1d_reflect</span><span class="p">(</span>
+    <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">/</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">weights</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">left</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">right</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_points</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1_000</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Kernel density estimate, with reflection to mitigate edge effects.</span>
+
+<span class="sd">    Note that the reflection is only implemented in 1d.</span>
+
+<span class="sd">    :param x:</span>
+<span class="sd">        The data values.</span>
+<span class="sd">    :param weights:</span>
+<span class="sd">        Weights for each data value</span>
+<span class="sd">    :param left:</span>
+<span class="sd">        The left bound for the data.</span>
+<span class="sd">        If None, the minimum value will be used.</span>
+<span class="sd">    :param right:</span>
+<span class="sd">        The right bound for the data.</span>
+<span class="sd">        If None, the maximum value will be used.</span>
+<span class="sd">    :param n_points:</span>
+<span class="sd">        Number of points at which to evaluate the KDE.</span>
+<span class="sd">        The points will be evenly spaced between the left and right edges.</span>
+<span class="sd">    :return:</span>
+<span class="sd">        A 2-tuple of (xrange, pdf), where ``xrange`` are the points at which</span>
+<span class="sd">        the KDE is evaluated, and ``pdf`` are the KDE for those points.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">left</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">left</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">right</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">right</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">kde</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">gaussian_kde</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bw_method</span><span class="o">=</span><span class="s2">&quot;scott&quot;</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+    <span class="c1"># KDEs for left-relected and right-reflected x&#39;s that are beyond the</span>
+    <span class="c1"># bounds of the data/parameters. Adding these avoids the usual drop in</span>
+    <span class="c1"># density at the edges of the domain (but may introduce other artifacts).</span>
+    <span class="n">bw</span> <span class="o">=</span> <span class="n">kde</span><span class="o">.</span><span class="n">factor</span>
+    <span class="n">kde_left</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">gaussian_kde</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">left</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="n">bw_method</span><span class="o">=</span><span class="n">bw</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+    <span class="n">kde_right</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">gaussian_kde</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">right</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="n">bw_method</span><span class="o">=</span><span class="n">bw</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+
+    <span class="n">xrange</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">n_points</span><span class="p">)</span>
+    <span class="n">pdf</span> <span class="o">=</span> <span class="n">kde_left</span><span class="p">(</span><span class="n">xrange</span><span class="p">)</span> <span class="o">+</span> <span class="n">kde</span><span class="p">(</span><span class="n">xrange</span><span class="p">)</span> <span class="o">+</span> <span class="n">kde_right</span><span class="p">(</span><span class="n">xrange</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">xrange</span><span class="p">,</span> <span class="n">pdf</span>
+
+
 <span class="k">class</span> <span class="nc">_Hist</span><span class="p">(</span><span class="n">_SubCommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Plot marginal posterior densities.</span>
@@ -1264,7 +1339,20 @@ title="Open an issue"
                 <span class="s2">&quot;obtained from the discriminator.&quot;</span>
             <span class="p">),</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_genob_model_optional</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--resample&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">&quot;Resample parameter values to obtain a smoother density estimate. &quot;</span>
+                <span class="s2">&quot;This matches the n-dimensional KDE sampling used with the ABC-GAN.&quot;</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--kde&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Also draw a 1-dimensional marginal kernel density estimate.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_model_optional</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_data_file</span><span class="p">(</span><span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
@@ -1284,6 +1372,24 @@ title="Open an issue"
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                         <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">data_files</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="si">}</span><span class="s2">: parameter </span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2"> not found&quot;</span>
                     <span class="p">)</span>
+
+        <span class="n">datasets_resampled</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">resample</span><span class="p">:</span>
+            <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">123</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">:</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+                <span class="n">probs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]</span>
+                <span class="n">thetas</span> <span class="o">=</span> <span class="n">structured_to_unstructured</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">names</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
+                <span class="n">X</span> <span class="o">=</span> <span class="n">sample_smooth</span><span class="p">(</span>
+                    <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
+                    <span class="n">probs</span><span class="o">=</span><span class="n">probs</span><span class="p">,</span>
+                    <span class="n">size</span><span class="o">=</span><span class="mi">1_000_000</span><span class="p">,</span>
+                    <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+                    <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+                    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;reflect&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">X_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">X</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">[</span><span class="mi">1</span><span class="p">:])}</span>
+                <span class="n">datasets_resampled</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X_dict</span><span class="p">)</span>
 
         <span class="k">with</span> <span class="n">MultiPage</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output_file</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">x_param</span><span class="p">))</span> <span class="k">as</span> <span class="n">pages</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">x_param</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">x_param</span><span class="p">:</span>
@@ -1309,10 +1415,23 @@ title="Open an issue"
                         <span class="n">hist_kw</span><span class="p">[</span><span class="s2">&quot;weights&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]</span>
                     <span class="n">ci</span> <span class="o">=</span> <span class="kc">True</span>
 
-                <span class="k">for</span> <span class="n">data</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">datasets</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">data_files</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">datasets</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">data_files</span><span class="p">)):</span>
                     <span class="n">x</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">x_param</span><span class="p">]</span>
                     <span class="n">hist_kw</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span>
+                    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">resample</span> <span class="ow">and</span> <span class="n">x_param</span> <span class="o">!=</span> <span class="s2">&quot;_Pr&quot;</span><span class="p">:</span>
+                        <span class="k">del</span> <span class="n">hist_kw</span><span class="p">[</span><span class="s2">&quot;weights&quot;</span><span class="p">]</span>
+                        <span class="n">x</span> <span class="o">=</span> <span class="n">datasets_resampled</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="n">x_param</span><span class="p">]</span>
+                        <span class="n">hist_kw</span><span class="p">[</span><span class="s2">&quot;bins&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
                     <span class="n">hist</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="n">ci</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="n">truth</span><span class="p">,</span> <span class="n">hist_kw</span><span class="o">=</span><span class="n">hist_kw</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">kde</span><span class="p">:</span>
+                        <span class="n">left</span> <span class="o">=</span> <span class="n">right</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">x_param</span> <span class="o">!=</span> <span class="s2">&quot;_Pr&quot;</span><span class="p">:</span>
+                            <span class="n">left</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">x_param</span><span class="p">]</span><span class="o">.</span><span class="n">low</span>
+                            <span class="n">right</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">x_param</span><span class="p">]</span><span class="o">.</span><span class="n">high</span>
+                        <span class="n">xrange</span><span class="p">,</span> <span class="n">pdf</span> <span class="o">=</span> <span class="n">_kde1d_reflect</span><span class="p">(</span>
+                            <span class="n">data</span><span class="p">[</span><span class="n">x_param</span><span class="p">],</span> <span class="n">weights</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">],</span> <span class="n">left</span><span class="o">=</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">right</span>
+                        <span class="p">)</span>
+                        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xrange</span><span class="p">,</span> <span class="n">pdf</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;cyan&quot;</span><span class="p">)</span>
 
                 <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">cumulative</span><span class="p">:</span>
                     <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;cumulative density&quot;</span><span class="p">)</span>
@@ -1323,6 +1442,106 @@ title="Open an issue"
                     <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
 
                 <span class="n">pages</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">hint</span><span class="o">=</span><span class="s2">&quot;Pr&quot;</span> <span class="k">if</span> <span class="n">x_param</span> <span class="o">==</span> <span class="s2">&quot;_Pr&quot;</span> <span class="k">else</span> <span class="n">x_param</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_Abc</span><span class="p">(</span><span class="n">_SubCommand</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plot ABC things.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subparsers</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subparsers</span><span class="p">,</span> <span class="s2">&quot;abc&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_output_file</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_abc_thresholds</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_weighted</span><span class="p">()</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        self.parser.add_argument(</span>
+<span class="sd">            &quot;-x&quot;,</span>
+<span class="sd">            &quot;--x-param&quot;,</span>
+<span class="sd">            type=str,</span>
+<span class="sd">            action=&quot;append&quot;,</span>
+<span class="sd">            help=(</span>
+<span class="sd">                &quot;Name of parameter to plot. &quot;</span>
+<span class="sd">                &#39;The special name &quot;_Pr&quot; is recognised to plot the probabilities &#39;</span>
+<span class="sd">                &quot;obtained from the discriminator.&quot;</span>
+<span class="sd">            ),</span>
+<span class="sd">        )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_model_optional</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_working_directory</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_gan_datasets</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
+
+        <span class="n">datasets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_abc_datasets</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">x_params</span> <span class="o">=</span> <span class="n">datasets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+        <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span> <span class="o">==</span> <span class="n">x_params</span>
+
+        <span class="n">metrics_collection</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="sa">f</span><span class="s2">&quot;Iteration </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Discriminator</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">metrics</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">discriminators</span><span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="n">cmap</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s2">&quot;gnuplot&quot;</span><span class="p">)</span>
+        <span class="n">cycle</span> <span class="o">=</span> <span class="n">cycler</span><span class="p">(</span>
+            <span class="n">color</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">cmap</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">discriminators</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">discriminators</span><span class="p">))</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">saved_prop_cycle</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;axes.prop_cycle&quot;</span><span class="p">]</span>
+        <span class="n">matplotlib</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;axes.prop_cycle&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cycle</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">(</span>
+            <span class="n">metrics_collection</span><span class="p">,</span>
+            <span class="n">subplot_mosaic_kw</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">figaspect</span><span class="p">(</span><span class="mi">9</span> <span class="o">/</span> <span class="mi">16</span><span class="p">)),</span>
+        <span class="p">)</span>
+        <span class="n">matplotlib</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;axes.prop_cycle&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">saved_prop_cycle</span>
+
+        <span class="n">axs</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_legend</span><span class="p">()</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span>
+            <span class="n">matplotlib</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">ScalarMappable</span><span class="p">(</span>
+                <span class="n">norm</span><span class="o">=</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span>
+                    <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">discriminators</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="p">),</span>
+                <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">ax</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">],</span>
+            <span class="n">pad</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span>
+            <span class="n">fraction</span><span class="o">=</span><span class="mf">0.04</span><span class="p">,</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;iteration&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">MultiPage</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output_file</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_params</span><span class="p">))</span> <span class="k">as</span> <span class="n">pages</span><span class="p">:</span>
+            <span class="n">pages</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">hint</span><span class="o">=</span><span class="s2">&quot;metrics&quot;</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">x_param</span> <span class="ow">in</span> <span class="n">x_params</span><span class="p">:</span>
+                <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span>
+                    <span class="n">figsize</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">figaspect</span><span class="p">(</span><span class="mi">9</span> <span class="o">/</span> <span class="mi">16</span><span class="p">),</span> <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">violinplot</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">x_param</span><span class="p">]</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">],</span>
+                    <span class="n">quantiles</span><span class="o">=</span><span class="p">[[</span><span class="mf">0.025</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.975</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">datasets</span><span class="p">),</span>
+                    <span class="n">points</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                    <span class="n">showextrema</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">x_param</span><span class="p">)</span>
+                <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Iteration&quot;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">x_param</span> <span class="o">!=</span> <span class="s2">&quot;_Pr&quot;</span><span class="p">:</span>
+                    <span class="n">truth</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">x_param</span><span class="p">]</span><span class="o">.</span><span class="n">truth</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;red&quot;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+
+                <span class="n">fig</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="n">x_param</span><span class="p">)</span>
+                <span class="n">pages</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">hint</span><span class="o">=</span><span class="n">x_param</span><span class="p">)</span>
                 <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
 
 
@@ -1337,6 +1556,7 @@ title="Open an issue"
     <span class="n">_Metrics</span><span class="p">(</span><span class="n">subparsers</span><span class="p">)</span>
     <span class="n">_Hist</span><span class="p">(</span><span class="n">subparsers</span><span class="p">)</span>
     <span class="n">_Hist2d</span><span class="p">(</span><span class="n">subparsers</span><span class="p">)</span>
+    <span class="n">_Abc</span><span class="p">(</span><span class="n">subparsers</span><span class="p">)</span>
 
     <span class="n">args</span> <span class="o">=</span> <span class="n">top_parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args_list</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">subcommand</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1374,7 +1594,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev274+gf5b3110
+      dinf 0.1.1.dev281+g7c9a1fe
     </div>
 </p>
         </footer>

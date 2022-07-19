@@ -215,7 +215,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev274
+            dinf 0.1.1.dev281
             </div>
             
         </div>
@@ -1139,6 +1139,41 @@ j’th sample is within the parameter space, and False otherwise.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="dinf.Parameters.truncate">
+<span class="sig-name descname"><span class="pre">truncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.truncate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.truncate" title="Permalink to this definition">#</a></dt>
+<dd><p>Truncate values that are out of bounds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>xs</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be truncated.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Truncated parameter values.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dinf.Parameters.reflect">
+<span class="sig-name descname"><span class="pre">reflect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.reflect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.reflect" title="Permalink to this definition">#</a></dt>
+<dd><p>Reflect values that are out of bounds by the amount they are out.</p>
+<p>Values that are too far out of bounds to be reflected are truncated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>xs</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be reflected.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Reflected parameter values.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -1253,6 +1288,41 @@ the input. ret[j] is True if x[j] is in bounds, False otherwise.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Transformed parameter values.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dinf.Param.truncate">
+<span class="sig-name descname"><span class="pre">truncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Param.truncate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Param.truncate" title="Permalink to this definition">#</a></dt>
+<dd><p>Truncate values that are out of bounds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be truncated.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Truncated parameter values.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dinf.Param.reflect">
+<span class="sig-name descname"><span class="pre">reflect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Param.reflect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Param.reflect" title="Permalink to this definition">#</a></dt>
+<dd><p>Reflect values that are out of bounds by the amount they are out.</p>
+<p>Values that are too far out of bounds to be reflected are truncated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be reflected.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Reflected parameter values.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
@@ -1776,7 +1846,7 @@ the start of the genomic window.</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the GAN.</p></li>
+<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the model components.</p></li>
 <li><p><strong>training_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the dataset used to train the discriminator.</p></li>
 <li><p><strong>test_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the test dataset used to evaluate the discriminator after
 each training epoch.</p></li>
@@ -1810,7 +1880,7 @@ To instead sample features from the target dataset, use the
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the GAN.</p></li>
+<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the model components.</p></li>
 <li><p><strong>replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of features to extract.</p></li>
 <li><p><strong>sample_target</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If True, sample features from the target dataset.
 If False (the default), features are sampled from the generator.</p></li>
@@ -1836,20 +1906,24 @@ probs[j] is the discriminator prediction for the j’th draw.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.abc_gan">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">abc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proposals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posteriors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#abc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.abc_gan" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">abc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#abc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.abc_gan" title="Permalink to this definition">#</a></dt>
 <dd><p>Run the ABC GAN.</p>
-<p>Each iteration of the GAN can be conceptually divided into:</p>
+<p>Conceptually, the GAN takes the following steps for iteration j:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p>constructing train/test datasets for the discriminator,</p></li>
-<li><p>training the discriminator for a certain number of epochs,</p></li>
-<li><p>running the ABC.</p></li>
+<li><p>sample train/test datasets from the prior[j] distribution,</p></li>
+<li><p>train the discriminator,</p></li>
+<li><p>make predictions with the discriminator,</p></li>
+<li><p>construct a posterior[j] sample from the test dataset,</p></li>
+<li><p>set prior[j+1] = posterior[j].</p></li>
 </ul>
 </div></blockquote>
 <p>In the first iteration, the parameter values given to the generator
-to produce the test/train datasets are drawn from the parameters’ prior
-distribution. In subsequent iterations, the parameter values are drawn
-by sampling with replacement from the previous iteration’s ABC posterior.</p>
+to produce the test/train datasets are drawn from the parameters’
+prior distribution. In subsequent iterations, the parameter values
+are drawn from a posterior ABC sample. The posterior is obtained by
+weighting the prior distribution by the discriminator predictions,
+followed by gaussian smoothing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -1861,8 +1935,10 @@ This dataset is constructed once each GAN iteration.</p></li>
 each training epoch.</p></li>
 <li><p><strong>epochs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of full passes over the training dataset when training
 the discriminator.</p></li>
-<li><p><strong>proposals</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of ABC sample draws.</p></li>
-<li><p><strong>posteriors</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of top-ranked ABC sample draws to keep.</p></li>
+<li><p><strong>top_n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em> | </em><em>None</em>) – If not None, do ABC rejection sampling in each iteraction by taking
+the <code class="docutils literal notranslate"><span class="pre">top_n</span></code> best samples, ranked by discriminator prediction.
+Samples are taken from the test replicates, so <code class="docutils literal notranslate"><span class="pre">top_n</span></code> must be
+smaller than <code class="docutils literal notranslate"><span class="pre">test_replicates</span></code>.</p></li>
 <li><p><strong>working_directory</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – Folder to output results. If not specified, the current
 directory will be used.</p></li>
 <li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
@@ -1927,7 +2003,7 @@ by sampling without replacement from the previous iteration’s MCMC chains.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the GAN.</p></li>
+<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the model components.</p></li>
 <li><p><strong>iterations</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of GAN iterations.</p></li>
 <li><p><strong>training_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the dataset used to train the discriminator.
 This dataset is constructed once each GAN iteration.</p></li>
@@ -2663,7 +2739,7 @@ If None, an axes will be created with <a class="reference external" href="https:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev274+gf5b3110
+      dinf 0.1.1.dev281+g7c9a1fe
     </div>
 </p>
         </footer>

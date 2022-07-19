@@ -212,7 +212,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev274
+            dinf 0.1.1.dev281
             </div>
             
         </div>
@@ -744,7 +744,7 @@ positional arguments:
     check               Basic dinf_model health checks.
     train               Train a discriminator.
     predict             Make predictions using a trained discriminator.
-    abc-gan             Run the ABC GAN.
+    abc-gan             Adversarial Abstract Bayesian Computation.
     alfi-mcmc-gan       Run the ALFI MCMC GAN.
     mcmc-gan            Run the MCMC GAN.
     pg-gan              Run PG-GAN style simulated annealing.
@@ -765,9 +765,9 @@ same feature shapes.
 
 positional arguments:
   model.py    Python script from which to import the variable &quot;dinf_model&quot;.
-              This is a dinf.DinfModel object that describes the GAN. See the
-              examples/ folder of the git repository for example models.
-              https://github.com/RacimoLab/dinf
+              This is a dinf.DinfModel object that describes the model
+              components. See the examples/ folder of the git repository for
+              example models. https://github.com/RacimoLab/dinf
 
 optional arguments:
   -h, --help  show this help message and exit
@@ -817,8 +817,8 @@ training arguments:
 
   model.py              Python script from which to import the variable
                         &quot;dinf_model&quot;. This is a dinf.DinfModel object that
-                        describes the GAN. See the examples/ folder of the git
-                        repository for example models.
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
                         https://github.com/RacimoLab/dinf
   discriminator.nn      Output file where the discriminator will be saved.
 </pre></div>
@@ -866,8 +866,8 @@ predict arguments:
 
   model.py              Python script from which to import the variable
                         &quot;dinf_model&quot;. This is a dinf.DinfModel object that
-                        describes the GAN. See the examples/ folder of the git
-                        repository for example models.
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
                         https://github.com/RacimoLab/dinf
   discriminator.nn      Discriminator to use for predictions.
   output.npz            Output data, matching thetas to discriminator
@@ -878,21 +878,26 @@ predict arguments:
 <section id="dinf-abc-gan">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">abc-gan</span></code><a class="headerlink" href="#dinf-abc-gan" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf abc-gan [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
-                    [-R TEST_REPLICATES] [-e EPOCHS] [-p PROPOSALS]
-                    [-P POSTERIORS] [-i ITERATIONS] [-d WORKING_DIRECTORY]
+                    [-R TEST_REPLICATES] [-e EPOCHS] [-n N] [-i ITERATIONS]
+                    [-d WORKING_DIRECTORY]
                     model.py
 
-Run the ABC GAN.
+Adversarial Abstract Bayesian Computation.
 
-Each iteration of the GAN can be conceptually divided into:
-- constructing train/test datasets for the discriminator,
-- training the discriminator for a certain number of epochs,
-- running the ABC.
+Conceptually, the GAN takes the following steps for iteration j:
+
+  - sample train/test datasets from the prior[j] distribution,
+  - train the discriminator,
+  - make predictions with the discriminator,
+  - construct a posterior[j] sample from the test dataset,
+  - set prior[j+1] = posterior[j].
 
 In the first iteration, the parameter values given to the generator
-to produce the test/train datasets are drawn from the parameters&#39; prior
-distribution. In subsequent iterations, the parameter values are drawn
-by sampling with replacement from the previous iteration&#39;s ABC posterior.
+to produce the test/train datasets are drawn from the parameters&#39;
+prior distribution. In subsequent iterations, the parameter values
+are drawn from a posterior ABC sample. The posterior is obtained by
+weighting the prior distribution by the discriminator predictions,
+followed by gaussian smoothing.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -928,11 +933,8 @@ training arguments:
                         training the discriminator. (default: 1)
 
 ABC arguments:
-  -p PROPOSALS, --proposals PROPOSALS
-                        Number of ABC sample draws. (default: 1000)
-  -P POSTERIORS, --posteriors POSTERIORS
-                        Number of top-ranked ABC sample draws to keep.
-                        (default: 1000)
+  -n N, --top-n N       In each iteraction, accept only the N top samples,
+                        ranked by probability. (default: None)
 
 GAN arguments:
   -i ITERATIONS, --iterations ITERATIONS
@@ -942,8 +944,8 @@ GAN arguments:
                         current directory will be used. (default: None)
   model.py              Python script from which to import the variable
                         &quot;dinf_model&quot;. This is a dinf.DinfModel object that
-                        describes the GAN. See the examples/ folder of the git
-                        repository for example models.
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
                         https://github.com/RacimoLab/dinf
 </pre></div>
 </div>
@@ -1008,8 +1010,8 @@ GAN arguments:
                         current directory will be used. (default: None)
   model.py              Python script from which to import the variable
                         &quot;dinf_model&quot;. This is a dinf.DinfModel object that
-                        describes the GAN. See the examples/ folder of the git
-                        repository for example models.
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
                         https://github.com/RacimoLab/dinf
 </pre></div>
 </div>
@@ -1084,8 +1086,8 @@ GAN arguments:
                         current directory will be used. (default: None)
   model.py              Python script from which to import the variable
                         &quot;dinf_model&quot;. This is a dinf.DinfModel object that
-                        describes the GAN. See the examples/ folder of the git
-                        repository for example models.
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
                         https://github.com/RacimoLab/dinf
 </pre></div>
 </div>
@@ -1153,8 +1155,8 @@ GAN arguments:
                         current directory will be used. (default: None)
   model.py              Python script from which to import the variable
                         &quot;dinf_model&quot;. This is a dinf.DinfModel object that
-                        describes the GAN. See the examples/ folder of the git
-                        repository for example models.
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
                         https://github.com/RacimoLab/dinf
 </pre></div>
 </div>
@@ -1162,18 +1164,19 @@ GAN arguments:
 </section>
 <section id="plotting-commands">
 <span id="sec-cli-dinf-plot"></span><h2>Plotting commands<a class="headerlink" href="#plotting-commands" title="Permalink to this headline">#</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot [-h] {demes,features,metrics,hist,hist2d} ...
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot [-h] {demes,features,metrics,hist,hist2d,abc} ...
 
 Dinf plotting tools.
 
 positional arguments:
-  {demes,features,metrics,hist,hist2d}
+  {demes,features,metrics,hist,hist2d,abc}
     demes               Plot a demes-as-tubes demographic model using
                         DemesDraw.
     features            Plot a feature matrix or matrices as heatmaps.
     metrics             Plot loss and accuracy of discriminator(s).
     hist                Plot marginal posterior densities.
     hist2d              Plot 2d marginal posterior densities.
+    abc                 Plot ABC things.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -1224,8 +1227,8 @@ target dataset, use the --target option.
 positional arguments:
   model.py              Python script from which to import the variable
                         &quot;dinf_model&quot;. This is a dinf.DinfModel object that
-                        describes the GAN. See the examples/ folder of the git
-                        repository for example models.
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
                         https://github.com/RacimoLab/dinf
 
 optional arguments:
@@ -1245,7 +1248,7 @@ optional arguments:
 <section id="dinf-plot-hist">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code><a class="headerlink" href="#dinf-plot-hist" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist [-h] [-o output.pdf] [-n N | -p P] [-W] [-c]
-                      [-x X_PARAM] [-m model.py]
+                      [-x X_PARAM] [--resample] [--kde] [-m model.py]
                       data.npz [data.npz ...]
 
 Plot marginal posterior densities.
@@ -1296,6 +1299,11 @@ optional arguments:
                         Name of parameter to plot. The special name &quot;_Pr&quot; is
                         recognised to plot the probabilities obtained from the
                         discriminator. (default: None)
+  --resample            Resample parameter values to obtain a smoother density
+                        estimate. This matches the n-dimensional KDE sampling
+                        used with the ABC-GAN. (default: False)
+  --kde                 Also draw a 1-dimensional marginal kernel density
+                        estimate. (default: False)
   -m model.py, --model model.py
                         Model file from which the parameter truth values with
                         be taken. (default: None)
@@ -1410,7 +1418,7 @@ optional arguments:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev274+gf5b3110
+      dinf 0.1.1.dev281+g7c9a1fe
     </div>
 </p>
         </footer>
