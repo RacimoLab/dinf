@@ -165,9 +165,21 @@ class AbcGan(_SubCommand):
 
     def __init__(self, subparsers):
         super().__init__(subparsers, "abc-gan")
-
         self.add_common_parser_group()
         self.add_train_parser_group()
+
+        group = self.parser.add_argument_group("ABC arguments")
+        group.add_argument(
+            "-n",
+            "--top-n",
+            metavar="N",
+            type=int,
+            help=(
+                "In each iteraction, accept only the N top samples, "
+                "ranked by probability."
+            ),
+        )
+
         self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):

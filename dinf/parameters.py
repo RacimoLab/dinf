@@ -279,9 +279,7 @@ class Parameters(collections.abc.Mapping):
         """
         xs = np.atleast_2d(xs)
         assert xs.shape[-1] == len(self)
-        return np.transpose(
-            [p.truncate(xs[:, k]) for k, p in enumerate(self.values())]
-        )
+        return np.transpose([p.truncate(xs[:, k]) for k, p in enumerate(self.values())])
 
     def reflect(self, xs: np.ndarray, /) -> np.ndarray:
         """
@@ -296,6 +294,4 @@ class Parameters(collections.abc.Mapping):
         """
         xs = np.atleast_2d(xs)
         assert xs.shape[-1] == len(self)
-        return np.transpose(
-            [p.reflect(xs[:, k]) for k, p in enumerate(self.values())]
-        )
+        return np.transpose([p.reflect(xs[:, k]) for k, p in enumerate(self.values())])

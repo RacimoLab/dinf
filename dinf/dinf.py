@@ -785,17 +785,9 @@ def mcmc_gan(
         print(f"Generator called {n_generator_calls} times.")
 
 
-def sample_smooth(*, thetas, probs, size: int, rng):
+def _sample_smooth(*, thetas, probs, size: int, rng):
     """
     Sample from a smoothed set of weighted observations.
-
-    Samples are drawn from the thetas, weighted by their probability.
-    New points are drawn within a neighbourhood of the sampled thetas
-    using a mulivariate normal whose covariance is calculated from the
-    thetas. This is effectively sampling from a Gaussian KDE, but
-    avoids doing an explicit density estimation.
-    Scott's rule of thumb is used for bandwidth selection
-    (the multiplier of the covariance matrix).
     """
     # Weighted sampling of points from the thetas.
     sample = rng.choice(thetas, size=size, replace=True, p=probs / np.sum(probs))
@@ -811,40 +803,86 @@ def sample_smooth(*, thetas, probs, size: int, rng):
     return sample
 
 
-# Seems to produce ABC-GAN degenerate states, as posterior density
-# accumulates at the bounds.
-def sample_smooth_transform(*, thetas, probs, size, rng, parameters):
+def sample_smooth(
+    *,
+    thetas: np.ndarray,
+    probs: np.ndarray,
+    size: int,
+    rng: np.random.Generator,
+    parameters: Parameters | None = None,
+    mode: str | None = None,
+) -> np.ndarray:
     """
-    Sample bounded values from a smoothed set of weighted observations.
+    Sample from a smoothed set of weighted observations.
 
-    Wrapper for {func}`sample_smooth` that transforms parameter values
-    so that the samples are bounded.
+    Samples are drawn from the thetas, weighted by their probability.
+    New points are drawn within a neighbourhood of the sampled thetas
+    using a mulivariate normal whose covariance is calculated from the
+    thetas. This is effectively sampling from a Gaussian KDE, but
+    avoids doing an explicit density estimation.
+    Scott's rule of thumb is used for bandwidth selection.
+
+    :param thetas:
+        Parameter values to sample from.
+    :param probs:
+        Discriminator predictions corresponding to the ``thetas``.
+    :param size:
+        Number of samples to draw.
+    :param numpy.random.Generator rng:
+        Numpy random generator.
+    :param parameters:
+        The parameters against which the values' bounds will be checked.
+        See the ``mode`` argument.
+    :param mode:
+        The mode determines how to deal with values that are out of the
+        parameter bounds. If mode is not None, then ``parameters`` must
+        also be specified. The options are:
+
+         * ``None`` (*default*): the returned values are not modified
+           after sampling and may be out of bounds.
+         * "transform": thetas are transformed before sampling, and
+           the sampled values are inverse-transformed before being
+           returned.
+         * "truncate": sampled values are truncated at the parameter limits.
+         * "reflect": sample values that are out of bounds are reflected
+           inside the parameter limits by the same magnitude that they were
+           out of bounds. Values that are too far out of bounds to be
+           reflected are truncated at the parameter limits.
+
+    :return:
+        The sampled values.
     """
-    thetas_unbounded = parameters.transform(thetas)
-    X = sample_smooth(thetas=thetas_unbounded, probs=probs, size=size, rng=rng)
-    return parameters.itransform(X)
+    if mode is not None:
+        if mode not in ("transform", "truncate", "reflect"):
+            raise ValueError(f"Unknown sampling mode '{mode}'")
+        if parameters is None:
+            raise ValueError("Must pass 'parameters' when 'mode' is not None")
+    if mode == "transform":
+        assert parameters is not None
+        thetas = parameters.transform(thetas)
+    X = _sample_smooth(thetas=thetas, probs=probs, size=size, rng=rng)
+    if mode == "transform":
+        assert parameters is not None
+        X = parameters.itransform(X)
+    elif mode == "reflect":
+        assert parameters is not None
+        X = parameters.reflect(X)
+    elif mode == "truncate":
+        assert parameters is not None
+        parameters.truncate(X)
+    return X
 
 
-def sample_smooth_truncate(*, thetas, probs, size, rng, parameters):
-    """
-    Sample bounded values from a smoothed set of weighted observations.
-
-    Wrapper for {func}`sample_smooth` that truncates parameter values
-    inside their bounds.
-    """
-    X = sample_smooth(thetas=thetas, probs=probs, size=size, rng=rng)
-    return parameters.truncate(X)
-
-
-def sample_smooth_reflect(*, thetas, probs, size, rng, parameters):
-    """
-    Sample bounded values from a smoothed set of weighted observations.
-
-    Wrapper for {func}`sample_smooth` that reflects parameter values
-    at their boundaries.
-    """
-    X = sample_smooth(thetas=thetas, probs=probs, size=size, rng=rng)
-    return parameters.reflect(X)
+def filter_top_n(
+    thetas: np.ndarray,
+    probs: np.ndarray,
+    n: int,
+) -> Tuple[np.ndarray, np.ndarray]:
+    assert n >= 1
+    k = len(probs) - n
+    assert k >= 1
+    idx = np.argpartition(probs, k)[k:]
+    return thetas[idx], probs[idx]
 
 
 @cleanup_process_pool_afterwards
@@ -855,6 +893,7 @@ def abc_gan(
     training_replicates: int,
     test_replicates: int,
     epochs: int,
+    top_n: int | None = None,
     working_directory: None | str | pathlib.Path = None,
     parallelism: None | int = None,
     seed: None | int = None,
@@ -890,6 +929,11 @@ def abc_gan(
     :param epochs:
         Number of full passes over the training dataset when training
         the discriminator.
+    :param top_n:
+        If not None, do ABC rejection sampling in each iteraction by taking
+        the ``top_n`` best samples, ranked by discriminator prediction.
+        Samples are taken from the test replicates, so ``top_n`` must be
+        smaller than ``test_replicates``.
     :param working_directory:
         Folder to output results. If not specified, the current
         directory will be used.
@@ -902,6 +946,9 @@ def abc_gan(
     """
 
     num_replicates = math.ceil((training_replicates + test_replicates) / 2)
+
+    if top_n is not None and top_n >= test_replicates:
+        raise ValueError(f"{top_n=}, but {test_replicates=}")
 
     if working_directory is None:
         working_directory = "."
@@ -928,6 +975,11 @@ def abc_gan(
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
         resume = all(files_exist)
 
+    # Use mode="reflect", because "transform" seems to produce ABC-GAN
+    # degenerate states due to density accumulation at the bounds.
+    # This effect was even more pronouned than for "truncate".
+    sampling_mode = "reflect"
+
     discriminator = Discriminator(
         dinf_model.feature_shape, network=dinf_model.discriminator_network
     )
@@ -937,12 +989,15 @@ def abc_gan(
             store[-1] / "abc.npz", parameters=parameters
         )
         assert len(thetas.shape) == 2
-        sampled_thetas = sample_smooth_reflect(
+        if top_n is not None:
+            thetas, y = filter_top_n(thetas, y, top_n)
+        sampled_thetas = sample_smooth(
             thetas=thetas,
             probs=y,
             size=num_replicates,
             rng=rng_thetas,
             parameters=parameters,
+            mode=sampling_mode,
         )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
@@ -980,12 +1035,17 @@ def abc_gan(
             parameters=parameters,
         )
 
-        sampled_thetas = sample_smooth_reflect(
-            thetas=test_thetas,
+        # Get the posterior sample for the next iteration.
+        thetas = test_thetas
+        if top_n is not None:
+            thetas, y = filter_top_n(thetas, y, top_n)
+        sampled_thetas = sample_smooth(
+            thetas=thetas,
             probs=y,
             size=num_replicates,
             rng=rng_thetas,
             parameters=parameters,
+            mode=sampling_mode,
         )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]

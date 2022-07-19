@@ -598,13 +598,14 @@ class _SubCommand:
             if len(shape) != 1:
                 # Bail for MCMC-GAN datasets.
                 raise ValueError(
-                    f"{filename}: I don't understand GAN datasets (shape={shape})."
+                    f"{filename}: I don't understand high-dimensional "
+                    f"datasets (shape={shape})."
                 )
 
             assert None in (args.top_n, args.probability_threshold)
             if args.top_n is not None:
-                idx = np.flip(np.argsort(data["_Pr"]))
-                data = data[idx[: args.top_n]]
+                k = len(data) - args.top_n
+                data = np.partition(data, k, order="_Pr")[k:]
             elif args.probability_threshold is not None:
                 data = data[np.where(data["_Pr"] > args.probability_threshold)]
 
@@ -1015,14 +1016,21 @@ class _Smooth(_SubCommand):
     def __call__(self, args: argparse.Namespace):
         parameters = dinf.DinfModel.from_file(args.model).parameters
         assert len(args.data_files) == 1
-        from .dinf import _load_results_unstructured, sample_smooth_transform
+        from .dinf import _load_results_unstructured, sample_smooth
 
         thetas, probs = _load_results_unstructured(
             args.data_files[0], parameters=parameters
         )
 
         rng = np.random.default_rng(123)
-        X = sample_smooth_transform(thetas, probs, 1_000_000, rng, parameters)
+        X = sample_smooth(
+            thetas=thetas,
+            probs=probs,
+            size=1_000_000,
+            rng=rng,
+            parameters=parameters,
+            mode="reflect",
+        )
 
         fig, ax = plt.subplots(figsize=plt.figaspect(9 / 16), constrained_layout=True)
         x = thetas[:, 0]
