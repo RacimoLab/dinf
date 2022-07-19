@@ -286,3 +286,111 @@ class TestParameters:
             U = rng.uniform(low=lo, high=hi, size=(size, len(params)))
             thetas = params.itransform(U)
             assert np.all(params.bounds_contain(thetas))
+
+    def test_truncate_bounded(self):
+        params = Parameters(
+            a=Param(low=0, high=10),
+            b=Param(low=-1e6, high=1e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        size = 10_000
+        rng = np.random.default_rng(1234)
+        for lo, hi in ((0, 1), (-1000, -50), (50, 1000), (-1e50, 1e50)):
+            U = rng.uniform(low=lo, high=hi, size=(size, len(params)))
+            thetas = params.truncate(U)
+            assert np.all(params.bounds_contain(thetas))
+            # Truncation is idempotent.
+            thetas2 = params.truncate(thetas)
+            np.testing.assert_array_equal(thetas, thetas2)
+
+    def test_truncate_doesnt_change_bounded_values(self):
+        params = Parameters(
+            a=Param(low=0, high=10),
+            b=Param(low=-1e6, high=1e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        size = 10_000
+        rng = np.random.default_rng(1234)
+        thetas = params.draw_prior(size, rng)
+        thetas2 = params.truncate(thetas)
+        np.testing.assert_array_equal(thetas, thetas2)
+
+    def test_truncate_examples(self):
+        params = Parameters(
+            a=Param(low=0, high=10),
+            b=Param(low=-1e6, high=1e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        thetas = params.truncate(
+            [
+                (-1, -1e8, -1),
+                (100, 1e8, 1e6),
+                (-1, 0, 0),
+                (100, 100, 100),
+                (-1, 0, 1e6),
+            ]
+        )
+        np.testing.assert_array_equal(
+            thetas,
+            [
+                (0, -1e6, 10_000),
+                (10, 1e6, 20_000),
+                (0, 0, 10_000),
+                (10, 100, 10_000),
+                (0, 0, 20_000),
+            ],
+        )
+
+    def test_reflect_bounded(self):
+        params = Parameters(
+            a=Param(low=0, high=10),
+            b=Param(low=-1e6, high=1e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        size = 10_000
+        rng = np.random.default_rng(1234)
+        for lo, hi in ((0, 1), (-1000, -50), (50, 1000), (-1e50, 1e50)):
+            U = rng.uniform(low=lo, high=hi, size=(size, len(params)))
+            thetas = params.reflect(U)
+            assert np.all(params.bounds_contain(thetas))
+            # Reflection is idempotent.
+            thetas2 = params.reflect(thetas)
+            np.testing.assert_array_equal(thetas, thetas2)
+
+    def test_reflect_doesnt_change_bounded_values(self):
+        params = Parameters(
+            a=Param(low=0, high=10),
+            b=Param(low=-1e6, high=1e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        size = 10_000
+        rng = np.random.default_rng(1234)
+        thetas = params.draw_prior(size, rng)
+        thetas2 = params.reflect(thetas)
+        np.testing.assert_array_equal(thetas, thetas2)
+
+    def test_reflect_examples(self):
+        params = Parameters(
+            a=Param(low=0, high=10),
+            b=Param(low=-1e6, high=1e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        thetas = params.reflect(
+            [
+                (-1, -1.1e6, -1),
+                (15, 1e8, 25_000),
+                (-2, 0, 0),
+                (100, 100, 100),
+                (-3, 0, 1e6),
+            ]
+        )
+        np.testing.assert_array_equal(
+            thetas,
+            [
+                (1, -9e5, 20_000),
+                (5, -1e6, 15_000),
+                (2, 0, 20_000),
+                (0, 100, 19_900),
+                (3, 0, 10_000),
+            ],
+        )

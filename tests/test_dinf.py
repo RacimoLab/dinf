@@ -39,8 +39,9 @@ def check_npz(
     return data
 
 
+@pytest.mark.parametrize("top_n", [None, 2])
 @pytest.mark.usefixtures("tmp_path")
-def test_abc_gan(tmp_path):
+def test_abc_gan(tmp_path, top_n):
     dinf_model = get_dinf_model()
     working_directory = tmp_path / "work_dir"
     dinf.dinf.abc_gan(
@@ -48,6 +49,7 @@ def test_abc_gan(tmp_path):
         iterations=2,
         training_replicates=8,
         test_replicates=8,
+        top_n=top_n,
         epochs=1,
         working_directory=working_directory,
         parallelism=2,
@@ -70,6 +72,7 @@ def test_abc_gan(tmp_path):
         iterations=1,
         training_replicates=8,
         test_replicates=8,
+        top_n=top_n,
         epochs=1,
         seed=2,
     )
@@ -88,6 +91,19 @@ def test_abc_gan(tmp_path):
             iterations=2,
             training_replicates=8,
             test_replicates=0,
+            epochs=1,
+            working_directory=working_directory,
+            parallelism=2,
+            seed=1,
+        )
+
+    with pytest.raises(ValueError, match="top_n"):
+        dinf.dinf.abc_gan(
+            dinf_model=dinf_model,
+            iterations=2,
+            training_replicates=8,
+            test_replicates=8,
+            top_n=4,
             epochs=1,
             working_directory=working_directory,
             parallelism=2,

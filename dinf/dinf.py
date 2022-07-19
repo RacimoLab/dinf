@@ -953,7 +953,7 @@ def abc_gan(
 
     num_replicates = math.ceil((training_replicates + test_replicates) / 2)
 
-    if top_n is not None and top_n >= test_replicates:
+    if top_n is not None and top_n >= test_replicates // 2:
         raise ValueError(f"{top_n=}, but {test_replicates=}")
 
     if working_directory is None:

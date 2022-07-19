@@ -131,12 +131,15 @@ class Param:
         :return:
             Reflected parameter values.
         """
-        x = np.copy(x)
+        # Truncate values that can't be reflected into the domain.
+        width = self.high - self.low
+        x = np.clip(x, self.low - width, self.high + width)
+
         idx_lo = np.where(x < self.low)
         x[idx_lo] += 2 * (self.low - x[idx_lo])
         idx_hi = np.where(x > self.high)
         x[idx_hi] -= 2 * (x[idx_hi] - self.high)
-        return self.truncate(x)
+        return x
 
 
 class Parameters(collections.abc.Mapping):
