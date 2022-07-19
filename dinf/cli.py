@@ -31,9 +31,9 @@ def check_output_file(path):
     path.unlink()
 
 
-_GENOB_MODEL_HELP = (
+_DINF_MODEL_HELP = (
     'Python script from which to import the variable "dinf_model". '
-    "This is a dinf.DinfModel object that describes the GAN. "
+    "This is a dinf.DinfModel object that describes the model components. "
     "See the examples/ folder of the git repository for example models. "
     "https://github.com/RacimoLab/dinf"
 )
@@ -136,62 +136,60 @@ class _SubCommand:
             ),
         )
         group.add_argument(
-            "genob_model",
+            "model",
             metavar="model.py",
             type=pathlib.Path,
-            help=_GENOB_MODEL_HELP,
+            help=_DINF_MODEL_HELP,
         )
 
 
 class AbcGan(_SubCommand):
     """
-    Run the ABC GAN.
+    Adversarial Abstract Bayesian Computation.
 
-    Each iteration of the GAN can be conceptually divided into:
-    - constructing train/test datasets for the discriminator,
-    - training the discriminator for a certain number of epochs,
-    - running the ABC.
+    Conceptually, the GAN takes the following steps for iteration j:
+
+      - sample train/test datasets from the prior[j] distribution,
+      - train the discriminator,
+      - make predictions with the discriminator,
+      - construct a posterior[j] sample from the test dataset,
+      - set prior[j+1] = posterior[j].
 
     In the first iteration, the parameter values given to the generator
-    to produce the test/train datasets are drawn from the parameters' prior
-    distribution. In subsequent iterations, the parameter values are drawn
-    by sampling with replacement from the previous iteration's ABC posterior.
+    to produce the test/train datasets are drawn from the parameters'
+    prior distribution. In subsequent iterations, the parameter values
+    are drawn from a posterior ABC sample. The posterior is obtained by
+    weighting the prior distribution by the discriminator predictions,
+    followed by gaussian smoothing.
     """
 
     def __init__(self, subparsers):
         super().__init__(subparsers, "abc-gan")
-
         self.add_common_parser_group()
         self.add_train_parser_group()
 
         group = self.parser.add_argument_group("ABC arguments")
         group.add_argument(
-            "-p",
-            "--proposals",
+            "-n",
+            "--top-n",
+            metavar="N",
             type=int,
-            default=1000,
-            help="Number of ABC sample draws.",
-        )
-        group.add_argument(
-            "-P",
-            "--posteriors",
-            type=int,
-            default=1000,
-            help="Number of top-ranked ABC sample draws to keep.",
+            help=(
+                "In each iteraction, accept only the N top samples, "
+                "ranked by probability."
+            ),
         )
 
         self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
-        dinf_model = dinf.DinfModel.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.model)
         dinf.dinf.abc_gan(
             dinf_model=dinf_model,
             iterations=args.iterations,
             training_replicates=args.training_replicates,
             test_replicates=args.test_replicates,
             epochs=args.epochs,
-            proposals=args.proposals,
-            posteriors=args.posteriors,
             working_directory=args.working_directory,
             parallelism=args.parallelism,
             seed=args.seed,
@@ -231,7 +229,7 @@ class AlfiMcmcGan(_SubCommand):
         self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
-        dinf_model = dinf.DinfModel.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.model)
         dinf.alfi_mcmc_gan(
             dinf_model=dinf_model,
             iterations=args.iterations,
@@ -292,7 +290,7 @@ class McmcGan(_SubCommand):
         self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
-        dinf_model = dinf.DinfModel.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.model)
         dinf.mcmc_gan(
             dinf_model=dinf_model,
             iterations=args.iterations,
@@ -342,7 +340,7 @@ class PgGan(_SubCommand):
         self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
-        dinf_model = dinf.DinfModel.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.model)
         dinf.pg_gan(
             dinf_model=dinf_model,
             iterations=args.iterations,
@@ -371,10 +369,10 @@ class Train(_SubCommand):
 
         group = self.parser.add_argument_group()
         group.add_argument(
-            "genob_model",
+            "model",
             metavar="model.py",
             type=pathlib.Path,
-            help=_GENOB_MODEL_HELP,
+            help=_DINF_MODEL_HELP,
         )
         group.add_argument(
             "discriminator_file",
@@ -384,7 +382,7 @@ class Train(_SubCommand):
         )
 
     def __call__(self, args: argparse.Namespace):
-        dinf_model = dinf.DinfModel.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.model)
         if args.epochs > 0:
             check_output_file(args.discriminator_file)
         discriminator = dinf.train(
@@ -433,10 +431,10 @@ class Predict(_SubCommand):
 
         group = self.parser.add_argument_group()
         group.add_argument(
-            "genob_model",
+            "model",
             metavar="model.py",
             type=pathlib.Path,
-            help=_GENOB_MODEL_HELP,
+            help=_DINF_MODEL_HELP,
         )
         group.add_argument(
             "discriminator_file",
@@ -452,7 +450,7 @@ class Predict(_SubCommand):
         )
 
     def __call__(self, args: argparse.Namespace):
-        dinf_model = dinf.DinfModel.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.model)
         discriminator = dinf.Discriminator(
             dinf_model.feature_shape, network=dinf_model.discriminator_network
         ).from_file(args.discriminator_file)
@@ -485,14 +483,14 @@ class Check(_SubCommand):
         super().__init__(subparsers, "check")
 
         self.parser.add_argument(
-            "genob_model",
+            "model",
             metavar="model.py",
             type=pathlib.Path,
-            help=_GENOB_MODEL_HELP,
+            help=_DINF_MODEL_HELP,
         )
 
     def __call__(self, args: argparse.Namespace):
-        dinf_model = dinf.DinfModel.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.model)
         dinf_model.check()
 
 

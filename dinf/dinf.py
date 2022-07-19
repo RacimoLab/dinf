@@ -481,7 +481,7 @@ def train(
     Train a discriminator network.
 
     :param dinf_model:
-        DinfModel object that describes the GAN.
+        DinfModel object that describes the model components.
     :param training_replicates:
         Size of the dataset used to train the discriminator.
     :param test_replicates:
@@ -551,7 +551,7 @@ def predict(
     ``sample_target`` option.
 
     :param dinf_model:
-        DinfModel object that describes the GAN.
+        DinfModel object that describes the model components.
     :param replicates:
         Number of features to extract.
     :param sample_target:
@@ -632,7 +632,7 @@ def mcmc_gan(
     by sampling without replacement from the previous iteration's MCMC chains.
 
     :param dinf_model:
-        DinfModel object that describes the GAN.
+        DinfModel object that describes the model components.
     :param iterations:
         Number of GAN iterations.
     :param training_replicates:
@@ -785,22 +785,104 @@ def mcmc_gan(
         print(f"Generator called {n_generator_calls} times.")
 
 
-def _run_abc(
+def _sample_smooth(*, thetas, probs, size: int, rng):
+    """
+    Sample from a smoothed set of weighted observations.
+    """
+    # Weighted sampling of points from the thetas.
+    sample = rng.choice(thetas, size=size, replace=True, p=probs / np.sum(probs))
+    # Calculate bandwidth.
+    _, d = thetas.shape
+    neff = np.sum(probs) ** 2 / np.sum(probs**2)
+    bw_scott = neff ** (-1.0 / (d + 4))  # bandwidth multiplier
+    cov = bw_scott * np.cov(thetas, rowvar=False, aweights=probs)
+    assert not np.any(np.isnan(cov))
+    assert not np.any(np.isinf(cov))
+    # Jitter the sample with an MVN.
+    sample += rng.multivariate_normal(np.zeros(d), cov, size=size)
+    return sample
+
+
+def sample_smooth(
     *,
-    discriminator: Discriminator,
-    generator: Callable,
-    parameters: Parameters,
     thetas: np.ndarray,
-    posteriors: int,
-    parallelism: int,
+    probs: np.ndarray,
+    size: int,
     rng: np.random.Generator,
-):
-    x = _generate_data(
-        generator=generator, thetas=thetas, parallelism=parallelism, rng=rng
-    )
-    y = discriminator.predict(x)
-    top = np.argsort(y)[::-1][:posteriors]
-    return thetas[top], y[top]
+    parameters: Parameters | None = None,
+    mode: str | None = None,
+) -> np.ndarray:
+    """
+    Sample from a smoothed set of weighted observations.
+
+    Samples are drawn from the thetas, weighted by their probability.
+    New points are drawn within a neighbourhood of the sampled thetas
+    using a mulivariate normal whose covariance is calculated from the
+    thetas. This is effectively sampling from a Gaussian KDE, but
+    avoids doing an explicit density estimation.
+    Scott's rule of thumb is used for bandwidth selection.
+
+    :param thetas:
+        Parameter values to sample from.
+    :param probs:
+        Discriminator predictions corresponding to the ``thetas``.
+    :param size:
+        Number of samples to draw.
+    :param numpy.random.Generator rng:
+        Numpy random generator.
+    :param parameters:
+        The parameters against which the values' bounds will be checked.
+        See the ``mode`` argument.
+    :param mode:
+        The mode determines how to deal with values that are out of the
+        parameter bounds. If mode is not None, then ``parameters`` must
+        also be specified. The options are:
+
+         * ``None`` (*default*): the returned values are not modified
+           after sampling and may be out of bounds.
+         * "transform": thetas are transformed before sampling, and
+           the sampled values are inverse-transformed before being
+           returned.
+         * "truncate": sampled values are truncated at the parameter limits.
+         * "reflect": sample values that are out of bounds are reflected
+           inside the parameter limits by the same magnitude that they were
+           out of bounds. Values that are too far out of bounds to be
+           reflected are truncated at the parameter limits.
+
+    :return:
+        The sampled values.
+    """
+    if mode is not None:
+        if mode not in ("transform", "truncate", "reflect"):
+            raise ValueError(f"Unknown sampling mode '{mode}'")
+        if parameters is None:
+            raise ValueError("Must pass 'parameters' when 'mode' is not None")
+    if mode == "transform":
+        assert parameters is not None
+        thetas = parameters.transform(thetas)
+    X = _sample_smooth(thetas=thetas, probs=probs, size=size, rng=rng)
+    if mode == "transform":
+        assert parameters is not None
+        X = parameters.itransform(X)
+    elif mode == "reflect":
+        assert parameters is not None
+        X = parameters.reflect(X)
+    elif mode == "truncate":
+        assert parameters is not None
+        parameters.truncate(X)
+    return X
+
+
+def filter_top_n(
+    thetas: np.ndarray,
+    probs: np.ndarray,
+    n: int,
+) -> Tuple[np.ndarray, np.ndarray]:
+    assert n >= 1
+    k = len(probs) - n
+    assert k >= 1
+    idx = np.argpartition(probs, k)[k:]
+    return thetas[idx], probs[idx]
 
 
 @cleanup_process_pool_afterwards
@@ -811,8 +893,7 @@ def abc_gan(
     training_replicates: int,
     test_replicates: int,
     epochs: int,
-    proposals: int,
-    posteriors: int,
+    top_n: int | None = None,
     working_directory: None | str | pathlib.Path = None,
     parallelism: None | int = None,
     seed: None | int = None,
@@ -820,16 +901,20 @@ def abc_gan(
     """
     Run the ABC GAN.
 
-    Each iteration of the GAN can be conceptually divided into:
+    Conceptually, the GAN takes the following steps for iteration j:
 
-      - constructing train/test datasets for the discriminator,
-      - training the discriminator for a certain number of epochs,
-      - running the ABC.
+      - sample train/test datasets from the prior[j] distribution,
+      - train the discriminator,
+      - make predictions with the discriminator,
+      - construct a posterior[j] sample from the test dataset,
+      - set prior[j+1] = posterior[j].
 
     In the first iteration, the parameter values given to the generator
-    to produce the test/train datasets are drawn from the parameters' prior
-    distribution. In subsequent iterations, the parameter values are drawn
-    by sampling with replacement from the previous iteration's ABC posterior.
+    to produce the test/train datasets are drawn from the parameters'
+    prior distribution. In subsequent iterations, the parameter values
+    are drawn from a posterior ABC sample. The posterior is obtained by
+    weighting the prior distribution by the discriminator predictions,
+    followed by gaussian smoothing.
 
     :param dinf_model:
         DinfModel object that describes the dinf model.
@@ -844,10 +929,11 @@ def abc_gan(
     :param epochs:
         Number of full passes over the training dataset when training
         the discriminator.
-    :param proposals:
-        Number of ABC sample draws.
-    :param posteriors:
-        Number of top-ranked ABC sample draws to keep.
+    :param top_n:
+        If not None, do ABC rejection sampling in each iteraction by taking
+        the ``top_n`` best samples, ranked by discriminator prediction.
+        Samples are taken from the test replicates, so ``top_n`` must be
+        smaller than ``test_replicates``.
     :param working_directory:
         Folder to output results. If not specified, the current
         directory will be used.
@@ -858,12 +944,17 @@ def abc_gan(
     :param seed:
         Seed for the random number generator.
     """
-    if posteriors > proposals:
+
+    if test_replicates < 2:
         raise ValueError(
-            f"Cannot subsample {posteriors} posteriors from {proposals} proposals"
+            "Must have test_replicates>=2. Test replicates are (also) used "
+            "for sampling the parameter values for the next GAN iteration."
         )
 
     num_replicates = math.ceil((training_replicates + test_replicates) / 2)
+
+    if top_n is not None and top_n >= test_replicates // 2:
+        raise ValueError(f"{top_n=}, but {test_replicates=}")
 
     if working_directory is None:
         working_directory = "."
@@ -890,16 +981,30 @@ def abc_gan(
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
         resume = all(files_exist)
 
+    # Use mode="reflect", because "transform" seems to produce ABC-GAN
+    # degenerate states due to density accumulation at the bounds.
+    # This effect was even more pronouned than for "truncate".
+    sampling_mode = "reflect"
+
     discriminator = Discriminator(
         dinf_model.feature_shape, network=dinf_model.discriminator_network
     )
     if resume:
         discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
-        thetas, _ = _load_results_unstructured(
+        thetas, y = _load_results_unstructured(
             store[-1] / "abc.npz", parameters=parameters
         )
         assert len(thetas.shape) == 2
-        sampled_thetas = rng_thetas.choice(thetas, size=num_replicates, replace=True)
+        if top_n is not None:
+            thetas, y = filter_top_n(thetas, y, top_n)
+        sampled_thetas = sample_smooth(
+            thetas=thetas,
+            probs=y,
+            size=num_replicates,
+            rng=rng_thetas,
+            parameters=parameters,
+            mode=sampling_mode,
+        )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
@@ -917,7 +1022,7 @@ def abc_gan(
         store.increment()
 
         (ss_loop,) = ss_loop.spawn(1)
-        _train_discriminator(
+        _, _, test_x_generator = _train_discriminator(
             discriminator=discriminator,
             dinf_model=dinf_model,
             training_thetas=training_thetas,
@@ -928,26 +1033,31 @@ def abc_gan(
         )
         discriminator.to_file(store[-1] / "discriminator.nn")
 
-        proposal_thetas = parameters.draw_prior(proposals, rng=rng_thetas)
-        thetas, probs = _run_abc(
-            discriminator=discriminator,
-            generator=dinf_model.generator_func,
-            parameters=parameters,
-            thetas=proposal_thetas,
-            posteriors=posteriors,
-            parallelism=parallelism,
-            rng=rng_thetas,
-        )
+        y = discriminator.predict(test_x_generator)
         save_results(
-            store[-1] / "abc.npz", probs=probs, thetas=thetas, parameters=parameters
+            store[-1] / "abc.npz",
+            probs=y,
+            thetas=test_thetas,
+            parameters=parameters,
         )
 
-        sampled_thetas = rng_thetas.choice(thetas, size=num_replicates, replace=True)
+        # Get the posterior sample for the next iteration.
+        thetas = test_thetas
+        if top_n is not None:
+            thetas, y = filter_top_n(thetas, y, top_n)
+        sampled_thetas = sample_smooth(
+            thetas=thetas,
+            probs=y,
+            size=num_replicates,
+            rng=rng_thetas,
+            parameters=parameters,
+            mode=sampling_mode,
+        )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
 
         n_target_calls += num_replicates
-        n_generator_calls += num_replicates + proposals
+        n_generator_calls += num_replicates
         print(f"Target called {n_target_calls} times.")
         print(f"Generator called {n_generator_calls} times.")
 

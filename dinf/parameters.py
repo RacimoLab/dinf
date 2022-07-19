@@ -107,7 +107,39 @@ class Param:
             Transformed parameter values.
         """
         x = np.atleast_1d(x)
-        return self.low + expit(x * (self.high - self.low))
+        return self.low + expit(x) * (self.high - self.low)
+
+    def truncate(self, x: np.ndarray, /) -> np.ndarray:
+        """
+        Truncate values that are out of bounds.
+
+        :param x:
+            The values to be truncated.
+        :return:
+            Truncated parameter values.
+        """
+        return np.clip(x, self.low, self.high)
+
+    def reflect(self, x: np.ndarray, /) -> np.ndarray:
+        """
+        Reflect values that are out of bounds by the amount they are out.
+
+        Values that are too far out of bounds to be reflected are truncated.
+
+        :param x:
+            The values to be reflected.
+        :return:
+            Reflected parameter values.
+        """
+        # Truncate values that can't be reflected into the domain.
+        width = self.high - self.low
+        x = np.clip(x, self.low - width, self.high + width)
+
+        idx_lo = np.where(x < self.low)
+        x[idx_lo] += 2 * (self.low - x[idx_lo])
+        idx_hi = np.where(x > self.high)
+        x[idx_hi] -= 2 * (x[idx_hi] - self.high)
+        return x
 
 
 class Parameters(collections.abc.Mapping):
@@ -211,8 +243,10 @@ class Parameters(collections.abc.Mapping):
 
         See :meth:`.itransform` for the inverse transformation.
 
-        :param xs: The values to be transformed.
-        :return: Transformed parameter values.
+        :param xs:
+            The values to be transformed.
+        :return:
+            Transformed parameter values.
         """
         xs = np.atleast_2d(xs)
         assert xs.shape[-1] == len(self)
@@ -226,11 +260,41 @@ class Parameters(collections.abc.Mapping):
 
         Performs the inverse of :meth:`.transform`.
 
-        :param xs: The values to be transformed.
-        :return: Transformed parameter values.
+        :param xs:
+            The values to be transformed.
+        :return:
+            Transformed parameter values.
         """
         xs = np.atleast_2d(xs)
         assert xs.shape[-1] == len(self)
         return np.transpose(
             [p.itransform(xs[:, k]) for k, p in enumerate(self.values())]
         )
+
+    def truncate(self, xs: np.ndarray, /) -> np.ndarray:
+        """
+        Truncate values that are out of bounds.
+
+        :param xs:
+            The values to be truncated.
+        :return:
+            Truncated parameter values.
+        """
+        xs = np.atleast_2d(xs)
+        assert xs.shape[-1] == len(self)
+        return np.transpose([p.truncate(xs[:, k]) for k, p in enumerate(self.values())])
+
+    def reflect(self, xs: np.ndarray, /) -> np.ndarray:
+        """
+        Reflect values that are out of bounds by the amount they are out.
+
+        Values that are too far out of bounds to be reflected are truncated.
+
+        :param xs:
+            The values to be reflected.
+        :return:
+            Reflected parameter values.
+        """
+        xs = np.atleast_2d(xs)
+        assert xs.shape[-1] == len(self)
+        return np.transpose([p.reflect(xs[:, k]) for k, p in enumerate(self.values())])

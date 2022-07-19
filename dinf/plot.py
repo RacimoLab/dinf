@@ -2,16 +2,20 @@ from __future__ import annotations
 import argparse
 import pathlib
 import textwrap
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 from adjustText import adjust_text
+from cycler import cycler
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
+from numpy.lib.recfunctions import structured_to_unstructured
+import scipy.stats
 
-from .cli import ADRDFormatter, _GENOB_MODEL_HELP
+from .cli import ADRDFormatter, _DINF_MODEL_HELP
 import dinf
+from .dinf import sample_smooth
 
 
 class MultiPage:
@@ -572,15 +576,22 @@ class _SubCommand:
             help="The discriminator network(s) to plot.",
         )
 
-    def add_argument_genob_model(self):
+    def add_argument_working_directory(self):
         self.parser.add_argument(
-            "genob_model",
-            metavar="model.py",
+            "working_directory",
             type=pathlib.Path,
-            help=_GENOB_MODEL_HELP,
+            help="Folder containing results from a GAN run.",
         )
 
-    def add_argument_genob_model_optional(self):
+    def add_argument_model(self):
+        self.parser.add_argument(
+            "model",
+            metavar="model.py",
+            type=pathlib.Path,
+            help=_DINF_MODEL_HELP,
+        )
+
+    def add_argument_model_optional(self):
         self.parser.add_argument(
             "-m",
             "--model",
@@ -598,19 +609,36 @@ class _SubCommand:
             if len(shape) != 1:
                 # Bail for MCMC-GAN datasets.
                 raise ValueError(
-                    f"{filename}: I don't understand GAN datasets (shape={shape})."
+                    f"{filename}: I don't understand high-dimensional "
+                    f"datasets (shape={shape})."
                 )
 
             assert None in (args.top_n, args.probability_threshold)
             if args.top_n is not None:
-                idx = np.flip(np.argsort(data["_Pr"]))
-                data = data[idx[: args.top_n]]
+                k = len(data) - args.top_n
+                data = np.partition(data, k, order="_Pr")[k:]
             elif args.probability_threshold is not None:
                 data = data[np.where(data["_Pr"] > args.probability_threshold)]
 
             datasets.append(data)
 
         return datasets
+
+    def get_gan_datasets(self, args):
+        args.discriminators = []
+        args.data_files = []
+        store = dinf.Store(args.working_directory, create=False)
+        dataset_type = None
+        for j, path in enumerate(store):
+            if (path / "discriminator.nn").exists():
+                args.discriminators.append(path / "discriminator.nn")
+            for prefix in ("abc", "mcmc", "pg-gan-proposals"):
+                if (path / f"{prefix}.npz").exists():
+                    if dataset_type is None:
+                        dataset_type = prefix
+                    else:
+                        assert dataset_type == prefix, (j, dataset_type, prefix)
+                    args.data_files.append(path / f"{prefix}.npz")
 
 
 class _Demes(_SubCommand):
@@ -621,12 +649,12 @@ class _Demes(_SubCommand):
     def __init__(self, subparsers):
         super().__init__(subparsers, "demes")
         self.add_argument_output_file()
-        self.add_argument_genob_model()
+        self.add_argument_model()
 
     def __call__(self, args: argparse.Namespace):
-        parameters = dinf.DinfModel.from_file(args.genob_model).parameters
+        parameters = dinf.DinfModel.from_file(args.model).parameters
 
-        # _dinf_user_module is the name given to the args.genob_model module in
+        # _dinf_user_module is the name given to the args.model module in
         # DinfModel.from_file(), which gets cached in sys.modules.
         # As a side-effect, we can now import it with this name to look for
         # a demography function.
@@ -636,9 +664,7 @@ class _Demes(_SubCommand):
 
         demography = getattr(_dinf_user_module, "demography", None)
         if not inspect.isfunction(demography):
-            raise AttributeError(
-                f"{args.genob_model}: demography() function not found."
-            )
+            raise AttributeError(f"{args.model}: demography() function not found.")
 
         sig = inspect.signature(demography)
         if inspect.Parameter.VAR_KEYWORD in {v.kind for v in sig.parameters.values()}:
@@ -684,10 +710,10 @@ class _Features(_SubCommand):
             action="store_true",
             help="Extract feature(s) from the target dataset.",
         )
-        self.add_argument_genob_model()
+        self.add_argument_model()
 
     def __call__(self, args: argparse.Namespace):
-        dinf_model = dinf.DinfModel.from_file(args.genob_model)
+        dinf_model = dinf.DinfModel.from_file(args.model)
 
         if args.target:
             assert dinf_model.target_func is not None
@@ -793,7 +819,7 @@ class _Hist2d(_SubCommand):
             action="append",
             help="Name of parameter to plot on vertical axis.",
         )
-        self.add_argument_genob_model_optional()
+        self.add_argument_model_optional()
         self.add_argument_data_file(nargs=1)
 
     def __call__(self, args: argparse.Namespace):
@@ -875,6 +901,55 @@ class _Hist2d(_SubCommand):
                     plt.close(fig)
 
 
+def _kde1d_reflect(
+    x: np.ndarray,
+    /,
+    *,
+    weights: np.ndarray | None = None,
+    left: float | None = None,
+    right: float | None = None,
+    n_points: int = 1_000,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Kernel density estimate, with reflection to mitigate edge effects.
+
+    Note that the reflection is only implemented in 1d.
+
+    :param x:
+        The data values.
+    :param weights:
+        Weights for each data value
+    :param left:
+        The left bound for the data.
+        If None, the minimum value will be used.
+    :param right:
+        The right bound for the data.
+        If None, the maximum value will be used.
+    :param n_points:
+        Number of points at which to evaluate the KDE.
+        The points will be evenly spaced between the left and right edges.
+    :return:
+        A 2-tuple of (xrange, pdf), where ``xrange`` are the points at which
+        the KDE is evaluated, and ``pdf`` are the KDE for those points.
+    """
+    if left is None:
+        left = x.min()
+    if right is None:
+        right = x.max()
+    kde = scipy.stats.gaussian_kde(x, bw_method="scott", weights=weights)
+    # KDEs for left-relected and right-reflected x's that are beyond the
+    # bounds of the data/parameters. Adding these avoids the usual drop in
+    # density at the edges of the domain (but may introduce other artifacts).
+    bw = kde.factor
+    kde_left = scipy.stats.gaussian_kde(2 * left - x, bw_method=bw, weights=weights)
+    kde_right = scipy.stats.gaussian_kde(2 * right - x, bw_method=bw, weights=weights)
+
+    xrange = np.linspace(left, right, n_points)
+    pdf = kde_left(xrange) + kde(xrange) + kde_right(xrange)
+
+    return xrange, pdf
+
+
 class _Hist(_SubCommand):
     """
     Plot marginal posterior densities.
@@ -926,7 +1001,20 @@ class _Hist(_SubCommand):
                 "obtained from the discriminator."
             ),
         )
-        self.add_argument_genob_model_optional()
+        self.parser.add_argument(
+            "--resample",
+            action="store_true",
+            help=(
+                "Resample parameter values to obtain a smoother density estimate. "
+                "This matches the n-dimensional KDE sampling used with the ABC-GAN."
+            ),
+        )
+        self.parser.add_argument(
+            "--kde",
+            action="store_true",
+            help="Also draw a 1-dimensional marginal kernel density estimate.",
+        )
+        self.add_argument_model_optional()
         self.add_argument_data_file(nargs="+")
 
     def __call__(self, args: argparse.Namespace):
@@ -946,6 +1034,24 @@ class _Hist(_SubCommand):
                     raise ValueError(
                         f"{args.data_files[j]}: parameter {param} not found"
                     )
+
+        datasets_resampled = []
+        if args.resample:
+            rng = np.random.default_rng(123)
+            for data in datasets:
+                names = list(data.dtype.names)
+                probs = data["_Pr"]
+                thetas = structured_to_unstructured(data[names[1:]])
+                X = sample_smooth(
+                    thetas=thetas,
+                    probs=probs,
+                    size=1_000_000,
+                    rng=rng,
+                    parameters=parameters,
+                    mode="reflect",
+                )
+                X_dict = {name: X[..., j] for j, name in enumerate(names[1:])}
+                datasets_resampled.append(X_dict)
 
         with MultiPage(args.output_file, len(args.x_param)) as pages:
             for x_param in args.x_param:
@@ -971,10 +1077,23 @@ class _Hist(_SubCommand):
                         hist_kw["weights"] = data["_Pr"]
                     ci = True
 
-                for data, path in zip(datasets, args.data_files):
+                for j, (data, path) in enumerate(zip(datasets, args.data_files)):
                     x = data[x_param]
                     hist_kw["label"] = path.name
+                    if args.resample and x_param != "_Pr":
+                        del hist_kw["weights"]
+                        x = datasets_resampled[j][x_param]
+                        hist_kw["bins"] = 100
                     hist(x, ax=ax, ci=ci, truth=truth, hist_kw=hist_kw)
+                    if args.kde:
+                        left = right = None
+                        if parameters is not None and x_param != "_Pr":
+                            left = parameters[x_param].low
+                            right = parameters[x_param].high
+                        xrange, pdf = _kde1d_reflect(
+                            data[x_param], weights=data["_Pr"], left=left, right=right
+                        )
+                        ax.plot(xrange, pdf, c="cyan")
 
                 if args.cumulative:
                     ax.set_ylabel("cumulative density")
@@ -985,6 +1104,106 @@ class _Hist(_SubCommand):
                     ax.legend()
 
                 pages.savefig(fig, hint="Pr" if x_param == "_Pr" else x_param)
+                plt.close(fig)
+
+
+class _Abc(_SubCommand):
+    """
+    Plot ABC things.
+    """
+
+    def __init__(self, subparsers):
+        super().__init__(subparsers, "abc")
+
+        self.add_argument_output_file()
+        self.add_argument_abc_thresholds()
+        self.add_argument_weighted()
+        """
+        self.parser.add_argument(
+            "-x",
+            "--x-param",
+            type=str,
+            action="append",
+            help=(
+                "Name of parameter to plot. "
+                'The special name "_Pr" is recognised to plot the probabilities '
+                "obtained from the discriminator."
+            ),
+        )
+        """
+        self.add_argument_model_optional()
+        self.add_argument_working_directory()
+
+    def __call__(self, args: argparse.Namespace):
+        self.get_gan_datasets(args)
+
+        parameters = None
+        if args.model is not None:
+            parameters = dinf.DinfModel.from_file(args.model).parameters
+
+        datasets = self.get_abc_datasets(args)
+        x_params = datasets[0].dtype.names
+        for data in datasets:
+            assert data.dtype.names == x_params
+
+        metrics_collection = {
+            f"Iteration {j}": dinf.Discriminator(None).from_file(d).metrics
+            for j, d in enumerate(args.discriminators)
+        }
+
+        cmap = matplotlib.cm.get_cmap("gnuplot")
+        cycle = cycler(
+            color=[
+                cmap(i / len(args.discriminators))
+                for i in range(len(args.discriminators))
+            ]
+        )
+        saved_prop_cycle = matplotlib.rcParams["axes.prop_cycle"]
+        matplotlib.rcParams["axes.prop_cycle"] = cycle
+
+        fig, axs = metrics(
+            metrics_collection,
+            subplot_mosaic_kw=dict(figsize=plt.figaspect(9 / 16)),
+        )
+        matplotlib.rcParams["axes.prop_cycle"] = saved_prop_cycle
+
+        axs["test_loss"].get_legend().remove()
+        fig.colorbar(
+            matplotlib.cm.ScalarMappable(
+                norm=matplotlib.colors.Normalize(
+                    vmin=0, vmax=len(args.discriminators) - 1
+                ),
+                cmap=cmap,
+            ),
+            ax=axs["test_loss"],
+            pad=0.02,
+            fraction=0.04,
+            label="iteration",
+        )
+
+        with MultiPage(args.output_file, 1 + len(x_params)) as pages:
+            pages.savefig(fig, hint="metrics")
+            plt.close(fig)
+
+            for x_param in x_params:
+                fig, ax = plt.subplots(
+                    figsize=plt.figaspect(9 / 16), constrained_layout=True
+                )
+                ax.violinplot(
+                    [data[x_param] for data in datasets],
+                    quantiles=[[0.025, 0.5, 0.975]] * len(datasets),
+                    points=1000,
+                    showextrema=False,
+                )
+                ax.set_ylabel(x_param)
+                ax.set_xlabel("Iteration")
+
+                if parameters is not None and x_param != "_Pr":
+                    truth = parameters[x_param].truth
+                    ax.axhline(truth, c="red", ls="-", zorder=10, alpha=0.7)
+
+                fig.suptitle(x_param)
+                pages.savefig(fig, hint=x_param)
                 plt.close(fig)
 
 
@@ -999,6 +1218,7 @@ def main(args_list=None):
     _Metrics(subparsers)
     _Hist(subparsers)
     _Hist2d(subparsers)
+    _Abc(subparsers)
 
     args = top_parser.parse_args(args_list)
     if args.subcommand is None:
