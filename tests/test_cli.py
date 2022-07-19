@@ -102,11 +102,9 @@ class TestAbcGan:
                 --seed 1
                 --parallelism 2
                 --iterations 2
-                --training-replicates 16
-                --test-replicates 0
+                --training-replicates 8
+                --test-replicates 8
                 --epochs 1
-                --proposals 20
-                --posteriors 7
                 --working-directory {working_directory}
                 {ex}
             """.split(),
@@ -123,7 +121,7 @@ class TestAbcGan:
             check_npz(
                 working_directory / f"{i}" / "abc.npz",
                 chains=1,
-                draws=7,
+                draws=4,
                 parameters=dinf_model.parameters,
             )
 

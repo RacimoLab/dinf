@@ -945,6 +945,12 @@ def abc_gan(
         Seed for the random number generator.
     """
 
+    if test_replicates < 2:
+        raise ValueError(
+            "Must have test_replicates>=2. Test replicates are (also) used "
+            "for sampling the parameter values for the next GAN iteration."
+        )
+
     num_replicates = math.ceil((training_replicates + test_replicates) / 2)
 
     if top_n is not None and top_n >= test_replicates:

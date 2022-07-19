@@ -46,11 +46,9 @@ def test_abc_gan(tmp_path):
     dinf.dinf.abc_gan(
         dinf_model=dinf_model,
         iterations=2,
-        training_replicates=16,
-        test_replicates=0,
+        training_replicates=8,
+        test_replicates=8,
         epochs=1,
-        proposals=20,
-        posteriors=7,
         working_directory=working_directory,
         parallelism=2,
         seed=1,
@@ -61,7 +59,7 @@ def test_abc_gan(tmp_path):
         check_npz(
             working_directory / f"{i}" / "abc.npz",
             chains=1,
-            draws=7,
+            draws=4,
             parameters=dinf_model.parameters,
         )
 
@@ -70,11 +68,9 @@ def test_abc_gan(tmp_path):
     dinf.dinf.abc_gan(
         dinf_model=dinf_model,
         iterations=1,
-        training_replicates=16,
-        test_replicates=2,
+        training_replicates=8,
+        test_replicates=8,
         epochs=1,
-        proposals=20,
-        posteriors=7,
         seed=2,
     )
     for i in range(3):
@@ -82,21 +78,17 @@ def test_abc_gan(tmp_path):
         check_npz(
             working_directory / f"{i}" / "abc.npz",
             chains=1,
-            draws=7,
+            draws=4,
             parameters=dinf_model.parameters,
         )
 
-    with pytest.raises(
-        ValueError, match="Cannot subsample .* posteriors from .* proposals"
-    ):
+    with pytest.raises(ValueError, match="Must have test_replicates"):
         dinf.dinf.abc_gan(
             dinf_model=dinf_model,
             iterations=2,
-            training_replicates=16,
+            training_replicates=8,
             test_replicates=0,
             epochs=1,
-            proposals=20,
-            posteriors=70,
             working_directory=working_directory,
             parallelism=2,
             seed=1,
@@ -112,11 +104,9 @@ def test_abc_gan(tmp_path):
             dinf.dinf.abc_gan(
                 dinf_model=dinf_model,
                 iterations=2,
-                training_replicates=16,
-                test_replicates=0,
+                training_replicates=8,
+                test_replicates=8,
                 epochs=1,
-                proposals=20,
-                posteriors=7,
                 working_directory=working_directory,
                 parallelism=2,
                 seed=1,

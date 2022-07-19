@@ -290,7 +290,7 @@ class McmcGan(_SubCommand):
         self.add_gan_parser_group()
 
     def __call__(self, args: argparse.Namespace):
-        dinf_model = dinf.DinfModel.from_file(args._model)
+        dinf_model = dinf.DinfModel.from_file(args.model)
         dinf.mcmc_gan(
             dinf_model=dinf_model,
             iterations=args.iterations,
