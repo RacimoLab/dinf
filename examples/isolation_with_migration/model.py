@@ -97,7 +97,7 @@ def generator(seed, **params):
         record_provenance=False,
     )
     ts = msprime.sim_mutations(ts, rate=mutation_rate, random_seed=seed2)
-    individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+    individuals = {pop: dinf.ts_individuals(ts, pop) for pop in populations}
     labelled_matrices = features.from_ts(ts, individuals=individuals)
     return labelled_matrices
 

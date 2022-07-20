@@ -47,8 +47,8 @@
 .. autosummary::
     predict
     abc_gan
-    alfi_mcmc_gan
     mcmc_gan
+    alfi_mcmc_gan
     pg_gan
 ```
 
@@ -74,7 +74,8 @@
 .. autosummary::
     save_results
     load_results
-    misc.ts_individuals
+    ts_individuals
+    sample_smooth
     get_samples_from_1kgp_metadata
     get_contig_lengths
     Store
@@ -162,8 +163,8 @@
 ```{eval-rst}
 .. autofunction:: dinf.predict
 .. autofunction:: dinf.abc_gan
-.. autofunction:: dinf.alfi_mcmc_gan
 .. autofunction:: dinf.mcmc_gan
+.. autofunction:: dinf.alfi_mcmc_gan
 .. autofunction:: dinf.pg_gan
 ```
 
@@ -198,9 +199,8 @@
 .. autofunction:: dinf.save_results
 .. autofunction:: dinf.load_results
 
-.. autofunction:: dinf.misc.ts_individuals
-.. autofunction:: dinf.misc.cache
-.. autofunction:: dinf.misc.sqlite_cache
+.. autofunction:: dinf.ts_individuals
+.. autofunction:: dinf.sample_smooth
 
 .. autofunction:: dinf.get_samples_from_1kgp_metadata
 .. autofunction:: dinf.get_contig_lengths

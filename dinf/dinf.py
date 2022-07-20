@@ -51,7 +51,7 @@ def _process_pool_init(parallelism, dinf_model):
     _pool = ctx.Pool(
         processes=parallelism,
         initializer=_initializer,
-        initargs=(dinf_model._filename,),
+        initargs=(dinf_model.filename,),
     )
 
 
@@ -408,7 +408,7 @@ def _train_discriminator(
     )
     train_x, train_y, train_x_generator = _generate_training_data(
         target=dinf_model.target_func,
-        generator=dinf_model.generator_func,
+        generator=dinf_model.generator_func_v,
         thetas=training_thetas,
         parallelism=parallelism,
         ss=ss_train,
@@ -418,7 +418,7 @@ def _train_discriminator(
     if test_thetas is not None and len(test_thetas) > 0:
         val_x, val_y, val_x_generator = _generate_training_data(
             target=dinf_model.target_func,
-            generator=dinf_model.generator_func,
+            generator=dinf_model.generator_func_v,
             thetas=test_thetas,
             parallelism=parallelism,
             ss=ss_val,
@@ -593,7 +593,7 @@ def predict(
             replicates, rng=np.random.default_rng(ss_thetas)
         )
         x = _generate_data(
-            generator=dinf_model.generator_func,
+            generator=dinf_model.generator_func_v,
             thetas=thetas,
             parallelism=parallelism,
             rng=np.random.default_rng(ss_generator),
@@ -734,7 +734,7 @@ def mcmc_gan(
     log_prob_func = functools.partial(
         _log_prob,
         discriminator=discriminator,
-        generator=dinf_model.generator_func,
+        generator=dinf_model.generator_func_v,
         parameters=parameters,
         parallelism=parallelism,
         num_replicates=Dx_replicates,
@@ -815,10 +815,10 @@ def sample_smooth(
     """
     Sample from a smoothed set of weighted observations.
 
-    Samples are drawn from the thetas, weighted by their probability.
+    Samples are drawn from ``thetas``, weighted by their probability.
     New points are drawn within a neighbourhood of the sampled thetas
     using a mulivariate normal whose covariance is calculated from the
-    thetas. This is effectively sampling from a Gaussian KDE, but
+    thetas. This is equivalent to sampling from a Gaussian KDE, but
     avoids doing an explicit density estimation.
     Scott's rule of thumb is used for bandwidth selection.
 
@@ -843,11 +843,14 @@ def sample_smooth(
          * "transform": thetas are transformed before sampling, and
            the sampled values are inverse-transformed before being
            returned.
+           See :meth:`Parameters.transform` and :meth:`Parameters.itransform`.
          * "truncate": sampled values are truncated at the parameter limits.
+           See :meth:`Parameters.truncate`.
          * "reflect": sample values that are out of bounds are reflected
            inside the parameter limits by the same magnitude that they were
            out of bounds. Values that are too far out of bounds to be
            reflected are truncated at the parameter limits.
+           See :meth:`Parameters.reflect`.
 
     :return:
         The sampled values.
@@ -1172,7 +1175,7 @@ def pretraining_dinf(
     lp = _log_prob(
         thetas,
         discriminator=discriminator,
-        generator=dinf_model.generator_func,
+        generator=dinf_model.generator_func_v,
         parameters=parameters,
         num_replicates=1,
         parallelism=parallelism,
@@ -1476,7 +1479,7 @@ def pg_gan(
         lp = _log_prob(
             proposal_thetas,
             discriminator=discriminator,
-            generator=dinf_model.generator_func,
+            generator=dinf_model.generator_func_v,
             parameters=parameters,
             num_replicates=Dx_replicates,
             parallelism=parallelism,

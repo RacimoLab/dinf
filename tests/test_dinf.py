@@ -608,7 +608,7 @@ class TestLogProb:
         log_prob_1 = functools.partial(
             log_prob,
             discriminator=self.discriminator,
-            generator=self.dinf_model.generator_func,
+            generator=self.dinf_model.generator_func_v,
             parameters=self.dinf_model.parameters,
             rng=np.random.default_rng(1),
             num_replicates=2,
@@ -618,7 +618,7 @@ class TestLogProb:
         log_prob_n = functools.partial(
             dinf.dinf._log_prob,
             discriminator=self.discriminator,
-            generator=self.dinf_model.generator_func,
+            generator=self.dinf_model.generator_func_v,
             parameters=self.dinf_model.parameters,
             rng=np.random.default_rng(1),
             num_replicates=2,

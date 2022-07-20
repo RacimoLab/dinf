@@ -387,7 +387,7 @@ def sim_im(seed, features, num_individuals, sequence_length):
     ts = msprime.sim_mutations(ts, rate=mutation_rate, random_seed=seed2)
 
     populations = num_individuals.keys()
-    individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+    individuals = {pop: dinf.ts_individuals(ts, pop) for pop in populations}
     labelled_features = features.from_ts(ts, individuals=individuals)
     return labelled_features
 
