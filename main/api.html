@@ -215,7 +215,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev283
+            dinf 0.1.1.dev286
             </div>
             
         </div>
@@ -727,11 +727,11 @@ title="Print to PDF"
 <tr class="row-even"><td><p><a class="reference internal" href="#dinf.abc_gan" title="dinf.abc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">abc_gan</span></code></a>(*, dinf_model, iterations, ...[, ...])</p></td>
 <td><p>Run the ABC GAN.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.alfi_mcmc_gan" title="dinf.alfi_mcmc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alfi_mcmc_gan</span></code></a>(*, dinf_model, iterations, ...)</p></td>
-<td><p>Run the ALFI MCMC GAN.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#dinf.mcmc_gan" title="dinf.mcmc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mcmc_gan</span></code></a>(*, dinf_model, iterations, ...[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.mcmc_gan" title="dinf.mcmc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mcmc_gan</span></code></a>(*, dinf_model, iterations, ...[, ...])</p></td>
 <td><p>Run the MCMC GAN.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dinf.alfi_mcmc_gan" title="dinf.alfi_mcmc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alfi_mcmc_gan</span></code></a>(*, dinf_model, iterations, ...)</p></td>
+<td><p>Run the ALFI MCMC GAN.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#dinf.pg_gan" title="dinf.pg_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pg_gan</span></code></a>(*, dinf_model, iterations, ...[, ...])</p></td>
 <td><p>PG-GAN style simulated annealing.</p></td>
@@ -787,16 +787,19 @@ title="Print to PDF"
 <tr class="row-even"><td><p><a class="reference internal" href="#dinf.load_results" title="dinf.load_results"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_results</span></code></a>(filename, /, *[, parameters])</p></td>
 <td><p>Load descriminator predictions and parameter values from a .npz file.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.misc.ts_individuals" title="dinf.misc.ts_individuals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">misc.ts_individuals</span></code></a>(ts[, population])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.ts_individuals" title="dinf.ts_individuals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ts_individuals</span></code></a>(ts, /[, population])</p></td>
 <td><p>Get the individuals corresponding to the tree sequence's samples.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#dinf.get_samples_from_1kgp_metadata" title="dinf.get_samples_from_1kgp_metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_samples_from_1kgp_metadata</span></code></a>(filename, /, ...)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#dinf.sample_smooth" title="dinf.sample_smooth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_smooth</span></code></a>(*, thetas, probs, size, rng[, ...])</p></td>
+<td><p>Sample from a smoothed set of weighted observations.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.get_samples_from_1kgp_metadata" title="dinf.get_samples_from_1kgp_metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_samples_from_1kgp_metadata</span></code></a>(filename, /, ...)</p></td>
 <td><p>Get sample IDs for 1000 Genomes Project populations.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.get_contig_lengths" title="dinf.get_contig_lengths"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_contig_lengths</span></code></a>(filename, /[, keep_contigs])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#dinf.get_contig_lengths" title="dinf.get_contig_lengths"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_contig_lengths</span></code></a>(filename, /[, keep_contigs])</p></td>
 <td><p>Load contig lengths from a whitespace-separated file like an fai (fasta index).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#dinf.Store" title="dinf.Store"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Store</span></code></a>(base, *[, create])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.Store" title="dinf.Store"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Store</span></code></a>(base, *[, create])</p></td>
 <td><p>A sequence of folders with names &quot;0&quot;, &quot;1&quot;, ...</p></td>
 </tr>
 </tbody>
@@ -981,6 +984,15 @@ If not specified, <a class="reference internal" href="#dinf.ExchangeableCNN" tit
 </dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="dinf.DinfModel.generator_func_v">
+<span class="sig-name descname"><span class="pre">generator_func_v</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span></em><a class="headerlink" href="#dinf.DinfModel.generator_func_v" title="Permalink to this definition">#</a></dt>
+<dd><p>Wrapper for <code class="docutils literal notranslate"><span class="pre">generator_func</span></code> that accepts a single argument containing
+the seed and a vector of parameter values (as opposed to keyword arguments).
+The signature is <code class="docutils literal notranslate"><span class="pre">generator_func_v(a:</span> <span class="pre">Tuple[int,</span> <span class="pre">v:</span> <span class="pre">np.ndarray])</span></code>,
+where the argument is a 2-tuple of <code class="docutils literal notranslate"><span class="pre">(seed,</span> <span class="pre">vector)</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="dinf.DinfModel.target_func">
 <span class="sig-name descname"><span class="pre">target_func</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></em><a class="headerlink" href="#dinf.DinfModel.target_func" title="Permalink to this definition">#</a></dt>
 <dd><p>Function that samples features from the target distribution.</p>
@@ -997,6 +1009,13 @@ If not specified, <a class="reference internal" href="#dinf.ExchangeableCNN" tit
 <dt class="sig sig-object py" id="dinf.DinfModel.discriminator_network">
 <span class="sig-name descname"><span class="pre">discriminator_network</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">nn.Module</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#dinf.DinfModel.discriminator_network" title="Permalink to this definition">#</a></dt>
 <dd><p>A <a class="reference external" href="https://flax.readthedocs.io/en/latest/index.html" title="(in Flax)"><span class="xref std std-doc">flax</span></a> neural network. May be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="dinf.DinfModel.filename">
+<span class="sig-name descname"><span class="pre">filename</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><span class="pre">pathlib.Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#dinf.DinfModel.filename" title="Permalink to this definition">#</a></dt>
+<dd><p>Path to the file from which the model was loaded (if any).
+May be <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1160,7 +1179,11 @@ j’th sample is within the parameter space, and False otherwise.</p>
 <dt class="sig sig-object py" id="dinf.Parameters.reflect">
 <span class="sig-name descname"><span class="pre">reflect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.reflect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.reflect" title="Permalink to this definition">#</a></dt>
 <dd><p>Reflect values that are out of bounds by the amount they are out.</p>
-<p>Values that are too far out of bounds to be reflected are truncated.</p>
+<p>As reflecting does not gaurantee values will be within the bounds,
+values are first truncated to (2*low - high, 2*high - low),
+then reflected. For example, with bounds low=0, high=10,
+a value of -11 will be truncated to -10, then reflected to attain
+a final value of 10.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>xs</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be reflected.</p>
@@ -1316,7 +1339,11 @@ the input. ret[j] is True if x[j] is in bounds, False otherwise.</p>
 <dt class="sig sig-object py" id="dinf.Param.reflect">
 <span class="sig-name descname"><span class="pre">reflect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Param.reflect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Param.reflect" title="Permalink to this definition">#</a></dt>
 <dd><p>Reflect values that are out of bounds by the amount they are out.</p>
-<p>Values that are too far out of bounds to be reflected are truncated.</p>
+<p>As reflecting does not gaurantee values will be within the bounds,
+values are first truncated to (2*low - high, 2*high - low),
+then reflected. For example, with bounds low=0, high=10,
+a value of -11 will be truncated to -10, then reflected to attain
+a final value of 10.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>x</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be reflected.</p>
@@ -1951,40 +1978,6 @@ directory will be used.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="dinf.alfi_mcmc_gan">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">alfi_mcmc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">walkers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#alfi_mcmc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.alfi_mcmc_gan" title="Permalink to this definition">#</a></dt>
-<dd><p>Run the ALFI MCMC GAN.</p>
-<p>This behaves similarly to <a class="reference internal" href="#dinf.mcmc_gan" title="dinf.mcmc_gan"><code class="xref py py-func docutils literal notranslate"><span class="pre">mcmc_gan()</span></code></a>, but introduces a surrogate
-neural network that predicts the output of the discriminator from a given
-set of input parameter values. The predictions of the surrogate network
-are used during MCMC sampling, thus bypassing the generator and producing
-deterministic classification of the input parameters.</p>
-<p>Kim et al. 2020, <a class="reference external" href="https://arxiv.org/abs/2004.05803v1">https://arxiv.org/abs/2004.05803v1</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the dinf model.</p></li>
-<li><p><strong>iterations</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of GAN iterations.</p></li>
-<li><p><strong>training_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the dataset used to train the discriminator.
-This dataset is constructed once each GAN iteration.</p></li>
-<li><p><strong>test_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the test dataset used to evaluate the discriminator after
-each training epoch.</p></li>
-<li><p><strong>epochs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of full passes over the training dataset when training
-the discriminator.</p></li>
-<li><p><strong>walkers</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of independent MCMC chains.</p></li>
-<li><p><strong>steps</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The chain length for each MCMC walker.</p></li>
-<li><p><strong>working_directory</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – Folder to output results. If not specified, the current
-directory will be used.</p></li>
-<li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
-<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.generator_func()</span></code></a> and
-<a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.target_func()</span></code></a>.</p></li>
-<li><p><strong>seed</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Seed for the random number generator.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="dinf.mcmc_gan">
 <span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">mcmc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">walkers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Dx_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#mcmc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.mcmc_gan" title="Permalink to this definition">#</a></dt>
 <dd><p>Run the MCMC GAN.</p>
@@ -2014,6 +2007,40 @@ the discriminator.</p></li>
 <li><p><strong>walkers</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of independent MCMC chains.</p></li>
 <li><p><strong>steps</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The chain length for each MCMC walker.</p></li>
 <li><p><strong>Dx_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of generator replicates for approximating E[D(x)|θ].</p></li>
+<li><p><strong>working_directory</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – Folder to output results. If not specified, the current
+directory will be used.</p></li>
+<li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
+<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.generator_func()</span></code></a> and
+<a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.target_func()</span></code></a>.</p></li>
+<li><p><strong>seed</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Seed for the random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="dinf.alfi_mcmc_gan">
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">alfi_mcmc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">walkers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#alfi_mcmc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.alfi_mcmc_gan" title="Permalink to this definition">#</a></dt>
+<dd><p>Run the ALFI MCMC GAN.</p>
+<p>This behaves similarly to <a class="reference internal" href="#dinf.mcmc_gan" title="dinf.mcmc_gan"><code class="xref py py-func docutils literal notranslate"><span class="pre">mcmc_gan()</span></code></a>, but introduces a surrogate
+neural network that predicts the output of the discriminator from a given
+set of input parameter values. The predictions of the surrogate network
+are used during MCMC sampling, thus bypassing the generator and producing
+deterministic classification of the input parameters.</p>
+<p>Kim et al. 2020, <a class="reference external" href="https://arxiv.org/abs/2004.05803v1">https://arxiv.org/abs/2004.05803v1</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dinf_model</strong> (<a class="reference internal" href="#dinf.DinfModel" title="dinf.DinfModel"><em>DinfModel</em></a>) – DinfModel object that describes the dinf model.</p></li>
+<li><p><strong>iterations</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of GAN iterations.</p></li>
+<li><p><strong>training_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the dataset used to train the discriminator.
+This dataset is constructed once each GAN iteration.</p></li>
+<li><p><strong>test_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of the test dataset used to evaluate the discriminator after
+each training epoch.</p></li>
+<li><p><strong>epochs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of full passes over the training dataset when training
+the discriminator.</p></li>
+<li><p><strong>walkers</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of independent MCMC chains.</p></li>
+<li><p><strong>steps</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The chain length for each MCMC walker.</p></li>
 <li><p><strong>working_directory</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – Folder to output results. If not specified, the current
 directory will be used.</p></li>
 <li><p><strong>parallelism</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of processes to use for parallelising calls to the
@@ -2401,8 +2428,8 @@ parameter values (if any).</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="dinf.misc.ts_individuals">
-<span class="sig-prename descclassname"><span class="pre">dinf.misc.</span></span><span class="sig-name descname"><span class="pre">ts_individuals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">population</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/misc.html#ts_individuals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.misc.ts_individuals" title="Permalink to this definition">#</a></dt>
+<dt class="sig sig-object py" id="dinf.ts_individuals">
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">ts_individuals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">population</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/misc.html#ts_individuals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.ts_individuals" title="Permalink to this definition">#</a></dt>
 <dd><p>Get the individuals corresponding to the tree sequence’s samples.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2425,42 +2452,52 @@ If not specified, all sampled individuals will be returned.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="dinf.misc.cache">
-<span class="sig-prename descclassname"><span class="pre">dinf.misc.</span></span><span class="sig-name descname"><span class="pre">cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/misc.html#cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.misc.cache" title="Permalink to this definition">#</a></dt>
-<dd><p>A decorator to cache the output of generator and/or target functions.</p>
-<p>This is analogous to {func}`functools.cache`, except each function’s
-result is stored in a file under the given directory. Caching can create
-a large number of small files, so the files are split into subdirectories
-to mitigate possible problems.</p>
+<dt class="sig sig-object py" id="dinf.sample_smooth">
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">sample_smooth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#sample_smooth"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.sample_smooth" title="Permalink to this definition">#</a></dt>
+<dd><p>Sample from a smoothed set of weighted observations.</p>
+<p>Samples are drawn from <code class="docutils literal notranslate"><span class="pre">thetas</span></code>, weighted by their probability.
+New points are drawn within a neighbourhood of the sampled thetas
+using a mulivariate normal whose covariance is calculated from the
+thetas. This is equivalent to sampling from a Gaussian KDE, but
+avoids doing an explicit density estimation.
+Scott’s rule of thumb is used for bandwidth selection.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – The directory to use for the cache.</p></li>
-<li><p><strong>split</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of subdirectories into which the cache files will be split.</p></li>
+<li><p><strong>thetas</strong> (<em>np.ndarray</em>) – Parameter values to sample from.</p></li>
+<li><p><strong>probs</strong> (<em>np.ndarray</em>) – Discriminator predictions corresponding to the <code class="docutils literal notranslate"><span class="pre">thetas</span></code>.</p></li>
+<li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of samples to draw.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random generator.</p></li>
+<li><p><strong>parameters</strong> (<a class="reference internal" href="#dinf.Parameters" title="dinf.Parameters"><em>Parameters</em></a><em> | </em><em>None</em>) – The parameters against which the values’ bounds will be checked.
+See the <code class="docutils literal notranslate"><span class="pre">mode</span></code> argument.</p></li>
+<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><em>None</em>) – <p>The mode determines how to deal with values that are out of the
+parameter bounds. If mode is not None, then <code class="docutils literal notranslate"><span class="pre">parameters</span></code> must
+also be specified. The options are:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code> (<em>default</em>): the returned values are not modified
+after sampling and may be out of bounds.</p></li>
+<li><p>”transform”: thetas are transformed before sampling, and
+the sampled values are inverse-transformed before being
+returned.
+See <a class="reference internal" href="#dinf.Parameters.transform" title="dinf.Parameters.transform"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Parameters.transform()</span></code></a> and <a class="reference internal" href="#dinf.Parameters.itransform" title="dinf.Parameters.itransform"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Parameters.itransform()</span></code></a>.</p></li>
+<li><p>”truncate”: sampled values are truncated at the parameter limits.
+See <a class="reference internal" href="#dinf.Parameters.truncate" title="dinf.Parameters.truncate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Parameters.truncate()</span></code></a>.</p></li>
+<li><p>”reflect”: sample values that are out of bounds are reflected
+inside the parameter limits by the same magnitude that they were
+out of bounds. Values that are too far out of bounds to be
+reflected are truncated at the parameter limits.
+See <a class="reference internal" href="#dinf.Parameters.reflect" title="dinf.Parameters.reflect"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Parameters.reflect()</span></code></a>.</p></li>
+</ul>
+</div></blockquote>
+</p></li>
 </ul>
 </dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="dinf.misc.sqlite_cache">
-<span class="sig-prename descclassname"><span class="pre">dinf.misc.</span></span><span class="sig-name descname"><span class="pre">sqlite_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/misc.html#sqlite_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.misc.sqlite_cache" title="Permalink to this definition">#</a></dt>
-<dd><p>A decorator for generator or target functions that caches features to disk.</p>
-<p>This is analogous to {func}`functools.cache`, except the cache is
-persisted to disk in an sqlite database.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>Do not use a network filesystem for the database filename.
-Writing to an sqlite database depends on file locking support to
-safely deal with concurrent writers. File locking support is known
-to be broken for many network filesystems (e.g. NFS).
-After dinf has finished writing to the database file, it can be
-safely copied to a network filesystem for storage—just remember
-to copy it back to a local filesystem when updating the cache.</p>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>db_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – The filename of the sqlite database.</p>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The sampled values.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2739,7 +2776,7 @@ If None, an axes will be created with <a class="reference external" href="https:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev283+ge11ef8e
+      dinf 0.1.1.dev286+g119c8ab
     </div>
 </p>
         </footer>

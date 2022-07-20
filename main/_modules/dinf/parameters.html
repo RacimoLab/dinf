@@ -210,7 +210,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev283
+            dinf 0.1.1.dev286
             </div>
             
         </div>
@@ -462,7 +462,11 @@ title="Open an issue"
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reflect values that are out of bounds by the amount they are out.</span>
 
-<span class="sd">        Values that are too far out of bounds to be reflected are truncated.</span>
+<span class="sd">        As reflecting does not gaurantee values will be within the bounds,</span>
+<span class="sd">        values are first truncated to (2*low - high, 2*high - low),</span>
+<span class="sd">        then reflected. For example, with bounds low=0, high=10,</span>
+<span class="sd">        a value of -11 will be truncated to -10, then reflected to attain</span>
+<span class="sd">        a final value of 10.</span>
 
 <span class="sd">        :param x:</span>
 <span class="sd">            The values to be reflected.</span>
@@ -626,7 +630,11 @@ title="Open an issue"
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reflect values that are out of bounds by the amount they are out.</span>
 
-<span class="sd">        Values that are too far out of bounds to be reflected are truncated.</span>
+<span class="sd">        As reflecting does not gaurantee values will be within the bounds,</span>
+<span class="sd">        values are first truncated to (2*low - high, 2*high - low),</span>
+<span class="sd">        then reflected. For example, with bounds low=0, high=10,</span>
+<span class="sd">        a value of -11 will be truncated to -10, then reflected to attain</span>
+<span class="sd">        a final value of 10.</span>
 
 <span class="sd">        :param xs:</span>
 <span class="sd">            The values to be reflected.</span>
@@ -656,7 +664,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev283+ge11ef8e
+      dinf 0.1.1.dev286+g119c8ab
     </div>
 </p>
         </footer>

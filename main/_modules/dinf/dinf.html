@@ -210,7 +210,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev283
+            dinf 0.1.1.dev286
             </div>
             
         </div>
@@ -389,7 +389,7 @@ title="Open an issue"
     <span class="n">_pool</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span>
         <span class="n">processes</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
         <span class="n">initializer</span><span class="o">=</span><span class="n">_initializer</span><span class="p">,</span>
-        <span class="n">initargs</span><span class="o">=</span><span class="p">(</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">_filename</span><span class="p">,),</span>
+        <span class="n">initargs</span><span class="o">=</span><span class="p">(</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">filename</span><span class="p">,),</span>
     <span class="p">)</span>
 
 
@@ -746,7 +746,7 @@ title="Open an issue"
     <span class="p">)</span>
     <span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">train_x_generator</span> <span class="o">=</span> <span class="n">_generate_training_data</span><span class="p">(</span>
         <span class="n">target</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
-        <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+        <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">,</span>
         <span class="n">thetas</span><span class="o">=</span><span class="n">training_thetas</span><span class="p">,</span>
         <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
         <span class="n">ss</span><span class="o">=</span><span class="n">ss_train</span><span class="p">,</span>
@@ -756,7 +756,7 @@ title="Open an issue"
     <span class="k">if</span> <span class="n">test_thetas</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_thetas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="p">,</span> <span class="n">val_x_generator</span> <span class="o">=</span> <span class="n">_generate_training_data</span><span class="p">(</span>
             <span class="n">target</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
-            <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+            <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">,</span>
             <span class="n">thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
             <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
             <span class="n">ss</span><span class="o">=</span><span class="n">ss_val</span><span class="p">,</span>
@@ -931,7 +931,7 @@ title="Open an issue"
             <span class="n">replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">_generate_data</span><span class="p">(</span>
-            <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+            <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">,</span>
             <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
             <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_generator</span><span class="p">),</span>
@@ -1072,7 +1072,7 @@ title="Open an issue"
     <span class="n">log_prob_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
         <span class="n">_log_prob</span><span class="p">,</span>
         <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-        <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+        <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">,</span>
         <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
         <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
         <span class="n">num_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
@@ -1141,7 +1141,7 @@ title="Open an issue"
     <span class="k">return</span> <span class="n">sample</span>
 
 
-<span class="k">def</span> <span class="nf">sample_smooth</span><span class="p">(</span>
+<div class="viewcode-block" id="sample_smooth"><a class="viewcode-back" href="../../api.html#dinf.sample_smooth">[docs]</a><span class="k">def</span> <span class="nf">sample_smooth</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
@@ -1153,10 +1153,10 @@ title="Open an issue"
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Sample from a smoothed set of weighted observations.</span>
 
-<span class="sd">    Samples are drawn from the thetas, weighted by their probability.</span>
+<span class="sd">    Samples are drawn from ``thetas``, weighted by their probability.</span>
 <span class="sd">    New points are drawn within a neighbourhood of the sampled thetas</span>
 <span class="sd">    using a mulivariate normal whose covariance is calculated from the</span>
-<span class="sd">    thetas. This is effectively sampling from a Gaussian KDE, but</span>
+<span class="sd">    thetas. This is equivalent to sampling from a Gaussian KDE, but</span>
 <span class="sd">    avoids doing an explicit density estimation.</span>
 <span class="sd">    Scott&#39;s rule of thumb is used for bandwidth selection.</span>
 
@@ -1181,11 +1181,14 @@ title="Open an issue"
 <span class="sd">         * &quot;transform&quot;: thetas are transformed before sampling, and</span>
 <span class="sd">           the sampled values are inverse-transformed before being</span>
 <span class="sd">           returned.</span>
+<span class="sd">           See :meth:`Parameters.transform` and :meth:`Parameters.itransform`.</span>
 <span class="sd">         * &quot;truncate&quot;: sampled values are truncated at the parameter limits.</span>
+<span class="sd">           See :meth:`Parameters.truncate`.</span>
 <span class="sd">         * &quot;reflect&quot;: sample values that are out of bounds are reflected</span>
 <span class="sd">           inside the parameter limits by the same magnitude that they were</span>
 <span class="sd">           out of bounds. Values that are too far out of bounds to be</span>
 <span class="sd">           reflected are truncated at the parameter limits.</span>
+<span class="sd">           See :meth:`Parameters.reflect`.</span>
 
 <span class="sd">    :return:</span>
 <span class="sd">        The sampled values.</span>
@@ -1208,7 +1211,7 @@ title="Open an issue"
     <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;truncate&quot;</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">parameters</span><span class="o">.</span><span class="n">truncate</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">X</span>
+    <span class="k">return</span> <span class="n">X</span></div>
 
 
 <span class="k">def</span> <span class="nf">filter_top_n</span><span class="p">(</span>
@@ -1510,7 +1513,7 @@ title="Open an issue"
     <span class="n">lp</span> <span class="o">=</span> <span class="n">_log_prob</span><span class="p">(</span>
         <span class="n">thetas</span><span class="p">,</span>
         <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-        <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+        <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">,</span>
         <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
         <span class="n">num_replicates</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
@@ -1814,7 +1817,7 @@ title="Open an issue"
         <span class="n">lp</span> <span class="o">=</span> <span class="n">_log_prob</span><span class="p">(</span>
             <span class="n">proposal_thetas</span><span class="p">,</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-            <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
+            <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">,</span>
             <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="n">num_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
             <span class="n">parallelism</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
@@ -2112,7 +2115,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev283+ge11ef8e
+      dinf 0.1.1.dev286+g119c8ab
     </div>
 </p>
         </footer>

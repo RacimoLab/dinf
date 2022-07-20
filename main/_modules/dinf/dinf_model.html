@@ -210,7 +210,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev283
+            dinf 0.1.1.dev286
             </div>
             
         </div>
@@ -504,6 +504,14 @@ title="Open an issue"
 <span class="sd">    Function that simulates features using concrete parameter values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="n">generator_func_v</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper for ``generator_func`` that accepts a single argument containing</span>
+<span class="sd">    the seed and a vector of parameter values (as opposed to keyword arguments).</span>
+<span class="sd">    The signature is ``generator_func_v(a: Tuple[int, v: np.ndarray])``,</span>
+<span class="sd">    where the argument is a 2-tuple of ``(seed, vector)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">target_func</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Function that samples features from the target distribution.</span>
@@ -518,6 +526,12 @@ title="Open an issue"
     <span class="n">discriminator_network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A :doc:`flax &lt;flax:index&gt;` neural network. May be ``None``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">filename</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Path to the file from which the model was loaded (if any).</span>
+<span class="sd">    May be ``None``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -541,12 +555,12 @@ title="Open an issue"
         <span class="c1"># Transform generator_func from a function accepting arbitrary kwargs</span>
         <span class="c1"># (which limits user error) into a function accepting a sequence of</span>
         <span class="c1"># args (which is easier to pass to the mcmc).</span>
-        <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_func</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">generator_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">update_wrapper</span><span class="p">(</span>
-            <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">_sim_shim</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)),</span> <span class="n">f</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">generator_func_v</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">update_wrapper</span><span class="p">(</span>
+            <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+                <span class="n">_sim_shim</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">generator_func</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_orig_generator_func</span> <span class="o">=</span> <span class="n">f</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="DinfModel.check"><a class="viewcode-back" href="../../api.html#dinf.DinfModel.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -567,7 +581,7 @@ title="Open an issue"
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, expected shape </span><span class="si">{</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span><span class="si">}</span><span class="s2">.&quot;</span>
             <span class="p">)</span>
 
-        <span class="n">x_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_func</span><span class="p">((</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">),</span> <span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">x_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">((</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">),</span> <span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">tree_equal</span><span class="p">(</span><span class="n">tree_shape</span><span class="p">(</span><span class="n">x_g</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;generator_func produced feature shape </span><span class="si">{</span><span class="n">tree_shape</span><span class="p">(</span><span class="n">x_g</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
@@ -607,7 +621,7 @@ title="Open an issue"
             <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: variable &#39;dinf_model&#39; not found&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dinf_model</span><span class="p">,</span> <span class="n">DinfModel</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: dinf_model is not a dinf.DinfModel object&quot;</span><span class="p">)</span>
-        <span class="n">dinf_model</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">filename</span>
+        <span class="n">dinf_model</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">dinf_model</span></div></div>
 </pre></div>
 
@@ -629,7 +643,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev283+ge11ef8e
+      dinf 0.1.1.dev286+g119c8ab
     </div>
 </p>
         </footer>

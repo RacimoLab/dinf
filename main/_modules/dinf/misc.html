@@ -210,7 +210,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.1.1.dev283
+            dinf 0.1.1.dev286
             </div>
             
         </div>
@@ -351,8 +351,10 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">tskit</span>
 
 
-<div class="viewcode-block" id="ts_individuals"><a class="viewcode-back" href="../../api.html#dinf.misc.ts_individuals">[docs]</a><span class="k">def</span> <span class="nf">ts_individuals</span><span class="p">(</span>
-    <span class="n">ts</span><span class="p">:</span> <span class="n">tskit</span><span class="o">.</span><span class="n">TreeSequence</span><span class="p">,</span> <span class="n">population</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<div class="viewcode-block" id="ts_individuals"><a class="viewcode-back" href="../../api.html#dinf.ts_individuals">[docs]</a><span class="k">def</span> <span class="nf">ts_individuals</span><span class="p">(</span>
+    <span class="n">ts</span><span class="p">:</span> <span class="n">tskit</span><span class="o">.</span><span class="n">TreeSequence</span><span class="p">,</span>
+    <span class="o">/</span><span class="p">,</span>
+    <span class="n">population</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the individuals corresponding to the tree sequence&#39;s samples.</span>
@@ -379,7 +381,9 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">ts_nodes_of_individuals</span><span class="p">(</span>
-    <span class="n">ts</span><span class="p">:</span> <span class="n">tskit</span><span class="o">.</span><span class="n">TreeSequence</span><span class="p">,</span> <span class="n">individuals</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">]</span>
+    <span class="n">ts</span><span class="p">:</span> <span class="n">tskit</span><span class="o">.</span><span class="n">TreeSequence</span><span class="p">,</span>
+    <span class="o">/</span><span class="p">,</span>
+    <span class="n">individuals</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the nodes for the individuals.</span>
@@ -395,7 +399,9 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">ts_ploidy_of_individuals</span><span class="p">(</span>
-    <span class="n">ts</span><span class="p">:</span> <span class="n">tskit</span><span class="o">.</span><span class="n">TreeSequence</span><span class="p">,</span> <span class="n">individuals</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">]</span>
+    <span class="n">ts</span><span class="p">:</span> <span class="n">tskit</span><span class="o">.</span><span class="n">TreeSequence</span><span class="p">,</span>
+    <span class="o">/</span><span class="p">,</span>
+    <span class="n">individuals</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the ploidy of the individuals.</span>
@@ -482,11 +488,11 @@ title="Open an issue"
     <span class="k">return</span> <span class="n">sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="cache"><a class="viewcode-back" href="../../api.html#dinf.misc.cache">[docs]</a><span class="k">def</span> <span class="nf">cache</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">split</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">cache</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">split</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A decorator to cache the output of generator and/or target functions.</span>
 
-<span class="sd">    This is analogous to {func}`functools.cache`, except each function&#39;s</span>
+<span class="sd">    This is analogous to :func:`functools.cache`, except each function&#39;s</span>
 <span class="sd">    result is stored in a file under the given directory. Caching can create</span>
 <span class="sd">    a large number of small files, so the files are split into subdirectories</span>
 <span class="sd">    to mitigate possible problems.</span>
@@ -532,14 +538,14 @@ title="Open an issue"
 
         <span class="k">return</span> <span class="n">inner_wrapper</span>
 
-    <span class="k">return</span> <span class="n">outer_wrapper</span></div>
+    <span class="k">return</span> <span class="n">outer_wrapper</span>
 
 
-<div class="viewcode-block" id="sqlite_cache"><a class="viewcode-back" href="../../api.html#dinf.misc.sqlite_cache">[docs]</a><span class="k">def</span> <span class="nf">sqlite_cache</span><span class="p">(</span><span class="n">db_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">/</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">sqlite_cache</span><span class="p">(</span><span class="n">db_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">/</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A decorator for generator or target functions that caches features to disk.</span>
 
-<span class="sd">    This is analogous to {func}`functools.cache`, except the cache is</span>
+<span class="sd">    This is analogous to :func:`functools.cache`, except the cache is</span>
 <span class="sd">    persisted to disk in an sqlite database.</span>
 
 <span class="sd">    .. warning::</span>
@@ -628,7 +634,7 @@ title="Open an issue"
 
         <span class="k">return</span> <span class="n">inner_wrapper</span>
 
-    <span class="k">return</span> <span class="n">outer_wrapper</span></div>
+    <span class="k">return</span> <span class="n">outer_wrapper</span>
 </pre></div>
 
               </div>
@@ -649,7 +655,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.1.1.dev283+ge11ef8e
+      dinf 0.1.1.dev286+g119c8ab
     </div>
 </p>
         </footer>
