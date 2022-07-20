@@ -124,7 +124,11 @@ class Param:
         """
         Reflect values that are out of bounds by the amount they are out.
 
-        Values that are too far out of bounds to be reflected are truncated.
+        As reflecting does not gaurantee values will be within the bounds,
+        values are first truncated to (2*low - high, 2*high - low),
+        then reflected. For example, with bounds low=0, high=10,
+        a value of -11 will be truncated to -10, then reflected to attain
+        a final value of 10.
 
         :param x:
             The values to be reflected.
@@ -288,7 +292,11 @@ class Parameters(collections.abc.Mapping):
         """
         Reflect values that are out of bounds by the amount they are out.
 
-        Values that are too far out of bounds to be reflected are truncated.
+        As reflecting does not gaurantee values will be within the bounds,
+        values are first truncated to (2*low - high, 2*high - low),
+        then reflected. For example, with bounds low=0, high=10,
+        a value of -11 will be truncated to -10, then reflected to attain
+        a final value of 10.
 
         :param xs:
             The values to be reflected.

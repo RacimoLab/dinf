@@ -166,6 +166,14 @@ class DinfModel:
     Function that simulates features using concrete parameter values.
     """
 
+    generator_func_v: Callable = dataclasses.field(init=False)
+    """
+    Wrapper for ``generator_func`` that accepts a single argument containing
+    the seed and a vector of parameter values (as opposed to keyword arguments).
+    The signature is ``generator_func_v(a: Tuple[int, v: np.ndarray])``,
+    where the argument is a 2-tuple of ``(seed, vector)``.
+    """
+
     target_func: Callable | None
     """
     Function that samples features from the target distribution.
@@ -180,6 +188,12 @@ class DinfModel:
     discriminator_network: nn.Module | None = None
     """
     A :doc:`flax <flax:index>` neural network. May be ``None``.
+    """
+
+    filename: pathlib.Path | None = dataclasses.field(init=False, default=None)
+    """
+    Path to the file from which the model was loaded (if any).
+    May be ``None``.
     """
 
     def __post_init__(self):
@@ -203,12 +217,12 @@ class DinfModel:
         # Transform generator_func from a function accepting arbitrary kwargs
         # (which limits user error) into a function accepting a sequence of
         # args (which is easier to pass to the mcmc).
-        f = self.generator_func
-        self.generator_func = functools.update_wrapper(
-            functools.partial(_sim_shim, func=f, keys=tuple(self.parameters)), f
+        self.generator_func_v = functools.update_wrapper(
+            functools.partial(
+                _sim_shim, func=self.generator_func, keys=tuple(self.parameters)
+            ),
+            self.generator_func,
         )
-        self._orig_generator_func = f
-        self._filename = None
 
     def check(self, seed=None):
         """
@@ -229,7 +243,7 @@ class DinfModel:
                 f"{thetas.shape}, expected shape {(5, len(self.parameters))}."
             )
 
-        x_g = self.generator_func((rng.integers(low=0, high=2**31), thetas[0]))
+        x_g = self.generator_func_v((rng.integers(low=0, high=2**31), thetas[0]))
         if not tree_equal(tree_shape(x_g), self.feature_shape):
             raise ValueError(
                 f"generator_func produced feature shape {tree_shape(x_g)}, "
@@ -269,5 +283,5 @@ class DinfModel:
             raise AttributeError(f"{filename}: variable 'dinf_model' not found")
         if not isinstance(dinf_model, DinfModel):
             raise TypeError(f"{filename}: dinf_model is not a dinf.DinfModel object")
-        dinf_model._filename = filename
+        dinf_model.filename = pathlib.Path(filename)
         return dinf_model

@@ -721,7 +721,7 @@ class _Features(_SubCommand):
         else:
             rng = np.random.default_rng(args.seed)
             thetas = dinf_model.parameters.draw_prior(1, rng=rng)
-            mats = dinf_model.generator_func(
+            mats = dinf_model.generator_func_v(
                 (rng.integers(low=0, high=2**31), thetas[0])
             )
 
