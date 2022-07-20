@@ -15,7 +15,6 @@ import scipy.stats
 
 from .cli import ADRDFormatter, _DINF_MODEL_HELP
 import dinf
-from .dinf import sample_smooth
 
 
 class MultiPage:
@@ -694,7 +693,7 @@ class _Demes(_SubCommand):
 
 class _Features(_SubCommand):
     """
-    Plot a feature matrix or matrices as heatmaps.
+    Plot a feature matrices as heatmaps.
 
     By default, one simulation will be performed with the generator to obtain
     a set of features for plotting. To instead extract features from the
@@ -1042,7 +1041,7 @@ class _Hist(_SubCommand):
                 names = list(data.dtype.names)
                 probs = data["_Pr"]
                 thetas = structured_to_unstructured(data[names[1:]])
-                X = sample_smooth(
+                X = dinf.sample_smooth(
                     thetas=thetas,
                     probs=probs,
                     size=1_000_000,

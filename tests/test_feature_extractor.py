@@ -887,7 +887,7 @@ class _TestMultiple:
                 for pop in populations
             ],
         )
-        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+        individuals = {pop: dinf.ts_individuals(ts, pop) for pop in populations}
 
         feature_extractor = self.cls(
             num_individuals={pop: num_individuals for pop in populations},
@@ -917,7 +917,7 @@ class _TestMultiple:
             ],
             mutation_rate=0,
         )
-        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+        individuals = {pop: dinf.ts_individuals(ts, pop) for pop in populations}
 
         feature_extractor = self.cls(
             num_individuals={pop: num_individuals for pop in populations},
@@ -945,7 +945,7 @@ class _TestMultiple:
                 for pop in populations
             ],
         )
-        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+        individuals = {pop: dinf.ts_individuals(ts, pop) for pop in populations}
 
         wrong_populations = ["a", "c"]
         feature_extractor = self.cls(
@@ -975,7 +975,7 @@ class _TestMultiple:
                 for pop in populations
             ],
         )
-        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+        individuals = {pop: dinf.ts_individuals(ts, pop) for pop in populations}
 
         feature_extractor = self.cls(
             num_individuals={pop: num_individuals for pop in populations},
@@ -1004,7 +1004,7 @@ class _TestMultiple:
                 for pop in populations
             ],
         )
-        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+        individuals = {pop: dinf.ts_individuals(ts, pop) for pop in populations}
 
         feature_extractor = self.cls(
             num_individuals={"b": num_individuals, "c": num_individuals + 1},
@@ -1031,7 +1031,7 @@ class _TestMultiple:
                 for pop in populations
             ],
         )
-        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+        individuals = {pop: dinf.ts_individuals(ts, pop) for pop in populations}
 
         feature_extractor = self.cls(
             num_individuals={pop: num_individuals for pop in populations},
@@ -1065,7 +1065,7 @@ class _TestMultiple:
                 for (pop, num_inds), k in zip(num_individuals.items(), ploidy.values())
             ],
         )
-        individuals = {pop: dinf.misc.ts_individuals(ts, pop) for pop in populations}
+        individuals = {pop: dinf.ts_individuals(ts, pop) for pop in populations}
 
         feature_extractor = self.cls(
             num_individuals=num_individuals,

@@ -815,7 +815,7 @@ def sample_smooth(
     """
     Sample from a smoothed set of weighted observations.
 
-    Samples are drawn from the thetas, weighted by their probability.
+    Samples are drawn from ``thetas``, weighted by their probability.
     New points are drawn within a neighbourhood of the sampled thetas
     using a mulivariate normal whose covariance is calculated from the
     thetas. This is equivalent to sampling from a Gaussian KDE, but
@@ -843,14 +843,14 @@ def sample_smooth(
          * "transform": thetas are transformed before sampling, and
            the sampled values are inverse-transformed before being
            returned.
-           See {meth}`Parameters.transform` and {meth}`Parameters.itransform`.
+           See :meth:`Parameters.transform` and :meth:`Parameters.itransform`.
          * "truncate": sampled values are truncated at the parameter limits.
-           See {meth}`Parameters.truncate`.
+           See :meth:`Parameters.truncate`.
          * "reflect": sample values that are out of bounds are reflected
            inside the parameter limits by the same magnitude that they were
            out of bounds. Values that are too far out of bounds to be
            reflected are truncated at the parameter limits.
-           See {meth}`Parameters.reflect`.
+           See :meth:`Parameters.reflect`.
 
     :return:
         The sampled values.

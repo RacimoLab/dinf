@@ -14,7 +14,9 @@ import tskit
 
 
 def ts_individuals(
-    ts: tskit.TreeSequence, population: str | int | None = None
+    ts: tskit.TreeSequence,
+    /,
+    population: str | int | None = None,
 ) -> npt.NDArray[np.integer]:
     """
     Get the individuals corresponding to the tree sequence's samples.
@@ -41,7 +43,9 @@ def ts_individuals(
 
 
 def ts_nodes_of_individuals(
-    ts: tskit.TreeSequence, individuals: npt.NDArray[np.integer]
+    ts: tskit.TreeSequence,
+    /,
+    individuals: npt.NDArray[np.integer],
 ) -> npt.NDArray[np.integer]:
     """
     Get the nodes for the individuals.
@@ -57,7 +61,9 @@ def ts_nodes_of_individuals(
 
 
 def ts_ploidy_of_individuals(
-    ts: tskit.TreeSequence, individuals: npt.NDArray[np.integer]
+    ts: tskit.TreeSequence,
+    /,
+    individuals: npt.NDArray[np.integer],
 ) -> npt.NDArray[np.integer]:
     """
     Get the ploidy of the individuals.
@@ -148,7 +154,7 @@ def cache(path: str | pathlib.Path, /, *, split: int = 1000):
     """
     A decorator to cache the output of generator and/or target functions.
 
-    This is analogous to {func}`functools.cache`, except each function's
+    This is analogous to :func:`functools.cache`, except each function's
     result is stored in a file under the given directory. Caching can create
     a large number of small files, so the files are split into subdirectories
     to mitigate possible problems.
@@ -201,7 +207,7 @@ def sqlite_cache(db_file: str | pathlib.Path, shape, /):
     """
     A decorator for generator or target functions that caches features to disk.
 
-    This is analogous to {func}`functools.cache`, except the cache is
+    This is analogous to :func:`functools.cache`, except the cache is
     persisted to disk in an sqlite database.
 
     .. warning::
