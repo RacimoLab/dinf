@@ -1,0 +1,1463 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>CLI reference &#8212; Dinf</title>
+    
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+<link href="_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+
+    
+  <link rel="stylesheet"
+    href="_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" href="_static/styles/sphinx-book-theme.css?digest=5115cc725059bd94278eecd172e13a965bf8f5a9" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="_static/design-style.b7bb847fb20b106c3d81b95245e65545.min.css" />
+    
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/clipboard.min.js"></script>
+    <script src="_static/copybutton.js"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?digest=9c920249402e914e316237a7dbc6769907cce411"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="_static/sphinx-thebe.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Development" href="development.html" />
+    <link rel="prev" title="API reference" href="api.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="None">
+    
+
+    <!-- Google Analytics -->
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60">
+<!-- Checkboxes to toggle the left sidebar -->
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle navigation sidebar">
+<label class="overlay overlay-navbar" for="__navigation">
+    <div class="visually-hidden">Toggle navigation sidebar</div>
+</label>
+<!-- Checkboxes to toggle the in-page toc -->
+<input type="checkbox" class="sidebar-toggle" name="__page-toc" id="__page-toc" aria-label="Toggle in-page Table of Contents">
+<label class="overlay overlay-pagetoc" for="__page-toc">
+    <div class="visually-hidden">Toggle in-page Table of Contents</div>
+</label>
+<!-- Headers at the top -->
+<div class="announcement header-item noprint"></div>
+<div class="header header-item noprint"></div>
+
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+<!-- Sidebar -->
+<div class="bd-sidebar noprint" id="site-navigation">
+    <div class="bd-sidebar__content">
+        <div class="bd-sidebar__top"><div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="index.html">
+      
+      
+      
+      <h1 class="site-logo" id="site-title">Dinf</h1>
+      
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search this book..." aria-label="Search this book..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="introduction.html">
+                    Introduction
+                </a>
+            </li>
+        </ul>
+        <p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Getting started
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="installation.html">
+   Installation
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Tutorial
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/creating_a_model.html">
+   1. Creating a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/testing_a_model.html">
+   2. Testing a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/abc.html">
+   3. An ABC analysis
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Topic guides
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/accuracy.html">
+   Improving discriminator accuracy
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/features.html">
+   Feature matrices
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/performance.html">
+   Performance characteristics
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/multiple_demes.html">
+   Models with multiple demes
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/empirical_data.html">
+   Empirical data
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/abc-gan.html">
+   ABC-GAN
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/mcmc-gan.html">
+   MCMC-GAN
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="guide/pg-gan.html">
+   PG-GAN (simulated annealing)
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Reference
+ </span>
+</p>
+<ul class="current nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="api.html">
+   API reference
+  </a>
+ </li>
+ <li class="toctree-l1 current active">
+  <a class="current reference internal" href="#">
+   CLI reference
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Miscellaneous
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="development.html">
+   Development
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="CHANGELOG.html">
+   Changelog
+  </a>
+ </li>
+</ul>
+
+    </div>
+</nav></div>
+        <div class="bd-sidebar__bottom">
+             <!-- To handle the deprecated key -->
+            
+            <div class="navbar_extra_footer">
+            dinf 0.2.0
+            </div>
+            
+        </div>
+    </div>
+    <div id="rtd-footer-container"></div>
+</div>
+
+
+          
+
+
+          
+<!-- A tiny helper pixel to detect if we've scrolled -->
+<div class="sbt-scroll-pixel-helper"></div>
+<!-- Main content -->
+<div class="col py-0 content-container">
+    
+    <div class="header-article row sticky-top noprint">
+        
+
+
+
+<div class="col py-1 d-flex header-article-main">
+    <div class="header-article__left">
+        
+        <label for="__navigation"
+  class="headerbtn"
+  data-toggle="tooltip"
+data-placement="right"
+title="Toggle navigation"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-bars"></i>
+  </span>
+
+</label>
+
+        
+    </div>
+    <div class="header-article__right">
+<button onclick="toggleFullScreen()"
+  class="headerbtn"
+  data-toggle="tooltip"
+data-placement="bottom"
+title="Fullscreen mode"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+<div class="menu-dropdown menu-dropdown-repository-buttons">
+  <button class="headerbtn menu-dropdown__trigger"
+      aria-label="Source repositories">
+      <i class="fab fa-github"></i>
+  </button>
+  <div class="menu-dropdown__content">
+    <ul>
+      <li>
+        <a href="https://github.com/RacimoLab/dinf"
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Source repository"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="headerbtn__text-container">repository</span>
+</a>
+
+      </li>
+      
+      <li>
+        <a href="https://github.com/RacimoLab/dinf/issues/new?title=Issue%20on%20page%20%2Fcli.html&body=Your%20issue%20content%20here."
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Open an issue"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="headerbtn__text-container">open issue</span>
+</a>
+
+      </li>
+      
+      <li>
+        <a href="https://github.com/RacimoLab/dinf/edit/main/docs/cli.md"
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Edit this page"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="headerbtn__text-container">suggest edit</span>
+</a>
+
+      </li>
+      
+    </ul>
+  </div>
+</div>
+
+<div class="menu-dropdown menu-dropdown-download-buttons">
+  <button class="headerbtn menu-dropdown__trigger"
+      aria-label="Download this page">
+      <i class="fas fa-download"></i>
+  </button>
+  <div class="menu-dropdown__content">
+    <ul>
+      <li>
+        <a href="_sources/cli.md"
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Download source file"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="headerbtn__text-container">.md</span>
+</a>
+
+      </li>
+      
+      <li>
+        
+<button onclick="printPdf(this)"
+  class="headerbtn"
+  data-toggle="tooltip"
+data-placement="left"
+title="Print to PDF"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="headerbtn__text-container">.pdf</span>
+</button>
+
+      </li>
+      
+    </ul>
+  </div>
+</div>
+<label for="__page-toc"
+  class="headerbtn headerbtn-page-toc"
+  
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-list"></i>
+  </span>
+
+</label>
+
+    </div>
+</div>
+
+<!-- Table of contents -->
+<div class="col-md-3 bd-toc show noprint">
+    <div class="tocsection onthispage pt-5 pb-3">
+        <i class="fas fa-list"></i> Contents
+    </div>
+    <nav id="bd-toc-nav" aria-label="Page">
+        <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#analysis-commands">
+   Analysis commands
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-check">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       check
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-train">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       train
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-predict">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       predict
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-abc-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       abc-gan
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-alfi-mcmc-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       alfi-mcmc-gan
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-mcmc-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       mcmc-gan
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-pg-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       pg-gan
+      </span>
+     </code>
+    </a>
+   </li>
+  </ul>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#plotting-commands">
+   Plotting commands
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-metrics">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       metrics
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-features">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       features
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-hist">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       hist
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-hist2d">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       hist2d
+      </span>
+     </code>
+    </a>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+    </nav>
+</div>
+    </div>
+    <div class="article row">
+        <div class="col pl-md-3 pl-lg-5 content-container">
+            <!-- Table of contents that is only displayed when printing the page -->
+            <div id="jb-print-docs-body" class="onlyprint">
+                <h1>CLI reference</h1>
+                <!-- Table of contents -->
+                <div id="print-main-content">
+                    <div id="jb-print-toc">
+                        
+                        <div>
+                            <h2> Contents </h2>
+                        </div>
+                        <nav aria-label="Page">
+                            <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#analysis-commands">
+   Analysis commands
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-check">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       check
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-train">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       train
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-predict">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       predict
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-abc-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       abc-gan
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-alfi-mcmc-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       alfi-mcmc-gan
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-mcmc-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       mcmc-gan
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-pg-gan">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf
+      </span>
+      <span class="pre">
+       pg-gan
+      </span>
+     </code>
+    </a>
+   </li>
+  </ul>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#plotting-commands">
+   Plotting commands
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-metrics">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       metrics
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-features">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       features
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-hist">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       hist
+      </span>
+     </code>
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#dinf-plot-hist2d">
+     <code class="docutils literal notranslate">
+      <span class="pre">
+       dinf-plot
+      </span>
+      <span class="pre">
+       hist2d
+      </span>
+     </code>
+    </a>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            <main id="main-content" role="main">
+                
+              <div>
+                
+  <section class="tex2jax_ignore mathjax_ignore" id="cli-reference">
+<span id="sec-cli"></span><h1>CLI reference<a class="headerlink" href="#cli-reference" title="Permalink to this headline">#</a></h1>
+<p>Dinf provides two command line programs, <code class="docutils literal notranslate"><span class="pre">dinf</span></code> and <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code>.
+The former provides subcommands for running analyses, while the latter
+provides subcommands for making plots of various things.
+When invoked with the <code class="docutils literal notranslate"><span class="pre">-h</span></code>/<code class="docutils literal notranslate"><span class="pre">--help</span></code> option, subcomands offer a concise
+description and list the available options.
+This help output is reproduced below.</p>
+<p>Once Dinf is installed, the commands can be run by typing <code class="docutils literal notranslate"><span class="pre">dinf</span></code>
+or <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code>. In addition, the commands can be run using
+Python module hooks by typing <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">dinf</span></code> or <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">dinf.plot</span></code>.
+The module hooks can be useful for running the commands from a
+cloned git repository without requiring installation (e.g. during development).</p>
+<section id="analysis-commands">
+<span id="sec-cli-dinf"></span><h2>Analysis commands<a class="headerlink" href="#analysis-commands" title="Permalink to this headline">#</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [--version]
+            {check,train,predict,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan} ...
+
+Discriminator-based inference of population parameters.
+
+positional arguments:
+  {check,train,predict,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan}
+    check               Basic dinf_model health checks.
+    train               Train a discriminator.
+    predict             Make predictions using a trained discriminator.
+    abc-gan             Adversarial Abstract Bayesian Computation.
+    alfi-mcmc-gan       Run the ALFI MCMC GAN.
+    mcmc-gan            Run the MCMC GAN.
+    pg-gan              Run PG-GAN style simulated annealing.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version             show program&#39;s version number and exit
+</pre></div>
+</div>
+<section id="dinf-check">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">check</span></code><a class="headerlink" href="#dinf-check" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf check [-h] model.py
+
+Basic dinf_model health checks.
+
+Checks that the target and generator functions work and return the
+same feature shapes.
+
+positional arguments:
+  model.py    Python script from which to import the variable &quot;dinf_model&quot;.
+              This is a dinf.DinfModel object that describes the model
+              components. See the examples/ folder of the git repository for
+              example models. https://github.com/RacimoLab/dinf
+
+optional arguments:
+  -h, --help  show this help message and exit
+</pre></div>
+</div>
+</section>
+<section id="dinf-train">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">train</span></code><a class="headerlink" href="#dinf-train" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf train [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
+                  [-R TEST_REPLICATES] [-e EPOCHS]
+                  model.py discriminator.nn
+
+Train a discriminator.
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        (default: 1000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+  model.py              Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf
+  discriminator.nn      Output file where the discriminator will be saved.
+</pre></div>
+</div>
+</section>
+<section id="dinf-predict">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">predict</span></code><a class="headerlink" href="#dinf-predict" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf predict [-h] [-S SEED] [-j PARALLELISM] [-r REPLICATES] [--target]
+                    model.py discriminator.nn output.npz
+
+Make predictions using a trained discriminator.
+
+By default, features will be obtained by sampling replicates from
+the generator (using parameters from the prior distribution).
+To instead sample features from the target dataset, use the
+--target option.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --target              Sample features from the target dataset. (default:
+                        False)
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
+                        (default: None)
+
+predict arguments:
+  -r REPLICATES, --replicates REPLICATES
+                        Number of theta replicates to generate and predict
+                        with the discriminator. (default: 1000)
+
+  model.py              Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf
+  discriminator.nn      Discriminator to use for predictions.
+  output.npz            Output data, matching thetas to discriminator
+                        predictions.
+</pre></div>
+</div>
+</section>
+<section id="dinf-abc-gan">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">abc-gan</span></code><a class="headerlink" href="#dinf-abc-gan" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf abc-gan [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
+                    [-R TEST_REPLICATES] [-e EPOCHS] [-n N] [-i ITERATIONS]
+                    [-d WORKING_DIRECTORY]
+                    model.py
+
+Adversarial Abstract Bayesian Computation.
+
+Conceptually, the GAN takes the following steps for iteration j:
+
+  - sample train/test datasets from the prior[j] distribution,
+  - train the discriminator,
+  - make predictions with the discriminator,
+  - construct a posterior[j] sample from the test dataset,
+  - set prior[j+1] = posterior[j].
+
+In the first iteration, the parameter values given to the generator
+to produce the test/train datasets are drawn from the parameters&#39;
+prior distribution. In subsequent iterations, the parameter values
+are drawn from a posterior ABC sample. The posterior is obtained by
+weighting the prior distribution by the discriminator predictions,
+followed by gaussian smoothing.
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        (default: 1000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+ABC arguments:
+  -n N, --top-n N       In each iteraction, accept only the N top samples,
+                        ranked by probability. (default: None)
+
+GAN arguments:
+  -i ITERATIONS, --iterations ITERATIONS
+                        Number of GAN iterations. (default: 1)
+  -d WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
+                        Folder to output results. If not specified, the
+                        current directory will be used. (default: None)
+  model.py              Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf
+</pre></div>
+</div>
+</section>
+<section id="dinf-alfi-mcmc-gan">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">alfi-mcmc-gan</span></code><a class="headerlink" href="#dinf-alfi-mcmc-gan" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf alfi-mcmc-gan [-h] [-S SEED] [-j PARALLELISM]
+                          [-r TRAINING_REPLICATES] [-R TEST_REPLICATES]
+                          [-e EPOCHS] [-w WALKERS] [-s STEPS] [-i ITERATIONS]
+                          [-d WORKING_DIRECTORY]
+                          model.py
+
+Run the ALFI MCMC GAN.
+
+This is an MCMC GAN with a surrogate network, as described in
+Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        (default: 1000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+MCMC arguments:
+  -w WALKERS, --walkers WALKERS
+                        Number of independent MCMC chains. (default: 64)
+  -s STEPS, --steps STEPS
+                        The chain length for each MCMC walker. (default: 1000)
+
+GAN arguments:
+  -i ITERATIONS, --iterations ITERATIONS
+                        Number of GAN iterations. (default: 1)
+  -d WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
+                        Folder to output results. If not specified, the
+                        current directory will be used. (default: None)
+  model.py              Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf
+</pre></div>
+</div>
+</section>
+<section id="dinf-mcmc-gan">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mcmc-gan</span></code><a class="headerlink" href="#dinf-mcmc-gan" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf mcmc-gan [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
+                     [-R TEST_REPLICATES] [-e EPOCHS] [-w WALKERS] [-s STEPS]
+                     [--Dx-replicates DX_REPLICATES] [-i ITERATIONS]
+                     [-d WORKING_DIRECTORY]
+                     model.py
+
+Run the MCMC GAN.
+
+Each iteration of the GAN can be conceptually divided into:
+- constructing train/test datasets for the discriminator,
+- training the discriminator for a certain number of epochs,
+- running the MCMC.
+
+In the first iteration, the parameter values given to the generator
+to produce the test/train datasets are drawn from the parameters&#39; prior
+distribution. In subsequent iterations, the parameter values are drawn
+by sampling with replacement from the previous iteration&#39;s MCMC chains.
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        (default: 1000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+MCMC arguments:
+  -w WALKERS, --walkers WALKERS
+                        Number of independent MCMC chains. (default: 64)
+  -s STEPS, --steps STEPS
+                        The chain length for each MCMC walker. (default: 1000)
+  --Dx-replicates DX_REPLICATES
+                        Number of generator replicates for approximating
+                        E[D(x)|θ]. (default: 64)
+
+GAN arguments:
+  -i ITERATIONS, --iterations ITERATIONS
+                        Number of GAN iterations. (default: 1)
+  -d WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
+                        Folder to output results. If not specified, the
+                        current directory will be used. (default: None)
+  model.py              Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf
+</pre></div>
+</div>
+</section>
+<section id="dinf-pg-gan">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">pg-gan</span></code><a class="headerlink" href="#dinf-pg-gan" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf pg-gan [-h] [-S SEED] [-j PARALLELISM] [-r TRAINING_REPLICATES]
+                   [-R TEST_REPLICATES] [-e EPOCHS]
+                   [--Dx-replicates DX_REPLICATES]
+                   [--num-proposals NUM_PROPOSALS]
+                   [--max-pretraining-iterations MAX_PRETRAINING_ITERATIONS]
+                   [-i ITERATIONS] [-d WORKING_DIRECTORY]
+                   model.py
+
+Run PG-GAN style simulated annealing.
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        (default: 1000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+PG-GAN arguments:
+  --Dx-replicates DX_REPLICATES
+                        Number of generator replicates for approximating
+                        E[D(x)|θ]. (default: 64)
+  --num-proposals NUM_PROPOSALS
+                        Number of proposals for each parameter in a given
+                        iteration. (default: 10)
+  --max-pretraining-iterations MAX_PRETRAINING_ITERATIONS
+                        Maximum number of pretraining rounds. (default: 100)
+
+GAN arguments:
+  -i ITERATIONS, --iterations ITERATIONS
+                        Number of GAN iterations. (default: 1)
+  -d WORKING_DIRECTORY, --working-directory WORKING_DIRECTORY
+                        Folder to output results. If not specified, the
+                        current directory will be used. (default: None)
+  model.py              Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf
+</pre></div>
+</div>
+</section>
+</section>
+<section id="plotting-commands">
+<span id="sec-cli-dinf-plot"></span><h2>Plotting commands<a class="headerlink" href="#plotting-commands" title="Permalink to this headline">#</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot [-h] {demes,features,metrics,hist,hist2d,abc} ...
+
+Dinf plotting tools.
+
+positional arguments:
+  {demes,features,metrics,hist,hist2d,abc}
+    demes               Plot a demes-as-tubes demographic model using
+                        DemesDraw.
+    features            Plot a feature matrices as heatmaps.
+    metrics             Plot loss and accuracy of discriminator(s).
+    hist                Plot marginal posterior densities.
+    hist2d              Plot 2d marginal posterior densities.
+    abc                 Plot ABC things.
+
+optional arguments:
+  -h, --help            show this help message and exit
+</pre></div>
+</div>
+<section id="dinf-plot-metrics">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">metrics</span></code><a class="headerlink" href="#dinf-plot-metrics" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot metrics [-h] [-o output.pdf]
+                         discriminator.nn [discriminator.nn ...]
+
+Plot loss and accuracy of discriminator(s).
+
+Each metric is plotted as a function of the training epoch,
+and the resulting multipanel plot shows:
+  - training loss,
+  - training accuracy,
+  - test loss, and
+  - test accuracy.
+
+If multiple discriminator files are provided, the training metrics for
+each file are indicated by a different colour. The legend shows the
+corresponding filename.
+
+positional arguments:
+  discriminator.nn      The discriminator network(s) to plot.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o output.pdf, --output-file output.pdf
+                        Output file for the figure. The file extension
+                        determines the filetype, which can be any format
+                        supported by Matplotlib (e.g. pdf, svg, png).If no
+                        output file is specified, an interactive plot window
+                        will be opened. (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-plot-features">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">features</span></code><a class="headerlink" href="#dinf-plot-features" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot features [-h] [-o output.pdf] [-S SEED] [--target] model.py
+
+Plot a feature matrices as heatmaps.
+
+By default, one simulation will be performed with the generator to obtain
+a set of features for plotting. To instead extract features from the
+target dataset, use the --target option.
+
+positional arguments:
+  model.py              Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o output.pdf, --output-file output.pdf
+                        Output file for the figure. The file extension
+                        determines the filetype, which can be any format
+                        supported by Matplotlib (e.g. pdf, svg, png).If no
+                        output file is specified, an interactive plot window
+                        will be opened. (default: None)
+  -S SEED, --seed SEED  Seed for the random number generator (default: None)
+  --target              Extract feature(s) from the target dataset. (default:
+                        False)
+</pre></div>
+</div>
+</section>
+<section id="dinf-plot-hist">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code><a class="headerlink" href="#dinf-plot-hist" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist [-h] [-o output.pdf] [-n N | -p P] [-W] [-c]
+                      [-x X_PARAM] [--resample] [--kde] [-m model.py]
+                      data.npz [data.npz ...]
+
+Plot marginal posterior densities.
+
+One plot is produced for the discriminator probabilities,
+plus one plot for each model parameter. The choice of which
+parameter to plot can be specified using the -x option,
+with the special value &quot;_Pr&quot; indicating the discriminator
+probabilities.
+
+If a pdf requested with the -o option, a multipage pdf is
+created. If another format is requested, then one file is
+created for each figure (the requested filename will be
+modified to include the parameter name).
+
+The resulting figure is a histogram. If the data correspond
+to a simulation-only model (provided via the -m option),
+then the parameter&#39;s truth value will be shown as a vertical
+red line. A 95% credible interval is shown at the bottom of
+the figure. By default, all values in the data file contribute
+equally to the histogram. For parameter values drawn from the
+prior distribution, this will therefore show the prior
+distribution. A more informative plot can be obtained by
+weighting parameter values by the discriminator probabilities
+using the -W option. Alternately, the data file can be filtered
+to obtain a posterior sample using the -n or -t options.
+
+positional arguments:
+  data.npz              Data file containing discriminator predictions.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o output.pdf, --output-file output.pdf
+                        Output file for the figure. The file extension
+                        determines the filetype, which can be any format
+                        supported by Matplotlib (e.g. pdf, svg, png).If no
+                        output file is specified, an interactive plot window
+                        will be opened. (default: None)
+  -n N, --top-n N       Accept only the N top samples, ranked by probability.
+                        (default: None)
+  -p P, --probability-threshold P
+                        Accept only the samples with prediction probabilities
+                        greater than P. (default: None)
+  -W, --weighted        Weight the parameter contributions by their
+                        probability. (default: False)
+  -c, --cumulative      Plot cumulative distribution. (default: False)
+  -x X_PARAM, --x-param X_PARAM
+                        Name of parameter to plot. The special name &quot;_Pr&quot; is
+                        recognised to plot the probabilities obtained from the
+                        discriminator. (default: None)
+  --resample            Resample parameter values to obtain a smoother density
+                        estimate. This matches the n-dimensional KDE sampling
+                        used with the ABC-GAN. (default: False)
+  --kde                 Also draw a 1-dimensional marginal kernel density
+                        estimate. (default: False)
+  -m model.py, --model model.py
+                        Model file from which the parameter truth values with
+                        be taken. (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-plot-hist2d">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist2d</span></code><a class="headerlink" href="#dinf-plot-hist2d" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist2d [-h] [-o output.pdf] [-n N | -p P] [-W] [-x X_PARAM]
+                        [-y Y_PARAM] [-m model.py]
+                        data.npz
+
+Plot 2d marginal posterior densities.
+
+One plot is produced for each unique pair of parameters.
+As this may lead to a large number of plots (particularly
+for interactive use!), the choice of which parameters to
+plot can be specified using the -x and -y options.
+
+If a pdf requested with the -o option, a multipage pdf is
+created. If another format is requested, then one file is
+created for each figure (the requested filename will be
+modified to include the parameter names).
+
+The resulting figure is a 2d histogram, with darker squares
+indicating higher densities. If the data correspond to a
+simulation-only model, then the parameters&#39; truth values will
+be indicated by red lines. By default, all values in the
+data file contribute equally to the histogram. For parameter
+values drawn from the prior distribution, this will therefore
+show the prior distribution. A more informative plot can be
+obtained by weighting parameter values by the discriminator
+probabilities using the -W option. Alternately, the data file
+can be filtered to obtain a posterior sample using the -n
+or -t options.
+
+positional arguments:
+  data.npz              Data file containing discriminator predictions.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o output.pdf, --output-file output.pdf
+                        Output file for the figure. The file extension
+                        determines the filetype, which can be any format
+                        supported by Matplotlib (e.g. pdf, svg, png).If no
+                        output file is specified, an interactive plot window
+                        will be opened. (default: None)
+  -n N, --top-n N       Accept only the N top samples, ranked by probability.
+                        (default: None)
+  -p P, --probability-threshold P
+                        Accept only the samples with prediction probabilities
+                        greater than P. (default: None)
+  -W, --weighted        Weight the parameter contributions by their
+                        probability. (default: False)
+  -x X_PARAM, --x-param X_PARAM
+                        Name of parameter to plot on horizontal axis.
+                        (default: None)
+  -y Y_PARAM, --y-param Y_PARAM
+                        Name of parameter to plot on vertical axis. (default:
+                        None)
+  -m model.py, --model model.py
+                        Model file from which the parameter truth values with
+                        be taken. (default: None)
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            kernelName: "python3",
+            path: "./."
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+              </div>
+              
+            </main>
+            <footer class="footer-article noprint">
+                
+    <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+    <a class='left-prev' id="prev-link" href="api.html" title="previous page">
+        <i class="fas fa-angle-left"></i>
+        <div class="prev-next-info">
+            <p class="prev-next-subtitle">previous</p>
+            <p class="prev-next-title">API reference</p>
+        </div>
+    </a>
+    <a class='right-next' id="next-link" href="development.html" title="next page">
+    <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Development</p>
+    </div>
+    <i class="fas fa-angle-right"></i>
+    </a>
+</div>
+            </footer>
+        </div>
+    </div>
+    <div class="footer-content row">
+        <footer class="col footer"><p>
+  
+    By Graham Gower<br/>
+  
+      &copy; Copyright 2021-2022.<br/>
+    <div class="extra_footer">
+      dinf 0.2.0
+    </div>
+</p>
+        </footer>
+    </div>
+    
+</div>
+
+
+      </div>
+    </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
+
+
+  </body>
+</html>

@@ -1,0 +1,840 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>3. An ABC analysis &#8212; Dinf</title>
+    
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+
+    
+  <link rel="stylesheet"
+    href="../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" href="../_static/styles/sphinx-book-theme.css?digest=5115cc725059bd94278eecd172e13a965bf8f5a9" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/design-style.b7bb847fb20b106c3d81b95245e65545.min.css" />
+    
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/clipboard.min.js"></script>
+    <script src="../_static/copybutton.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?digest=9c920249402e914e316237a7dbc6769907cce411"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="../_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="../_static/sphinx-thebe.js"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Improving discriminator accuracy" href="accuracy.html" />
+    <link rel="prev" title="2. Testing a Dinf model" href="testing_a_model.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="None">
+    
+
+    <!-- Google Analytics -->
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60">
+<!-- Checkboxes to toggle the left sidebar -->
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle navigation sidebar">
+<label class="overlay overlay-navbar" for="__navigation">
+    <div class="visually-hidden">Toggle navigation sidebar</div>
+</label>
+<!-- Checkboxes to toggle the in-page toc -->
+<input type="checkbox" class="sidebar-toggle" name="__page-toc" id="__page-toc" aria-label="Toggle in-page Table of Contents">
+<label class="overlay overlay-pagetoc" for="__page-toc">
+    <div class="visually-hidden">Toggle in-page Table of Contents</div>
+</label>
+<!-- Headers at the top -->
+<div class="announcement header-item noprint"></div>
+<div class="header header-item noprint"></div>
+
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+<!-- Sidebar -->
+<div class="bd-sidebar noprint" id="site-navigation">
+    <div class="bd-sidebar__content">
+        <div class="bd-sidebar__top"><div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="../index.html">
+      
+      
+      
+      <h1 class="site-logo" id="site-title">Dinf</h1>
+      
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search this book..." aria-label="Search this book..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="../introduction.html">
+                    Introduction
+                </a>
+            </li>
+        </ul>
+        <p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Getting started
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../installation.html">
+   Installation
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Tutorial
+ </span>
+</p>
+<ul class="current nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="creating_a_model.html">
+   1. Creating a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="testing_a_model.html">
+   2. Testing a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1 current active">
+  <a class="current reference internal" href="#">
+   3. An ABC analysis
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Topic guides
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="accuracy.html">
+   Improving discriminator accuracy
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="features.html">
+   Feature matrices
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="performance.html">
+   Performance characteristics
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="multiple_demes.html">
+   Models with multiple demes
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="empirical_data.html">
+   Empirical data
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="abc-gan.html">
+   ABC-GAN
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="mcmc-gan.html">
+   MCMC-GAN
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="pg-gan.html">
+   PG-GAN (simulated annealing)
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Reference
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../api.html">
+   API reference
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../cli.html">
+   CLI reference
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Miscellaneous
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../development.html">
+   Development
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../CHANGELOG.html">
+   Changelog
+  </a>
+ </li>
+</ul>
+
+    </div>
+</nav></div>
+        <div class="bd-sidebar__bottom">
+             <!-- To handle the deprecated key -->
+            
+            <div class="navbar_extra_footer">
+            dinf 0.2.0
+            </div>
+            
+        </div>
+    </div>
+    <div id="rtd-footer-container"></div>
+</div>
+
+
+          
+
+
+          
+<!-- A tiny helper pixel to detect if we've scrolled -->
+<div class="sbt-scroll-pixel-helper"></div>
+<!-- Main content -->
+<div class="col py-0 content-container">
+    
+    <div class="header-article row sticky-top noprint">
+        
+
+
+
+<div class="col py-1 d-flex header-article-main">
+    <div class="header-article__left">
+        
+        <label for="__navigation"
+  class="headerbtn"
+  data-toggle="tooltip"
+data-placement="right"
+title="Toggle navigation"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-bars"></i>
+  </span>
+
+</label>
+
+        
+    </div>
+    <div class="header-article__right">
+<div class="menu-dropdown menu-dropdown-launch-buttons">
+  <button class="headerbtn menu-dropdown__trigger"
+      aria-label="Launch interactive content">
+      <i class="fas fa-rocket"></i>
+  </button>
+  <div class="menu-dropdown__content">
+    <ul>
+      <li>
+        <a href="https://mybinder.org/v2/gh/RacimoLab/dinf/main?urlpath=tree/docs/guide/abc.ipynb"
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Launch on Binder"
+>
+  
+
+<span class="headerbtn__icon-container">
+  
+    <img src="../_static/images/logo_binder.svg">
+  </span>
+<span class="headerbtn__text-container">Binder</span>
+</a>
+
+      </li>
+      
+    </ul>
+  </div>
+</div>
+
+<button onclick="toggleFullScreen()"
+  class="headerbtn"
+  data-toggle="tooltip"
+data-placement="bottom"
+title="Fullscreen mode"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+<div class="menu-dropdown menu-dropdown-repository-buttons">
+  <button class="headerbtn menu-dropdown__trigger"
+      aria-label="Source repositories">
+      <i class="fab fa-github"></i>
+  </button>
+  <div class="menu-dropdown__content">
+    <ul>
+      <li>
+        <a href="https://github.com/RacimoLab/dinf"
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Source repository"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="headerbtn__text-container">repository</span>
+</a>
+
+      </li>
+      
+      <li>
+        <a href="https://github.com/RacimoLab/dinf/issues/new?title=Issue%20on%20page%20%2Fguide/abc.html&body=Your%20issue%20content%20here."
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Open an issue"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="headerbtn__text-container">open issue</span>
+</a>
+
+      </li>
+      
+      <li>
+        <a href="https://github.com/RacimoLab/dinf/edit/main/docs/guide/abc.ipynb"
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Edit this page"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="headerbtn__text-container">suggest edit</span>
+</a>
+
+      </li>
+      
+    </ul>
+  </div>
+</div>
+
+<div class="menu-dropdown menu-dropdown-download-buttons">
+  <button class="headerbtn menu-dropdown__trigger"
+      aria-label="Download this page">
+      <i class="fas fa-download"></i>
+  </button>
+  <div class="menu-dropdown__content">
+    <ul>
+      <li>
+        <a href="../_sources/guide/abc.ipynb"
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Download source file"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="headerbtn__text-container">.ipynb</span>
+</a>
+
+      </li>
+      
+      <li>
+        
+<button onclick="printPdf(this)"
+  class="headerbtn"
+  data-toggle="tooltip"
+data-placement="left"
+title="Print to PDF"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="headerbtn__text-container">.pdf</span>
+</button>
+
+      </li>
+      
+    </ul>
+  </div>
+</div>
+<label for="__page-toc"
+  class="headerbtn headerbtn-page-toc"
+  
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-list"></i>
+  </span>
+
+</label>
+
+    </div>
+</div>
+
+<!-- Table of contents -->
+<div class="col-md-3 bd-toc show noprint">
+    <div class="tocsection onthispage pt-5 pb-3">
+        <i class="fas fa-list"></i> Contents
+    </div>
+    <nav id="bd-toc-nav" aria-label="Page">
+        <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#training-the-discriminator">
+   3.1. Training the discriminator
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#sampling-from-the-prior-and-measuring-similarity">
+   3.2. Sampling from the prior and measuring similarity
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#choosing-the-posterior-distribution">
+   3.3. Choosing the posterior distribution
+  </a>
+ </li>
+</ul>
+
+    </nav>
+</div>
+    </div>
+    <div class="article row">
+        <div class="col pl-md-3 pl-lg-5 content-container">
+            <!-- Table of contents that is only displayed when printing the page -->
+            <div id="jb-print-docs-body" class="onlyprint">
+                <h1>An ABC analysis</h1>
+                <!-- Table of contents -->
+                <div id="print-main-content">
+                    <div id="jb-print-toc">
+                        
+                        <div>
+                            <h2> Contents </h2>
+                        </div>
+                        <nav aria-label="Page">
+                            <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#training-the-discriminator">
+   3.1. Training the discriminator
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#sampling-from-the-prior-and-measuring-similarity">
+   3.2. Sampling from the prior and measuring similarity
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#choosing-the-posterior-distribution">
+   3.3. Choosing the posterior distribution
+  </a>
+ </li>
+</ul>
+
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            <main id="main-content" role="main">
+                
+              <div>
+                
+  <section class="tex2jax_ignore mathjax_ignore" id="an-abc-analysis">
+<span id="sec-guide-abc"></span><h1><span class="section-number">3. </span>An ABC analysis<a class="headerlink" href="#an-abc-analysis" title="Permalink to this headline">#</a></h1>
+<p>This page shows how to do an Abstract Bayesian Computation (ABC) analysis,
+where the discriminator output is used as a measure of similarity
+to the target dataset.</p>
+<ul class="simple">
+<li><p>We’ll continue to use the two-parameter
+bottleneck model from the <a class="reference internal" href="creating_a_model.html#sec-guide-creating-a-dinf-model"><span class="std std-ref">Creating a Dinf model</span></a> page.</p></li>
+<li><p>Dinf saves the discriminator predictions as a <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.save.html#numpy.save" title="(in NumPy v1.23)"><span class="xref myst">numpy <code class="docutils literal notranslate"><span class="pre">.npz</span></code></span></a>
+file, which we’ll load back into Python for exploratory analysis.</p></li>
+<li><p>We’ll also plot the results with the <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> command.</p></li>
+</ul>
+<p>The results below were obtained using 80 Xeon 6248 CPU cores for simulations,
+and a Tesla T4 GPU for training and applying the neural network.</p>
+<section id="training-the-discriminator">
+<h2><span class="section-number">3.1. </span>Training the discriminator<a class="headerlink" href="#training-the-discriminator" title="Permalink to this headline">#</a></h2>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">train</span></code> subcommand, we’ll train the
+discriminator on a large number of replicates.
+We’ll use 1 million training replicates and 20,000 test replicates,
+and also set the seed for the random number generator to obtain
+reproducible results. This will train the discriminator on 500,000
+samples from the generator (with parameter values sampled from the prior
+distribution) and 500,000 samples from the target dataset
+(using the <code class="docutils literal notranslate"><span class="pre">truth</span></code> parameter values, as this is a simulation-only model).</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+mkdir -p out/abc
+rm -f out/abc/bottleneck.nn
+time dinf train \
+    --epochs 20 \
+    --training-replicates 1000000 \
+    --test-replicates 20000 \
+    ../../examples/bottleneck/model.py \
+    out/abc/bottleneck.nn
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[epoch 1|1000000] train loss 0.0517, accuracy 0.9841; test loss 0.0304, accuracy 0.9927
+[epoch 2|1000000] train loss 0.0340, accuracy 0.9906; test loss 0.0409, accuracy 0.9901
+[epoch 3|1000000] train loss 0.0285, accuracy 0.9920; test loss 0.0290, accuracy 0.9929
+[epoch 4|1000000] train loss 0.0252, accuracy 0.9930; test loss 0.0253, accuracy 0.9934
+[epoch 5|1000000] train loss 0.0231, accuracy 0.9936; test loss 0.0246, accuracy 0.9933
+[epoch 6|1000000] train loss 0.0216, accuracy 0.9940; test loss 0.0243, accuracy 0.9946
+[epoch 7|1000000] train loss 0.0205, accuracy 0.9942; test loss 0.0389, accuracy 0.9874
+[epoch 8|1000000] train loss 0.0195, accuracy 0.9945; test loss 0.0247, accuracy 0.9929
+[epoch 9|1000000] train loss 0.0188, accuracy 0.9948; test loss 0.0261, accuracy 0.9939
+[epoch 10|1000000] train loss 0.0180, accuracy 0.9950; test loss 0.0267, accuracy 0.9938
+[epoch 11|1000000] train loss 0.0175, accuracy 0.9951; test loss 0.0243, accuracy 0.9944
+[epoch 12|1000000] train loss 0.0167, accuracy 0.9953; test loss 0.0277, accuracy 0.9935
+[epoch 13|1000000] train loss 0.0164, accuracy 0.9954; test loss 0.0252, accuracy 0.9940
+[epoch 14|1000000] train loss 0.0159, accuracy 0.9955; test loss 0.0290, accuracy 0.9937
+[epoch 15|1000000] train loss 0.0154, accuracy 0.9956; test loss 0.0287, accuracy 0.9934
+[epoch 16|1000000] train loss 0.0147, accuracy 0.9958; test loss 0.0294, accuracy 0.9922
+[epoch 17|1000000] train loss 0.0144, accuracy 0.9959; test loss 0.0296, accuracy 0.9927
+[epoch 18|1000000] train loss 0.0142, accuracy 0.9959; test loss 0.0270, accuracy 0.9940
+[epoch 19|1000000] train loss 0.0136, accuracy 0.9961; test loss 0.0276, accuracy 0.9940
+[epoch 20|1000000] train loss 0.0132, accuracy 0.9962; test loss 0.0247, accuracy 0.9943
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>real	27m4.347s
+user	1098m22.286s
+sys	29m18.701s
+</pre></div>
+</div>
+</div>
+</div>
+<p>The output <code class="docutils literal notranslate"><span class="pre">.nn</span></code> file is the trained discriminator, which contains the trained
+network’s weights and some additional metadata such as the loss and accuracy.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+dinf-plot metrics \
+    --output-file /tmp/metrics.svg \
+    out/abc/bottleneck.nn
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell tag_remove-input docutils container">
+<div class="cell_output docutils container">
+<img alt="../_images/abc_4_0.svg" src="../_images/abc_4_0.svg" /></div>
+</div>
+</section>
+<section id="sampling-from-the-prior-and-measuring-similarity">
+<h2><span class="section-number">3.2. </span>Sampling from the prior and measuring similarity<a class="headerlink" href="#sampling-from-the-prior-and-measuring-similarity" title="Permalink to this headline">#</a></h2>
+<p>Next, we’ll use the <code class="docutils literal notranslate"><span class="pre">predict</span></code> subcommand to obtain discriminator predications
+for 1 million replicates from the generator (with parameter values sampled
+from the prior).</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+rm -f out/abc/bottleneck.npz
+time dinf predict \
+  --replicates 1000000 \
+  ../../examples/bottleneck/model.py \
+  out/abc/bottleneck.nn \
+  out/abc/bottleneck.npz
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>real	20m18.754s
+user	1544m11.190s
+sys	30m30.008s
+</pre></div>
+</div>
+</div>
+</div>
+<p>The output <code class="docutils literal notranslate"><span class="pre">.npz</span></code> file is an uncompressed <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.save.html#numpy.save" title="(in NumPy v1.23)"><span class="xref myst">numpy <code class="docutils literal notranslate"><span class="pre">.npz</span></code></span></a> file.
+This file contains the parameter values for each replicate, and the predictions
+made by the discriminator. It can be loaded back into Python using the
+<a class="reference internal" href="../api.html#dinf.load_results" title="dinf.load_results"><span class="xref myst py py-func"><code class="docutils literal notranslate"><span class="pre">dinf.load_results()</span></code></span></a> function.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">dinf</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">load_results</span><span class="p">(</span><span class="s2">&quot;out/abc/bottleneck.npz&quot;</span><span class="p">)</span>
+<span class="c1"># The returned data is a numpy structured array.</span>
+<span class="n">data</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>array([(1.1039646e-14, 19858.02350065, 29413.87476832),
+       (2.6599397e-03, 10035.13322844,  3413.76299114),
+       (1.0666163e-30, 28392.65227786, 21370.1867761 ),
+       (5.8842200e-04,  8815.53013852,  5889.8194793 ),
+       (3.6522373e-18, 19213.69026835,   498.4524939 )],
+      dtype=[(&#39;_Pr&#39;, &#39;&lt;f4&#39;), (&#39;N0&#39;, &#39;&lt;f8&#39;), (&#39;N1&#39;, &#39;&lt;f8&#39;)])
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Columns correspond to the distinct parameters, and the</span>
+<span class="c1"># special column &quot;_Pr&quot; contains the discriminator predictions.</span>
+<span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(&#39;_Pr&#39;, &#39;N0&#39;, &#39;N1&#39;)
+</pre></div>
+</div>
+</div>
+</div>
+<p>The discriminator outputs <span class="math notranslate nohighlight">\(Pr(t)\)</span>, the probability that
+a given input feature is from the target distribution.
+But note that the discriminator output will depend on the extent of our
+parameter space. I.e. if our parameter space is just a small neighbourhood
+around the true parameter values, then the discriminator will have a hard
+time distinguishing the two datasets and thus produce few <span class="math notranslate nohighlight">\(Pr(t)\)</span> values
+near 0 or 1.
+On the other hand, the discriminator might actually be too good
+because of <a class="reference internal" href="empirical_data.html#sec-guide-misspecification"><span class="std std-ref">model misspecification</span></a>,
+in which case there will be many values near 0 and few near 1.</p>
+<p>To see how much of our parameter space is being classified as coming
+from the target dataset, lets plot the distribution of probabilities
+(the <code class="docutils literal notranslate"><span class="pre">_Pr</span></code> column) as a histogram. We’ll use <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> with the <code class="docutils literal notranslate"><span class="pre">hist</span></code>
+subcommand.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+dinf-plot hist \
+    --x-param _Pr \
+    --output-file /tmp/hist-Pr.svg \
+    out/abc/bottleneck.npz
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell tag_remove-input docutils container">
+<div class="cell_output docutils container">
+<img alt="../_images/abc_12_0.svg" src="../_images/abc_12_0.svg" /></div>
+</div>
+</section>
+<section id="choosing-the-posterior-distribution">
+<h2><span class="section-number">3.3. </span>Choosing the posterior distribution<a class="headerlink" href="#choosing-the-posterior-distribution" title="Permalink to this headline">#</a></h2>
+<p>Two simple ways of choosing the posterior distribution are</p>
+<ul class="simple">
+<li><p>choose the <span class="math notranslate nohighlight">\(n\)</span> samples with the highest discriminator score, or</p></li>
+<li><p>choose samples with a score <span class="math notranslate nohighlight">\(&gt;x\)</span>.</p></li>
+</ul>
+<p>Below, we’ll take the top 1000 samples and look at the median value
+and a 95% interval for this posterior sample.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">dinf</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">load_results</span><span class="p">(</span><span class="s2">&quot;out/abc/bottleneck.npz&quot;</span><span class="p">)</span>
+
+<span class="c1"># Predictions from discriminator.</span>
+<span class="n">probs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]</span>
+<span class="c1"># Get the indices that sort the probabilities in ascending order.</span>
+<span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]))</span>
+<span class="c1"># Posterior sample for parameters N0 and N1.</span>
+<span class="n">posterior</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="mi">1_000</span><span class="p">]]</span>
+
+<span class="c1"># Print median values and 95% credible intervals.</span>
+<span class="k">for</span> <span class="n">par</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;N0&quot;</span><span class="p">,</span> <span class="s2">&quot;N1&quot;</span><span class="p">):</span>
+    <span class="n">lo</span><span class="p">,</span> <span class="n">median</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">posterior</span><span class="p">[</span><span class="n">par</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.025</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.975</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">par</span><span class="p">,</span> <span class="n">median</span><span class="p">,</span> <span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>N0 10380.229959362801 (7246.533102422719, 14509.635453840716)
+N1 189.9144451017886 (59.9375214759438, 494.37038597422594)
+</pre></div>
+</div>
+</div>
+</div>
+<p>Recall that the <code class="docutils literal notranslate"><span class="pre">truth</span></code> values used in the model were <code class="docutils literal notranslate"><span class="pre">N0=10000</span></code>
+and <code class="docutils literal notranslate"><span class="pre">N1=200</span></code>. The 95% credible intervals contain these values,
+and the median values are close to the <code class="docutils literal notranslate"><span class="pre">truth</span></code>.
+Note that the accuracy of the discriminator could potentially
+be further improved (see <a class="reference internal" href="accuracy.html#sec-guide-accuracy"><span class="std std-ref">Improving discriminator accuracy</span></a>), which would
+presumably lead to narrower confidence intervals and/or median
+values even closer to the truth.</p>
+<p>Manually loading the results and doing the rejection sampling
+is not actually necessary. Instead, we can use <code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code>
+to filter the top <span class="math notranslate nohighlight">\(n\)</span> samples and plot histograms of the data.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+dinf-plot hist \
+    --top-n 1000 \
+    --model ../../examples/bottleneck/model.py \
+    --output-file /tmp/hist-abc-top-1000.svg \
+    out/abc/bottleneck.npz
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell tag_remove-input docutils container">
+<div class="cell_output docutils container">
+<img alt="../_images/abc_17_0.svg" src="../_images/abc_17_0.svg" /><img alt="../_images/abc_17_1.svg" src="../_images/abc_17_1.svg" /></div>
+</div>
+<p>Finally, we’ll use the <code class="docutils literal notranslate"><span class="pre">hist2d</span></code> subcommand to show both <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> jointly.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+dinf-plot hist2d \
+    --top-n 1000 \
+    --model ../../examples/bottleneck/model.py \
+    --output-file /tmp/hist2d-abc-top-1000.svg  \
+    out/abc/bottleneck.npz
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell tag_remove-input docutils container">
+<div class="cell_output docutils container">
+<img alt="../_images/abc_20_0.svg" src="../_images/abc_20_0.svg" /></div>
+</div>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            kernelName: "python3",
+            path: "./guide"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+              </div>
+              
+            </main>
+            <footer class="footer-article noprint">
+                
+    <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+    <a class='left-prev' id="prev-link" href="testing_a_model.html" title="previous page">
+        <i class="fas fa-angle-left"></i>
+        <div class="prev-next-info">
+            <p class="prev-next-subtitle">previous</p>
+            <p class="prev-next-title"><span class="section-number">2. </span>Testing a Dinf model</p>
+        </div>
+    </a>
+    <a class='right-next' id="next-link" href="accuracy.html" title="next page">
+    <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Improving discriminator accuracy</p>
+    </div>
+    <i class="fas fa-angle-right"></i>
+    </a>
+</div>
+            </footer>
+        </div>
+    </div>
+    <div class="footer-content row">
+        <footer class="col footer"><p>
+  
+    By Graham Gower<br/>
+  
+      &copy; Copyright 2021-2022.<br/>
+    <div class="extra_footer">
+      dinf 0.2.0
+    </div>
+</p>
+        </footer>
+    </div>
+    
+</div>
+
+
+      </div>
+    </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
+
+
+  </body>
+</html>

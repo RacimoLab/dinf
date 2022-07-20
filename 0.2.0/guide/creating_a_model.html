@@ -1,0 +1,895 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>1. Creating a Dinf model &#8212; Dinf</title>
+    
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+
+    
+  <link rel="stylesheet"
+    href="../_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="../_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" href="../_static/styles/sphinx-book-theme.css?digest=5115cc725059bd94278eecd172e13a965bf8f5a9" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/design-style.b7bb847fb20b106c3d81b95245e65545.min.css" />
+    
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf">
+
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/clipboard.min.js"></script>
+    <script src="../_static/copybutton.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?digest=9c920249402e914e316237a7dbc6769907cce411"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
+    <script src="../_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="../_static/sphinx-thebe.js"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2. Testing a Dinf model" href="testing_a_model.html" />
+    <link rel="prev" title="Installation" href="../installation.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="None">
+    
+
+    <!-- Google Analytics -->
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60">
+<!-- Checkboxes to toggle the left sidebar -->
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle navigation sidebar">
+<label class="overlay overlay-navbar" for="__navigation">
+    <div class="visually-hidden">Toggle navigation sidebar</div>
+</label>
+<!-- Checkboxes to toggle the in-page toc -->
+<input type="checkbox" class="sidebar-toggle" name="__page-toc" id="__page-toc" aria-label="Toggle in-page Table of Contents">
+<label class="overlay overlay-pagetoc" for="__page-toc">
+    <div class="visually-hidden">Toggle in-page Table of Contents</div>
+</label>
+<!-- Headers at the top -->
+<div class="announcement header-item noprint"></div>
+<div class="header header-item noprint"></div>
+
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+
+    <div class="container-xl">
+      <div class="row">
+          
+<!-- Sidebar -->
+<div class="bd-sidebar noprint" id="site-navigation">
+    <div class="bd-sidebar__content">
+        <div class="bd-sidebar__top"><div class="navbar-brand-box">
+    <a class="navbar-brand text-wrap" href="../index.html">
+      
+      
+      
+      <h1 class="site-logo" id="site-title">Dinf</h1>
+      
+    </a>
+</div><form class="bd-search d-flex align-items-center" action="../search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search this book..." aria-label="Search this book..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="../introduction.html">
+                    Introduction
+                </a>
+            </li>
+        </ul>
+        <p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Getting started
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../installation.html">
+   Installation
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Tutorial
+ </span>
+</p>
+<ul class="current nav bd-sidenav">
+ <li class="toctree-l1 current active">
+  <a class="current reference internal" href="#">
+   1. Creating a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="testing_a_model.html">
+   2. Testing a Dinf model
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="abc.html">
+   3. An ABC analysis
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Topic guides
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="accuracy.html">
+   Improving discriminator accuracy
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="features.html">
+   Feature matrices
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="performance.html">
+   Performance characteristics
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="multiple_demes.html">
+   Models with multiple demes
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="empirical_data.html">
+   Empirical data
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="abc-gan.html">
+   ABC-GAN
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="mcmc-gan.html">
+   MCMC-GAN
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="pg-gan.html">
+   PG-GAN (simulated annealing)
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Reference
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../api.html">
+   API reference
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../cli.html">
+   CLI reference
+  </a>
+ </li>
+</ul>
+<p aria-level="2" class="caption" role="heading">
+ <span class="caption-text">
+  Miscellaneous
+ </span>
+</p>
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="../development.html">
+   Development
+  </a>
+ </li>
+ <li class="toctree-l1">
+  <a class="reference internal" href="../CHANGELOG.html">
+   Changelog
+  </a>
+ </li>
+</ul>
+
+    </div>
+</nav></div>
+        <div class="bd-sidebar__bottom">
+             <!-- To handle the deprecated key -->
+            
+            <div class="navbar_extra_footer">
+            dinf 0.2.0
+            </div>
+            
+        </div>
+    </div>
+    <div id="rtd-footer-container"></div>
+</div>
+
+
+          
+
+
+          
+<!-- A tiny helper pixel to detect if we've scrolled -->
+<div class="sbt-scroll-pixel-helper"></div>
+<!-- Main content -->
+<div class="col py-0 content-container">
+    
+    <div class="header-article row sticky-top noprint">
+        
+
+
+
+<div class="col py-1 d-flex header-article-main">
+    <div class="header-article__left">
+        
+        <label for="__navigation"
+  class="headerbtn"
+  data-toggle="tooltip"
+data-placement="right"
+title="Toggle navigation"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-bars"></i>
+  </span>
+
+</label>
+
+        
+    </div>
+    <div class="header-article__right">
+<button onclick="toggleFullScreen()"
+  class="headerbtn"
+  data-toggle="tooltip"
+data-placement="bottom"
+title="Fullscreen mode"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+<div class="menu-dropdown menu-dropdown-repository-buttons">
+  <button class="headerbtn menu-dropdown__trigger"
+      aria-label="Source repositories">
+      <i class="fab fa-github"></i>
+  </button>
+  <div class="menu-dropdown__content">
+    <ul>
+      <li>
+        <a href="https://github.com/RacimoLab/dinf"
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Source repository"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="headerbtn__text-container">repository</span>
+</a>
+
+      </li>
+      
+      <li>
+        <a href="https://github.com/RacimoLab/dinf/issues/new?title=Issue%20on%20page%20%2Fguide/creating_a_model.html&body=Your%20issue%20content%20here."
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Open an issue"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="headerbtn__text-container">open issue</span>
+</a>
+
+      </li>
+      
+      <li>
+        <a href="https://github.com/RacimoLab/dinf/edit/main/docs/guide/creating_a_model.md"
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Edit this page"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-pencil-alt"></i>
+  </span>
+<span class="headerbtn__text-container">suggest edit</span>
+</a>
+
+      </li>
+      
+    </ul>
+  </div>
+</div>
+
+<div class="menu-dropdown menu-dropdown-download-buttons">
+  <button class="headerbtn menu-dropdown__trigger"
+      aria-label="Download this page">
+      <i class="fas fa-download"></i>
+  </button>
+  <div class="menu-dropdown__content">
+    <ul>
+      <li>
+        <a href="../_sources/guide/creating_a_model.md"
+   class="headerbtn"
+   data-toggle="tooltip"
+data-placement="left"
+title="Download source file"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="headerbtn__text-container">.md</span>
+</a>
+
+      </li>
+      
+      <li>
+        
+<button onclick="printPdf(this)"
+  class="headerbtn"
+  data-toggle="tooltip"
+data-placement="left"
+title="Print to PDF"
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="headerbtn__text-container">.pdf</span>
+</button>
+
+      </li>
+      
+    </ul>
+  </div>
+</div>
+<label for="__page-toc"
+  class="headerbtn headerbtn-page-toc"
+  
+>
+  
+
+<span class="headerbtn__icon-container">
+  <i class="fas fa-list"></i>
+  </span>
+
+</label>
+
+    </div>
+</div>
+
+<!-- Table of contents -->
+<div class="col-md-3 bd-toc show noprint">
+    <div class="tocsection onthispage pt-5 pb-3">
+        <i class="fas fa-list"></i> Contents
+    </div>
+    <nav id="bd-toc-nav" aria-label="Page">
+        <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#overview">
+   1.1. Overview
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#parameters">
+   1.2. Parameters
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#generator">
+   1.3. Generator
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#features">
+     1.3.1. Features
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#genetic-simulator">
+     1.3.2. Genetic simulator
+    </a>
+   </li>
+  </ul>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#target">
+   1.4. Target
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#discriminator">
+   1.5. Discriminator
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#complete-example">
+   1.6. Complete example
+  </a>
+ </li>
+</ul>
+
+    </nav>
+</div>
+    </div>
+    <div class="article row">
+        <div class="col pl-md-3 pl-lg-5 content-container">
+            <!-- Table of contents that is only displayed when printing the page -->
+            <div id="jb-print-docs-body" class="onlyprint">
+                <h1>Creating a Dinf model</h1>
+                <!-- Table of contents -->
+                <div id="print-main-content">
+                    <div id="jb-print-toc">
+                        
+                        <div>
+                            <h2> Contents </h2>
+                        </div>
+                        <nav aria-label="Page">
+                            <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#overview">
+   1.1. Overview
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#parameters">
+   1.2. Parameters
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#generator">
+   1.3. Generator
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#features">
+     1.3.1. Features
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#genetic-simulator">
+     1.3.2. Genetic simulator
+    </a>
+   </li>
+  </ul>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#target">
+   1.4. Target
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#discriminator">
+   1.5. Discriminator
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#complete-example">
+   1.6. Complete example
+  </a>
+ </li>
+</ul>
+
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            <main id="main-content" role="main">
+                
+              <div>
+                
+  <section class="tex2jax_ignore mathjax_ignore" id="creating-a-dinf-model">
+<span id="sec-guide-creating-a-dinf-model"></span><h1><span class="section-number">1. </span>Creating a Dinf model<a class="headerlink" href="#creating-a-dinf-model" title="Permalink to this headline">#</a></h1>
+<p>This page discusses how to construct a minimal simulation-only Dinf model.
+It provides code examples for each component, and the complete
+working model can be found at the bottom of the page,
+or in the <a class="reference external" href="https://github.com/RacimoLab/dinf">git repository</a>
+under <code class="docutils literal notranslate"><span class="pre">examples/bottleneck/model.py</span></code>.
+Writing a Dinf model requires a familiarity with Python,
+and the examples use
+<a class="reference external" href="https://popsim-consortium.github.io/demes-docs/">demes</a>,
+<a class="reference external" href="https://tskit.dev/msprime/docs/stable">msprime</a>,
+and <a class="reference external" href="https://numpy.org/doc/stable/">numpy</a>
+APIs.</p>
+<section id="overview">
+<h2><span class="section-number">1.1. </span>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">#</a></h2>
+<p>The primary use of Dinf is to infer simulation parameters that
+produce data closely resembling some target empirical dataset.
+In the diagram below, the rectangles represent the major components of
+a Dinf model, and the arrows indicate the flow of data.</p>
+<p><img alt="Dinf model diagram" src="../_images/dinf_model.svg" /></p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\theta\)</span> are the model parameters,
+such as population sizes, split times, or migration rates.</p></li>
+<li><p><span class="math notranslate nohighlight">\(G(\theta)\)</span> is the generator
+(e.g. <a class="reference external" href="https://tskit.dev/msprime/docs/stable">msprime</a>),
+that simulates genetic data for concrete values of the model parameters.</p></li>
+<li><p><span class="math notranslate nohighlight">\(target\)</span> is the target dataset (e.g. a vcf).</p></li>
+<li><p><span class="math notranslate nohighlight">\(x_t\)</span> and <span class="math notranslate nohighlight">\(x_g\)</span> indicate data features from the
+target and the generator respectively.</p></li>
+<li><p><span class="math notranslate nohighlight">\(D(x)\)</span> is the discriminator (e.g. a convolutional neural network),
+which is trained to distinguish between data generated by the
+generator and the target dataset.</p></li>
+<li><p><span class="math notranslate nohighlight">\(Pr(t)\)</span> is the prediction from the discriminator—the probability that
+a given input feature is from the target distribution.</p></li>
+</ul>
+<p>A Dinf model is organised as a Python script (a <code class="docutils literal notranslate"><span class="pre">.py</span></code> file)
+containing a <code class="docutils literal notranslate"><span class="pre">dinf_model</span></code> variable,
+which must be an instance of the <a class="reference internal" href="../api.html#dinf.DinfModel" title="dinf.DinfModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DinfModel</span></code></a> class.
+This object describes various components of the model.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">dinf</span>
+
+<span class="n">dinf_model</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="p">(</span>
+    <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+    <span class="n">feature_shape</span><span class="o">=</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+    <span class="n">generator_func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
+    <span class="n">target_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Defining the model then procedes by defining the <code class="docutils literal notranslate"><span class="pre">parameters</span></code>,
+writing the <code class="docutils literal notranslate"><span class="pre">generator_func</span></code> function,
+writing the <code class="docutils literal notranslate"><span class="pre">target_func</span></code> function (if any),
+and describing the <code class="docutils literal notranslate"><span class="pre">feature_shape</span></code>—the shape of the
+features produced by both the generator and the target function.
+It’s not necessary to specify the architecture of the discriminator.</p>
+</section>
+<section id="parameters">
+<h2><span class="section-number">1.2. </span>Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline">#</a></h2>
+<p>In this example, we’ll have two inferrable parameters,
+<code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code>, which correspond to the population sizes of a
+deme before and after a bottleneck.
+<a class="reference internal" href="../api.html#dinf.DinfModel.parameters" title="dinf.DinfModel.parameters"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DinfModel.parameters</span></code></a> are defined via the <a class="reference internal" href="../api.html#dinf.Parameters" title="dinf.Parameters"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parameters</span></code></a> class,
+whose constructor accepts named <a class="reference internal" href="../api.html#dinf.Param" title="dinf.Param"><code class="xref py py-class docutils literal notranslate"><span class="pre">Param</span></code></a> instances by keyword.
+Each keyword is the name of a parameter (<code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> in the code below)
+and each parameter has a lower bound (<code class="docutils literal notranslate"><span class="pre">low</span></code>) and an upper bound (<code class="docutils literal notranslate"><span class="pre">high</span></code>).
+Parameters defined in this way have a uniform prior, e.g.
+<code class="docutils literal notranslate"><span class="pre">N0</span></code><span class="math notranslate nohighlight">\(\sim\)</span>Uniform(10, 30000).
+When performing a simulation study (as we’ll do here), the <code class="docutils literal notranslate"><span class="pre">truth</span></code> value
+will be used to produce the target dataset instead of using empirical data.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Parameters</span><span class="p">(</span>
+    <span class="n">N0</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">30_000</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="mi">10_000</span><span class="p">),</span>
+    <span class="n">N1</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">30_000</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="mi">200</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="generator">
+<h2><span class="section-number">1.3. </span>Generator<a class="headerlink" href="#generator" title="Permalink to this headline">#</a></h2>
+<p>The generator is probably the most complicated part of the Dinf model.
+A genetic simulator must take the parameters and turn them into
+genetic data. The genetic data must then be transformed to
+match the expected input of the discriminator. The inputs to the discriminator
+are referred to as the <em>features</em> of the data, and the transformation
+of the genetic data into the desired format is referred to as
+<em>feature extraction</em>.</p>
+<section id="features">
+<h3><span class="section-number">1.3.1. </span>Features<a class="headerlink" href="#features" title="Permalink to this headline">#</a></h3>
+<p>It’s important that there is agreement between the features extracted from the
+generator and the features extracted from the target dataset.
+Ideally, the only differences will be due to the accuracy of the simulation
+model and the parameter values, not due to data filtering or quality issues.
+To ensure consistency, the Dinf API provides helper classes for
+feature extraction that have methods for extracting features from
+vcf files and from <a class="reference external" href="https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence" title="(in Python)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tskit.TreeSequence</span></code></a> objects.
+In this example, we’ll use the <a class="reference internal" href="../api.html#dinf.BinnedHaplotypeMatrix" title="dinf.BinnedHaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinnedHaplotypeMatrix</span></code></a> feature
+extractor class.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">num_individuals</span> <span class="o">=</span> <span class="mi">16</span>
+
+<span class="n">features</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">BinnedHaplotypeMatrix</span><span class="p">(</span>
+    <span class="n">num_individuals</span><span class="o">=</span><span class="n">num_individuals</span><span class="p">,</span>
+    <span class="n">num_loci</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">ploidy</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">phased</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">maf_thresh</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>To initialise the discriminator, Dinf needs to know the shape of the features
+that the discriminator will be given. These features are typically
+multidimensional arrays (or a collection of multidimensional arrays,
+when modelling multiple populations), where the feature shape is a tuple of
+array dimensions of the feature.
+The <code class="docutils literal notranslate"><span class="pre">features</span></code> object defined above has a <code class="docutils literal notranslate"><span class="pre">shape</span></code> property that can used for the
+<a class="reference internal" href="../api.html#dinf.DinfModel.feature_shape" title="dinf.DinfModel.feature_shape"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DinfModel.feature_shape</span></code></a>.</p>
+</section>
+<section id="genetic-simulator">
+<h3><span class="section-number">1.3.2. </span>Genetic simulator<a class="headerlink" href="#genetic-simulator" title="Permalink to this headline">#</a></h3>
+<p><a class="reference internal" href="../api.html#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DinfModel.generator_func</span></code></a> is a user-defined function that produces data
+features matching the <code class="docutils literal notranslate"><span class="pre">feature_shape</span></code>.
+The function accepts a single positional argument <code class="docutils literal notranslate"><span class="pre">seed</span></code>,
+followed by one keyword argument for each inferrable parameter.
+So for our example there’s one argument for <code class="docutils literal notranslate"><span class="pre">N0</span></code> and one for <code class="docutils literal notranslate"><span class="pre">N1</span></code>.
+Note that the python syntax <code class="docutils literal notranslate"><span class="pre">def</span> <span class="pre">generator(seed,</span> <span class="pre">*,</span> <span class="pre">N0,</span> <span class="pre">N1):</span></code> means
+that all parameters after the <code class="docutils literal notranslate"><span class="pre">*</span></code> are keyword-only parameters.
+The generator function must return the features that were extracted
+from the simulated data.</p>
+<p>There are a lot of choices to be made when simulating genetic data.
+In the example below, the bottleneck demographic model is described using
+a templated <a class="reference external" href="https://popsim-consortium.github.io/demes-spec-docs/">Demes YAML</a>
+string.
+This demographic model is simulated using the
+<a class="reference external" href="https://tskit.dev/msprime/docs/stable">msprime</a>
+coalescent simulator, whose output is a <a class="reference external" href="https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence" title="(in Python)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tskit.TreeSequence</span></code></a>.
+Finally, the features are extracted from the output using the
+<a class="reference internal" href="../api.html#dinf.BinnedHaplotypeMatrix.from_ts" title="dinf.BinnedHaplotypeMatrix.from_ts"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BinnedHaplotypeMatrix.from_ts()</span></code></a> method of the <code class="docutils literal notranslate"><span class="pre">features</span></code> object
+we defined above.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">string</span>
+
+<span class="kn">import</span> <span class="nn">demes</span>
+<span class="kn">import</span> <span class="nn">msprime</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="n">recombination_rate</span> <span class="o">=</span> <span class="mf">1.25e-8</span>
+<span class="n">mutation_rate</span> <span class="o">=</span> <span class="mf">1.25e-8</span>
+<span class="n">sequence_length</span> <span class="o">=</span> <span class="mi">1_000_000</span>
+
+
+<span class="k">def</span> <span class="nf">demography</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="p">):</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">Template</span><span class="p">(</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        description: Two-epoch model with recent bottleneck.</span>
+<span class="sd">        time_units: generations</span>
+<span class="sd">        demes:</span>
+<span class="sd">          - name: A</span>
+<span class="sd">            epochs:</span>
+<span class="sd">              - start_size: $N0</span>
+<span class="sd">                end_time: 100</span>
+<span class="sd">              - start_size: $N1</span>
+<span class="sd">                end_time: 0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">substitute</span><span class="p">(</span><span class="n">N0</span><span class="o">=</span><span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="o">=</span><span class="n">N1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">demes</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Simulate a two-epoch model with msprime.&quot;&quot;&quot;</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">demography</span><span class="p">(</span><span class="n">N0</span><span class="o">=</span><span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="o">=</span><span class="n">N1</span><span class="p">)</span>
+    <span class="n">demog</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">Demography</span><span class="o">.</span><span class="n">from_demes</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+    <span class="n">seed1</span><span class="p">,</span> <span class="n">seed2</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">ts</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">sim_ancestry</span><span class="p">(</span>
+        <span class="n">samples</span><span class="o">=</span><span class="n">num_individuals</span><span class="p">,</span>
+        <span class="n">demography</span><span class="o">=</span><span class="n">demog</span><span class="p">,</span>
+        <span class="n">sequence_length</span><span class="o">=</span><span class="n">sequence_length</span><span class="p">,</span>
+        <span class="n">recombination_rate</span><span class="o">=</span><span class="n">recombination_rate</span><span class="p">,</span>
+        <span class="n">random_seed</span><span class="o">=</span><span class="n">seed1</span><span class="p">,</span>
+        <span class="n">record_provenance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ts</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">sim_mutations</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">mutation_rate</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="n">seed2</span><span class="p">)</span>
+
+    <span class="n">feature_matrix</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">from_ts</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">feature_matrix</span>
+</pre></div>
+</div>
+<p>Note that Dinf has no explicit requirement to use <code class="docutils literal notranslate"><span class="pre">demes</span></code>
+for the demographic model, nor to use <code class="docutils literal notranslate"><span class="pre">msprime</span></code> as the simulator.
+It would even be possible to write a generator function with a
+simulator that doesn’t output a <code class="docutils literal notranslate"><span class="pre">tskit.TreeSequence</span></code>.
+Dinf provides <a class="reference internal" href="../api.html#sec-api-discriminator-networks"><span class="std std-ref">discriminator networks</span></a>
+that work well with the provided
+<a class="reference internal" href="../api.html#sec-api-feature-extraction"><span class="std std-ref">feature extraction classes</span></a>,
+so substituting custom features will likely require additional effort
+and testing.</p>
+</section>
+</section>
+<section id="target">
+<h2><span class="section-number">1.4. </span>Target<a class="headerlink" href="#target" title="Permalink to this headline">#</a></h2>
+<p>When defining the <a class="reference internal" href="../api.html#dinf.DinfModel" title="dinf.DinfModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DinfModel</span></code></a> object above,
+we set <code class="docutils literal notranslate"><span class="pre">target_func=None</span></code>. This means that Dinf will reuse the
+generator function to create the target dataset. When simulating the
+target dataset, the <code class="docutils literal notranslate"><span class="pre">truth</span></code> values specified for the parameters
+will be passed to the generator function.</p>
+</section>
+<section id="discriminator">
+<h2><span class="section-number">1.5. </span>Discriminator<a class="headerlink" href="#discriminator" title="Permalink to this headline">#</a></h2>
+<p>We have not specified anything about the discriminator.
+By default Dinf will use <a class="reference internal" href="../api.html#dinf.ExchangeableCNN" title="dinf.ExchangeableCNN"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExchangeableCNN</span></code></a>,
+a small exchangeable convolutional neural network,
+that treats haplotypes within populations as exchangeable.</p>
+</section>
+<section id="complete-example">
+<h2><span class="section-number">1.6. </span>Complete example<a class="headerlink" href="#complete-example" title="Permalink to this headline">#</a></h2>
+<p>Putting this all together into one file we obtain:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">string</span>
+
+<span class="kn">import</span> <span class="nn">demes</span>
+<span class="kn">import</span> <span class="nn">msprime</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">dinf</span>
+
+
+<span class="n">recombination_rate</span> <span class="o">=</span> <span class="mf">1.25e-8</span>
+<span class="n">mutation_rate</span> <span class="o">=</span> <span class="mf">1.25e-8</span>
+<span class="n">num_individuals</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="n">sequence_length</span> <span class="o">=</span> <span class="mi">1_000_000</span>
+<span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Parameters</span><span class="p">(</span>
+    <span class="n">N0</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">30_000</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="mi">10_000</span><span class="p">),</span>
+    <span class="n">N1</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">30_000</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="mi">200</span><span class="p">),</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">demography</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="p">):</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">Template</span><span class="p">(</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        description: Two-epoch model with recent bottleneck.</span>
+<span class="sd">        time_units: generations</span>
+<span class="sd">        demes:</span>
+<span class="sd">          - name: A</span>
+<span class="sd">            epochs:</span>
+<span class="sd">              - start_size: $N0</span>
+<span class="sd">                end_time: 100</span>
+<span class="sd">              - start_size: $N1</span>
+<span class="sd">                end_time: 0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">substitute</span><span class="p">(</span><span class="n">N0</span><span class="o">=</span><span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="o">=</span><span class="n">N1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">demes</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+
+<span class="n">features</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">BinnedHaplotypeMatrix</span><span class="p">(</span>
+    <span class="n">num_individuals</span><span class="o">=</span><span class="n">num_individuals</span><span class="p">,</span>
+    <span class="n">num_loci</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">ploidy</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">phased</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">maf_thresh</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Simulate a two-epoch model with msprime.&quot;&quot;&quot;</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">demography</span><span class="p">(</span><span class="n">N0</span><span class="o">=</span><span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="o">=</span><span class="n">N1</span><span class="p">)</span>
+    <span class="n">demog</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">Demography</span><span class="o">.</span><span class="n">from_demes</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+    <span class="n">seed1</span><span class="p">,</span> <span class="n">seed2</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">ts</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">sim_ancestry</span><span class="p">(</span>
+        <span class="n">samples</span><span class="o">=</span><span class="n">num_individuals</span><span class="p">,</span>
+        <span class="n">demography</span><span class="o">=</span><span class="n">demog</span><span class="p">,</span>
+        <span class="n">sequence_length</span><span class="o">=</span><span class="n">sequence_length</span><span class="p">,</span>
+        <span class="n">recombination_rate</span><span class="o">=</span><span class="n">recombination_rate</span><span class="p">,</span>
+        <span class="n">random_seed</span><span class="o">=</span><span class="n">seed1</span><span class="p">,</span>
+        <span class="n">record_provenance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ts</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">sim_mutations</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">mutation_rate</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="n">seed2</span><span class="p">)</span>
+
+    <span class="n">feature_matrix</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">from_ts</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">feature_matrix</span>
+
+
+<span class="n">dinf_model</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="p">(</span>
+    <span class="n">target_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">generator_func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
+    <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+    <span class="n">feature_shape</span><span class="o">=</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            kernelName: "python3",
+            path: "./guide"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+              </div>
+              
+            </main>
+            <footer class="footer-article noprint">
+                
+    <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+    <a class='left-prev' id="prev-link" href="../installation.html" title="previous page">
+        <i class="fas fa-angle-left"></i>
+        <div class="prev-next-info">
+            <p class="prev-next-subtitle">previous</p>
+            <p class="prev-next-title">Installation</p>
+        </div>
+    </a>
+    <a class='right-next' id="next-link" href="testing_a_model.html" title="next page">
+    <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title"><span class="section-number">2. </span>Testing a Dinf model</p>
+    </div>
+    <i class="fas fa-angle-right"></i>
+    </a>
+</div>
+            </footer>
+        </div>
+    </div>
+    <div class="footer-content row">
+        <footer class="col footer"><p>
+  
+    By Graham Gower<br/>
+  
+      &copy; Copyright 2021-2022.<br/>
+    <div class="extra_footer">
+      dinf 0.2.0
+    </div>
+</p>
+        </footer>
+    </div>
+    
+</div>
+
+
+      </div>
+    </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/pydata-sphinx-theme.js?digest=1999514e3f237ded88cf"></script>
+
+
+  </body>
+</html>
