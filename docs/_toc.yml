@@ -17,12 +17,14 @@ parts:
   - file: guide/performance
   - file: guide/multiple_demes
   - file: guide/empirical_data
+  - file: guide/abc-gan
   - file: guide/mcmc-gan
   - file: guide/pg-gan
-  - file: guide/gfo
 - caption: Reference
   chapters:
   - file: api
   - file: cli
-#- file: examples
-#- file: CHANGELOG
+- caption: Miscellaneous
+  chapters:
+  - file: development
+  - file: CHANGELOG
