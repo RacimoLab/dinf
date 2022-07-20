@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
-    <title>Installation &#8212; Dinf</title>
+    <title>Development &#8212; Dinf</title>
     
   <!-- Loaded before other Sphinx assets -->
   <link href="_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
@@ -52,8 +52,8 @@ const thebe_selector_output = ".output, .cell_output"
     <script async="async" src="_static/sphinx-thebe.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="1. Creating a Dinf model" href="guide/creating_a_model.html" />
-    <link rel="prev" title="Introduction" href="introduction.html" />
+    <link rel="next" title="Changelog" href="CHANGELOG.html" />
+    <link rel="prev" title="CLI reference" href="cli.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="docsearch:language" content="None">
     
@@ -113,9 +113,9 @@ const thebe_selector_output = ".output, .cell_output"
   Getting started
  </span>
 </p>
-<ul class="current nav bd-sidenav">
- <li class="toctree-l1 current active">
-  <a class="current reference internal" href="#">
+<ul class="nav bd-sidenav">
+ <li class="toctree-l1">
+  <a class="reference internal" href="installation.html">
    Installation
   </a>
  </li>
@@ -211,9 +211,9 @@ const thebe_selector_output = ".output, .cell_output"
   Miscellaneous
  </span>
 </p>
-<ul class="nav bd-sidenav">
- <li class="toctree-l1">
-  <a class="reference internal" href="development.html">
+<ul class="current nav bd-sidenav">
+ <li class="toctree-l1 current active">
+  <a class="current reference internal" href="#">
    Development
   </a>
  </li>
@@ -312,7 +312,7 @@ title="Source repository"
       </li>
       
       <li>
-        <a href="https://github.com/RacimoLab/dinf/issues/new?title=Issue%20on%20page%20%2Finstallation.html&body=Your%20issue%20content%20here."
+        <a href="https://github.com/RacimoLab/dinf/issues/new?title=Issue%20on%20page%20%2Fdevelopment.html&body=Your%20issue%20content%20here."
    class="headerbtn"
    data-toggle="tooltip"
 data-placement="left"
@@ -329,7 +329,7 @@ title="Open an issue"
       </li>
       
       <li>
-        <a href="https://github.com/RacimoLab/dinf/edit/main/docs/installation.md"
+        <a href="https://github.com/RacimoLab/dinf/edit/main/docs/development.md"
    class="headerbtn"
    data-toggle="tooltip"
 data-placement="left"
@@ -357,7 +357,7 @@ title="Edit this page"
   <div class="menu-dropdown__content">
     <ul>
       <li>
-        <a href="_sources/installation.md"
+        <a href="_sources/development.md"
    class="headerbtn"
    data-toggle="tooltip"
 data-placement="left"
@@ -417,20 +417,28 @@ title="Print to PDF"
     <nav id="bd-toc-nav" aria-label="Page">
         <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#pip-installation">
-   Pip installation
+  <a class="reference internal nav-link" href="#installation">
+   Installation
   </a>
-  <ul class="nav section-nav flex-column">
-   <li class="toc-h3 nav-item toc-entry">
-    <a class="reference internal nav-link" href="#gpu-training">
-     GPU training
-    </a>
-   </li>
-  </ul>
  </li>
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#conda-mamba-installation">
-   Conda/mamba installation
+  <a class="reference internal nav-link" href="#continuous-integration-ci">
+   Continuous integration (CI)
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#lint-checks">
+   Lint checks
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#test-suite">
+   Test suite
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#building-the-documentation">
+   Building the documentation
   </a>
  </li>
 </ul>
@@ -442,7 +450,7 @@ title="Print to PDF"
         <div class="col pl-md-3 pl-lg-5 content-container">
             <!-- Table of contents that is only displayed when printing the page -->
             <div id="jb-print-docs-body" class="onlyprint">
-                <h1>Installation</h1>
+                <h1>Development</h1>
                 <!-- Table of contents -->
                 <div id="print-main-content">
                     <div id="jb-print-toc">
@@ -453,20 +461,28 @@ title="Print to PDF"
                         <nav aria-label="Page">
                             <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#pip-installation">
-   Pip installation
+  <a class="reference internal nav-link" href="#installation">
+   Installation
   </a>
-  <ul class="nav section-nav flex-column">
-   <li class="toc-h3 nav-item toc-entry">
-    <a class="reference internal nav-link" href="#gpu-training">
-     GPU training
-    </a>
-   </li>
-  </ul>
  </li>
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#conda-mamba-installation">
-   Conda/mamba installation
+  <a class="reference internal nav-link" href="#continuous-integration-ci">
+   Continuous integration (CI)
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#lint-checks">
+   Lint checks
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#test-suite">
+   Test suite
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#building-the-documentation">
+   Building the documentation
   </a>
  </li>
 </ul>
@@ -479,55 +495,95 @@ title="Print to PDF"
                 
               <div>
                 
-  <section class="tex2jax_ignore mathjax_ignore" id="installation">
-<span id="sec-installation"></span><h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">#</a></h1>
-<p>Dinf can be installed via <code class="docutils literal notranslate"><span class="pre">pip</span></code> or via <code class="docutils literal notranslate"><span class="pre">conda</span></code> (or <code class="docutils literal notranslate"><span class="pre">mamba</span></code>).</p>
-<section id="pip-installation">
-<h2>Pip installation<a class="headerlink" href="#pip-installation" title="Permalink to this headline">#</a></h2>
-<p>Create a virtual environment, activate it, then install.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">venv</span> <span class="n">venv</span>
-<span class="n">source</span> <span class="n">venv</span><span class="o">/</span><span class="nb">bin</span><span class="o">/</span><span class="n">activate</span>
-<span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">upgrade</span> <span class="n">pip</span>
-<span class="n">pip</span> <span class="n">install</span> <span class="n">git</span><span class="o">+</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">RacimoLab</span><span class="o">/</span><span class="n">dinf</span><span class="o">.</span><span class="n">git</span>
+  <section class="tex2jax_ignore mathjax_ignore" id="development">
+<span id="sec-development"></span><h1>Development<a class="headerlink" href="#development" title="Permalink to this headline">#</a></h1>
+<p>Contributions to Dinf are welcome!
+Please make pull requests against our
+<a class="reference external" href="https://github.com/RacimoLab/dinf">git repository</a>.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">#</a></h2>
+<p>Compared with a regular installation via <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">dinf</span></code>,
+additional dependencies are required during development, as
+developers regularly run the test suite, build the documentation, and assess
+whether their code changes conform to style guidelines.
+For developers, installation is from the git repository directly,
+and a virtual environment is highly recommended. The <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code>
+file in the top-level folder points to the developer dependencies.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Clone the repository.</span>
+git clone https://github.com/RacimoLab/dinf.git
+<span class="nb">cd</span> dinf
+<span class="c1"># Create a virtual environment for development.</span>
+python -m venv venv
+<span class="c1"># Activate the environment.</span>
+<span class="nb">source</span> venv/bin/activate
+pip install --upgrade pip
+<span class="c1"># Install the developer dependencies.</span>
+pip install -r requirements.txt
 </pre></div>
 </div>
-<section id="gpu-training">
-<h3>GPU training<a class="headerlink" href="#gpu-training" title="Permalink to this headline">#</a></h3>
-<p>To train models using a GPU, an appropriate version of jaxlib
-needs to be installed. See the JAX documentation
-<a class="reference external" href="https://github.com/google/jax/#installation">https://github.com/google/jax/#installation</a></p>
-<p>E.g.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="s2">&quot;jax[cuda11_cudnn82]&quot;</span> \
-  <span class="o">-</span><span class="n">f</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">storage</span><span class="o">.</span><span class="n">googleapis</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">jax</span><span class="o">-</span><span class="n">releases</span><span class="o">/</span><span class="n">jax_cuda_releases</span><span class="o">.</span><span class="n">html</span>
-</pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Non-developer requirements are listed in the <code class="docutils literal notranslate"><span class="pre">install_requires</span></code> section
+of the <code class="docutils literal notranslate"><span class="pre">setup.cfg</span></code> file in the top-level folder of the sources.</p>
 </div>
-<p>Check that your GPU device(s) are recognised by jax.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python
-Python 3.9.13 | packaged by conda-forge | (main, May 27 2022, 16:56:21)
-[GCC 10.3.0] on linux
-Type &quot;help&quot;, &quot;copyright&quot;, &quot;credits&quot; or &quot;license&quot; for more information.
-&gt;&gt;&gt; import jax
-&gt;&gt;&gt; jax.devices()
-[GpuDevice(id=0, process_index=0), GpuDevice(id=1, process_index=0)]
+</section>
+<section id="continuous-integration-ci">
+<h2>Continuous integration (CI)<a class="headerlink" href="#continuous-integration-ci" title="Permalink to this headline">#</a></h2>
+<p>After a pull request is submitted, an automated process known as
+<em>continuous integration</em> (CI) will:</p>
+<ul class="simple">
+<li><p>assess if the proposed changes conform to style guidelines (known as <em>lint</em> checks),</p></li>
+<li><p>run the test suite,</p></li>
+<li><p>and build the documentation.</p></li>
+</ul>
+<p>The CI process uses
+<a class="reference external" href="https://docs.github.com/en/free-pro-team&#64;latest/actions">GitHub Actions</a>
+and the configuration files detailing how these are run can be found under the
+<code class="docutils literal notranslate"><span class="pre">.github/workflows/</span></code> folder of the sources.</p>
+</section>
+<section id="lint-checks">
+<h2>Lint checks<a class="headerlink" href="#lint-checks" title="Permalink to this headline">#</a></h2>
+<p>The following tools are run during the linting process:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://black.readthedocs.io/">black</a>, a code formatter
+(code is only checked during CI, not reformatted),</p></li>
+<li><p><a class="reference external" href="https://flake8.pycqa.org/">flake8</a>,
+a <a class="reference external" href="https://www.python.org/dev/peps/pep-0008/">PEP8</a> code-style checker,</p></li>
+<li><p><a class="reference external" href="http://mypy-lang.org/">mypy</a>, a static type checker.</p></li>
+</ul>
+<p>Each of these tools can also be run manually from the top-level folder of the
+sources. The <code class="docutils literal notranslate"><span class="pre">setup.cfg</span></code> file includes some project-specific configuration
+for each of these tools, so running them from the command line should match
+the behaviour of the CI checks.</p>
+</section>
+<section id="test-suite">
+<h2>Test suite<a class="headerlink" href="#test-suite" title="Permalink to this headline">#</a></h2>
+<p>A suite of tests is included in the <code class="docutils literal notranslate"><span class="pre">tests/</span></code> folder.
+The CI process uses the <code class="docutils literal notranslate"><span class="pre">pytest</span></code> tool to run the tests, which can also be run
+manually from the top-level folder of the sources.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python -m pytest -v tests --cov<span class="o">=</span>dinf --cov-report<span class="o">=</span>term-missing
 </pre></div>
 </div>
 </section>
-</section>
-<section id="conda-mamba-installation">
-<h2>Conda/mamba installation<a class="headerlink" href="#conda-mamba-installation" title="Permalink to this headline">#</a></h2>
-<p><a class="reference external" href="https://github.com/mamba-org/mamba">Mamba</a> is a faster implementation
-of conda. Substitute <code class="docutils literal notranslate"><span class="pre">conda</span></code> below if you don’t have mamba.
-Clone the repository, create a conda virtual environment, activate, then install.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">RacimoLab</span><span class="o">/</span><span class="n">dinf</span><span class="o">.</span><span class="n">git</span>
-<span class="n">cd</span> <span class="n">dinf</span>
-<span class="n">mamba</span> <span class="n">env</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">dinf</span> <span class="o">--</span><span class="n">file</span> <span class="n">environment</span><span class="o">.</span><span class="n">yml</span>
-<span class="n">mamba</span> <span class="n">activate</span> <span class="n">dinf</span>
-<span class="n">pip</span> <span class="n">install</span> <span class="o">.</span>
+<section id="building-the-documentation">
+<h2>Building the documentation<a class="headerlink" href="#building-the-documentation" title="Permalink to this headline">#</a></h2>
+<p>The Dinf documentation is built with <a class="reference external" href="https://jupyter-book.org/">jupyter-book</a>,
+which uses <a class="reference external" href="https://www.sphinx-doc.org/">sphinx</a>.
+Much of the documentation is under the <code class="docutils literal notranslate"><span class="pre">docs/</span></code> folder, written in the
+<a class="reference external" href="https://myst-parser.readthedocs.io/en/latest/">MyST</a> flavour of Markdown,
+and is configured in the <code class="docutils literal notranslate"><span class="pre">docs/_config.yml</span></code> file.
+In contrast, the API documentation is automatically generated from “docstrings”
+in the Python code that use the
+<a class="reference external" href="https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html">reStructuredText</a>
+format.
+Finally, some documentation files are ipython notebooks that get executed and
+converted into markdown by jupyter-book. A couple of these notebooks take a
+long time to run, so they are excluded from execution in the
+jupyter-book configuration file and run manually as required.</p>
+<p>To build the documentation locally, run the following from the top-level folder.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>make -C docs
 </pre></div>
 </div>
-<p>The conda-forge jaxlib packages are cuda-enabled by default,
-so GPU support should just work. See pip instructions for checking
-that your GPU device(s) are recognised.</p>
 </section>
 </section>
 
@@ -558,17 +614,17 @@ that your GPU device(s) are recognised.</p>
                 
     <!-- Previous / next buttons -->
 <div class='prev-next-area'>
-    <a class='left-prev' id="prev-link" href="introduction.html" title="previous page">
+    <a class='left-prev' id="prev-link" href="cli.html" title="previous page">
         <i class="fas fa-angle-left"></i>
         <div class="prev-next-info">
             <p class="prev-next-subtitle">previous</p>
-            <p class="prev-next-title">Introduction</p>
+            <p class="prev-next-title">CLI reference</p>
         </div>
     </a>
-    <a class='right-next' id="next-link" href="guide/creating_a_model.html" title="next page">
+    <a class='right-next' id="next-link" href="CHANGELOG.html" title="next page">
     <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title"><span class="section-number">1. </span>Creating a Dinf model</p>
+        <p class="prev-next-title">Changelog</p>
     </div>
     <i class="fas fa-angle-right"></i>
     </a>
