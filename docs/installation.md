@@ -1,27 +1,31 @@
 (sec_installation)=
 # Installation
 
-Dinf can be installed via `pip` or via `conda` (or `mamba`).
+Dinf requires Python >= 3.8, and can be installed with `pip`
+or with `conda` (via the *bioconda* channel).
 
 ## Pip installation
 
-Create a virtual environment, activate it, then install.
+Installation is as simple as `pip install dinf`,
+but we recommend installation inside a virtual environment.
+
 ```
 python -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
-pip install git+https://github.com/RacimoLab/dinf.git
+pip install dinf
 ```
 
 ### GPU training
 
-To train models using a GPU, an appropriate version of jaxlib
-needs to be installed. See the JAX documentation
-https://github.com/google/jax/#installation
+To train models using a GPU, an appropriate version of `jaxlib`
+needs to be installed. This can be done after installing `dinf`.
+See the
+[`jax` documentation](https://github.com/google/jax/#installation)
+for instructions. E.g. on Linux try
 
-E.g.
 ```
-pip install "jax[cuda11_cudnn82]" \
+pip install "jax[cuda]" \
   -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ```
 
@@ -38,17 +42,17 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 ## Conda/mamba installation
 
+First ensure that your conda configuration includes the *bioconda* channel
+following the [bioconda instructions](https://bioconda.github.io/),
+then create a fresh Dinf environment with the commands below.
 [Mamba](https://github.com/mamba-org/mamba) is a faster implementation
-of conda. Substitute `conda` below if you don't have mamba.
-Clone the repository, create a conda virtual environment, activate, then install.
+of conda, but substitute `conda` if you don't want to use `mamba`.
+
 ```
-git clone https://github.com/RacimoLab/dinf.git
-cd dinf
-mamba env create -n dinf --file environment.yml
+mamba create -n dinf dinf
 mamba activate dinf
-pip install .
 ```
 
-The conda-forge jaxlib packages are cuda-enabled by default,
-so GPU support should just work. See pip instructions for checking
+The conda-forge `jaxlib` packages are GPU-enabled by default,
+so GPU support should just work. See GPU instructions above to confirm
 that your GPU device(s) are recognised.
