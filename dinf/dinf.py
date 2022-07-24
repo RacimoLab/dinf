@@ -795,7 +795,7 @@ def _sample_smooth(*, thetas, probs, size: int, rng):
     _, d = thetas.shape
     neff = np.sum(probs) ** 2 / np.sum(probs**2)
     bw_scott = neff ** (-1.0 / (d + 4))  # bandwidth multiplier
-    cov = bw_scott * np.cov(thetas, rowvar=False, aweights=probs)
+    cov = bw_scott**2 * np.cov(thetas, rowvar=False, aweights=probs)
     assert not np.any(np.isnan(cov))
     assert not np.any(np.isinf(cov))
     # Jitter the sample with an MVN.

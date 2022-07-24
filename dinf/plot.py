@@ -346,7 +346,7 @@ def hist2d(
     ax.figure.colorbar(h, ax=ax)
 
     colour = "red"
-    line_kw = dict(c=colour, ls="-")
+    line_kw = dict(c=colour, ls="-", alpha=0.7)
     if x_truth is not None:
         ax.axvline(x_truth, **line_kw)
     if y_truth is not None:
@@ -443,7 +443,7 @@ def hist(
         patches[0].set_xy(patches[0].get_xy()[1:-1])
 
     if truth is not None:
-        ax.axvline(truth, c="red", ls="-")
+        ax.axvline(truth, c="red", ls="-", zorder=3, alpha=0.7)
 
     if ci:
         # Get median and 95% credible interval.
@@ -455,7 +455,7 @@ def hist(
         # but blended transforms are broken. So we use plot() instead.
         # https://github.com/matplotlib/matplotlib/issues/23171
         ys = 0.1 + np.array([0.0, 0.04, 0.05, 0.06, 0.07])
-        line_kw = dict(c="k", lw=3, zorder=5, transform=ax.get_xaxis_transform())
+        line_kw = dict(c="k", lw=3, zorder=3, transform=ax.get_xaxis_transform())
         # hline
         ax.plot([xq[0], xq[2]], [ys[2], ys[2]], **line_kw)
         # vlines
@@ -466,7 +466,7 @@ def hist(
         txt_kw = dict(
             ha="center",
             va="center",
-            zorder=10,
+            zorder=3,
             bbox=dict(boxstyle="round", fc="white", ec="none", alpha=0.6, pad=0),
             transform=ax.get_xaxis_transform(),
         )
@@ -1080,7 +1080,8 @@ class _Hist(_SubCommand):
                     x = data[x_param]
                     hist_kw["label"] = path.name
                     if args.resample and x_param != "_Pr":
-                        del hist_kw["weights"]
+                        if "weights" in hist_kw:
+                            del hist_kw["weights"]
                         x = datasets_resampled[j][x_param]
                         hist_kw["bins"] = 100
                     hist(x, ax=ax, ci=ci, truth=truth, hist_kw=hist_kw)
@@ -1092,7 +1093,7 @@ class _Hist(_SubCommand):
                         xrange, pdf = _kde1d_reflect(
                             data[x_param], weights=data["_Pr"], left=left, right=right
                         )
-                        ax.plot(xrange, pdf, c="cyan")
+                        ax.plot(xrange, pdf, c="cyan", alpha=0.7)
 
                 if args.cumulative:
                     ax.set_ylabel("cumulative density")
@@ -1191,7 +1192,6 @@ class _Abc(_SubCommand):
                 ax.violinplot(
                     [data[x_param] for data in datasets],
                     quantiles=[[0.025, 0.5, 0.975]] * len(datasets),
-                    points=1000,
                     showextrema=False,
                 )
                 ax.set_ylabel(x_param)
@@ -1199,7 +1199,7 @@ class _Abc(_SubCommand):
 
                 if parameters is not None and x_param != "_Pr":
                     truth = parameters[x_param].truth
-                    ax.axhline(truth, c="red", ls="-", zorder=10, alpha=0.7)
+                    ax.axhline(truth, c="red", ls="-", alpha=0.7)
 
                 fig.suptitle(x_param)
                 pages.savefig(fig, hint=x_param)
