@@ -664,12 +664,6 @@ def mcmc_gan(
         Seed for the random number generator.
     """
     num_replicates = math.ceil((training_replicates + test_replicates) / 2)
-    if steps * walkers < num_replicates:
-        raise ValueError(
-            f"Insufficient MCMC samples (steps * walkers = {steps * walkers}) "
-            "for training the discriminator: "
-            f"(training_replicates + test_replicates) / 2 = {num_replicates}"
-        )
 
     if working_directory is None:
         working_directory = "."
@@ -696,12 +690,14 @@ def mcmc_gan(
             raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
         resume = all(files_exist)
 
+    sampling_mode = "reflect"
+
     discriminator = Discriminator(
         dinf_model.feature_shape, network=dinf_model.discriminator_network
     )
     if resume:
         discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
-        thetas, _ = _load_results_unstructured(
+        thetas, y = _load_results_unstructured(
             store[-1] / "mcmc.npz", parameters=parameters
         )
         assert len(thetas.shape) == 3
@@ -713,8 +709,13 @@ def mcmc_gan(
                 f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
             )
 
-        sampled_thetas = rng_thetas.choice(
-            thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
+        sampled_thetas = sample_smooth(
+            thetas=thetas.reshape(-1, thetas.shape[-1]),
+            probs=y.reshape(-1),
+            size=num_replicates,
+            rng=rng_thetas,
+            parameters=parameters,
+            mode=sampling_mode,
         )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
@@ -776,8 +777,13 @@ def mcmc_gan(
         # The chain for next iteration starts at the end of this chain.
         start = thetas[-1]
 
-        sampled_thetas = rng_thetas.choice(
-            thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
+        sampled_thetas = sample_smooth(
+            thetas=thetas.reshape(-1, thetas.shape[-1]),
+            probs=probs.reshape(-1),
+            size=num_replicates,
+            rng=rng_thetas,
+            parameters=parameters,
+            mode=sampling_mode,
         )
         training_thetas = sampled_thetas[: training_replicates // 2]
         test_thetas = sampled_thetas[training_replicates // 2 :]
