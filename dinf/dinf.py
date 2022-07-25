@@ -875,7 +875,7 @@ def sample_smooth(
         X = parameters.reflect(X)
     elif mode == "truncate":
         assert parameters is not None
-        parameters.truncate(X)
+        X = parameters.truncate(X)
     return X
 
 
