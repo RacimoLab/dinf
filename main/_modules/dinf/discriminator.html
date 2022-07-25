@@ -227,7 +227,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev5
+            dinf 0.2.1.dev10
             </div>
             
         </div>
@@ -402,9 +402,9 @@ title="Open an issue"
     <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">batch_size</span>
     <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">random</span><span class="p">:</span>
-            <span class="n">batch</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span> <span class="n">dataset</span><span class="p">)</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">indices</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">],</span> <span class="o">...</span><span class="p">],</span> <span class="n">dataset</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">batch</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">dataset</span><span class="p">)</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">dataset</span><span class="p">)</span>
         <span class="k">yield</span> <span class="n">batch</span>
         <span class="n">i</span> <span class="o">=</span> <span class="n">j</span>
         <span class="n">j</span> <span class="o">+=</span> <span class="n">batch_size</span>
@@ -544,7 +544,7 @@ title="Open an issue"
         <span class="n">activation</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">relu</span>
 
         <span class="n">xs</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">input_feature</span> <span class="ow">in</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">input_feature</span> <span class="ow">in</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">input_feature</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">x</span><span class="p">)</span>
 
@@ -621,7 +621,7 @@ title="Open an issue"
         <span class="n">activation</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">elu</span>
 
         <span class="n">xs</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">input_feature</span> <span class="ow">in</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">input_feature</span> <span class="ow">in</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">norm</span><span class="p">()(</span><span class="n">input_feature</span><span class="p">)</span>
 
             <span class="k">for</span> <span class="n">features</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sizes1</span><span class="p">:</span>
@@ -724,7 +724,7 @@ title="Open an issue"
         <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-        <span class="n">dummy_input</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
+        <span class="n">dummy_input</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
             <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span>
             <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
@@ -787,7 +787,7 @@ title="Open an issue"
                 <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="n">expected_fields</span><span class="si">}</span><span class="s2">,</span><span class="se">\n</span><span class="s2">but got </span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">.&quot;</span>
             <span class="p">)</span>
 
-        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;input_shape&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
+        <span class="n">data</span><span class="p">[</span><span class="s2">&quot;input_shape&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
             <span class="nb">tuple</span><span class="p">,</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;input_shape&quot;</span><span class="p">],</span>
             <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span>
@@ -802,7 +802,7 @@ title="Open an issue"
         <span class="k">return</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_add_batch_dim</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">_inited</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">data</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-        <span class="n">input_shape</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
+        <span class="n">input_shape</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
             <span class="nb">list</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span>
             <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
@@ -822,7 +822,7 @@ title="Open an issue"
         <span class="c1"># XXX: The order of layers in the CNN are lost because of</span>
         <span class="c1"># https://github.com/google/jax/issues/4085</span>
 
-        <span class="n">a</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
             <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span>
             <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
@@ -854,7 +854,7 @@ title="Open an issue"
 
         <span class="c1"># Sanity checks.</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_all</span><span class="p">(</span>
-            <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
+            <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
                 <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mi">4</span><span class="p">,)</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span>
                 <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
@@ -944,7 +944,7 @@ title="Open an issue"
             <span class="c1">#    )</span>
 
         <span class="k">def</span> <span class="nf">running_metrics</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">current_metrics</span><span class="p">,</span> <span class="n">metrics</span><span class="p">):</span>
-            <span class="n">new_metrics</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
+            <span class="n">new_metrics</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
                 <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">a</span> <span class="o">+</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span> <span class="n">current_metrics</span><span class="p">,</span> <span class="n">metrics</span>
             <span class="p">)</span>
             <span class="k">return</span> <span class="n">n</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">new_metrics</span>
@@ -1321,7 +1321,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev5+gcac9b8b
+      dinf 0.2.1.dev10+gb28b279
     </div>
 </p>
         </footer>

@@ -227,7 +227,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev5
+            dinf 0.2.1.dev10
             </div>
             
         </div>
@@ -407,6 +407,9 @@ title="Open an issue"
         <span class="n">processes</span><span class="o">=</span><span class="n">parallelism</span><span class="p">,</span>
         <span class="n">initializer</span><span class="o">=</span><span class="n">_initializer</span><span class="p">,</span>
         <span class="n">initargs</span><span class="o">=</span><span class="p">(</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">filename</span><span class="p">,),</span>
+        <span class="c1"># Workers don&#39;t release resources properly, so recycle them</span>
+        <span class="c1"># periodically to reduce memory consumption.</span>
+        <span class="n">maxtasksperchild</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
     <span class="p">)</span>
 
 
@@ -449,13 +452,13 @@ title="Open an issue"
     <span class="n">treedef</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">M</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">map_f</span><span class="p">(</span><span class="n">sim_func</span><span class="p">,</span> <span class="n">args</span><span class="p">)):</span>
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">treedef</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_structure</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
+            <span class="n">treedef</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_structure</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
             <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">M</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">M</span><span class="p">):</span>
                 <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">num_replicates</span><span class="p">,</span> <span class="o">*</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">m</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-        <span class="k">for</span> <span class="n">res</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">M</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">res</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">M</span><span class="p">)):</span>
             <span class="n">res</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span>
-    <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_unflatten</span><span class="p">(</span><span class="n">treedef</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_unflatten</span><span class="p">(</span><span class="n">treedef</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_generate_data</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">generator</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">parallelism</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
@@ -503,7 +506,7 @@ title="Open an issue"
         <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_target</span><span class="p">),</span>
     <span class="p">)</span>
     <span class="c1"># XXX: Large copy doubles peak memory.</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="o">*</span><span class="n">l</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">l</span><span class="p">),</span> <span class="n">x_generator</span><span class="p">,</span> <span class="n">x_target</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="o">*</span><span class="n">l</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">l</span><span class="p">),</span> <span class="n">x_generator</span><span class="p">,</span> <span class="n">x_target</span><span class="p">)</span>
     <span class="k">del</span> <span class="n">x_target</span>
     <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_replicates</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">num_replicates</span><span class="p">)))</span>
     <span class="c1"># Note: training data is not shuffled</span>
@@ -1227,7 +1230,7 @@ title="Open an issue"
         <span class="n">X</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">reflect</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;truncate&quot;</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">parameters</span><span class="o">.</span><span class="n">truncate</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">truncate</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">X</span></div>
 
 
@@ -2132,7 +2135,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev5+gcac9b8b
+      dinf 0.2.1.dev10+gb28b279
     </div>
 </p>
         </footer>
