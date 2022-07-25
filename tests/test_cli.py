@@ -79,7 +79,6 @@ class TestCheck:
             stderr=subprocess.PIPE,
         )
         assert not out.stdout
-        assert not out.stderr
 
 
 class TestAbcGan:

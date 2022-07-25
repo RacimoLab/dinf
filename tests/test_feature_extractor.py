@@ -928,7 +928,7 @@ class _TestMultiple:
         )
 
         features = feature_extractor.from_ts(ts, individuals=individuals)
-        for M in jax.tree_leaves(features):
+        for M in jax.tree_util.tree_leaves(features):
             assert np.all(M == 0)
 
     def test_from_ts_mismatched_individuals_labels(self):

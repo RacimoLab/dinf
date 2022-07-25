@@ -18,8 +18,8 @@ def random_dataset(size=None, shape=None, seed=1234):
         shape = {"x": (size, 32, 32, 1)}
     else:
         assert size is None
-        size = jax.tree_flatten(tree_car(shape))[0][0]
-    x = jax.tree_map(
+        size = jax.tree_util.tree_flatten(tree_car(shape))[0][0]
+    x = jax.tree_util.tree_map(
         lambda s: rng.integers(low=0, high=128, size=s, dtype=np.int8),
         shape,
         is_leaf=lambda x: isinstance(x, tuple),
@@ -168,7 +168,7 @@ class _TestCNN:
         # permute rows
         rng = np.random.default_rng(seed + 100)
         for _ in range(10):
-            x2 = jax.tree_map(lambda a: rng.permutation(a, axis=1), x1)
+            x2 = jax.tree_util.tree_map(lambda a: rng.permutation(a, axis=1), x1)
             y2 = cnn.apply(variables, x2, train=False)
             # Set a generous tolerance here, as the CNN is using 32 bit floats.
             np.testing.assert_allclose(y1, y2, rtol=1e-2)
@@ -185,7 +185,7 @@ class _TestCNN:
         rng = np.random.default_rng(seed + 100)
         for _ in range(10):
             idx = rng.permutation(size)
-            x2 = jax.tree_map(lambda a: a[idx], x1)
+            x2 = jax.tree_util.tree_map(lambda a: a[idx], x1)
             y2 = cnn.apply(variables, x2, train=False)
             # Set a generous tolerance here, as the CNN is using 32 bit floats.
             np.testing.assert_allclose(y1[idx], y2, rtol=1e-2)
