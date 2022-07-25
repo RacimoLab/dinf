@@ -52,6 +52,9 @@ def _process_pool_init(parallelism, dinf_model):
         processes=parallelism,
         initializer=_initializer,
         initargs=(dinf_model.filename,),
+        # Workers don't release resources properly, so recycle them
+        # periodically to reduce memory consumption.
+        maxtasksperchild=1000,
     )
 
 
