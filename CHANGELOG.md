@@ -1,5 +1,11 @@
 # Changelog
 
+## unreleased
+
+* Fix KDE bandwidth for abc-gan.
+* Reduce memory use for jobs with millions of simulations.
+
+
 ## 0.2.0 - 2022-07-20
 
 Initial release, featuring:

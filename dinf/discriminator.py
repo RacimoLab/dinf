@@ -47,9 +47,9 @@ def batchify(dataset, batch_size, random=False, rng=None):
     i, j = 0, batch_size
     while i < size:
         if random:
-            batch = jax.tree_map(lambda x: x[indices[i:j], ...], dataset)
+            batch = jax.tree_util.tree_map(lambda x: x[indices[i:j], ...], dataset)
         else:
-            batch = jax.tree_map(lambda x: x[i:j, ...], dataset)
+            batch = jax.tree_util.tree_map(lambda x: x[i:j, ...], dataset)
         yield batch
         i = j
         j += batch_size
@@ -189,7 +189,7 @@ class ExchangeablePGGAN(nn.Module):
         activation = nn.relu
 
         xs = []
-        for input_feature in jax.tree_leaves(inputs):
+        for input_feature in jax.tree_util.tree_leaves(inputs):
             x = input_feature
             x = norm()(x)
 
@@ -266,7 +266,7 @@ class ExchangeableCNN(nn.Module):
         activation: Callable = nn.elu
 
         xs = []
-        for input_feature in jax.tree_leaves(inputs):
+        for input_feature in jax.tree_util.tree_leaves(inputs):
             x = norm()(input_feature)
 
             for features in self.sizes1:
@@ -369,7 +369,7 @@ class _NetworkWrapper:
         def init(*args):
             return self.network.init(*args, train=False)
 
-        dummy_input = jax.tree_map(
+        dummy_input = jax.tree_util.tree_map(
             lambda x: jnp.zeros(x, dtype=np.float32),
             self.input_shape,
             is_leaf=lambda x: isinstance(x, tuple),
@@ -432,7 +432,7 @@ class _NetworkWrapper:
                 f"Expected {expected_fields},\nbut got {set(data.keys())}."
             )
 
-        data["input_shape"] = jax.tree_map(
+        data["input_shape"] = jax.tree_util.tree_map(
             tuple,
             data["input_shape"],
             is_leaf=lambda x: isinstance(x, list),
@@ -447,7 +447,7 @@ class _NetworkWrapper:
         return dataclasses.replace(self, _add_batch_dim=False, _inited=True, **data)
 
     def asdict(self) -> dict:
-        input_shape = jax.tree_map(
+        input_shape = jax.tree_util.tree_map(
             list,
             self.input_shape,
             is_leaf=lambda x: isinstance(x, tuple),
@@ -467,7 +467,7 @@ class _NetworkWrapper:
         # XXX: The order of layers in the CNN are lost because of
         # https://github.com/google/jax/issues/4085
 
-        a = jax.tree_map(
+        a = jax.tree_util.tree_map(
             lambda x: jnp.zeros(x, dtype=np.float32),
             self.input_shape,
             is_leaf=lambda x: isinstance(x, tuple),
@@ -499,7 +499,7 @@ class Discriminator(_NetworkWrapper):
 
         # Sanity checks.
         if not jax.tree_util.tree_all(
-            jax.tree_map(
+            jax.tree_util.tree_map(
                 lambda x: np.shape(x) == (4,) and x[1] >= 2 and x[2] >= 4 and x[3] <= 4,
                 self.input_shape,
                 is_leaf=lambda x: isinstance(x, tuple),
@@ -589,7 +589,7 @@ class Discriminator(_NetworkWrapper):
             #    )
 
         def running_metrics(n, batch_size, current_metrics, metrics):
-            new_metrics = jax.tree_map(
+            new_metrics = jax.tree_util.tree_map(
                 lambda a, b: a + batch_size * b, current_metrics, metrics
             )
             return n + batch_size, new_metrics

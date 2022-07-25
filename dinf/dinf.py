@@ -52,6 +52,9 @@ def _process_pool_init(parallelism, dinf_model):
         processes=parallelism,
         initializer=_initializer,
         initargs=(dinf_model.filename,),
+        # Workers don't release resources properly, so recycle them
+        # periodically to reduce memory consumption.
+        maxtasksperchild=1000,
     )
 
 
@@ -94,13 +97,13 @@ def _sim_replicates(*, sim_func, args, num_replicates, parallelism):
     treedef = None
     for j, M in enumerate(map_f(sim_func, args)):
         if result is None:
-            treedef = jax.tree_structure(M)
+            treedef = jax.tree_util.tree_structure(M)
             result = []
-            for m in jax.tree_leaves(M):
+            for m in jax.tree_util.tree_leaves(M):
                 result.append(np.empty((num_replicates, *m.shape), dtype=m.dtype))
-        for res, m in zip(result, jax.tree_leaves(M)):
+        for res, m in zip(result, jax.tree_util.tree_leaves(M)):
             res[j] = m
-    return jax.tree_unflatten(treedef, result)
+    return jax.tree_util.tree_unflatten(treedef, result)
 
 
 def _generate_data(*, generator, thetas, parallelism, rng):
@@ -148,7 +151,7 @@ def _generate_training_data(*, target, generator, thetas, parallelism, ss):
         rng=np.random.default_rng(ss_target),
     )
     # XXX: Large copy doubles peak memory.
-    x = jax.tree_map(lambda *l: np.concatenate(l), x_generator, x_target)
+    x = jax.tree_util.tree_map(lambda *l: np.concatenate(l), x_generator, x_target)
     del x_target
     y = np.concatenate((np.zeros(num_replicates), np.ones(num_replicates)))
     # Note: training data is not shuffled
@@ -872,7 +875,7 @@ def sample_smooth(
         X = parameters.reflect(X)
     elif mode == "truncate":
         assert parameters is not None
-        parameters.truncate(X)
+        X = parameters.truncate(X)
     return X
 
 

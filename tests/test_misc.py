@@ -124,14 +124,16 @@ def test_tree_shape_1(a):
     assert tree_equal(a, a)
     assert tree_equal(a_shape, a_shape)
     assert tree_equal(
-        jax.tree_structure(a, is_leaf=lambda x: isinstance(x, tuple)),
-        jax.tree_structure(a_shape, is_leaf=lambda x: isinstance(x, tuple)),
+        jax.tree_util.tree_structure(a, is_leaf=lambda x: isinstance(x, tuple)),
+        jax.tree_util.tree_structure(a_shape, is_leaf=lambda x: isinstance(x, tuple)),
     )
     assert tree_equal(
-        jax.tree_structure(a_shape, is_leaf=lambda x: isinstance(x, tuple)),
-        jax.tree_structure(a, is_leaf=lambda x: isinstance(x, tuple)),
+        jax.tree_util.tree_structure(a_shape, is_leaf=lambda x: isinstance(x, tuple)),
+        jax.tree_util.tree_structure(a, is_leaf=lambda x: isinstance(x, tuple)),
     )
-    b = jax.tree_map(np.zeros, a_shape, is_leaf=lambda x: isinstance(x, tuple))
+    b = jax.tree_util.tree_map(
+        np.zeros, a_shape, is_leaf=lambda x: isinstance(x, tuple)
+    )
     assert tree_equal(a, b)
     assert tree_equal(b, a)
     assert tree_equal(a_shape, tree_shape(a))
@@ -181,7 +183,7 @@ def test_tree_cdr():
 )
 def test_cons_car_cdr(a, d):
     cons = tree_cons(a, d)
-    assert tree_car(cons) == jax.tree_map(
+    assert tree_car(cons) == jax.tree_util.tree_map(
         lambda _: a, cons, is_leaf=lambda x: isinstance(x, tuple)
     )
     assert tree_cdr(cons) == d
