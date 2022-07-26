@@ -885,6 +885,44 @@ def sample_smooth(
     return X
 
 
+def geometric_median(
+    *,
+    thetas: np.ndarray,
+    probs: np.ndarray | None = None,
+) -> np.array:
+    """
+    Get the multivariate median of a weighted sample.
+
+    :param thetas:
+        Parameter values. thetas[j][k] is the value of the k'th parameter
+        for the j'th multivariate sample.
+    :param probs:
+        Discriminator predictions corresponding to the ``thetas``.
+    :return:
+        Median position in multivariate space.
+    """
+
+    # Normalize by mean/stddev so each parameter is treated equally
+    # in the objective function.
+    mean = np.mean(thetas, axis=0)
+    stddev = np.std(thetas, axis=0)
+    x = (thetas - mean) / stddev
+
+    def objective(u):
+        """Minimise the sum of distances from u to x."""
+        d = np.linalg.norm(x - u, axis=1)
+        # Minimise the mean distance rather than the sum, to avoid extremely
+        # large values that trigger the notorious scipy error:
+        #   "Desired error not necessarily achieved due to precision loss."
+        return np.average(d, weights=probs)
+
+    x0 = np.zeros(x.shape[1])
+    opt = scipy.optimize.minimize(objective, x0)
+    if not opt.success:
+        raise RuntimeError(f"Failed to find geometric median: {opt.message}")
+    return mean + stddev * opt.x
+
+
 def filter_top_n(
     thetas: np.ndarray,
     probs: np.ndarray,

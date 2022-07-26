@@ -38,4 +38,5 @@ from .dinf import (
     save_results,
     load_results,
     sample_smooth,
+    geometric_median,
 )
