@@ -1069,7 +1069,7 @@ class _Hist(_SubCommand):
                     ax.set_xlabel(x_param)
                     if args.weighted:
                         hist_kw["weights"] = data["_Pr"]
-                    ci = True
+                    ci = not args.cumulative
 
                 for j, (data, path) in enumerate(zip(datasets, args.data_files)):
                     x = data[x_param]
@@ -1088,7 +1088,13 @@ class _Hist(_SubCommand):
                         xrange, pdf = _kde1d_reflect(
                             data[x_param], weights=data["_Pr"], left=left, right=right
                         )
-                        ax.plot(xrange, pdf, c="cyan", alpha=0.7)
+                        if args.cumulative:
+                            cdf = np.cumsum(pdf)
+                            cdf /= cdf[-1]
+                            y = cdf
+                        else:
+                            y = pdf
+                        ax.plot(xrange, y, c="cyan", alpha=0.7)
 
                 if args.cumulative:
                     ax.set_ylabel("cumulative density")
