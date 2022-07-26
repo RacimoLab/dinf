@@ -196,54 +196,6 @@ class AbcGan(_SubCommand):
         )
 
 
-class AlfiMcmcGan(_SubCommand):
-    """
-    Run the ALFI MCMC GAN.
-
-    This is an MCMC GAN with a surrogate network, as described in
-    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
-    """
-
-    def __init__(self, subparsers):
-        super().__init__(subparsers, "alfi-mcmc-gan")
-
-        self.add_common_parser_group()
-        self.add_train_parser_group()
-
-        group = self.parser.add_argument_group("MCMC arguments")
-        group.add_argument(
-            "-w",
-            "--walkers",
-            type=int,
-            default=64,
-            help="Number of independent MCMC chains.",
-        )
-        group.add_argument(
-            "-s",
-            "--steps",
-            type=int,
-            default=1000,
-            help="The chain length for each MCMC walker.",
-        )
-
-        self.add_gan_parser_group()
-
-    def __call__(self, args: argparse.Namespace):
-        dinf_model = dinf.DinfModel.from_file(args.model)
-        dinf.alfi_mcmc_gan(
-            dinf_model=dinf_model,
-            iterations=args.iterations,
-            training_replicates=args.training_replicates,
-            test_replicates=args.test_replicates,
-            epochs=args.epochs,
-            walkers=args.walkers,
-            steps=args.steps,
-            working_directory=args.working_directory,
-            parallelism=args.parallelism,
-            seed=args.seed,
-        )
-
-
 class McmcGan(_SubCommand):
     """
     Run the MCMC GAN.
@@ -501,15 +453,12 @@ def main(args_list=None):
     )
     top_parser.add_argument("--version", action="version", version=dinf.__version__)
 
-    subparsers = top_parser.add_subparsers(
-        dest="subcommand",  # metavar="{check,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan}"
-    )
+    subparsers = top_parser.add_subparsers(dest="subcommand")
     Check(subparsers)
     Train(subparsers)
     Predict(subparsers)
 
     AbcGan(subparsers)
-    AlfiMcmcGan(subparsers)
     McmcGan(subparsers)
     PgGan(subparsers)
 

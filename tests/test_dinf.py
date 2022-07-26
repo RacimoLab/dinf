@@ -194,21 +194,6 @@ def test_mcmc_gan(tmp_path):
             seed=1,
         )
 
-    with pytest.raises(ValueError, match="Insufficient MCMC samples"):
-        dinf.mcmc_gan(
-            dinf_model=dinf_model,
-            iterations=2,
-            training_replicates=100,
-            test_replicates=0,
-            epochs=1,
-            walkers=6,
-            steps=1,
-            Dx_replicates=2,
-            working_directory=working_directory,
-            parallelism=2,
-            seed=1,
-        )
-
     backup = working_directory / "bak"
     for file in [
         working_directory / f"{i}" / "discriminator.nn",
@@ -225,105 +210,6 @@ def test_mcmc_gan(tmp_path):
                 walkers=6,
                 steps=1,
                 Dx_replicates=2,
-                working_directory=working_directory,
-                parallelism=2,
-                seed=1,
-            )
-        backup.rename(file)
-
-
-@pytest.mark.usefixtures("tmp_path")
-def test_alfi_mcmc_gan(tmp_path):
-    dinf_model = get_dinf_model()
-    working_directory = tmp_path / "workdir"
-    steps = 1
-    dinf.alfi_mcmc_gan(
-        dinf_model=dinf_model,
-        iterations=2,
-        training_replicates=10,
-        test_replicates=0,
-        epochs=1,
-        walkers=6,
-        steps=steps,
-        working_directory=working_directory,
-        parallelism=2,
-        seed=1,
-    )
-    assert working_directory.exists()
-    for i in range(2):
-        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
-        check_npz(
-            working_directory / f"{i}" / "mcmc.npz",
-            chains=6,
-            draws=2 * steps,
-            parameters=dinf_model.parameters,
-        )
-
-    # resume
-    os.chdir(working_directory)
-    dinf.alfi_mcmc_gan(
-        dinf_model=dinf_model,
-        iterations=1,
-        training_replicates=4,
-        test_replicates=4,
-        epochs=1,
-        walkers=6,
-        steps=steps,
-        seed=2,
-    )
-    for i in range(3):
-        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
-        check_npz(
-            working_directory / f"{i}" / "mcmc.npz",
-            chains=6,
-            draws=2 * steps,
-            parameters=dinf_model.parameters,
-        )
-
-    with pytest.raises(ValueError, match="resuming from .* which used .* walkers"):
-        dinf.alfi_mcmc_gan(
-            dinf_model=dinf_model,
-            iterations=2,
-            training_replicates=10,
-            test_replicates=0,
-            epochs=1,
-            walkers=8,
-            steps=1,
-            working_directory=working_directory,
-            parallelism=2,
-            seed=1,
-        )
-
-    with pytest.raises(ValueError, match="Insufficient MCMC samples"):
-        dinf.alfi_mcmc_gan(
-            dinf_model=dinf_model,
-            iterations=2,
-            training_replicates=100,
-            test_replicates=0,
-            epochs=1,
-            walkers=6,
-            steps=1,
-            working_directory=working_directory,
-            parallelism=2,
-            seed=1,
-        )
-
-    backup = working_directory / "bak"
-    for file in [
-        working_directory / f"{i}" / "discriminator.nn",
-        working_directory / f"{i}" / "surrogate.nn",
-        working_directory / f"{i}" / "mcmc.npz",
-    ]:
-        file.rename(backup)
-        with pytest.raises(RuntimeError, match="incomplete"):
-            dinf.alfi_mcmc_gan(
-                dinf_model=dinf_model,
-                iterations=2,
-                training_replicates=10,
-                test_replicates=0,
-                epochs=1,
-                walkers=6,
-                steps=1,
                 working_directory=working_directory,
                 parallelism=2,
                 seed=1,

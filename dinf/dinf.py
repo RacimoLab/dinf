@@ -13,13 +13,14 @@ import emcee
 import jax
 import numpy as np
 from numpy.lib.recfunctions import structured_to_unstructured
+import scipy
 
 # We're compatible with the standard lib's multiprocessing,
 # but multiprocess uses dill to pickle functions which provides
 # greater flexibility to users (i.e. fewer confusing errors).
 import multiprocess as multiprocessing
 
-from .discriminator import Discriminator, Surrogate
+from .discriminator import Discriminator
 from .dinf_model import DinfModel
 from .parameters import Parameters
 from .store import Store
@@ -320,29 +321,6 @@ def _log_prob(
     return log_D
 
 
-def _log_prob_surrogate(
-    thetas: np.ndarray,
-    *,
-    surrogate: Surrogate,
-    parameters: Parameters,
-) -> np.ndarray:
-    """
-    Function to be maximised by alfi mcmc.
-    """
-    num_walkers, num_params = thetas.shape
-    assert num_params == len(parameters)
-    log_D = np.full(num_walkers, -np.inf)
-
-    # Identify workers with one or more out-of-bounds parameters.
-    in_bounds = parameters.bounds_contain(thetas)
-    num_in_bounds = np.sum(in_bounds)
-    if num_in_bounds > 0:
-        alpha, beta = surrogate.predict(thetas[in_bounds])
-        with np.errstate(divide="ignore"):
-            log_D[in_bounds] = np.log(alpha / (alpha + beta))
-    return log_D
-
-
 def _run_mcmc_emcee(
     start: np.ndarray,
     parameters: Parameters,
@@ -440,34 +418,6 @@ def _train_discriminator(
     )
 
     return metrics, train_x_generator, val_x_generator
-
-
-def _train_surrogate(
-    *,
-    discriminator: Discriminator,
-    surrogate: Surrogate,
-    training_thetas: np.ndarray,
-    test_thetas: np.ndarray,
-    train_x_generator,
-    test_x_generator,
-    epochs: int,
-):
-    train_y_pred = discriminator.predict(train_x_generator)
-    val_x_thetas = None
-    val_y_pred = None
-    if test_thetas is not None and len(test_thetas) > 0:
-        val_x_thetas = test_thetas
-        val_y_pred = discriminator.predict(test_x_generator)
-    surrogate.fit(
-        train_x=training_thetas,
-        train_y=train_y_pred,
-        val_x=val_x_thetas,
-        val_y=val_y_pred,
-        epochs=epochs,
-    )
-
-    alpha, beta = surrogate.predict(training_thetas)
-    return train_y_pred, alpha, beta
 
 
 @cleanup_process_pool_afterwards
@@ -1588,219 +1538,3 @@ def pg_gan(
         print(f"Target called {n_target_calls} times.")
         print(f"Generator called {n_generator_calls} times.")
         print()
-
-
-@cleanup_process_pool_afterwards
-def alfi_mcmc_gan(
-    *,
-    dinf_model: DinfModel,
-    iterations: int,
-    training_replicates: int,
-    test_replicates: int,
-    epochs: int,
-    walkers: int,
-    steps: int,
-    working_directory: None | str | pathlib.Path = None,
-    parallelism: None | int = None,
-    seed: None | int = None,
-):
-    """
-    Run the ALFI MCMC GAN.
-
-    This behaves similarly to :func:`mcmc_gan`, but introduces a surrogate
-    neural network that predicts the output of the discriminator from a given
-    set of input parameter values. The predictions of the surrogate network
-    are used during MCMC sampling, thus bypassing the generator and producing
-    deterministic classification of the input parameters.
-
-    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
-
-    :param dinf_model:
-        DinfModel object that describes the dinf model.
-    :param iterations:
-        Number of GAN iterations.
-    :param training_replicates:
-        Size of the dataset used to train the discriminator.
-        This dataset is constructed once each GAN iteration.
-    :param test_replicates:
-        Size of the test dataset used to evaluate the discriminator after
-        each training epoch.
-    :param epochs:
-        Number of full passes over the training dataset when training
-        the discriminator.
-    :param walkers:
-        Number of independent MCMC chains.
-    :param steps:
-        The chain length for each MCMC walker.
-    :param working_directory:
-        Folder to output results. If not specified, the current
-        directory will be used.
-    :param parallelism:
-        Number of processes to use for parallelising calls to the
-        :meth:`DinfModel.generator_func` and
-        :meth:`DinfModel.target_func`.
-    :param seed:
-        Seed for the random number generator.
-    """
-    num_replicates = math.ceil((training_replicates + test_replicates) / 2)
-    if steps * walkers < num_replicates:
-        raise ValueError(
-            f"Insufficient MCMC samples (steps * walkers = {steps * walkers}) "
-            "for training the discriminator "
-            f"((training_replicates + test_replicates / 2) = {num_replicates})"
-        )
-
-    if working_directory is None:
-        working_directory = "."
-    store = Store(working_directory, create=True)
-
-    if parallelism is None:
-        parallelism = cast(int, os.cpu_count())
-
-    _process_pool_init(parallelism, dinf_model)
-
-    ss = NamedSeedSequence(seed)
-    ss_loop, ss_mcmc, ss_thetas, ss_discr_init, ss_surrogate_init = ss.spawn(
-        (
-            "mcmc-gan:loop",
-            "mcmc-gan:mcmc",
-            "abc-gan:thetas",
-            "discriminator:init",
-            "surrogate:init",
-        )
-    )
-    rng_thetas = np.random.default_rng(ss_thetas)
-    rng_mcmc = np.random.default_rng(ss_mcmc)
-
-    parameters = dinf_model.parameters
-    resume = False
-    if len(store) > 0:
-        files_exist = [
-            (store[-1] / fn).exists()
-            for fn in ("discriminator.nn", "surrogate.nn", "mcmc.npz")
-        ]
-        if sum(files_exist) not in (0, len(files_exist)):
-            raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
-        resume = all(files_exist)
-
-    discriminator = Discriminator(
-        dinf_model.feature_shape, network=dinf_model.discriminator_network
-    )
-    surrogate = Surrogate(len(parameters))
-    if resume:
-        discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
-        surrogate = surrogate.from_file(store[-1] / "surrogate.nn")
-        thetas, _ = _load_results_unstructured(
-            store[-1] / "mcmc.npz", parameters=parameters
-        )
-        assert len(thetas.shape) == 3
-        # Discard first half as burn in.
-        thetas = thetas[steps:]
-        start = thetas[-1]
-        if len(start) != walkers:
-            # TODO: allow this by sampling start points for the walkers?
-            raise ValueError(
-                f"request for {walkers} walkers, but resuming from "
-                f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
-            )
-
-        sampled_thetas = rng_thetas.choice(
-            thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
-        )
-        training_thetas = sampled_thetas[: training_replicates // 2]
-        test_thetas = sampled_thetas[training_replicates // 2 :]
-    else:
-        discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
-        surrogate = surrogate.init(np.random.default_rng(ss_surrogate_init))
-        # Starting point for the mcmc chain.
-        start = parameters.draw_prior(walkers, rng=rng_thetas)
-
-        training_thetas = parameters.draw_prior(
-            training_replicates // 2, rng=rng_thetas
-        )
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng_thetas)
-
-    # If start values are linearly dependent, emcee complains loudly.
-    assert not np.any((start[0] == start[1:]).all(axis=-1))
-
-    n_target_calls = 0
-    n_generator_calls = 0
-
-    log_prob_func = functools.partial(
-        _log_prob_surrogate, surrogate=surrogate, parameters=parameters
-    )
-
-    for i in range(len(store) + 1, len(store) + 1 + iterations):
-        print(f"ALFI MCMC GAN iteration {i}")
-        store.increment()
-
-        (ss_loop,) = ss_loop.spawn(1)
-        _, train_x_generator, test_x_generator = _train_discriminator(
-            discriminator=discriminator,
-            dinf_model=dinf_model,
-            training_thetas=training_thetas,
-            test_thetas=test_thetas,
-            epochs=epochs,
-            parallelism=parallelism,
-            ss=ss_loop,
-        )
-        n_target_calls += num_replicates
-        n_generator_calls += num_replicates
-        discriminator.to_file(store[-1] / "discriminator.nn")
-
-        train_y_pred, alpha, beta = _train_surrogate(
-            discriminator=discriminator,
-            surrogate=surrogate,
-            training_thetas=training_thetas,
-            test_thetas=test_thetas,
-            epochs=epochs,
-            train_x_generator=train_x_generator,
-            test_x_generator=test_x_generator,
-        )
-        surrogate.to_file(store[-1] / "surrogate.nn")
-
-        # import pickle
-        # with open(store[-1] / "s.nn", "wb") as f:
-        #    pickle.dump((training_thetas, train_y_pred, alpha, beta), f)
-
-        s_pred = alpha / (alpha + beta)
-        which = "D"
-        for j in (np.argmax(train_y_pred), np.argmax(s_pred)):
-            print(
-                f"Best {which}: D(θ)={train_y_pred[j]:.3g}; "
-                f"S(θ)={s_pred[j]}; "
-                f"α={alpha[j]:.3g}, β={beta[j]:.3g}"
-            )
-            for param_name, value in zip(parameters, training_thetas[j]):
-                print(" ", param_name, value)
-            which = "S"
-
-        thetas, probs = _run_mcmc_emcee(
-            start=start,
-            parameters=parameters,
-            walkers=walkers,
-            steps=2 * steps,
-            rng=rng_mcmc,
-            log_prob_func=log_prob_func,
-        )
-        assert thetas.shape == (2 * steps, walkers, len(parameters))
-        save_results(
-            store[-1] / "mcmc.npz", thetas=thetas, probs=probs, parameters=parameters
-        )
-
-        # Discard first half as burn in.
-        thetas = thetas[steps:]
-
-        # The chain for next iteration starts at the end of this chain.
-        start = thetas[-1]
-
-        sampled_thetas = rng_thetas.choice(
-            thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
-        )
-        training_thetas = sampled_thetas[: training_replicates // 2]
-        test_thetas = sampled_thetas[training_replicates // 2 :]
-
-        # n_target_calls += num_replicates
-        # n_generator_calls += num_replicates
-        print(f"Target called {n_target_calls} times.")
-        print(f"Generator called {n_generator_calls} times.")

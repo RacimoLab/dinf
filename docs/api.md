@@ -48,7 +48,6 @@
     predict
     abc_gan
     mcmc_gan
-    alfi_mcmc_gan
     pg_gan
 ```
 
@@ -165,7 +164,6 @@
 .. autofunction:: dinf.predict
 .. autofunction:: dinf.abc_gan
 .. autofunction:: dinf.mcmc_gan
-.. autofunction:: dinf.alfi_mcmc_gan
 .. autofunction:: dinf.pg_gan
 ```
 

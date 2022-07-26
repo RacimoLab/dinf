@@ -40,11 +40,6 @@ cloned git repository without requiring installation (e.g. during development).
 ```{program-output} python -m dinf abc-gan -h
 ```
 
-### `dinf alfi-mcmc-gan`
-
-```{program-output} python -m dinf alfi-mcmc-gan -h
-```
-
 ### `dinf mcmc-gan`
 
 ```{program-output} python -m dinf mcmc-gan -h

@@ -13,7 +13,6 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
-import scipy.stats
 
 from .misc import (
     Pytree,
@@ -307,7 +306,7 @@ class ExchangeableCNN(nn.Module):
 @dataclasses.dataclass
 class _NetworkWrapper:
     """
-    Base class for Discriminator and Surrogate wrappers.
+    Base class for Discriminator wrapper.
     """
 
     input_shape: Pytree
@@ -785,164 +784,3 @@ def _predict_batch(batch, variables, apply_func):
     """Make predictions on a batch."""
     logits = apply_func(variables, batch["input"], train=False)
     return jax.nn.sigmoid(logits)
-
-
-##
-# Surrogate network stuff.
-
-
-class SurrogateMLP(nn.Module):
-    layers: Tuple[int, ...] = (64, 64, 32)
-
-    @nn.compact
-    def __call__(self, inputs, *, train: bool):  # type: ignore[override]
-        num_params = inputs.shape[-1]
-        x = inputs
-        x = nn.BatchNorm(use_running_average=not train)(x)
-        for i, size in enumerate(self.layers):
-            if i == 0:
-                # Expand capacity of first layer according to input size.
-                size *= num_params
-            x = nn.Dense(size)(x)
-            x = nn.gelu(x)
-        x = nn.Dense(2)(x)
-        x = EPSILON + jax.nn.softplus(x)
-        alpha, beta = x[..., 0], x[..., 1]
-        return alpha, beta
-
-
-@dataclasses.dataclass
-class Surrogate(_NetworkWrapper):
-    """
-    Wrapper of the surrogate network for the beta-estimation model of ALFI.
-
-    This network predicts the output of the discriminator network
-    from a set of dinf model parameters, thus bypassing the generator.
-    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
-    """
-
-    network: nn.Module = SurrogateMLP()
-    """The flax neural network module used as the surrogate."""
-
-    def fit(
-        self,
-        *,
-        train_x,
-        train_y,
-        val_x=None,
-        val_y=None,
-        batch_size: int = 64,
-        epochs: int = 1,
-    ):
-        assert self.network is not None
-        assert self.state is not None
-        assert self.input_shape is not None
-        assert self._inited
-
-        # The density of labels is not uniform over [0, 1], so we weight the
-        # loss for each instance by the inverse density at that point.
-        # Yang et al. 2021, https://arxiv.org/abs/2102.09554
-        def weights(p, bandwidth=0.2, num_points=100):
-            """
-            Get the inverse of the density (Gaussian KDE) at points p.
-            """
-            kde = scipy.stats.gaussian_kde(p, bandwidth)
-            x = np.linspace(0, 1, num_points)
-            density = kde(x)
-            weights = 1.0 / np.interp(p, x, density)
-            weights = np.sqrt(weights)
-            return weights
-
-        do_eval = val_x is not None
-        train_ds = dict(input=train_x, output=train_y, weights=weights(train_y))
-        if do_eval:
-            test_ds = dict(input=val_x, output=val_y, weights=weights(val_y))
-
-        for epoch in range(epochs):
-            loss_sum = 0
-            n = 0
-            for batch in batchify(train_ds, batch_size):
-                self.state, loss = _train_step_surrogate(self.state, batch)
-                loss_sum += loss
-                n += 1
-            train_loss = loss_sum / n
-
-            if do_eval:
-                n = 0
-                loss_sum = 0
-                for batch in batchify(test_ds, batch_size):
-                    loss_sum += _train_step_surrogate(self.state, batch, update=False)
-                    n += 1
-                test_loss = loss_sum / n
-
-            print(f"Surrogate train loss {train_loss:.4f}", end="")
-            if do_eval:
-                print(f"; test loss {test_loss:.4f}", end="")
-            if epoch < epochs - 1:
-                print(end="\r")
-            else:
-                print()
-
-        self.trained = True
-
-    def predict(self, x, *, batch_size: int = 1024) -> np.ndarray:
-        assert self.network is not None
-        assert self.state is not None
-        assert self.input_shape is not None
-        if not self.trained:
-            raise ValueError(
-                "Cannot make predications as the network has not been trained."
-            )
-        dataset = dict(input=x)
-        y = []
-        variables = dict(params=self.state.params, batch_stats=self.state.batch_stats)
-        for batch in batchify(dataset, batch_size):
-            y.append(_predict_batch_surrogate(batch, variables, self.network.apply))
-        return np.concatenate(y, axis=1)
-
-
-def beta_loss(*, alpha, beta, y):
-    y = jnp.where(y < EPSILON, EPSILON, y)
-    y = jnp.where(y > 1 - EPSILON, 1 - EPSILON, y)
-    loss = -jax.scipy.stats.beta.logpdf(y, alpha, beta)
-    return loss
-
-
-# TODO: The beta distribution seems unnecessary. Try this?
-# def l2_loss(*, alpha, beta, y):
-#    p = alpha / (alpha + beta)
-#    loss = jnp.linalg.norm(p - y, axis=-1)
-#    return loss
-
-
-@functools.partial(jax.jit, static_argnums=(2,))
-def _train_step_surrogate(state, batch, update=True):
-    """Train for a single step."""
-
-    def loss_fn(params):
-        (alpha, beta), new_state = state.apply_fn(
-            dict(params=params, batch_stats=state.batch_stats),
-            batch["input"],
-            mutable=["batch_stats"] if update else [],
-            train=update,
-        )
-        loss = jnp.mean(
-            batch["weights"] * beta_loss(alpha=alpha, beta=beta, y=batch["output"])
-        )
-        return loss, new_state
-
-    if update:
-        grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
-        (loss, new_state), grads = grad_fn(state.params)
-        state = state.apply_gradients(grads=grads, batch_stats=new_state["batch_stats"])
-        return state, loss
-    else:
-        loss, _ = loss_fn(state.params)
-        return loss
-
-
-@functools.partial(jax.jit, static_argnums=(2,))
-def _predict_batch_surrogate(batch, variables, apply_func):
-    """Make predictions on a batch."""
-    alpha, beta = apply_func(variables, batch["input"], train=False)
-    return alpha, beta
