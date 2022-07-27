@@ -598,6 +598,8 @@ def mcmc_gan(
     if working_directory is None:
         working_directory = "."
     store = Store(working_directory, create=True)
+    store.assert_complete(["discriminator.nn", "mcmc.npz"])
+    resume = len(store) > 0
 
     ss = NamedSeedSequence(seed)
     ss_loop, ss_mcmc, ss_thetas, ss_discr_init = ss.spawn(
@@ -607,14 +609,6 @@ def mcmc_gan(
     rng_mcmc = np.random.default_rng(ss_mcmc)
 
     parameters = dinf_model.parameters
-    resume = False
-    if len(store) > 0:
-        files_exist = [
-            (store[-1] / fn).exists() for fn in ("discriminator.nn", "mcmc.npz")
-        ]
-        if sum(files_exist) == 1:
-            raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
-        resume = all(files_exist)
 
     sampling_mode = "reflect"
 
@@ -687,9 +681,8 @@ def mcmc_gan(
             rng=rng_thetas,
         )
 
-        for i in range(len(store) + 1, len(store) + 1 + iterations):
+        for i in range(len(store), len(store) + iterations):
             print(f"MCMC GAN iteration {i}")
-            store.increment()
 
             (ss_loop,) = ss_loop.spawn(1)
             ss_train, ss_fit = ss_loop.spawn(("features:train", "discriminator:fit"))
@@ -714,6 +707,8 @@ def mcmc_gan(
                 # Clear the training loss/accuracy metrics from last iteration.
                 reset_metrics=True,
             )
+
+            store.increment()
             discriminator.to_file(store[-1] / "discriminator.nn")
 
             thetas, probs = _run_mcmc_emcee(
@@ -963,6 +958,8 @@ def abc_gan(
     if working_directory is None:
         working_directory = "."
     store = Store(working_directory, create=True)
+    store.assert_complete(["discriminator.nn", "abc.npz"])
+    resume = len(store) > 0
 
     ss = NamedSeedSequence(seed)
     ss_loop, ss_thetas, ss_discr_init = ss.spawn(
@@ -971,14 +968,6 @@ def abc_gan(
     rng_thetas = np.random.default_rng(ss_thetas)
 
     parameters = dinf_model.parameters
-    resume = False
-    if len(store) > 0:
-        files_exist = [
-            (store[-1] / fn).exists() for fn in ("discriminator.nn", "abc.npz")
-        ]
-        if sum(files_exist) == 1:
-            raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
-        resume = all(files_exist)
 
     # Use mode="reflect", because "transform" seems to produce ABC-GAN
     # degenerate states due to density accumulation at the bounds.
@@ -1017,9 +1006,8 @@ def abc_gan(
     n_generator_calls = 0
 
     with process_pool(parallelism, dinf_model) as pool:
-        for i in range(len(store) + 1, len(store) + 1 + iterations):
+        for i in range(len(store), len(store) + iterations):
             print(f"ABC GAN iteration {i}")
-            store.increment()
 
             (ss_loop,) = ss_loop.spawn(1)
             _, _, test_x_generator = _train_discriminator(
@@ -1031,6 +1019,7 @@ def abc_gan(
                 pool=pool,
                 ss=ss_loop,
             )
+            store.increment()
             discriminator.to_file(store[-1] / "discriminator.nn")
 
             y = discriminator.predict(test_x_generator)
@@ -1409,15 +1398,8 @@ def pg_gan(
     rng_proposals = np.random.default_rng(ss_proposals)
 
     parameters = dinf_model.parameters
-    resume = False
-    if len(store) > 0:
-        files_exist = [
-            (store[-1] / fn).exists()
-            for fn in ("discriminator.nn", "pg-gan-proposals.npz")
-        ]
-        if sum(files_exist) == 1:
-            raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
-        resume = all(files_exist)
+    resume = len(store) > 0
+    store.assert_complete(["discriminator.nn", "pg-gan-proposals.npz"])
 
     if resume:
         discriminator = Discriminator(
@@ -1455,9 +1437,8 @@ def pg_gan(
                 ss=ss_pretraining,
             )
 
-        for i in range(len(store) + 1, len(store) + 1 + iterations):
+        for i in range(len(store), len(store) + iterations):
             print(f"PG-GAN simulated annealing iteration {i}")
-            store.increment()
 
             temperature = max(0.02, 1.0 - i / iterations)
 
@@ -1481,6 +1462,7 @@ def pg_gan(
             )
             n_generator_calls += len(proposal_thetas) * Dx_replicates
 
+            store.increment()
             save_results(
                 store[-1] / "pg-gan-proposals.npz",
                 thetas=proposal_thetas,
