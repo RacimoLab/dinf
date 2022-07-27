@@ -47,8 +47,9 @@ def test_abc_gan(tmp_path, top_n):
     dinf.dinf.abc_gan(
         dinf_model=dinf_model,
         iterations=2,
-        training_replicates=8,
-        test_replicates=8,
+        training_replicates=4,
+        test_replicates=4,
+        proposal_replicates=3,
         top_n=top_n,
         epochs=1,
         working_directory=working_directory,
@@ -61,7 +62,7 @@ def test_abc_gan(tmp_path, top_n):
         check_npz(
             working_directory / f"{i}" / "abc.npz",
             chains=1,
-            draws=4,
+            draws=3,
             parameters=dinf_model.parameters,
         )
 
@@ -70,8 +71,9 @@ def test_abc_gan(tmp_path, top_n):
     dinf.dinf.abc_gan(
         dinf_model=dinf_model,
         iterations=1,
-        training_replicates=8,
-        test_replicates=8,
+        training_replicates=4,
+        test_replicates=4,
+        proposal_replicates=3,
         top_n=top_n,
         epochs=1,
         seed=2,
@@ -81,28 +83,17 @@ def test_abc_gan(tmp_path, top_n):
         check_npz(
             working_directory / f"{i}" / "abc.npz",
             chains=1,
-            draws=4,
+            draws=3,
             parameters=dinf_model.parameters,
-        )
-
-    with pytest.raises(ValueError, match="Must have test_replicates"):
-        dinf.dinf.abc_gan(
-            dinf_model=dinf_model,
-            iterations=2,
-            training_replicates=8,
-            test_replicates=0,
-            epochs=1,
-            working_directory=working_directory,
-            parallelism=2,
-            seed=1,
         )
 
     with pytest.raises(ValueError, match="top_n"):
         dinf.dinf.abc_gan(
             dinf_model=dinf_model,
             iterations=2,
-            training_replicates=8,
-            test_replicates=8,
+            training_replicates=4,
+            test_replicates=4,
+            proposal_replicates=3,
             top_n=4,
             epochs=1,
             working_directory=working_directory,
@@ -120,8 +111,9 @@ def test_abc_gan(tmp_path, top_n):
             dinf.dinf.abc_gan(
                 dinf_model=dinf_model,
                 iterations=2,
-                training_replicates=8,
-                test_replicates=8,
+                training_replicates=4,
+                test_replicates=4,
+                proposal_replicates=3,
                 epochs=1,
                 working_directory=working_directory,
                 parallelism=2,

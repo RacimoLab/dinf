@@ -149,18 +149,18 @@ class AbcGan(_SubCommand):
 
     Conceptually, the GAN takes the following steps for iteration j:
 
-      - sample train/test datasets from the prior[j] distribution,
+      - sample training and proposal datasets from the prior[j] distribution,
       - train the discriminator,
-      - make predictions with the discriminator,
-      - construct a posterior[j] sample from the test dataset,
+      - make predictions with the discriminator on the proposal dataset,
+      - construct a posterior[j] sample from the proposal dataset,
       - set prior[j+1] = posterior[j].
 
     In the first iteration, the parameter values given to the generator
-    to produce the test/train datasets are drawn from the parameters'
+    to produce the train/proposal datasets are drawn from the parameters'
     prior distribution. In subsequent iterations, the parameter values
     are drawn from a posterior ABC sample. The posterior is obtained by
-    weighting the prior distribution by the discriminator predictions,
-    followed by gaussian smoothing.
+    rejection sampling the proposal distribution and weighting the posterior
+    by the discriminator predictions, followed by gaussian smoothing.
     """
 
     def __init__(self, subparsers):
@@ -175,9 +175,16 @@ class AbcGan(_SubCommand):
             metavar="N",
             type=int,
             help=(
-                "In each iteraction, accept only the N top samples, "
+                "In each iteration, accept only the N top proposals, "
                 "ranked by probability."
             ),
+        )
+        group.add_argument(
+            "-P",
+            "--proposal-replicates",
+            type=int,
+            default=1000,
+            help="Number of replicates for ABC proposals.",
         )
 
         self.add_gan_parser_group()
@@ -189,6 +196,7 @@ class AbcGan(_SubCommand):
             iterations=args.iterations,
             training_replicates=args.training_replicates,
             test_replicates=args.test_replicates,
+            proposal_replicates=args.proposal_replicates,
             epochs=args.epochs,
             working_directory=args.working_directory,
             parallelism=args.parallelism,

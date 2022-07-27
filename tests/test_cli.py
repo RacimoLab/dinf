@@ -101,8 +101,9 @@ class TestAbcGan:
                 --seed 1
                 --parallelism 2
                 --iterations 2
-                --training-replicates 8
-                --test-replicates 8
+                --training-replicates 4
+                --test-replicates 4
+                --proposal-replicates 4
                 --epochs 1
                 --working-directory {working_directory}
                 {ex}

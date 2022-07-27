@@ -3,7 +3,6 @@ import contextlib
 import functools
 import itertools
 import logging
-import math
 import pathlib
 import signal
 from typing import Callable, Tuple
@@ -891,6 +890,7 @@ def abc_gan(
     iterations: int,
     training_replicates: int,
     test_replicates: int,
+    proposal_replicates: int,
     epochs: int,
     top_n: int | None = None,
     working_directory: None | str | pathlib.Path = None,
@@ -898,22 +898,22 @@ def abc_gan(
     seed: None | int = None,
 ):
     """
-    Run the ABC GAN.
+    Adversarial Abstract Bayesian Computation.
 
     Conceptually, the GAN takes the following steps for iteration j:
 
-      - sample train/test datasets from the prior[j] distribution,
+      - sample training and proposal datasets from the prior[j] distribution,
       - train the discriminator,
-      - make predictions with the discriminator,
-      - construct a posterior[j] sample from the test dataset,
+      - make predictions with the discriminator on the proposal dataset,
+      - construct a posterior[j] sample from the proposal dataset,
       - set prior[j+1] = posterior[j].
 
     In the first iteration, the parameter values given to the generator
-    to produce the test/train datasets are drawn from the parameters'
+    to produce the train/proposal datasets are drawn from the parameters'
     prior distribution. In subsequent iterations, the parameter values
     are drawn from a posterior ABC sample. The posterior is obtained by
-    weighting the prior distribution by the discriminator predictions,
-    followed by gaussian smoothing.
+    rejection sampling the proposal distribution and weighting the posterior
+    by the discriminator predictions, followed by gaussian smoothing.
 
     :param dinf_model:
         DinfModel object that describes the dinf model.
@@ -923,8 +923,11 @@ def abc_gan(
         Size of the dataset used to train the discriminator.
         This dataset is constructed once each GAN iteration.
     :param test_replicates:
-        Size of the test dataset used to evaluate the discriminator after
-        each training epoch.
+        Size of the dataset used to evaluate the discriminator after
+        each training epoch. This dataset is constructed once before the
+        GAN iterates, and is reused in each iteration.
+    :param proposal_replicates:
+        Number of ABC proposals in each iteration.
     :param epochs:
         Number of full passes over the training dataset when training
         the discriminator.
@@ -944,16 +947,8 @@ def abc_gan(
         Seed for the random number generator.
     """
 
-    if test_replicates < 2:
-        raise ValueError(
-            "Must have test_replicates>=2. Test replicates are (also) used "
-            "for sampling the parameter values for the next GAN iteration."
-        )
-
-    num_replicates = math.ceil((training_replicates + test_replicates) / 2)
-
-    if top_n is not None and top_n >= test_replicates // 2:
-        raise ValueError(f"{top_n=}, but {test_replicates=}")
+    if top_n is not None and top_n >= proposal_replicates:
+        raise ValueError(f"{top_n=}, but {proposal_replicates=}")
 
     if working_directory is None:
         working_directory = "."
@@ -985,68 +980,119 @@ def abc_gan(
         assert len(thetas.shape) == 2
         if top_n is not None:
             thetas, y = filter_top_n(thetas, y, top_n)
-        sampled_thetas = sample_smooth(
+        training_thetas = sample_smooth(
             thetas=thetas,
             probs=y,
-            size=num_replicates,
+            size=training_replicates // 2,
             rng=rng_thetas,
             parameters=parameters,
             mode=sampling_mode,
         )
-        training_thetas = sampled_thetas[: training_replicates // 2]
-        test_thetas = sampled_thetas[training_replicates // 2 :]
+        proposal_thetas = sample_smooth(
+            thetas=thetas,
+            probs=y,
+            size=proposal_replicates,
+            rng=rng_thetas,
+            parameters=parameters,
+            mode=sampling_mode,
+        )
     else:
         discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
         training_thetas = parameters.draw_prior(
             training_replicates // 2, rng=rng_thetas
         )
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng_thetas)
+        proposal_thetas = parameters.draw_prior(proposal_replicates, rng=rng_thetas)
 
     n_target_calls = 0
     n_generator_calls = 0
 
     with process_pool(parallelism, dinf_model) as pool:
+
+        val_x, val_y = None, None
+        if test_replicates >= 2:
+            ss_val, ss_test_thetas = ss.spawn(
+                ("abc-gan:features:val", "abc-gan:thetas:val")
+            )
+            test_thetas = parameters.draw_prior(
+                test_replicates // 2, rng=np.random.default_rng(ss_test_thetas)
+            )
+            val_x, val_y, _ = _generate_training_data(
+                target=dinf_model.target_func,
+                generator=dinf_model.generator_func_v,
+                thetas=test_thetas,
+                pool=pool,
+                ss=ss_val,
+            )
+            n_target_calls += test_replicates // 2
+            n_generator_calls += test_replicates // 2
+
         for i in range(len(store), len(store) + iterations):
             print(f"ABC GAN iteration {i}")
 
             (ss_loop,) = ss_loop.spawn(1)
-            _, _, test_x_generator = _train_discriminator(
-                discriminator=discriminator,
-                dinf_model=dinf_model,
-                training_thetas=training_thetas,
-                test_thetas=test_thetas,
-                epochs=epochs,
+            ss_train, ss_proposals, ss_fit = ss_loop.spawn(
+                ("features:train", "features:proposals", "discriminator:fit")
+            )
+            train_x, train_y, _ = _generate_training_data(
+                target=dinf_model.target_func,
+                generator=dinf_model.generator_func_v,
+                thetas=training_thetas,
                 pool=pool,
-                ss=ss_loop,
+                ss=ss_train,
+            )
+            n_target_calls += training_replicates // 2
+            n_generator_calls += training_replicates // 2
+
+            discriminator.fit(
+                train_x=train_x,
+                train_y=train_y,
+                val_x=val_x,
+                val_y=val_y,
+                epochs=epochs,
+                rng=np.random.default_rng(ss_fit),
+                # Clear the training loss/accuracy metrics from last iteration.
+                reset_metrics=True,
             )
             store.increment()
             discriminator.to_file(store[-1] / "discriminator.nn")
 
-            y = discriminator.predict(test_x_generator)
+            proposal_x = _generate_data(
+                generator=dinf_model.generator_func_v,
+                thetas=proposal_thetas,
+                pool=pool,
+                rng=np.random.default_rng(ss_proposals),
+            )
+            n_generator_calls += proposal_replicates
+
+            y = discriminator.predict(proposal_x)
             save_results(
                 store[-1] / "abc.npz",
                 probs=y,
-                thetas=test_thetas,
+                thetas=proposal_thetas,
                 parameters=parameters,
             )
 
             # Get the posterior sample for the next iteration.
-            thetas = test_thetas
+            thetas = proposal_thetas
             if top_n is not None:
                 thetas, y = filter_top_n(thetas, y, top_n)
-            sampled_thetas = sample_smooth(
+            training_thetas = sample_smooth(
                 thetas=thetas,
                 probs=y,
-                size=num_replicates,
+                size=training_replicates // 2,
                 rng=rng_thetas,
                 parameters=parameters,
                 mode=sampling_mode,
             )
-            training_thetas = sampled_thetas[: training_replicates // 2]
-            test_thetas = sampled_thetas[training_replicates // 2 :]
+            proposal_thetas = sample_smooth(
+                thetas=thetas,
+                probs=y,
+                size=proposal_replicates,
+                rng=rng_thetas,
+                parameters=parameters,
+                mode=sampling_mode,
+            )
 
-            n_target_calls += num_replicates
-            n_generator_calls += num_replicates
             print(f"Target called {n_target_calls} times.")
             print(f"Generator called {n_generator_calls} times.")
 
