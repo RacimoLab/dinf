@@ -280,78 +280,6 @@ def _load_results_unstructured(
     return thetas, probs
 
 
-def _log_prob(
-    thetas: np.ndarray,
-    *,
-    discriminator: Discriminator,
-    generator: Callable,
-    parameters: Parameters,
-    rng: np.random.Generator,
-    num_replicates: int,
-    parallelism: int,
-) -> np.ndarray:
-    """
-    Function to be maximised by mcmc. Vectorised version.
-    """
-    num_walkers, num_params = thetas.shape
-    assert num_params == len(parameters)
-    log_D = np.full(num_walkers, -np.inf)
-
-    # Identify workers with one or more out-of-bounds parameters.
-    in_bounds = parameters.bounds_contain(thetas)
-    num_in_bounds = np.sum(in_bounds)
-    if num_in_bounds == 0:
-        return log_D
-
-    seeds = rng.integers(low=1, high=2**31, size=num_replicates * num_in_bounds)
-    thetas_reps = np.repeat(thetas[in_bounds], num_replicates, axis=0)
-    assert len(seeds) == len(thetas_reps)
-    M = _sim_replicates(
-        sim_func=generator,
-        args=zip(seeds, thetas_reps),
-        num_replicates=len(seeds),
-        parallelism=parallelism,
-    )
-    Dreps = discriminator.predict(M).reshape(num_in_bounds, num_replicates)
-    D = np.mean(Dreps, axis=1)
-    assert len(D) == num_in_bounds
-    with np.errstate(divide="ignore"):
-        log_D[in_bounds] = np.log(D)
-
-    return log_D
-
-
-def _run_mcmc_emcee(
-    start: np.ndarray,
-    parameters: Parameters,
-    walkers: int,
-    steps: int,
-    rng: np.random.Generator,
-    log_prob_func,
-):
-    sampler = emcee.EnsembleSampler(
-        walkers,
-        len(parameters),
-        log_prob_func,
-        vectorize=True,
-    )
-
-    mt_initial_state = np.random.mtrand.RandomState(rng.integers(2**31)).get_state()
-    state = emcee.State(start, random_state=mt_initial_state)
-    sampler.run_mcmc(state, nsteps=steps)
-    thetas = sampler.get_chain()
-    assert thetas.shape == (steps, walkers, len(parameters))
-
-    with np.errstate(over="ignore"):
-        probs = np.exp(sampler.get_log_prob())
-    assert probs.shape == (steps, walkers)
-
-    # XXX: use logger
-    print("MCMC acceptance rate", np.mean(sampler.acceptance_fraction))
-
-    return thetas, probs
-
-
 class NamedSeedSequence(np.random.SeedSequence):
     """
     Extends numpy SeedSequence to support string-valued spawn_key.
@@ -555,6 +483,78 @@ def predict(
     return thetas, probs
 
 
+def _log_prob(
+    thetas: np.ndarray,
+    *,
+    discriminator: Discriminator,
+    generator: Callable,
+    parameters: Parameters,
+    rng: np.random.Generator,
+    num_replicates: int,
+    parallelism: int,
+) -> np.ndarray:
+    """
+    Function to be maximised by mcmc. Vectorised version.
+    """
+    num_walkers, num_params = thetas.shape
+    assert num_params == len(parameters)
+    log_D = np.full(num_walkers, -np.inf)
+
+    # Identify workers with one or more out-of-bounds parameters.
+    in_bounds = parameters.bounds_contain(thetas)
+    num_in_bounds = np.sum(in_bounds)
+    if num_in_bounds == 0:
+        return log_D
+
+    seeds = rng.integers(low=1, high=2**31, size=num_replicates * num_in_bounds)
+    thetas_reps = np.repeat(thetas[in_bounds], num_replicates, axis=0)
+    assert len(seeds) == len(thetas_reps)
+    M = _sim_replicates(
+        sim_func=generator,
+        args=zip(seeds, thetas_reps),
+        num_replicates=len(seeds),
+        parallelism=parallelism,
+    )
+    Dreps = discriminator.predict(M).reshape(num_in_bounds, num_replicates)
+    D = np.mean(Dreps, axis=1)
+    assert len(D) == num_in_bounds
+    with np.errstate(divide="ignore"):
+        log_D[in_bounds] = np.log(D)
+
+    return log_D
+
+
+def _run_mcmc_emcee(
+    start: np.ndarray,
+    parameters: Parameters,
+    walkers: int,
+    steps: int,
+    rng: np.random.Generator,
+    log_prob_func,
+):
+    sampler = emcee.EnsembleSampler(
+        walkers,
+        len(parameters),
+        log_prob_func,
+        vectorize=True,
+    )
+
+    mt_initial_state = np.random.mtrand.RandomState(rng.integers(2**31)).get_state()
+    state = emcee.State(start, random_state=mt_initial_state)
+    sampler.run_mcmc(state, nsteps=steps)
+    thetas = sampler.get_chain()
+    assert thetas.shape == (steps, walkers, len(parameters))
+
+    with np.errstate(over="ignore"):
+        probs = np.exp(sampler.get_log_prob())
+    assert probs.shape == (steps, walkers)
+
+    # XXX: use logger
+    print("MCMC acceptance rate", np.mean(sampler.acceptance_fraction))
+
+    return thetas, probs
+
+
 @cleanup_process_pool_afterwards
 def mcmc_gan(
     *,
@@ -613,8 +613,6 @@ def mcmc_gan(
     :param seed:
         Seed for the random number generator.
     """
-    num_replicates = math.ceil((training_replicates + test_replicates) / 2)
-
     if working_directory is None:
         working_directory = "."
     store = Store(working_directory, create=True)
@@ -624,7 +622,7 @@ def mcmc_gan(
 
     ss = NamedSeedSequence(seed)
     ss_loop, ss_mcmc, ss_thetas, ss_discr_init = ss.spawn(
-        ("mcmc-gan:loop", "mcmc-gan:mcmc", "abc-gan:thetas", "discriminator:init")
+        ("mcmc-gan:loop", "mcmc-gan:mcmc", "mcmc-gan:thetas", "discriminator:init")
     )
     rng_thetas = np.random.default_rng(ss_thetas)
     rng_mcmc = np.random.default_rng(ss_mcmc)
@@ -659,16 +657,14 @@ def mcmc_gan(
                 f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
             )
 
-        sampled_thetas = sample_smooth(
+        training_thetas = sample_smooth(
             thetas=thetas.reshape(-1, thetas.shape[-1]),
             probs=y.reshape(-1),
-            size=num_replicates,
+            size=training_replicates // 2,
             rng=rng_thetas,
             parameters=parameters,
             mode=sampling_mode,
         )
-        training_thetas = sampled_thetas[: training_replicates // 2]
-        test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
         discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
         # Starting point for the mcmc chain.
@@ -677,13 +673,29 @@ def mcmc_gan(
         training_thetas = parameters.draw_prior(
             training_replicates // 2, rng=rng_thetas
         )
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng_thetas)
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))
 
     n_target_calls = 0
     n_generator_calls = 0
+
+    val_x, val_y = None, None
+    if test_replicates >= 2:
+        ss_val, ss_test_thetas = ss.spawn(("features:val", "mcmc-gan:thetas:val"))
+        test_thetas = parameters.draw_prior(
+            test_replicates // 2, rng=np.random.default_rng(ss_test_thetas)
+        )
+        val_x, val_y, _ = _generate_training_data(
+            target=dinf_model.target_func,
+            generator=dinf_model.generator_func_v,
+            thetas=test_thetas,
+            parallelism=parallelism,
+            ss=ss_val,
+        )
+
+        n_target_calls += test_replicates // 2
+        n_generator_calls += test_replicates // 2
 
     log_prob_func = functools.partial(
         _log_prob,
@@ -700,14 +712,27 @@ def mcmc_gan(
         store.increment()
 
         (ss_loop,) = ss_loop.spawn(1)
-        _train_discriminator(
-            discriminator=discriminator,
-            dinf_model=dinf_model,
-            training_thetas=training_thetas,
-            test_thetas=test_thetas,
-            epochs=epochs,
+        ss_train, ss_fit = ss_loop.spawn(("features:train", "discriminator:fit"))
+
+        train_x, train_y, _ = _generate_training_data(
+            target=dinf_model.target_func,
+            generator=dinf_model.generator_func_v,
+            thetas=training_thetas,
             parallelism=parallelism,
-            ss=ss_loop,
+            ss=ss_train,
+        )
+        n_target_calls += training_replicates // 2
+        n_generator_calls += training_replicates // 2
+
+        discriminator.fit(
+            train_x=train_x,
+            train_y=train_y,
+            val_x=val_x,
+            val_y=val_y,
+            epochs=epochs,
+            rng=np.random.default_rng(ss_fit),
+            # Clear the training loss/accuracy metrics from last iteration.
+            reset_metrics=True,
         )
         discriminator.to_file(store[-1] / "discriminator.nn")
 
@@ -727,19 +752,16 @@ def mcmc_gan(
         # The chain for next iteration starts at the end of this chain.
         start = thetas[-1]
 
-        sampled_thetas = sample_smooth(
+        training_thetas = sample_smooth(
             thetas=thetas.reshape(-1, thetas.shape[-1]),
             probs=probs.reshape(-1),
-            size=num_replicates,
+            size=training_replicates // 2,
             rng=rng_thetas,
             parameters=parameters,
             mode=sampling_mode,
         )
-        training_thetas = sampled_thetas[: training_replicates // 2]
-        test_thetas = sampled_thetas[training_replicates // 2 :]
 
-        n_target_calls += num_replicates
-        n_generator_calls += num_replicates + walkers * steps * Dx_replicates
+        n_generator_calls += walkers * steps * Dx_replicates
         print(f"Target called {n_target_calls} times.")
         print(f"Generator called {n_generator_calls} times.")
 
@@ -839,7 +861,7 @@ def geometric_median(
     *,
     thetas: np.ndarray,
     probs: np.ndarray | None = None,
-) -> np.array:
+) -> np.ndarray:
     """
     Get the multivariate median of a weighted sample.
 
