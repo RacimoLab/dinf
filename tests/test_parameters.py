@@ -33,7 +33,7 @@ class TestParam:
     def test_bounds_contain_false(self, x):
         assert not Param(low=10, high=20).bounds_contain(x)
 
-    def test_bounds_contain_vector(self):
+    def test_bounds_contain_1d(self):
         p = Param(low=10, high=20)
         for xs, expected in [
             ([1, 2, 32], [False, False, False]),
@@ -47,12 +47,23 @@ class TestParam:
             assert len(xs) == len(in_bounds)
             assert np.all(in_bounds == expected)
 
+    def test_bounds_contain_2d(self):
+        p = Param(low=10, high=20)
+        for xs, expected in [
+            ([[1, 2, 32], [10, 2, 32]], [[False, False, False], [True, False, False]]),
+            ([[10, 20, 32], [10, 20, 13]], [[True, True, False], [True, True, True]]),
+            (np.array([[1, 2], [13, 13]]), [[False, False], [True, True]]),
+        ]:
+            in_bounds = p.bounds_contain(xs)
+            assert np.shape(xs) == in_bounds.shape
+            assert np.all(in_bounds == expected)
+
     @pytest.mark.parametrize("truth", (15, -15))
     def test_truth_out_of_bounds(self, truth):
         with pytest.raises(ValueError, match="truth.*not in bounds"):
             Param(low=-10, high=10, truth=truth)
 
-    @pytest.mark.parametrize("size", (1, 50))
+    @pytest.mark.parametrize("size", (1, 50, (2, 3)))
     def test_draw_prior(self, size):
         rng = np.random.default_rng(1234)
         for p in [
@@ -61,8 +72,9 @@ class TestParam:
             Param(low=10_000, high=20_000, truth=15_000),
         ]:
             xs = p.draw_prior(size, rng)
-            assert xs.shape == (size,)
-            assert np.all(p.bounds_contain(x) for x in xs)
+            shape = size if isinstance(size, tuple) else (size,)
+            assert xs.shape == shape
+            assert np.all(p.bounds_contain(xs))
 
 
 class TestParameters:
@@ -146,13 +158,16 @@ class TestParameters:
         assert a.high == 1
         assert a.name == "a"
 
-    def test_bounds_contain_true(self):
+    @pytest.mark.parametrize("size", (1, 13, (2, 3)))
+    def test_bounds_contain_true(self, size):
         rng = np.random.default_rng(1234)
 
         params = Parameters(a=Param(low=0, high=10))
-        xs = [[x] for x in params["a"].draw_prior(13, rng)]
+        xs = np.moveaxis(
+            np.array([[x] for x in params["a"].draw_prior(size, rng)]), 1, -1
+        )
         in_bounds = params.bounds_contain(xs)
-        assert len(xs) == len(in_bounds)
+        assert xs.shape[:-1] == in_bounds.shape
         assert np.all(in_bounds)
 
         params = Parameters(
@@ -160,9 +175,11 @@ class TestParameters:
             b=Param(low=-1e6, high=1e6),
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
-        xs = np.array([p.draw_prior(13, rng) for p in params.values()]).T
+        xs = np.moveaxis(
+            np.array([p.draw_prior(size, rng) for p in params.values()]), 0, -1
+        )
         in_bounds = params.bounds_contain(xs)
-        assert len(xs) == len(in_bounds)
+        assert xs.shape[:-1] == in_bounds.shape
         assert np.all(in_bounds)
 
     def test_bounds_contain_false(self):
@@ -215,7 +232,7 @@ class TestParameters:
             assert len(xs) == len(in_bounds)
             assert np.all(in_bounds == expected)
 
-    @pytest.mark.parametrize("size", (1, 50))
+    @pytest.mark.parametrize("size", (1, 50, (2, 3)))
     def test_draw_prior(self, size):
         rng = np.random.default_rng(1234)
         params = Parameters(
@@ -224,9 +241,11 @@ class TestParameters:
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
         xs = params.draw_prior(size, rng)
-        assert len(xs) == size
+        assert xs.shape[-1] == len(params)
+        shape = size if isinstance(size, tuple) else (size,)
+        assert xs.shape[:-1] == shape
         in_bounds = params.bounds_contain(xs)
-        assert len(in_bounds) == size
+        assert in_bounds.shape == shape
         assert np.all(in_bounds)
 
     def test_custom_param(self):
@@ -261,55 +280,65 @@ class TestParameters:
             idx2 = np.argsort(thetas_unbounded[:, j])
             np.testing.assert_array_equal(idx1, idx2)
 
-    def test_transform_itransform_inverses(self):
+    @pytest.mark.parametrize("size", (1, 10_000, (2, 3)))
+    def test_transform_itransform_inverses(self, size):
         params = Parameters(
             a=Param(low=0, high=10),
             b=Param(low=-1e6, high=1e6),
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
-        size = 10_000
         rng = np.random.default_rng(1234)
         thetas = params.draw_prior(size, rng)
         thetas_unbounded = params.transform(thetas)
         thetas2 = params.itransform(thetas_unbounded)
         np.testing.assert_allclose(thetas, thetas2)
 
-    def test_itransform_bounded(self):
+    @pytest.mark.parametrize("size", (1, 10_000, (2, 3)))
+    def test_itransform_bounded(self, size):
         params = Parameters(
             a=Param(low=0, high=10),
             b=Param(low=-1e6, high=1e6),
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
-        size = 10_000
+        if isinstance(size, tuple):
+            shape = size + (len(params),)
+        else:
+            shape = (size, len(params))
         rng = np.random.default_rng(1234)
         for lo, hi in ((0, 1), (-1000, -50), (50, 1000), (-1e50, 1e50)):
-            U = rng.uniform(low=lo, high=hi, size=(size, len(params)))
+            U = rng.uniform(low=lo, high=hi, size=shape)
             thetas = params.itransform(U)
+            assert U.shape == thetas.shape
             assert np.all(params.bounds_contain(thetas))
 
-    def test_truncate_bounded(self):
+    @pytest.mark.parametrize("size", (1, 10_000, (2, 3)))
+    def test_truncate_bounded(self, size):
         params = Parameters(
             a=Param(low=0, high=10),
             b=Param(low=-1e6, high=1e6),
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
-        size = 10_000
+        if isinstance(size, tuple):
+            shape = size + (len(params),)
+        else:
+            shape = (size, len(params))
         rng = np.random.default_rng(1234)
         for lo, hi in ((0, 1), (-1000, -50), (50, 1000), (-1e50, 1e50)):
-            U = rng.uniform(low=lo, high=hi, size=(size, len(params)))
+            U = rng.uniform(low=lo, high=hi, size=shape)
             thetas = params.truncate(U)
+            assert U.shape == thetas.shape
             assert np.all(params.bounds_contain(thetas))
             # Truncation is idempotent.
             thetas2 = params.truncate(thetas)
             np.testing.assert_array_equal(thetas, thetas2)
 
-    def test_truncate_doesnt_change_bounded_values(self):
+    @pytest.mark.parametrize("size", (1, 10_000, (2, 3)))
+    def test_truncate_doesnt_change_bounded_values(self, size):
         params = Parameters(
             a=Param(low=0, high=10),
             b=Param(low=-1e6, high=1e6),
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
-        size = 10_000
         rng = np.random.default_rng(1234)
         thetas = params.draw_prior(size, rng)
         thetas2 = params.truncate(thetas)
@@ -341,29 +370,34 @@ class TestParameters:
             ],
         )
 
-    def test_reflect_bounded(self):
+    @pytest.mark.parametrize("size", (1, 10_000, (2, 3)))
+    def test_reflect_bounded(self, size):
         params = Parameters(
             a=Param(low=0, high=10),
             b=Param(low=-1e6, high=1e6),
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
-        size = 10_000
+        if isinstance(size, tuple):
+            shape = size + (len(params),)
+        else:
+            shape = (size, len(params))
         rng = np.random.default_rng(1234)
         for lo, hi in ((0, 1), (-1000, -50), (50, 1000), (-1e50, 1e50)):
-            U = rng.uniform(low=lo, high=hi, size=(size, len(params)))
+            U = rng.uniform(low=lo, high=hi, size=shape)
             thetas = params.reflect(U)
+            assert U.shape == thetas.shape
             assert np.all(params.bounds_contain(thetas))
             # Reflection is idempotent.
             thetas2 = params.reflect(thetas)
             np.testing.assert_array_equal(thetas, thetas2)
 
-    def test_reflect_doesnt_change_bounded_values(self):
+    @pytest.mark.parametrize("size", (1, 10_000, (2, 3)))
+    def test_reflect_doesnt_change_bounded_values(self, size):
         params = Parameters(
             a=Param(low=0, high=10),
             b=Param(low=-1e6, high=1e6),
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
-        size = 10_000
         rng = np.random.default_rng(1234)
         thetas = params.draw_prior(size, rng)
         thetas2 = params.reflect(thetas)
