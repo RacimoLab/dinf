@@ -447,7 +447,7 @@ def log_prob(
     parameters: dinf.Parameters,
     rng: np.random.Generator,
     num_replicates: int,
-    parallelism: int,
+    pool,
 ) -> float:
     """
     Non-vector version of dinf.dinf._log_prob()
@@ -464,7 +464,7 @@ def log_prob(
         sim_func=generator,
         args=zip(seeds, params),
         num_replicates=num_replicates,
-        parallelism=parallelism,
+        pool=pool,
     )
     D = np.mean(discriminator.predict(M))
     with np.errstate(divide="ignore"):
@@ -479,17 +479,22 @@ class TestLogProb:
         cls.discriminator = dinf.Discriminator(cls.dinf_model.feature_shape).init(rng)
         training_thetas = cls.dinf_model.parameters.draw_prior(100, rng=rng)
         test_thetas = cls.dinf_model.parameters.draw_prior(0, rng=rng)
-        dinf.dinf._train_discriminator(
-            discriminator=cls.discriminator,
-            dinf_model=cls.dinf_model,
-            training_thetas=training_thetas,
-            test_thetas=test_thetas,
-            epochs=1,
-            parallelism=1,
-            ss=dinf.dinf.NamedSeedSequence(1),
-        )
+        with dinf.dinf.process_pool(None, cls.dinf_model) as pool:
+            dinf.dinf._train_discriminator(
+                discriminator=cls.discriminator,
+                dinf_model=cls.dinf_model,
+                training_thetas=training_thetas,
+                test_thetas=test_thetas,
+                epochs=1,
+                pool=pool,
+                ss=dinf.dinf.NamedSeedSequence(1),
+            )
 
     def test_log_prob(self):
+        with dinf.dinf.process_pool(None, self.dinf_model) as pool:
+            self._test_log_prob(pool)
+
+    def _test_log_prob(self, pool):
         # non-vector version
         log_prob_1 = functools.partial(
             log_prob,
@@ -498,7 +503,7 @@ class TestLogProb:
             parameters=self.dinf_model.parameters,
             rng=np.random.default_rng(1),
             num_replicates=2,
-            parallelism=1,
+            pool=pool,
         )
         # vector version
         log_prob_n = functools.partial(
@@ -508,7 +513,7 @@ class TestLogProb:
             parameters=self.dinf_model.parameters,
             rng=np.random.default_rng(1),
             num_replicates=2,
-            parallelism=1,
+            pool=pool,
         )
 
         parameters = tuple(self.dinf_model.parameters.values())
