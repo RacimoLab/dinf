@@ -7,4 +7,3 @@ write me
 
 ## MCMC
 
-## ALFI-MCMC

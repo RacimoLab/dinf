@@ -227,7 +227,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev16
+            dinf 0.2.1.dev28
             </div>
             
         </div>
@@ -434,7 +434,19 @@ title="Open an issue"
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">new</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="n">new</span><span class="o">.</span><span class="n">mkdir</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_length</span> <span class="o">+=</span> <span class="mi">1</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_length</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="Store.assert_complete"><a class="viewcode-back" href="../../api.html#dinf.Store.assert_complete">[docs]</a>    <span class="k">def</span> <span class="nf">assert_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expected_files</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Raise a RuntimeError if any expected files are missing from a subfolder.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">expected_files</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="n">file</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> is incomplete. Expected </span><span class="si">{</span><span class="n">expected_files</span><span class="si">}</span><span class="s2">. &quot;</span>
+                        <span class="s2">&quot;Delete and try again?&quot;</span>
+                    <span class="p">)</span></div></div>
 </pre></div>
 
               </div>
@@ -455,7 +467,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev16+g5234f94
+      dinf 0.2.1.dev28+g5b28a63
     </div>
 </p>
         </footer>

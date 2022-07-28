@@ -48,7 +48,6 @@
     predict
     abc_gan
     mcmc_gan
-    alfi_mcmc_gan
     pg_gan
 ```
 
@@ -76,6 +75,7 @@
     load_results
     ts_individuals
     sample_smooth
+    geometric_median
     get_samples_from_1kgp_metadata
     get_contig_lengths
     Store
@@ -164,7 +164,6 @@
 .. autofunction:: dinf.predict
 .. autofunction:: dinf.abc_gan
 .. autofunction:: dinf.mcmc_gan
-.. autofunction:: dinf.alfi_mcmc_gan
 .. autofunction:: dinf.pg_gan
 ```
 
@@ -201,6 +200,7 @@
 
 .. autofunction:: dinf.ts_individuals
 .. autofunction:: dinf.sample_smooth
+.. autofunction:: dinf.geometric_median
 
 .. autofunction:: dinf.get_samples_from_1kgp_metadata
 .. autofunction:: dinf.get_contig_lengths

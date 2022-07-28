@@ -227,7 +227,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev16
+            dinf 0.2.1.dev28
             </div>
             
         </div>
@@ -368,7 +368,6 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">optax</span>
-<span class="kn">import</span> <span class="nn">scipy.stats</span>
 
 <span class="kn">from</span> <span class="nn">.misc</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">Pytree</span><span class="p">,</span>
@@ -662,7 +661,7 @@ title="Open an issue"
 <span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
 <span class="k">class</span> <span class="nc">_NetworkWrapper</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Base class for Discriminator and Surrogate wrappers.</span>
+<span class="sd">    Base class for Discriminator wrapper.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">input_shape</span><span class="p">:</span> <span class="n">Pytree</span>
@@ -1140,167 +1139,6 @@ title="Open an issue"
     <span class="sd">&quot;&quot;&quot;Make predictions on a batch.&quot;&quot;&quot;</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="n">apply_func</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">],</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
-
-
-<span class="c1">##</span>
-<span class="c1"># Surrogate network stuff.</span>
-
-
-<span class="k">class</span> <span class="nc">SurrogateMLP</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="n">layers</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
-
-    <span class="nd">@nn</span><span class="o">.</span><span class="n">compact</span>
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>  <span class="c1"># type: ignore[override]</span>
-        <span class="n">num_params</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">inputs</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm</span><span class="p">(</span><span class="n">use_running_average</span><span class="o">=</span><span class="ow">not</span> <span class="n">train</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">size</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="c1"># Expand capacity of first layer according to input size.</span>
-                <span class="n">size</span> <span class="o">*=</span> <span class="n">num_params</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="n">size</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dense</span><span class="p">(</span><span class="mi">2</span><span class="p">)(</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">EPSILON</span> <span class="o">+</span> <span class="n">jax</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softplus</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span>
-
-
-<span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
-<span class="k">class</span> <span class="nc">Surrogate</span><span class="p">(</span><span class="n">_NetworkWrapper</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Wrapper of the surrogate network for the beta-estimation model of ALFI.</span>
-
-<span class="sd">    This network predicts the output of the discriminator network</span>
-<span class="sd">    from a set of dinf model parameters, thus bypassing the generator.</span>
-<span class="sd">    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">SurrogateMLP</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;The flax neural network module used as the surrogate.&quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">train_x</span><span class="p">,</span>
-        <span class="n">train_y</span><span class="p">,</span>
-        <span class="n">val_x</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">val_y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
-        <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="p">):</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inited</span>
-
-        <span class="c1"># The density of labels is not uniform over [0, 1], so we weight the</span>
-        <span class="c1"># loss for each instance by the inverse density at that point.</span>
-        <span class="c1"># Yang et al. 2021, https://arxiv.org/abs/2102.09554</span>
-        <span class="k">def</span> <span class="nf">weights</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">bandwidth</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">num_points</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">            Get the inverse of the density (Gaussian KDE) at points p.</span>
-<span class="sd">            &quot;&quot;&quot;</span>
-            <span class="n">kde</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">gaussian_kde</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">bandwidth</span><span class="p">)</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_points</span><span class="p">)</span>
-            <span class="n">density</span> <span class="o">=</span> <span class="n">kde</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-            <span class="n">weights</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">density</span><span class="p">)</span>
-            <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">weights</span>
-
-        <span class="n">do_eval</span> <span class="o">=</span> <span class="n">val_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">train_ds</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">train_x</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="n">train_y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">(</span><span class="n">train_y</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">do_eval</span><span class="p">:</span>
-            <span class="n">test_ds</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">val_x</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="n">val_y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">(</span><span class="n">val_y</span><span class="p">))</span>
-
-        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
-            <span class="n">loss_sum</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">loss</span> <span class="o">=</span> <span class="n">_train_step_surrogate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
-                <span class="n">loss_sum</span> <span class="o">+=</span> <span class="n">loss</span>
-                <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="n">train_loss</span> <span class="o">=</span> <span class="n">loss_sum</span> <span class="o">/</span> <span class="n">n</span>
-
-            <span class="k">if</span> <span class="n">do_eval</span><span class="p">:</span>
-                <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="n">loss_sum</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">test_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-                    <span class="n">loss_sum</span> <span class="o">+=</span> <span class="n">_train_step_surrogate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-                    <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
-                <span class="n">test_loss</span> <span class="o">=</span> <span class="n">loss_sum</span> <span class="o">/</span> <span class="n">n</span>
-
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Surrogate train loss </span><span class="si">{</span><span class="n">train_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">do_eval</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;; test loss </span><span class="si">{</span><span class="n">test_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">epoch</span> <span class="o">&lt;</span> <span class="n">epochs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="n">end</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">()</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">trained</span> <span class="o">=</span> <span class="kc">True</span>
-
-    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">trained</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Cannot make predications as the network has not been trained.&quot;</span>
-            <span class="p">)</span>
-        <span class="n">dataset</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
-        <span class="n">y</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">variables</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">batch_stats</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">batch_stats</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-            <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_predict_batch_surrogate</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">beta_loss</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">y</span> <span class="o">&lt;</span> <span class="n">EPSILON</span><span class="p">,</span> <span class="n">EPSILON</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">y</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">EPSILON</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">EPSILON</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-    <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="n">jax</span><span class="o">.</span><span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">beta</span><span class="o">.</span><span class="n">logpdf</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">loss</span>
-
-
-<span class="c1"># TODO: The beta distribution seems unnecessary. Try this?</span>
-<span class="c1"># def l2_loss(*, alpha, beta, y):</span>
-<span class="c1">#    p = alpha / (alpha + beta)</span>
-<span class="c1">#    loss = jnp.linalg.norm(p - y, axis=-1)</span>
-<span class="c1">#    return loss</span>
-
-
-<span class="nd">@functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">,</span> <span class="n">static_argnums</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,))</span>
-<span class="k">def</span> <span class="nf">_train_step_surrogate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Train for a single step.&quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">loss_fn</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
-        <span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">),</span> <span class="n">new_state</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">apply_fn</span><span class="p">(</span>
-            <span class="nb">dict</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">batch_stats</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">batch_stats</span><span class="p">),</span>
-            <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">],</span>
-            <span class="n">mutable</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;batch_stats&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">update</span> <span class="k">else</span> <span class="p">[],</span>
-            <span class="n">train</span><span class="o">=</span><span class="n">update</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">loss</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
-            <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;weights&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">beta_loss</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">])</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">new_state</span>
-
-    <span class="k">if</span> <span class="n">update</span><span class="p">:</span>
-        <span class="n">grad_fn</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">value_and_grad</span><span class="p">(</span><span class="n">loss_fn</span><span class="p">,</span> <span class="n">has_aux</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">new_state</span><span class="p">),</span> <span class="n">grads</span> <span class="o">=</span> <span class="n">grad_fn</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">apply_gradients</span><span class="p">(</span><span class="n">grads</span><span class="o">=</span><span class="n">grads</span><span class="p">,</span> <span class="n">batch_stats</span><span class="o">=</span><span class="n">new_state</span><span class="p">[</span><span class="s2">&quot;batch_stats&quot;</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">state</span><span class="p">,</span> <span class="n">loss</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">loss</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">loss_fn</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">loss</span>
-
-
-<span class="nd">@functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">,</span> <span class="n">static_argnums</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,))</span>
-<span class="k">def</span> <span class="nf">_predict_batch_surrogate</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="n">apply_func</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Make predictions on a batch.&quot;&quot;&quot;</span>
-    <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span> <span class="o">=</span> <span class="n">apply_func</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">],</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span>
 </pre></div>
 
               </div>
@@ -1321,7 +1159,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev16+g5234f94
+      dinf 0.2.1.dev28+g5b28a63
     </div>
 </p>
         </footer>
