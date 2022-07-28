@@ -604,13 +604,8 @@ class _SubCommand:
         datasets = []
         for filename in args.data_files:
             data = dinf.load_results(filename)
-            shape = data["_Pr"].shape
-            if len(shape) != 1:
-                # Bail for MCMC-GAN datasets.
-                raise ValueError(
-                    f"{filename}: I don't understand high-dimensional "
-                    f"datasets (shape={shape})."
-                )
+            # Flatten MCMC datasets with multiple chains.
+            data = data.reshape(-1)
 
             assert None in (args.top_n, args.probability_threshold)
             if args.top_n is not None:
@@ -917,7 +912,7 @@ def _kde1d_reflect(
     :param x:
         The data values.
     :param weights:
-        Weights for each data value
+        Weights for each data value.
     :param left:
         The left bound for the data.
         If None, the minimum value will be used.
@@ -1038,9 +1033,9 @@ class _Hist(_SubCommand):
         if args.resample:
             rng = np.random.default_rng(123)
             for data in datasets:
-                names = list(data.dtype.names)
+                names = list(data.dtype.names)[1:]
                 probs = data["_Pr"]
-                thetas = structured_to_unstructured(data[names[1:]])
+                thetas = structured_to_unstructured(data[names])
                 X = dinf.sample_smooth(
                     thetas=thetas,
                     probs=probs,
@@ -1049,7 +1044,7 @@ class _Hist(_SubCommand):
                     parameters=parameters,
                     mode="reflect",
                 )
-                X_dict = {name: X[..., j] for j, name in enumerate(names[1:])}
+                X_dict = {name: X[..., j] for j, name in enumerate(names)}
                 datasets_resampled.append(X_dict)
 
         with MultiPage(args.output_file, len(args.x_param)) as pages:
@@ -1074,7 +1069,7 @@ class _Hist(_SubCommand):
                     ax.set_xlabel(x_param)
                     if args.weighted:
                         hist_kw["weights"] = data["_Pr"]
-                    ci = True
+                    ci = not args.cumulative
 
                 for j, (data, path) in enumerate(zip(datasets, args.data_files)):
                     x = data[x_param]
@@ -1093,7 +1088,13 @@ class _Hist(_SubCommand):
                         xrange, pdf = _kde1d_reflect(
                             data[x_param], weights=data["_Pr"], left=left, right=right
                         )
-                        ax.plot(xrange, pdf, c="cyan", alpha=0.7)
+                        if args.cumulative:
+                            cdf = np.cumsum(pdf)
+                            cdf /= cdf[-1]
+                            y = cdf
+                        else:
+                            y = pdf
+                        ax.plot(xrange, y, c="cyan", alpha=0.7)
 
                 if args.cumulative:
                     ax.set_ylabel("cumulative density")
@@ -1107,13 +1108,13 @@ class _Hist(_SubCommand):
                 plt.close(fig)
 
 
-class _Abc(_SubCommand):
+class _Gan(_SubCommand):
     """
-    Plot ABC things.
+    Plot GAN things.
     """
 
     def __init__(self, subparsers):
-        super().__init__(subparsers, "abc")
+        super().__init__(subparsers, "gan")
 
         self.add_argument_output_file()
         self.add_argument_abc_thresholds()
@@ -1217,7 +1218,7 @@ def main(args_list=None):
     _Metrics(subparsers)
     _Hist(subparsers)
     _Hist2d(subparsers)
-    _Abc(subparsers)
+    _Gan(subparsers)
 
     args = top_parser.parse_args(args_list)
     if args.subcommand is None:

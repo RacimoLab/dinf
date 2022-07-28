@@ -4,6 +4,7 @@
 
 * Fix KDE bandwidth for abc-gan.
 * Reduce memory use for jobs with millions of simulations.
+* Remove alfi-mcmc-gan.
 
 
 ## 0.2.0 - 2022-07-20

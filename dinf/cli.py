@@ -149,18 +149,18 @@ class AbcGan(_SubCommand):
 
     Conceptually, the GAN takes the following steps for iteration j:
 
-      - sample train/test datasets from the prior[j] distribution,
+      - sample training and proposal datasets from the prior[j] distribution,
       - train the discriminator,
-      - make predictions with the discriminator,
-      - construct a posterior[j] sample from the test dataset,
+      - make predictions with the discriminator on the proposal dataset,
+      - construct a posterior[j] sample from the proposal dataset,
       - set prior[j+1] = posterior[j].
 
     In the first iteration, the parameter values given to the generator
-    to produce the test/train datasets are drawn from the parameters'
+    to produce the train/proposal datasets are drawn from the parameters'
     prior distribution. In subsequent iterations, the parameter values
     are drawn from a posterior ABC sample. The posterior is obtained by
-    weighting the prior distribution by the discriminator predictions,
-    followed by gaussian smoothing.
+    rejection sampling the proposal distribution and weighting the posterior
+    by the discriminator predictions, followed by gaussian smoothing.
     """
 
     def __init__(self, subparsers):
@@ -175,9 +175,16 @@ class AbcGan(_SubCommand):
             metavar="N",
             type=int,
             help=(
-                "In each iteraction, accept only the N top samples, "
+                "In each iteration, accept only the N top proposals, "
                 "ranked by probability."
             ),
+        )
+        group.add_argument(
+            "-P",
+            "--proposal-replicates",
+            type=int,
+            default=1000,
+            help="Number of replicates for ABC proposals.",
         )
 
         self.add_gan_parser_group()
@@ -189,55 +196,8 @@ class AbcGan(_SubCommand):
             iterations=args.iterations,
             training_replicates=args.training_replicates,
             test_replicates=args.test_replicates,
+            proposal_replicates=args.proposal_replicates,
             epochs=args.epochs,
-            working_directory=args.working_directory,
-            parallelism=args.parallelism,
-            seed=args.seed,
-        )
-
-
-class AlfiMcmcGan(_SubCommand):
-    """
-    Run the ALFI MCMC GAN.
-
-    This is an MCMC GAN with a surrogate network, as described in
-    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
-    """
-
-    def __init__(self, subparsers):
-        super().__init__(subparsers, "alfi-mcmc-gan")
-
-        self.add_common_parser_group()
-        self.add_train_parser_group()
-
-        group = self.parser.add_argument_group("MCMC arguments")
-        group.add_argument(
-            "-w",
-            "--walkers",
-            type=int,
-            default=64,
-            help="Number of independent MCMC chains.",
-        )
-        group.add_argument(
-            "-s",
-            "--steps",
-            type=int,
-            default=1000,
-            help="The chain length for each MCMC walker.",
-        )
-
-        self.add_gan_parser_group()
-
-    def __call__(self, args: argparse.Namespace):
-        dinf_model = dinf.DinfModel.from_file(args.model)
-        dinf.alfi_mcmc_gan(
-            dinf_model=dinf_model,
-            iterations=args.iterations,
-            training_replicates=args.training_replicates,
-            test_replicates=args.test_replicates,
-            epochs=args.epochs,
-            walkers=args.walkers,
-            steps=args.steps,
             working_directory=args.working_directory,
             parallelism=args.parallelism,
             seed=args.seed,
@@ -501,15 +461,12 @@ def main(args_list=None):
     )
     top_parser.add_argument("--version", action="version", version=dinf.__version__)
 
-    subparsers = top_parser.add_subparsers(
-        dest="subcommand",  # metavar="{check,abc-gan,alfi-mcmc-gan,mcmc-gan,pg-gan}"
-    )
+    subparsers = top_parser.add_subparsers(dest="subcommand")
     Check(subparsers)
     Train(subparsers)
     Predict(subparsers)
 
     AbcGan(subparsers)
-    AlfiMcmcGan(subparsers)
     McmcGan(subparsers)
     PgGan(subparsers)
 

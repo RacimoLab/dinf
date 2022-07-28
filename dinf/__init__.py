@@ -23,14 +23,12 @@ from .feature_extractor import (
 )
 from .discriminator import (
     Discriminator,
-    Surrogate,
     ExchangeableCNN,
     ExchangeablePGGAN,
     Symmetric,
 )
 from .dinf import (
     abc_gan,
-    alfi_mcmc_gan,
     mcmc_gan,
     pg_gan,
     predict,
@@ -38,4 +36,5 @@ from .dinf import (
     save_results,
     load_results,
     sample_smooth,
+    geometric_median,
 )

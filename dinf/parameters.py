@@ -220,7 +220,11 @@ class Parameters(collections.abc.Mapping):
             A 2d numpy array of parameter values, where ret[j][k] is the
             j'th draw for the k'th parameter.
         """
-        return np.transpose([p.draw_prior(size, rng) for p in self.values()])
+        return np.moveaxis(
+            np.array([p.draw_prior(size, rng) for p in self.values()]),
+            0,
+            -1,
+        )
 
     def bounds_contain(self, xs: np.ndarray, /) -> np.ndarray:
         """
@@ -254,8 +258,10 @@ class Parameters(collections.abc.Mapping):
         """
         xs = np.atleast_2d(xs)
         assert xs.shape[-1] == len(self)
-        return np.transpose(
-            [p.transform(xs[:, k]) for k, p in enumerate(self.values())]
+        return np.moveaxis(
+            np.array([p.transform(xs[..., k]) for k, p in enumerate(self.values())]),
+            0,
+            -1,
         )
 
     def itransform(self, xs: np.ndarray, /) -> np.ndarray:
@@ -271,8 +277,10 @@ class Parameters(collections.abc.Mapping):
         """
         xs = np.atleast_2d(xs)
         assert xs.shape[-1] == len(self)
-        return np.transpose(
-            [p.itransform(xs[:, k]) for k, p in enumerate(self.values())]
+        return np.moveaxis(
+            np.array([p.itransform(xs[..., k]) for k, p in enumerate(self.values())]),
+            0,
+            -1,
         )
 
     def truncate(self, xs: np.ndarray, /) -> np.ndarray:
@@ -286,7 +294,11 @@ class Parameters(collections.abc.Mapping):
         """
         xs = np.atleast_2d(xs)
         assert xs.shape[-1] == len(self)
-        return np.transpose([p.truncate(xs[:, k]) for k, p in enumerate(self.values())])
+        return np.moveaxis(
+            np.array([p.truncate(xs[..., k]) for k, p in enumerate(self.values())]),
+            0,
+            -1,
+        )
 
     def reflect(self, xs: np.ndarray, /) -> np.ndarray:
         """
@@ -305,4 +317,8 @@ class Parameters(collections.abc.Mapping):
         """
         xs = np.atleast_2d(xs)
         assert xs.shape[-1] == len(self)
-        return np.transpose([p.reflect(xs[:, k]) for k, p in enumerate(self.values())])
+        return np.moveaxis(
+            np.array([p.reflect(xs[..., k]) for k, p in enumerate(self.values())]),
+            0,
+            -1,
+        )

@@ -47,8 +47,9 @@ def test_abc_gan(tmp_path, top_n):
     dinf.dinf.abc_gan(
         dinf_model=dinf_model,
         iterations=2,
-        training_replicates=8,
-        test_replicates=8,
+        training_replicates=4,
+        test_replicates=4,
+        proposal_replicates=3,
         top_n=top_n,
         epochs=1,
         working_directory=working_directory,
@@ -61,7 +62,7 @@ def test_abc_gan(tmp_path, top_n):
         check_npz(
             working_directory / f"{i}" / "abc.npz",
             chains=1,
-            draws=4,
+            draws=3,
             parameters=dinf_model.parameters,
         )
 
@@ -70,8 +71,9 @@ def test_abc_gan(tmp_path, top_n):
     dinf.dinf.abc_gan(
         dinf_model=dinf_model,
         iterations=1,
-        training_replicates=8,
-        test_replicates=8,
+        training_replicates=4,
+        test_replicates=4,
+        proposal_replicates=3,
         top_n=top_n,
         epochs=1,
         seed=2,
@@ -81,28 +83,17 @@ def test_abc_gan(tmp_path, top_n):
         check_npz(
             working_directory / f"{i}" / "abc.npz",
             chains=1,
-            draws=4,
+            draws=3,
             parameters=dinf_model.parameters,
-        )
-
-    with pytest.raises(ValueError, match="Must have test_replicates"):
-        dinf.dinf.abc_gan(
-            dinf_model=dinf_model,
-            iterations=2,
-            training_replicates=8,
-            test_replicates=0,
-            epochs=1,
-            working_directory=working_directory,
-            parallelism=2,
-            seed=1,
         )
 
     with pytest.raises(ValueError, match="top_n"):
         dinf.dinf.abc_gan(
             dinf_model=dinf_model,
             iterations=2,
-            training_replicates=8,
-            test_replicates=8,
+            training_replicates=4,
+            test_replicates=4,
+            proposal_replicates=3,
             top_n=4,
             epochs=1,
             working_directory=working_directory,
@@ -120,8 +111,9 @@ def test_abc_gan(tmp_path, top_n):
             dinf.dinf.abc_gan(
                 dinf_model=dinf_model,
                 iterations=2,
-                training_replicates=8,
-                test_replicates=8,
+                training_replicates=4,
+                test_replicates=4,
+                proposal_replicates=3,
                 epochs=1,
                 working_directory=working_directory,
                 parallelism=2,
@@ -194,21 +186,6 @@ def test_mcmc_gan(tmp_path):
             seed=1,
         )
 
-    with pytest.raises(ValueError, match="Insufficient MCMC samples"):
-        dinf.mcmc_gan(
-            dinf_model=dinf_model,
-            iterations=2,
-            training_replicates=100,
-            test_replicates=0,
-            epochs=1,
-            walkers=6,
-            steps=1,
-            Dx_replicates=2,
-            working_directory=working_directory,
-            parallelism=2,
-            seed=1,
-        )
-
     backup = working_directory / "bak"
     for file in [
         working_directory / f"{i}" / "discriminator.nn",
@@ -225,105 +202,6 @@ def test_mcmc_gan(tmp_path):
                 walkers=6,
                 steps=1,
                 Dx_replicates=2,
-                working_directory=working_directory,
-                parallelism=2,
-                seed=1,
-            )
-        backup.rename(file)
-
-
-@pytest.mark.usefixtures("tmp_path")
-def test_alfi_mcmc_gan(tmp_path):
-    dinf_model = get_dinf_model()
-    working_directory = tmp_path / "workdir"
-    steps = 1
-    dinf.alfi_mcmc_gan(
-        dinf_model=dinf_model,
-        iterations=2,
-        training_replicates=10,
-        test_replicates=0,
-        epochs=1,
-        walkers=6,
-        steps=steps,
-        working_directory=working_directory,
-        parallelism=2,
-        seed=1,
-    )
-    assert working_directory.exists()
-    for i in range(2):
-        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
-        check_npz(
-            working_directory / f"{i}" / "mcmc.npz",
-            chains=6,
-            draws=2 * steps,
-            parameters=dinf_model.parameters,
-        )
-
-    # resume
-    os.chdir(working_directory)
-    dinf.alfi_mcmc_gan(
-        dinf_model=dinf_model,
-        iterations=1,
-        training_replicates=4,
-        test_replicates=4,
-        epochs=1,
-        walkers=6,
-        steps=steps,
-        seed=2,
-    )
-    for i in range(3):
-        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
-        check_npz(
-            working_directory / f"{i}" / "mcmc.npz",
-            chains=6,
-            draws=2 * steps,
-            parameters=dinf_model.parameters,
-        )
-
-    with pytest.raises(ValueError, match="resuming from .* which used .* walkers"):
-        dinf.alfi_mcmc_gan(
-            dinf_model=dinf_model,
-            iterations=2,
-            training_replicates=10,
-            test_replicates=0,
-            epochs=1,
-            walkers=8,
-            steps=1,
-            working_directory=working_directory,
-            parallelism=2,
-            seed=1,
-        )
-
-    with pytest.raises(ValueError, match="Insufficient MCMC samples"):
-        dinf.alfi_mcmc_gan(
-            dinf_model=dinf_model,
-            iterations=2,
-            training_replicates=100,
-            test_replicates=0,
-            epochs=1,
-            walkers=6,
-            steps=1,
-            working_directory=working_directory,
-            parallelism=2,
-            seed=1,
-        )
-
-    backup = working_directory / "bak"
-    for file in [
-        working_directory / f"{i}" / "discriminator.nn",
-        working_directory / f"{i}" / "surrogate.nn",
-        working_directory / f"{i}" / "mcmc.npz",
-    ]:
-        file.rename(backup)
-        with pytest.raises(RuntimeError, match="incomplete"):
-            dinf.alfi_mcmc_gan(
-                dinf_model=dinf_model,
-                iterations=2,
-                training_replicates=10,
-                test_replicates=0,
-                epochs=1,
-                walkers=6,
-                steps=1,
                 working_directory=working_directory,
                 parallelism=2,
                 seed=1,
@@ -561,7 +439,7 @@ def log_prob(
     parameters: dinf.Parameters,
     rng: np.random.Generator,
     num_replicates: int,
-    parallelism: int,
+    pool,
 ) -> float:
     """
     Non-vector version of dinf.dinf._log_prob()
@@ -578,7 +456,7 @@ def log_prob(
         sim_func=generator,
         args=zip(seeds, params),
         num_replicates=num_replicates,
-        parallelism=parallelism,
+        pool=pool,
     )
     D = np.mean(discriminator.predict(M))
     with np.errstate(divide="ignore"):
@@ -593,17 +471,22 @@ class TestLogProb:
         cls.discriminator = dinf.Discriminator(cls.dinf_model.feature_shape).init(rng)
         training_thetas = cls.dinf_model.parameters.draw_prior(100, rng=rng)
         test_thetas = cls.dinf_model.parameters.draw_prior(0, rng=rng)
-        dinf.dinf._train_discriminator(
-            discriminator=cls.discriminator,
-            dinf_model=cls.dinf_model,
-            training_thetas=training_thetas,
-            test_thetas=test_thetas,
-            epochs=1,
-            parallelism=1,
-            ss=dinf.dinf.NamedSeedSequence(1),
-        )
+        with dinf.dinf.process_pool(None, cls.dinf_model) as pool:
+            dinf.dinf._train_discriminator(
+                discriminator=cls.discriminator,
+                dinf_model=cls.dinf_model,
+                training_thetas=training_thetas,
+                test_thetas=test_thetas,
+                epochs=1,
+                pool=pool,
+                ss=dinf.dinf.NamedSeedSequence(1),
+            )
 
     def test_log_prob(self):
+        with dinf.dinf.process_pool(None, self.dinf_model) as pool:
+            self._test_log_prob(pool)
+
+    def _test_log_prob(self, pool):
         # non-vector version
         log_prob_1 = functools.partial(
             log_prob,
@@ -612,7 +495,7 @@ class TestLogProb:
             parameters=self.dinf_model.parameters,
             rng=np.random.default_rng(1),
             num_replicates=2,
-            parallelism=1,
+            pool=pool,
         )
         # vector version
         log_prob_n = functools.partial(
@@ -622,7 +505,7 @@ class TestLogProb:
             parameters=self.dinf_model.parameters,
             rng=np.random.default_rng(1),
             num_replicates=2,
-            parallelism=1,
+            pool=pool,
         )
 
         parameters = tuple(self.dinf_model.parameters.values())

@@ -1,35 +1,33 @@
 from __future__ import annotations
+import contextlib
 import functools
 import itertools
 import logging
-import math
-import os
 import pathlib
 import signal
-from typing import cast, Callable, Tuple
+from typing import Callable, Tuple
 import zipfile
 
 import emcee
 import jax
 import numpy as np
 from numpy.lib.recfunctions import structured_to_unstructured
+import scipy
 
 # We're compatible with the standard lib's multiprocessing,
 # but multiprocess uses dill to pickle functions which provides
 # greater flexibility to users (i.e. fewer confusing errors).
 import multiprocess as multiprocessing
 
-from .discriminator import Discriminator, Surrogate
+from .discriminator import Discriminator
 from .dinf_model import DinfModel
 from .parameters import Parameters
 from .store import Store
 
 logger = logging.getLogger(__name__)
 
-_pool = None
 
-
-def _initializer(filename):
+def _worker_init(filename):
     # Ignore ctrl-c in workers. This is handled in the main process.
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     # Ensure symbols from the user's dinf_model are avilable to workers.
@@ -37,65 +35,59 @@ def _initializer(filename):
         DinfModel.from_file(filename)
 
 
-def _process_pool_init(parallelism, dinf_model):
-    # Start the process pool before the GPU has been initialised, or using
-    # the "spawn" start method, otherwise we get weird GPU resource issues
-    # because the subprocesses are holding onto some CUDA thing.
-    # We use multiprocessing, because concurrent.futures uses fork() on unix,
-    # and the initial processes are forked on demand
-    # (https://bugs.python.org/issue39207), which means they can be forked
-    # after the GPU has been initialised.
-    global _pool
-    assert _pool is None
+@contextlib.contextmanager
+def process_pool(parallelism, dinf_model):
+    """
+    A context manager to open a process pool with the "spawn" start method.
+
+    This is a wrapper for multiprocessing.Pool, but we don't use its
+    context manager because it exits with pool.terminate() and we'd rather
+    pool.close() and pool.join(). See
+    https://pytest-cov.readthedocs.io/en/latest/subprocess-support.html
+
+    The process pool must be started before the GPU has been initialised,
+    or using the "spawn" start method, otherwise we get weird GPU resource
+    issues because the fork()'ed subprocesses inherit CUDA resource locks.
+    Note also that concurrent.futures uses fork() on unix, and the initial
+    processes are forked on demand (https://bugs.python.org/issue39207),
+    which means they can be forked after the GPU has been initialised.
+    """
+    if parallelism == 1:
+        # Dummy pool.
+
+        class P:
+            imap = map
+
+        yield P()
+        return
+
     ctx = multiprocessing.get_context("spawn")
-    _pool = ctx.Pool(
+    pool = ctx.Pool(
         processes=parallelism,
-        initializer=_initializer,
+        initializer=_worker_init,
         initargs=(dinf_model.filename,),
         # Workers don't release resources properly, so recycle them
         # periodically to reduce memory consumption.
         maxtasksperchild=1000,
     )
+    terminate = False
+    try:
+        yield pool
+    except KeyboardInterrupt:
+        terminate = True
+        raise
+    finally:
+        if terminate:
+            pool.terminate()
+        else:
+            pool.close()
+        pool.join()
 
 
-def cleanup_process_pool_afterwards(func):
-    """
-    A decorator for functions using the process pool, to do cleanup.
-    """
-
-    def wrapper(*args, **kwargs):
-        global _pool
-        terminate = False
-        try:
-            return func(*args, **kwargs)
-        except KeyboardInterrupt:
-            terminate = True
-            raise
-        finally:
-            if _pool is not None:
-                if terminate:
-                    _pool.terminate()
-                else:
-                    # close() instead of terminate() when reasonable to do so.
-                    # https://pytest-cov.readthedocs.io/en/latest/subprocess-support.html
-                    _pool.close()
-                _pool.join()
-                _pool = None
-
-    return functools.update_wrapper(wrapper, func)
-
-
-def _sim_replicates(*, sim_func, args, num_replicates, parallelism):
-    if parallelism == 1:
-        map_f = map
-    else:
-        global _pool
-        assert _pool is not None
-        map_f = _pool.imap
-
+def _sim_replicates(*, sim_func, args, num_replicates, pool):
     result = None
     treedef = None
-    for j, M in enumerate(map_f(sim_func, args)):
+    for j, M in enumerate(pool.imap(sim_func, args)):
         if result is None:
             treedef = jax.tree_util.tree_structure(M)
             result = []
@@ -106,7 +98,7 @@ def _sim_replicates(*, sim_func, args, num_replicates, parallelism):
     return jax.tree_util.tree_unflatten(treedef, result)
 
 
-def _generate_data(*, generator, thetas, parallelism, rng):
+def _generate_data(*, generator, thetas, pool, rng):
     """
     Return generator output for randomly drawn parameter values.
     """
@@ -116,12 +108,12 @@ def _generate_data(*, generator, thetas, parallelism, rng):
         sim_func=generator,
         args=zip(seeds, thetas),
         num_replicates=num_replicates,
-        parallelism=parallelism,
+        pool=pool,
     )
     return data
 
 
-def _observe_data(*, target, num_replicates, parallelism, rng):
+def _observe_data(*, target, num_replicates, pool, rng):
     """
     Return observations from the target dataset.
     """
@@ -130,24 +122,24 @@ def _observe_data(*, target, num_replicates, parallelism, rng):
         sim_func=target,
         args=seeds,
         num_replicates=num_replicates,
-        parallelism=parallelism,
+        pool=pool,
     )
     return data
 
 
-def _generate_training_data(*, target, generator, thetas, parallelism, ss):
+def _generate_training_data(*, target, generator, thetas, pool, ss):
     ss_generator, ss_target = ss.spawn(("generator", "target"))
     num_replicates = len(thetas)
     x_generator = _generate_data(
         generator=generator,
         thetas=thetas,
-        parallelism=parallelism,
+        pool=pool,
         rng=np.random.default_rng(ss_generator),
     )
     x_target = _observe_data(
         target=target,
         num_replicates=num_replicates,
-        parallelism=parallelism,
+        pool=pool,
         rng=np.random.default_rng(ss_target),
     )
     # XXX: Large copy doubles peak memory.
@@ -279,101 +271,6 @@ def _load_results_unstructured(
     return thetas, probs
 
 
-def _log_prob(
-    thetas: np.ndarray,
-    *,
-    discriminator: Discriminator,
-    generator: Callable,
-    parameters: Parameters,
-    rng: np.random.Generator,
-    num_replicates: int,
-    parallelism: int,
-) -> np.ndarray:
-    """
-    Function to be maximised by mcmc. Vectorised version.
-    """
-    num_walkers, num_params = thetas.shape
-    assert num_params == len(parameters)
-    log_D = np.full(num_walkers, -np.inf)
-
-    # Identify workers with one or more out-of-bounds parameters.
-    in_bounds = parameters.bounds_contain(thetas)
-    num_in_bounds = np.sum(in_bounds)
-    if num_in_bounds == 0:
-        return log_D
-
-    seeds = rng.integers(low=1, high=2**31, size=num_replicates * num_in_bounds)
-    thetas_reps = np.repeat(thetas[in_bounds], num_replicates, axis=0)
-    assert len(seeds) == len(thetas_reps)
-    M = _sim_replicates(
-        sim_func=generator,
-        args=zip(seeds, thetas_reps),
-        num_replicates=len(seeds),
-        parallelism=parallelism,
-    )
-    Dreps = discriminator.predict(M).reshape(num_in_bounds, num_replicates)
-    D = np.mean(Dreps, axis=1)
-    assert len(D) == num_in_bounds
-    with np.errstate(divide="ignore"):
-        log_D[in_bounds] = np.log(D)
-
-    return log_D
-
-
-def _log_prob_surrogate(
-    thetas: np.ndarray,
-    *,
-    surrogate: Surrogate,
-    parameters: Parameters,
-) -> np.ndarray:
-    """
-    Function to be maximised by alfi mcmc.
-    """
-    num_walkers, num_params = thetas.shape
-    assert num_params == len(parameters)
-    log_D = np.full(num_walkers, -np.inf)
-
-    # Identify workers with one or more out-of-bounds parameters.
-    in_bounds = parameters.bounds_contain(thetas)
-    num_in_bounds = np.sum(in_bounds)
-    if num_in_bounds > 0:
-        alpha, beta = surrogate.predict(thetas[in_bounds])
-        with np.errstate(divide="ignore"):
-            log_D[in_bounds] = np.log(alpha / (alpha + beta))
-    return log_D
-
-
-def _run_mcmc_emcee(
-    start: np.ndarray,
-    parameters: Parameters,
-    walkers: int,
-    steps: int,
-    rng: np.random.Generator,
-    log_prob_func,
-):
-    sampler = emcee.EnsembleSampler(
-        walkers,
-        len(parameters),
-        log_prob_func,
-        vectorize=True,
-    )
-
-    mt_initial_state = np.random.mtrand.RandomState(rng.integers(2**31)).get_state()
-    state = emcee.State(start, random_state=mt_initial_state)
-    sampler.run_mcmc(state, nsteps=steps)
-    thetas = sampler.get_chain()
-    assert thetas.shape == (steps, walkers, len(parameters))
-
-    with np.errstate(over="ignore"):
-        probs = np.exp(sampler.get_log_prob())
-    assert probs.shape == (steps, walkers)
-
-    # XXX: use logger
-    print("MCMC acceptance rate", np.mean(sampler.acceptance_fraction))
-
-    return thetas, probs
-
-
 class NamedSeedSequence(np.random.SeedSequence):
     """
     Extends numpy SeedSequence to support string-valued spawn_key.
@@ -402,7 +299,7 @@ def _train_discriminator(
     training_thetas: np.ndarray,
     test_thetas: np.ndarray,
     epochs: int,
-    parallelism: int,
+    pool,
     ss: NamedSeedSequence,
     entropy_regularisation: bool = False,
 ):
@@ -413,7 +310,7 @@ def _train_discriminator(
         target=dinf_model.target_func,
         generator=dinf_model.generator_func_v,
         thetas=training_thetas,
-        parallelism=parallelism,
+        pool=pool,
         ss=ss_train,
     )
 
@@ -423,7 +320,7 @@ def _train_discriminator(
             target=dinf_model.target_func,
             generator=dinf_model.generator_func_v,
             thetas=test_thetas,
-            parallelism=parallelism,
+            pool=pool,
             ss=ss_val,
         )
 
@@ -442,35 +339,6 @@ def _train_discriminator(
     return metrics, train_x_generator, val_x_generator
 
 
-def _train_surrogate(
-    *,
-    discriminator: Discriminator,
-    surrogate: Surrogate,
-    training_thetas: np.ndarray,
-    test_thetas: np.ndarray,
-    train_x_generator,
-    test_x_generator,
-    epochs: int,
-):
-    train_y_pred = discriminator.predict(train_x_generator)
-    val_x_thetas = None
-    val_y_pred = None
-    if test_thetas is not None and len(test_thetas) > 0:
-        val_x_thetas = test_thetas
-        val_y_pred = discriminator.predict(test_x_generator)
-    surrogate.fit(
-        train_x=training_thetas,
-        train_y=train_y_pred,
-        val_x=val_x_thetas,
-        val_y=val_y_pred,
-        epochs=epochs,
-    )
-
-    alpha, beta = surrogate.predict(training_thetas)
-    return train_y_pred, alpha, beta
-
-
-@cleanup_process_pool_afterwards
 def train(
     *,
     dinf_model: DinfModel,
@@ -502,11 +370,6 @@ def train(
     :return:
         The trained discriminator.
     """
-    if parallelism is None:
-        parallelism = cast(int, os.cpu_count())
-
-    _process_pool_init(parallelism, dinf_model)
-
     ss = NamedSeedSequence(seed)
     ss_train, ss_test, ss_discr_init = ss.spawn(
         ("thetas:train", "thetas:test", "discriminator:init")
@@ -524,19 +387,19 @@ def train(
     ).init(np.random.default_rng(ss_discr_init))
     # discriminator.summary()
 
-    _train_discriminator(
-        discriminator=discriminator,
-        dinf_model=dinf_model,
-        training_thetas=training_thetas,
-        test_thetas=test_thetas,
-        epochs=epochs,
-        parallelism=parallelism,
-        ss=ss,
-    )
+    with process_pool(parallelism, dinf_model) as pool:
+        _train_discriminator(
+            discriminator=discriminator,
+            dinf_model=dinf_model,
+            training_thetas=training_thetas,
+            test_thetas=test_thetas,
+            epochs=epochs,
+            pool=pool,
+            ss=ss,
+        )
     return discriminator
 
 
-@cleanup_process_pool_afterwards
 def predict(
     *,
     discriminator: Discriminator,
@@ -573,39 +436,107 @@ def predict(
         thetas[j][k] is the j'th draw for the k'th parameter, and
         probs[j] is the discriminator prediction for the j'th draw.
     """
-    if parallelism is None:
-        parallelism = cast(int, os.cpu_count())
-
-    _process_pool_init(parallelism, dinf_model)
     ss = NamedSeedSequence(seed)
 
-    if sample_target:
-        (ss_target,) = ss.spawn(("features:predict:target",))
-        x = _observe_data(
-            target=dinf_model.target_func,
-            num_replicates=replicates,
-            parallelism=parallelism,
-            rng=np.random.default_rng(ss_target),
-        )
-        thetas = None
-    else:
-        ss_thetas, ss_generator = ss.spawn(
-            ("thetas:predict", "features:predict:generator")
-        )
-        thetas = dinf_model.parameters.draw_prior(
-            replicates, rng=np.random.default_rng(ss_thetas)
-        )
-        x = _generate_data(
-            generator=dinf_model.generator_func_v,
-            thetas=thetas,
-            parallelism=parallelism,
-            rng=np.random.default_rng(ss_generator),
-        )
+    with process_pool(parallelism, dinf_model) as pool:
+        if sample_target:
+            (ss_target,) = ss.spawn(("features:predict:target",))
+            x = _observe_data(
+                target=dinf_model.target_func,
+                num_replicates=replicates,
+                pool=pool,
+                rng=np.random.default_rng(ss_target),
+            )
+            thetas = None
+        else:
+            ss_thetas, ss_generator = ss.spawn(
+                ("thetas:predict", "features:predict:generator")
+            )
+            thetas = dinf_model.parameters.draw_prior(
+                replicates, rng=np.random.default_rng(ss_thetas)
+            )
+            x = _generate_data(
+                generator=dinf_model.generator_func_v,
+                thetas=thetas,
+                pool=pool,
+                rng=np.random.default_rng(ss_generator),
+            )
     probs = discriminator.predict(x)
     return thetas, probs
 
 
-@cleanup_process_pool_afterwards
+def _log_prob(
+    thetas: np.ndarray,
+    *,
+    discriminator: Discriminator,
+    generator: Callable,
+    parameters: Parameters,
+    rng: np.random.Generator,
+    num_replicates: int,
+    pool,
+) -> np.ndarray:
+    """
+    Function to be maximised by mcmc. Vectorised version.
+    """
+    num_walkers, num_params = thetas.shape
+    assert num_params == len(parameters)
+    log_D = np.full(num_walkers, -np.inf)
+
+    # Identify workers with one or more out-of-bounds parameters.
+    in_bounds = parameters.bounds_contain(thetas)
+    num_in_bounds = np.sum(in_bounds)
+    if num_in_bounds == 0:
+        return log_D
+
+    seeds = rng.integers(low=1, high=2**31, size=num_replicates * num_in_bounds)
+    thetas_reps = np.repeat(thetas[in_bounds], num_replicates, axis=0)
+    assert len(seeds) == len(thetas_reps)
+    M = _sim_replicates(
+        sim_func=generator,
+        args=zip(seeds, thetas_reps),
+        num_replicates=len(seeds),
+        pool=pool,
+    )
+    Dreps = discriminator.predict(M).reshape(num_in_bounds, num_replicates)
+    D = np.mean(Dreps, axis=1)
+    assert len(D) == num_in_bounds
+    with np.errstate(divide="ignore"):
+        log_D[in_bounds] = np.log(D)
+
+    return log_D
+
+
+def _run_mcmc_emcee(
+    start: np.ndarray,
+    parameters: Parameters,
+    walkers: int,
+    steps: int,
+    rng: np.random.Generator,
+    log_prob_func,
+):
+    sampler = emcee.EnsembleSampler(
+        walkers,
+        len(parameters),
+        log_prob_func,
+        vectorize=True,
+    )
+
+    mt_initial_state = np.random.mtrand.RandomState(rng.integers(2**31)).get_state()
+    state = emcee.State(start, random_state=mt_initial_state)
+    sampler.run_mcmc(state, nsteps=steps)
+    thetas = sampler.get_chain()
+    assert thetas.shape == (steps, walkers, len(parameters))
+
+    with np.errstate(over="ignore"):
+        probs = np.exp(sampler.get_log_prob())
+    assert probs.shape == (steps, walkers)
+
+    # XXX: use logger
+    print("MCMC acceptance rate", np.mean(sampler.acceptance_fraction))
+
+    return thetas, probs
+
+
 def mcmc_gan(
     *,
     dinf_model: DinfModel,
@@ -663,45 +594,29 @@ def mcmc_gan(
     :param seed:
         Seed for the random number generator.
     """
-    num_replicates = math.ceil((training_replicates + test_replicates) / 2)
-    if steps * walkers < num_replicates:
-        raise ValueError(
-            f"Insufficient MCMC samples (steps * walkers = {steps * walkers}) "
-            "for training the discriminator: "
-            f"(training_replicates + test_replicates) / 2 = {num_replicates}"
-        )
-
     if working_directory is None:
         working_directory = "."
     store = Store(working_directory, create=True)
-
-    if parallelism is None:
-        parallelism = cast(int, os.cpu_count())
+    store.assert_complete(["discriminator.nn", "mcmc.npz"])
+    resume = len(store) > 0
 
     ss = NamedSeedSequence(seed)
     ss_loop, ss_mcmc, ss_thetas, ss_discr_init = ss.spawn(
-        ("mcmc-gan:loop", "mcmc-gan:mcmc", "abc-gan:thetas", "discriminator:init")
+        ("mcmc-gan:loop", "mcmc-gan:mcmc", "mcmc-gan:thetas", "discriminator:init")
     )
     rng_thetas = np.random.default_rng(ss_thetas)
     rng_mcmc = np.random.default_rng(ss_mcmc)
 
-    _process_pool_init(parallelism, dinf_model)
     parameters = dinf_model.parameters
-    resume = False
-    if len(store) > 0:
-        files_exist = [
-            (store[-1] / fn).exists() for fn in ("discriminator.nn", "mcmc.npz")
-        ]
-        if sum(files_exist) == 1:
-            raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
-        resume = all(files_exist)
+
+    sampling_mode = "reflect"
 
     discriminator = Discriminator(
         dinf_model.feature_shape, network=dinf_model.discriminator_network
     )
     if resume:
         discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
-        thetas, _ = _load_results_unstructured(
+        thetas, y = _load_results_unstructured(
             store[-1] / "mcmc.npz", parameters=parameters
         )
         assert len(thetas.shape) == 3
@@ -713,11 +628,14 @@ def mcmc_gan(
                 f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
             )
 
-        sampled_thetas = rng_thetas.choice(
-            thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
+        training_thetas = sample_smooth(
+            thetas=thetas.reshape(-1, thetas.shape[-1]),
+            probs=y.reshape(-1),
+            size=training_replicates // 2,
+            rng=rng_thetas,
+            parameters=parameters,
+            mode=sampling_mode,
         )
-        training_thetas = sampled_thetas[: training_replicates // 2]
-        test_thetas = sampled_thetas[training_replicates // 2 :]
     else:
         discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
         # Starting point for the mcmc chain.
@@ -726,7 +644,6 @@ def mcmc_gan(
         training_thetas = parameters.draw_prior(
             training_replicates // 2, rng=rng_thetas
         )
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng_thetas)
 
     # If start values are linearly dependent, emcee complains loudly.
     assert not np.any((start[0] == start[1:]).all(axis=-1))
@@ -734,58 +651,96 @@ def mcmc_gan(
     n_target_calls = 0
     n_generator_calls = 0
 
-    log_prob_func = functools.partial(
-        _log_prob,
-        discriminator=discriminator,
-        generator=dinf_model.generator_func_v,
-        parameters=parameters,
-        parallelism=parallelism,
-        num_replicates=Dx_replicates,
-        rng=rng_thetas,
-    )
+    with process_pool(parallelism, dinf_model) as pool:
 
-    for i in range(len(store) + 1, len(store) + 1 + iterations):
-        print(f"MCMC GAN iteration {i}")
-        store.increment()
+        val_x, val_y = None, None
+        if test_replicates >= 2:
+            ss_val, ss_test_thetas = ss.spawn(("features:val", "mcmc-gan:thetas:val"))
+            test_thetas = parameters.draw_prior(
+                test_replicates // 2, rng=np.random.default_rng(ss_test_thetas)
+            )
+            val_x, val_y, _ = _generate_training_data(
+                target=dinf_model.target_func,
+                generator=dinf_model.generator_func_v,
+                thetas=test_thetas,
+                pool=pool,
+                ss=ss_val,
+            )
 
-        (ss_loop,) = ss_loop.spawn(1)
-        _train_discriminator(
+            n_target_calls += test_replicates // 2
+            n_generator_calls += test_replicates // 2
+
+        log_prob_func = functools.partial(
+            _log_prob,
             discriminator=discriminator,
-            dinf_model=dinf_model,
-            training_thetas=training_thetas,
-            test_thetas=test_thetas,
-            epochs=epochs,
-            parallelism=parallelism,
-            ss=ss_loop,
-        )
-        discriminator.to_file(store[-1] / "discriminator.nn")
-
-        thetas, probs = _run_mcmc_emcee(
-            start=start,
+            generator=dinf_model.generator_func_v,
             parameters=parameters,
-            walkers=walkers,
-            steps=steps,
-            rng=rng_mcmc,
-            log_prob_func=log_prob_func,
-        )
-        assert thetas.shape == (steps, walkers, len(parameters))
-        save_results(
-            store[-1] / "mcmc.npz", thetas=thetas, probs=probs, parameters=parameters
+            pool=pool,
+            num_replicates=Dx_replicates,
+            rng=rng_thetas,
         )
 
-        # The chain for next iteration starts at the end of this chain.
-        start = thetas[-1]
+        for i in range(len(store), len(store) + iterations):
+            print(f"MCMC GAN iteration {i}")
 
-        sampled_thetas = rng_thetas.choice(
-            thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
-        )
-        training_thetas = sampled_thetas[: training_replicates // 2]
-        test_thetas = sampled_thetas[training_replicates // 2 :]
+            (ss_loop,) = ss_loop.spawn(1)
+            ss_train, ss_fit = ss_loop.spawn(("features:train", "discriminator:fit"))
 
-        n_target_calls += num_replicates
-        n_generator_calls += num_replicates + walkers * steps * Dx_replicates
-        print(f"Target called {n_target_calls} times.")
-        print(f"Generator called {n_generator_calls} times.")
+            train_x, train_y, _ = _generate_training_data(
+                target=dinf_model.target_func,
+                generator=dinf_model.generator_func_v,
+                thetas=training_thetas,
+                pool=pool,
+                ss=ss_train,
+            )
+            n_target_calls += training_replicates // 2
+            n_generator_calls += training_replicates // 2
+
+            discriminator.fit(
+                train_x=train_x,
+                train_y=train_y,
+                val_x=val_x,
+                val_y=val_y,
+                epochs=epochs,
+                rng=np.random.default_rng(ss_fit),
+                # Clear the training loss/accuracy metrics from last iteration.
+                reset_metrics=True,
+            )
+
+            store.increment()
+            discriminator.to_file(store[-1] / "discriminator.nn")
+
+            thetas, probs = _run_mcmc_emcee(
+                start=start,
+                parameters=parameters,
+                walkers=walkers,
+                steps=steps,
+                rng=rng_mcmc,
+                log_prob_func=log_prob_func,
+            )
+            assert thetas.shape == (steps, walkers, len(parameters))
+            save_results(
+                store[-1] / "mcmc.npz",
+                thetas=thetas,
+                probs=probs,
+                parameters=parameters,
+            )
+
+            # The chain for next iteration starts at the end of this chain.
+            start = thetas[-1]
+
+            training_thetas = sample_smooth(
+                thetas=thetas.reshape(-1, thetas.shape[-1]),
+                probs=probs.reshape(-1),
+                size=training_replicates // 2,
+                rng=rng_thetas,
+                parameters=parameters,
+                mode=sampling_mode,
+            )
+
+            n_generator_calls += walkers * steps * Dx_replicates
+            print(f"Target called {n_target_calls} times.")
+            print(f"Generator called {n_generator_calls} times.")
 
 
 def _sample_smooth(*, thetas, probs, size: int, rng):
@@ -879,6 +834,44 @@ def sample_smooth(
     return X
 
 
+def geometric_median(
+    *,
+    thetas: np.ndarray,
+    probs: np.ndarray | None = None,
+) -> np.ndarray:
+    """
+    Get the multivariate median of a weighted sample.
+
+    :param thetas:
+        Parameter values. thetas[j][k] is the value of the k'th parameter
+        for the j'th multivariate sample.
+    :param probs:
+        Discriminator predictions corresponding to the ``thetas``.
+    :return:
+        Median position in multivariate space.
+    """
+
+    # Normalize by mean/stddev so each parameter is treated equally
+    # in the objective function.
+    mean = np.mean(thetas, axis=0)
+    stddev = np.std(thetas, axis=0)
+    x = (thetas - mean) / stddev
+
+    def objective(u):
+        """Minimise the sum of distances from u to x."""
+        d = np.linalg.norm(x - u, axis=1)
+        # Minimise the mean distance rather than the sum, to avoid extremely
+        # large values that trigger the notorious scipy error:
+        #   "Desired error not necessarily achieved due to precision loss."
+        return np.average(d, weights=probs)
+
+    x0 = np.zeros(x.shape[1])
+    opt = scipy.optimize.minimize(objective, x0)
+    if not opt.success:
+        raise RuntimeError(f"Failed to find geometric median: {opt.message}")
+    return mean + stddev * opt.x
+
+
 def filter_top_n(
     thetas: np.ndarray,
     probs: np.ndarray,
@@ -891,13 +884,13 @@ def filter_top_n(
     return thetas[idx], probs[idx]
 
 
-@cleanup_process_pool_afterwards
 def abc_gan(
     *,
     dinf_model: DinfModel,
     iterations: int,
     training_replicates: int,
     test_replicates: int,
+    proposal_replicates: int,
     epochs: int,
     top_n: int | None = None,
     working_directory: None | str | pathlib.Path = None,
@@ -905,22 +898,22 @@ def abc_gan(
     seed: None | int = None,
 ):
     """
-    Run the ABC GAN.
+    Adversarial Abstract Bayesian Computation.
 
     Conceptually, the GAN takes the following steps for iteration j:
 
-      - sample train/test datasets from the prior[j] distribution,
+      - sample training and proposal datasets from the prior[j] distribution,
       - train the discriminator,
-      - make predictions with the discriminator,
-      - construct a posterior[j] sample from the test dataset,
+      - make predictions with the discriminator on the proposal dataset,
+      - construct a posterior[j] sample from the proposal dataset,
       - set prior[j+1] = posterior[j].
 
     In the first iteration, the parameter values given to the generator
-    to produce the test/train datasets are drawn from the parameters'
+    to produce the train/proposal datasets are drawn from the parameters'
     prior distribution. In subsequent iterations, the parameter values
     are drawn from a posterior ABC sample. The posterior is obtained by
-    weighting the prior distribution by the discriminator predictions,
-    followed by gaussian smoothing.
+    rejection sampling the proposal distribution and weighting the posterior
+    by the discriminator predictions, followed by gaussian smoothing.
 
     :param dinf_model:
         DinfModel object that describes the dinf model.
@@ -930,8 +923,11 @@ def abc_gan(
         Size of the dataset used to train the discriminator.
         This dataset is constructed once each GAN iteration.
     :param test_replicates:
-        Size of the test dataset used to evaluate the discriminator after
-        each training epoch.
+        Size of the dataset used to evaluate the discriminator after
+        each training epoch. This dataset is constructed once before the
+        GAN iterates, and is reused in each iteration.
+    :param proposal_replicates:
+        Number of ABC proposals in each iteration.
     :param epochs:
         Number of full passes over the training dataset when training
         the discriminator.
@@ -951,23 +947,14 @@ def abc_gan(
         Seed for the random number generator.
     """
 
-    if test_replicates < 2:
-        raise ValueError(
-            "Must have test_replicates>=2. Test replicates are (also) used "
-            "for sampling the parameter values for the next GAN iteration."
-        )
-
-    num_replicates = math.ceil((training_replicates + test_replicates) / 2)
-
-    if top_n is not None and top_n >= test_replicates // 2:
-        raise ValueError(f"{top_n=}, but {test_replicates=}")
+    if top_n is not None and top_n >= proposal_replicates:
+        raise ValueError(f"{top_n=}, but {proposal_replicates=}")
 
     if working_directory is None:
         working_directory = "."
     store = Store(working_directory, create=True)
-
-    if parallelism is None:
-        parallelism = cast(int, os.cpu_count())
+    store.assert_complete(["discriminator.nn", "abc.npz"])
+    resume = len(store) > 0
 
     ss = NamedSeedSequence(seed)
     ss_loop, ss_thetas, ss_discr_init = ss.spawn(
@@ -975,17 +962,7 @@ def abc_gan(
     )
     rng_thetas = np.random.default_rng(ss_thetas)
 
-    _process_pool_init(parallelism, dinf_model)
-
     parameters = dinf_model.parameters
-    resume = False
-    if len(store) > 0:
-        files_exist = [
-            (store[-1] / fn).exists() for fn in ("discriminator.nn", "abc.npz")
-        ]
-        if sum(files_exist) == 1:
-            raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
-        resume = all(files_exist)
 
     # Use mode="reflect", because "transform" seems to produce ABC-GAN
     # degenerate states due to density accumulation at the bounds.
@@ -1003,69 +980,121 @@ def abc_gan(
         assert len(thetas.shape) == 2
         if top_n is not None:
             thetas, y = filter_top_n(thetas, y, top_n)
-        sampled_thetas = sample_smooth(
+        training_thetas = sample_smooth(
             thetas=thetas,
             probs=y,
-            size=num_replicates,
+            size=training_replicates // 2,
             rng=rng_thetas,
             parameters=parameters,
             mode=sampling_mode,
         )
-        training_thetas = sampled_thetas[: training_replicates // 2]
-        test_thetas = sampled_thetas[training_replicates // 2 :]
+        proposal_thetas = sample_smooth(
+            thetas=thetas,
+            probs=y,
+            size=proposal_replicates,
+            rng=rng_thetas,
+            parameters=parameters,
+            mode=sampling_mode,
+        )
     else:
         discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
         training_thetas = parameters.draw_prior(
             training_replicates // 2, rng=rng_thetas
         )
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng_thetas)
+        proposal_thetas = parameters.draw_prior(proposal_replicates, rng=rng_thetas)
 
     n_target_calls = 0
     n_generator_calls = 0
 
-    for i in range(len(store) + 1, len(store) + 1 + iterations):
-        print(f"ABC GAN iteration {i}")
-        store.increment()
+    with process_pool(parallelism, dinf_model) as pool:
 
-        (ss_loop,) = ss_loop.spawn(1)
-        _, _, test_x_generator = _train_discriminator(
-            discriminator=discriminator,
-            dinf_model=dinf_model,
-            training_thetas=training_thetas,
-            test_thetas=test_thetas,
-            epochs=epochs,
-            parallelism=parallelism,
-            ss=ss_loop,
-        )
-        discriminator.to_file(store[-1] / "discriminator.nn")
+        val_x, val_y = None, None
+        if test_replicates >= 2:
+            ss_val, ss_test_thetas = ss.spawn(
+                ("abc-gan:features:val", "abc-gan:thetas:val")
+            )
+            test_thetas = parameters.draw_prior(
+                test_replicates // 2, rng=np.random.default_rng(ss_test_thetas)
+            )
+            val_x, val_y, _ = _generate_training_data(
+                target=dinf_model.target_func,
+                generator=dinf_model.generator_func_v,
+                thetas=test_thetas,
+                pool=pool,
+                ss=ss_val,
+            )
+            n_target_calls += test_replicates // 2
+            n_generator_calls += test_replicates // 2
 
-        y = discriminator.predict(test_x_generator)
-        save_results(
-            store[-1] / "abc.npz",
-            probs=y,
-            thetas=test_thetas,
-            parameters=parameters,
-        )
+        for i in range(len(store), len(store) + iterations):
+            print(f"ABC GAN iteration {i}")
 
-        # Get the posterior sample for the next iteration.
-        thetas = test_thetas
-        if top_n is not None:
-            thetas, y = filter_top_n(thetas, y, top_n)
-        sampled_thetas = sample_smooth(
-            thetas=thetas,
-            probs=y,
-            size=num_replicates,
-            rng=rng_thetas,
-            parameters=parameters,
-            mode=sampling_mode,
-        )
-        training_thetas = sampled_thetas[: training_replicates // 2]
-        test_thetas = sampled_thetas[training_replicates // 2 :]
+            (ss_loop,) = ss_loop.spawn(1)
+            ss_train, ss_proposals, ss_fit = ss_loop.spawn(
+                ("features:train", "features:proposals", "discriminator:fit")
+            )
+            train_x, train_y, _ = _generate_training_data(
+                target=dinf_model.target_func,
+                generator=dinf_model.generator_func_v,
+                thetas=training_thetas,
+                pool=pool,
+                ss=ss_train,
+            )
+            n_target_calls += training_replicates // 2
+            n_generator_calls += training_replicates // 2
 
-        n_target_calls += num_replicates
-        n_generator_calls += num_replicates
-        print(f"Target called {n_target_calls} times.")
-        print(f"Generator called {n_generator_calls} times.")
+            discriminator.fit(
+                train_x=train_x,
+                train_y=train_y,
+                val_x=val_x,
+                val_y=val_y,
+                epochs=epochs,
+                rng=np.random.default_rng(ss_fit),
+                # Clear the training loss/accuracy metrics from last iteration.
+                reset_metrics=True,
+            )
+            store.increment()
+            discriminator.to_file(store[-1] / "discriminator.nn")
+
+            proposal_x = _generate_data(
+                generator=dinf_model.generator_func_v,
+                thetas=proposal_thetas,
+                pool=pool,
+                rng=np.random.default_rng(ss_proposals),
+            )
+            n_generator_calls += proposal_replicates
+
+            y = discriminator.predict(proposal_x)
+            save_results(
+                store[-1] / "abc.npz",
+                probs=y,
+                thetas=proposal_thetas,
+                parameters=parameters,
+            )
+
+            # Get the posterior sample for the next iteration.
+            thetas = proposal_thetas
+            if top_n is not None:
+                thetas, y = filter_top_n(thetas, y, top_n)
+            training_thetas = sample_smooth(
+                thetas=thetas,
+                probs=y,
+                size=training_replicates // 2,
+                rng=rng_thetas,
+                parameters=parameters,
+                mode=sampling_mode,
+            )
+            proposal_thetas = sample_smooth(
+                thetas=thetas,
+                probs=y,
+                size=proposal_replicates,
+                rng=rng_thetas,
+                parameters=parameters,
+                mode=sampling_mode,
+            )
+
+            print(f"Target called {n_target_calls} times.")
+            print(f"Generator called {n_generator_calls} times.")
 
 
 def pretraining_pg_gan(
@@ -1074,7 +1103,7 @@ def pretraining_pg_gan(
     training_replicates: int,
     test_replicates: int,
     epochs: int,
-    parallelism: int,
+    pool,
     max_pretraining_iterations: int,
     ss: NamedSeedSequence,
 ):
@@ -1108,7 +1137,7 @@ def pretraining_pg_gan(
             training_thetas=training_thetas,
             test_thetas=test_thetas,
             epochs=epochs,
-            parallelism=parallelism,
+            pool=pool,
             ss=ss,
         )
         # Use the test accuracy, unless there's no test data.
@@ -1133,7 +1162,7 @@ def pretraining_dinf(
     training_replicates: int,
     test_replicates: int,
     epochs: int,
-    parallelism: int,
+    pool,
     max_pretraining_iterations: int,
     ss: NamedSeedSequence,
 ):
@@ -1165,7 +1194,7 @@ def pretraining_dinf(
             training_thetas=training_thetas,
             test_thetas=test_thetas,
             epochs=epochs,
-            parallelism=parallelism,
+            pool=pool,
             ss=ss,
         )
 
@@ -1181,7 +1210,7 @@ def pretraining_dinf(
         generator=dinf_model.generator_func_v,
         parameters=parameters,
         num_replicates=1,
-        parallelism=parallelism,
+        pool=pool,
         rng=rng,
     )
     best = np.argmax(lp)
@@ -1270,7 +1299,6 @@ def sanneal_proposals_mvn(
     return proposal_thetas
 
 
-@cleanup_process_pool_afterwards
 def pg_gan(
     *,
     dinf_model: DinfModel,
@@ -1390,10 +1418,23 @@ def pg_gan(
         working_directory = "."
     store = Store(working_directory, create=True)
 
-    if parallelism is None:
-        parallelism = cast(int, os.cpu_count())
+    if proposals_method == "pg-gan":
+        proposals_func = sanneal_proposals_pg_gan
+    elif proposals_method == "rr":
+        proposals_func = functools.partial(
+            sanneal_proposals_rr, iteration=itertools.count()
+        )
+    elif proposals_method == "mvn":
+        proposals_func = sanneal_proposals_mvn
+    else:
+        raise ValueError(f"unknown proposals_method {proposals_method}")
 
-    _process_pool_init(parallelism, dinf_model)
+    if pretraining_method == "pg-gan":
+        pretraining_func = pretraining_pg_gan
+    elif pretraining_method == "dinf":
+        pretraining_func = pretraining_dinf
+    else:
+        raise ValueError(f"unknown pretraining_method {pretraining_method}")
 
     ss = NamedSeedSequence(seed)
     ss_accept, ss_pretraining, ss_proposals, ss_loop = ss.spawn(
@@ -1403,15 +1444,8 @@ def pg_gan(
     rng_proposals = np.random.default_rng(ss_proposals)
 
     parameters = dinf_model.parameters
-    resume = False
-    if len(store) > 0:
-        files_exist = [
-            (store[-1] / fn).exists()
-            for fn in ("discriminator.nn", "pg-gan-proposals.npz")
-        ]
-        if sum(files_exist) == 1:
-            raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
-        resume = all(files_exist)
+    resume = len(store) > 0
+    store.assert_complete(["discriminator.nn", "pg-gan-proposals.npz"])
 
     if resume:
         discriminator = Discriminator(
@@ -1431,332 +1465,101 @@ def pg_gan(
         if best_lp > current_lp or U < (current_lp / best_lp):
             theta = proposal_thetas[best]
 
-        # TODO: do something better here?
-        n_target_calls = 0
-        n_generator_calls = 0
-    else:
-
-        if pretraining_method == "pg-gan":
-            pretraining_func = pretraining_pg_gan
-        elif pretraining_method == "dinf":
-            pretraining_func = pretraining_dinf
-        else:
-            raise ValueError(f"unknown pretraining_method {pretraining_method}")
-
-        discriminator, theta, n_target_calls, n_generator_calls = pretraining_func(
-            dinf_model=dinf_model,
-            training_replicates=training_replicates,
-            test_replicates=test_replicates,
-            epochs=epochs,
-            parallelism=parallelism,
-            max_pretraining_iterations=max_pretraining_iterations,
-            ss=ss_pretraining,
-        )
-
-    if proposals_method == "pg-gan":
-        proposals_func = sanneal_proposals_pg_gan
-    elif proposals_method == "rr":
-        proposals_func = functools.partial(
-            sanneal_proposals_rr, iteration=itertools.count()
-        )
-    elif proposals_method == "mvn":
-        proposals_func = sanneal_proposals_mvn
-    else:
-        raise ValueError(f"unknown proposals_method {proposals_method}")
-
-    for i in range(len(store) + 1, len(store) + 1 + iterations):
-        print(f"PG-GAN simulated annealing iteration {i}")
-        store.increment()
-
-        temperature = max(0.02, 1.0 - i / iterations)
-
-        proposal_thetas = proposals_func(
-            theta=theta,
-            temperature=temperature,
-            rng=rng_proposals,
-            num_proposals=num_proposals,
-            parameters=parameters,
-            proposal_stddev=proposal_stddev,
-        )
-
-        lp = _log_prob(
-            proposal_thetas,
-            discriminator=discriminator,
-            generator=dinf_model.generator_func_v,
-            parameters=parameters,
-            num_replicates=Dx_replicates,
-            parallelism=parallelism,
-            rng=rng_proposals,
-        )
-        n_generator_calls += len(proposal_thetas) * Dx_replicates
-
-        save_results(
-            store[-1] / "pg-gan-proposals.npz",
-            thetas=proposal_thetas,
-            probs=np.exp(lp),
-            parameters=parameters,
-        )
-
-        current_lp = lp[0]  # First entry is for the current theta.
-        best = 1 + np.argmax(lp[1:])
-        best_lp = lp[best]
-        accept = False
-        U = rng_accept.uniform()
-        if best_lp > current_lp or U < (current_lp / best_lp) * temperature:
-            # Accept the proposal.
-            accept = True
-            theta = proposal_thetas[best]
-            current_lp = best_lp
-            print("Proposal accepted")
-        else:
-            print("Proposal rejected")
-
-        print(f"log prob: {current_lp}")
-
-        for theta_i, (name, param) in zip(theta, parameters.items()):
-            if param.truth:
-                print(f"{name}: {theta_i} (truth={param.truth})")
-            else:
-                print(f"{name}: {theta_i}")
-
-        if accept:
-            # Train.
-            # PG-GAN does 5000/5000 (real/fake) reps.
-            training_thetas = np.tile(theta, (training_replicates // 2, 1))
-            test_thetas = np.tile(theta, (test_replicates // 2, 1))
-            (ss_loop,) = ss_loop.spawn(1)
-            _train_discriminator(
-                discriminator=discriminator,
-                dinf_model=dinf_model,
-                training_thetas=training_thetas,
-                test_thetas=test_thetas,
-                epochs=epochs,
-                parallelism=parallelism,
-                ss=ss_loop,
-                # XXX: Is this helpful?
-                entropy_regularisation=True,
-            )
-            n_target_calls += num_replicates
-            n_generator_calls += num_replicates
-
-        discriminator.to_file(store[-1] / "discriminator.nn")
-
-        print(f"Target called {n_target_calls} times.")
-        print(f"Generator called {n_generator_calls} times.")
-        print()
-
-
-@cleanup_process_pool_afterwards
-def alfi_mcmc_gan(
-    *,
-    dinf_model: DinfModel,
-    iterations: int,
-    training_replicates: int,
-    test_replicates: int,
-    epochs: int,
-    walkers: int,
-    steps: int,
-    working_directory: None | str | pathlib.Path = None,
-    parallelism: None | int = None,
-    seed: None | int = None,
-):
-    """
-    Run the ALFI MCMC GAN.
-
-    This behaves similarly to :func:`mcmc_gan`, but introduces a surrogate
-    neural network that predicts the output of the discriminator from a given
-    set of input parameter values. The predictions of the surrogate network
-    are used during MCMC sampling, thus bypassing the generator and producing
-    deterministic classification of the input parameters.
-
-    Kim et al. 2020, https://arxiv.org/abs/2004.05803v1
-
-    :param dinf_model:
-        DinfModel object that describes the dinf model.
-    :param iterations:
-        Number of GAN iterations.
-    :param training_replicates:
-        Size of the dataset used to train the discriminator.
-        This dataset is constructed once each GAN iteration.
-    :param test_replicates:
-        Size of the test dataset used to evaluate the discriminator after
-        each training epoch.
-    :param epochs:
-        Number of full passes over the training dataset when training
-        the discriminator.
-    :param walkers:
-        Number of independent MCMC chains.
-    :param steps:
-        The chain length for each MCMC walker.
-    :param working_directory:
-        Folder to output results. If not specified, the current
-        directory will be used.
-    :param parallelism:
-        Number of processes to use for parallelising calls to the
-        :meth:`DinfModel.generator_func` and
-        :meth:`DinfModel.target_func`.
-    :param seed:
-        Seed for the random number generator.
-    """
-    num_replicates = math.ceil((training_replicates + test_replicates) / 2)
-    if steps * walkers < num_replicates:
-        raise ValueError(
-            f"Insufficient MCMC samples (steps * walkers = {steps * walkers}) "
-            "for training the discriminator "
-            f"((training_replicates + test_replicates / 2) = {num_replicates})"
-        )
-
-    if working_directory is None:
-        working_directory = "."
-    store = Store(working_directory, create=True)
-
-    if parallelism is None:
-        parallelism = cast(int, os.cpu_count())
-
-    _process_pool_init(parallelism, dinf_model)
-
-    ss = NamedSeedSequence(seed)
-    ss_loop, ss_mcmc, ss_thetas, ss_discr_init, ss_surrogate_init = ss.spawn(
-        (
-            "mcmc-gan:loop",
-            "mcmc-gan:mcmc",
-            "abc-gan:thetas",
-            "discriminator:init",
-            "surrogate:init",
-        )
-    )
-    rng_thetas = np.random.default_rng(ss_thetas)
-    rng_mcmc = np.random.default_rng(ss_mcmc)
-
-    parameters = dinf_model.parameters
-    resume = False
-    if len(store) > 0:
-        files_exist = [
-            (store[-1] / fn).exists()
-            for fn in ("discriminator.nn", "surrogate.nn", "mcmc.npz")
-        ]
-        if sum(files_exist) not in (0, len(files_exist)):
-            raise RuntimeError(f"{store[-1]} is incomplete. Delete and try again?")
-        resume = all(files_exist)
-
-    discriminator = Discriminator(
-        dinf_model.feature_shape, network=dinf_model.discriminator_network
-    )
-    surrogate = Surrogate(len(parameters))
-    if resume:
-        discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
-        surrogate = surrogate.from_file(store[-1] / "surrogate.nn")
-        thetas, _ = _load_results_unstructured(
-            store[-1] / "mcmc.npz", parameters=parameters
-        )
-        assert len(thetas.shape) == 3
-        # Discard first half as burn in.
-        thetas = thetas[steps:]
-        start = thetas[-1]
-        if len(start) != walkers:
-            # TODO: allow this by sampling start points for the walkers?
-            raise ValueError(
-                f"request for {walkers} walkers, but resuming from "
-                f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
-            )
-
-        sampled_thetas = rng_thetas.choice(
-            thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
-        )
-        training_thetas = sampled_thetas[: training_replicates // 2]
-        test_thetas = sampled_thetas[training_replicates // 2 :]
-    else:
-        discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
-        surrogate = surrogate.init(np.random.default_rng(ss_surrogate_init))
-        # Starting point for the mcmc chain.
-        start = parameters.draw_prior(walkers, rng=rng_thetas)
-
-        training_thetas = parameters.draw_prior(
-            training_replicates // 2, rng=rng_thetas
-        )
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng_thetas)
-
-    # If start values are linearly dependent, emcee complains loudly.
-    assert not np.any((start[0] == start[1:]).all(axis=-1))
-
     n_target_calls = 0
     n_generator_calls = 0
 
-    log_prob_func = functools.partial(
-        _log_prob_surrogate, surrogate=surrogate, parameters=parameters
-    )
+    with process_pool(parallelism, dinf_model) as pool:
 
-    for i in range(len(store) + 1, len(store) + 1 + iterations):
-        print(f"ALFI MCMC GAN iteration {i}")
-        store.increment()
+        if not resume:
+            # pre-training
 
-        (ss_loop,) = ss_loop.spawn(1)
-        _, train_x_generator, test_x_generator = _train_discriminator(
-            discriminator=discriminator,
-            dinf_model=dinf_model,
-            training_thetas=training_thetas,
-            test_thetas=test_thetas,
-            epochs=epochs,
-            parallelism=parallelism,
-            ss=ss_loop,
-        )
-        n_target_calls += num_replicates
-        n_generator_calls += num_replicates
-        discriminator.to_file(store[-1] / "discriminator.nn")
-
-        train_y_pred, alpha, beta = _train_surrogate(
-            discriminator=discriminator,
-            surrogate=surrogate,
-            training_thetas=training_thetas,
-            test_thetas=test_thetas,
-            epochs=epochs,
-            train_x_generator=train_x_generator,
-            test_x_generator=test_x_generator,
-        )
-        surrogate.to_file(store[-1] / "surrogate.nn")
-
-        # import pickle
-        # with open(store[-1] / "s.nn", "wb") as f:
-        #    pickle.dump((training_thetas, train_y_pred, alpha, beta), f)
-
-        s_pred = alpha / (alpha + beta)
-        which = "D"
-        for j in (np.argmax(train_y_pred), np.argmax(s_pred)):
-            print(
-                f"Best {which}: D(θ)={train_y_pred[j]:.3g}; "
-                f"S(θ)={s_pred[j]}; "
-                f"α={alpha[j]:.3g}, β={beta[j]:.3g}"
+            discriminator, theta, n_target_calls, n_generator_calls = pretraining_func(
+                dinf_model=dinf_model,
+                training_replicates=training_replicates,
+                test_replicates=test_replicates,
+                epochs=epochs,
+                pool=pool,
+                max_pretraining_iterations=max_pretraining_iterations,
+                ss=ss_pretraining,
             )
-            for param_name, value in zip(parameters, training_thetas[j]):
-                print(" ", param_name, value)
-            which = "S"
 
-        thetas, probs = _run_mcmc_emcee(
-            start=start,
-            parameters=parameters,
-            walkers=walkers,
-            steps=2 * steps,
-            rng=rng_mcmc,
-            log_prob_func=log_prob_func,
-        )
-        assert thetas.shape == (2 * steps, walkers, len(parameters))
-        save_results(
-            store[-1] / "mcmc.npz", thetas=thetas, probs=probs, parameters=parameters
-        )
+        for i in range(len(store), len(store) + iterations):
+            print(f"PG-GAN simulated annealing iteration {i}")
 
-        # Discard first half as burn in.
-        thetas = thetas[steps:]
+            temperature = max(0.02, 1.0 - i / iterations)
 
-        # The chain for next iteration starts at the end of this chain.
-        start = thetas[-1]
+            proposal_thetas = proposals_func(
+                theta=theta,
+                temperature=temperature,
+                rng=rng_proposals,
+                num_proposals=num_proposals,
+                parameters=parameters,
+                proposal_stddev=proposal_stddev,
+            )
 
-        sampled_thetas = rng_thetas.choice(
-            thetas.reshape(-1, thetas.shape[-1]), size=num_replicates, replace=False
-        )
-        training_thetas = sampled_thetas[: training_replicates // 2]
-        test_thetas = sampled_thetas[training_replicates // 2 :]
+            lp = _log_prob(
+                proposal_thetas,
+                discriminator=discriminator,
+                generator=dinf_model.generator_func_v,
+                parameters=parameters,
+                num_replicates=Dx_replicates,
+                pool=pool,
+                rng=rng_proposals,
+            )
+            n_generator_calls += len(proposal_thetas) * Dx_replicates
 
-        # n_target_calls += num_replicates
-        # n_generator_calls += num_replicates
-        print(f"Target called {n_target_calls} times.")
-        print(f"Generator called {n_generator_calls} times.")
+            store.increment()
+            save_results(
+                store[-1] / "pg-gan-proposals.npz",
+                thetas=proposal_thetas,
+                probs=np.exp(lp),
+                parameters=parameters,
+            )
+
+            current_lp = lp[0]  # First entry is for the current theta.
+            best = 1 + np.argmax(lp[1:])
+            best_lp = lp[best]
+            accept = False
+            U = rng_accept.uniform()
+            if best_lp > current_lp or U < (current_lp / best_lp) * temperature:
+                # Accept the proposal.
+                accept = True
+                theta = proposal_thetas[best]
+                current_lp = best_lp
+                print("Proposal accepted")
+            else:
+                print("Proposal rejected")
+
+            print(f"log prob: {current_lp}")
+
+            for theta_i, (name, param) in zip(theta, parameters.items()):
+                if param.truth:
+                    print(f"{name}: {theta_i} (truth={param.truth})")
+                else:
+                    print(f"{name}: {theta_i}")
+
+            if accept:
+                # Train.
+                # PG-GAN does 5000/5000 (real/fake) reps.
+                training_thetas = np.tile(theta, (training_replicates // 2, 1))
+                test_thetas = np.tile(theta, (test_replicates // 2, 1))
+                (ss_loop,) = ss_loop.spawn(1)
+                _train_discriminator(
+                    discriminator=discriminator,
+                    dinf_model=dinf_model,
+                    training_thetas=training_thetas,
+                    test_thetas=test_thetas,
+                    epochs=epochs,
+                    pool=pool,
+                    ss=ss_loop,
+                    # XXX: Is this helpful?
+                    entropy_regularisation=True,
+                )
+                n_target_calls += num_replicates
+                n_generator_calls += num_replicates
+
+            discriminator.to_file(store[-1] / "discriminator.nn")
+
+            print(f"Target called {n_target_calls} times.")
+            print(f"Generator called {n_generator_calls} times.")
+            print()

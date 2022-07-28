@@ -101,8 +101,9 @@ class TestAbcGan:
                 --seed 1
                 --parallelism 2
                 --iterations 2
-                --training-replicates 8
-                --test-replicates 8
+                --training-replicates 4
+                --test-replicates 4
+                --proposal-replicates 4
                 --epochs 1
                 --working-directory {working_directory}
                 {ex}
@@ -121,56 +122,6 @@ class TestAbcGan:
                 working_directory / f"{i}" / "abc.npz",
                 chains=1,
                 draws=4,
-                parameters=dinf_model.parameters,
-            )
-
-
-class TestAlfiMcmcGan:
-    def test_help(self):
-        out1 = subprocess.run(
-            "python -m dinf alfi-mcmc-gan -h".split(),
-            check=True,
-            stdout=subprocess.PIPE,
-        )
-        out2 = subprocess.run(
-            "python -m dinf alfi-mcmc-gan --help".split(),
-            check=True,
-            stdout=subprocess.PIPE,
-        )
-        assert out1.stdout == out2.stdout
-
-    @pytest.mark.usefixtures("tmp_path")
-    def test_alfi_mcmc_gan_example(self, tmp_path):
-        working_directory = tmp_path / "work_dir"
-        ex = "examples/bottleneck/model.py"
-        subprocess.run(
-            f"""
-            python -m dinf alfi-mcmc-gan
-                --seed 1
-                --parallelism 2
-                --iterations 2
-                --training-replicates 10
-                --test-replicates 0
-                --epochs 1
-                --walkers 6
-                --steps 1
-                --working-directory {working_directory}
-                {ex}
-            """.split(),
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        assert working_directory.exists()
-        dinf_model = dinf.DinfModel.from_file(ex)
-        for i in range(2):
-            check_discriminator(
-                working_directory / f"{i}" / "discriminator.nn", dinf_model
-            )
-            check_npz(
-                working_directory / f"{i}" / "mcmc.npz",
-                chains=6,
-                draws=2,
                 parameters=dinf_model.parameters,
             )
 

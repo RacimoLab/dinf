@@ -80,3 +80,15 @@ class Store(collections.abc.Sequence):
         new = self.base / f"{len(self)}"
         new.mkdir()
         self._length += 1
+
+    def assert_complete(self, expected_files):
+        """
+        Raise a RuntimeError if any expected files are missing from a subfolder.
+        """
+        for path in self:
+            for file in expected_files:
+                if not (path / file).exists():
+                    raise RuntimeError(
+                        f"{path} is incomplete. Expected {expected_files}. "
+                        "Delete and try again?"
+                    )
