@@ -2,9 +2,8 @@ from __future__ import annotations
 import collections
 import dataclasses
 import functools
+import logging
 import pathlib
-import sys
-import time
 from typing import Callable, Tuple
 
 from flax import linen as nn
@@ -13,6 +12,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
+import rich.text
 
 from .misc import (
     Pytree,
@@ -23,8 +23,7 @@ from .misc import (
     leading_dim_size,
 )
 
-# Small fudge-factor to avoid numerical instability.
-EPSILON = jnp.finfo(jnp.float32).eps
+logger = logging.getLogger(__name__)
 
 
 # Because we use batch normalisation, the training state needs to also record
@@ -364,6 +363,8 @@ class _NetworkWrapper:
         assert self.input_shape is not None
         assert self.state is not None
 
+        logger.info("initialising network with shape %s", self.input_shape)
+
         @jax.jit
         def init(*args):
             return self.network.init(*args, train=False)
@@ -381,9 +382,11 @@ class _NetworkWrapper:
             params=variables["params"],
             batch_stats=variables.get("batch_stats", {}),
         )
-        return dataclasses.replace(
+        discr = dataclasses.replace(
             self, state=state, _add_batch_dim=False, _inited=True
         )
+        logger.debug("%s", rich.text.Text.from_ansi(discr.summary()))
+        return discr
 
     def from_file(self, filename: str | pathlib.Path, /):
         """
@@ -394,9 +397,12 @@ class _NetworkWrapper:
         :return:
             A new network wrapper object.
         """
+        logger.info("%s: loading network weights", filename)
         with open(filename, "rb") as f:
             data = flax.serialization.msgpack_restore(f.read())
-        return self.fromdict(data, _err_prefix=f"{filename}: ")
+        discr = self.fromdict(data, _err_prefix=f"{filename}: ")
+        logger.debug("%s", rich.text.Text.from_ansi(discr.summary()))
+        return discr
 
     def to_file(self, filename: str | pathlib.Path, /) -> None:
         """
@@ -404,6 +410,7 @@ class _NetworkWrapper:
 
         :param filename: The path where the model will be saved.
         """
+        logger.debug("%s: saving network weights", filename)
         data = self.asdict()
         with open(filename, "wb") as f:
             f.write(flax.serialization.msgpack_serialize(data))
@@ -462,7 +469,7 @@ class _NetworkWrapper:
         )
 
     def summary(self):
-        """Print a summary of the neural network."""
+        """Return a summary of the neural network."""
         # XXX: The order of layers in the CNN are lost because of
         # https://github.com/google/jax/issues/4085
 
@@ -471,7 +478,7 @@ class _NetworkWrapper:
             self.input_shape,
             is_leaf=lambda x: isinstance(x, tuple),
         )
-        print(self.network.tabulate(jax.random.PRNGKey(0), a, train=False))
+        return self.network.tabulate(jax.random.PRNGKey(0), a, train=False)
 
 
 @dataclasses.dataclass
@@ -525,6 +532,7 @@ class Discriminator(_NetworkWrapper):
         rng: np.random.Generator,
         reset_metrics: bool = False,
         entropy_regularisation: bool = False,
+        callbacks: dict | None = None,
     ):
         """
         Fit discriminator to training data.
@@ -587,6 +595,10 @@ class Discriminator(_NetworkWrapper):
             #        f"val_y={tree_cdr(val_y)}"
             #    )
 
+        if callbacks is None:
+            callbacks = {}
+        assert all(k in ("train_batch", "test_batch", "epoch") for k in callbacks)
+
         def running_metrics(n, batch_size, current_metrics, metrics):
             new_metrics = jax.tree_util.tree_map(
                 lambda a, b: a + batch_size * b, current_metrics, metrics
@@ -596,19 +608,8 @@ class Discriminator(_NetworkWrapper):
         def train_epoch(state, train_ds, batch_size, epoch, dropout_rng, rng=rng):
             """Train for a single epoch."""
 
-            def print_metrics(n, metrics_sum, end):
-                loss = metrics_sum["loss"] / n
-                accuracy = metrics_sum["accuracy"] / n
-                print(
-                    f"[epoch {epoch}|{n}] "
-                    f"train loss {loss:.4f}, accuracy {accuracy:.4f}",
-                    end=end,
-                )
-                return loss, accuracy
-
             metrics_sum = dict(loss=0, accuracy=0)
             n = 0
-            t_prev = time.time()
             for batch in batchify(train_ds, batch_size, random=True, rng=rng):
                 state, batch_metrics = _train_step(
                     state,
@@ -620,27 +621,27 @@ class Discriminator(_NetworkWrapper):
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
                 )
-                t_now = time.time()
-                if t_now - t_prev > 0.5:
-                    print_metrics(n, metrics_sum, end="\r")
-                    t_prev = t_now
+                loss = metrics_sum["loss"] / n
+                accuracy = metrics_sum["accuracy"] / n
+                if (cb_train_batch := callbacks.get("train_batch")) is not None:
+                    cb_train_batch(n, loss, accuracy)
 
-            loss, accuracy = print_metrics(n, metrics_sum, end="")
-            sys.stdout.flush()
             return loss, accuracy, state
 
-        def eval_model(state, test_ds, batch_size):
+        def eval_model(state, test_ds, batch_size, rng=rng):
             metrics_sum = dict(loss=0, accuracy=0)
             n = 0
-            for batch in batchify(test_ds, batch_size):
+            for batch in batchify(test_ds, batch_size, random=True, rng=rng):
                 batch_metrics = _eval_step(state, batch)
                 actual_batch_size = leading_dim_size(batch["input"])
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
                 )
-            loss = metrics_sum["loss"] / n
-            accuracy = metrics_sum["accuracy"] / n
-            print(f"; test loss {loss:.4f}, accuracy {accuracy:.4f}")
+                loss = metrics_sum["loss"] / n
+                accuracy = metrics_sum["accuracy"] / n
+                if (cb_test_batch := callbacks.get("test_batch")) is not None:
+                    cb_test_batch(n, loss, accuracy)
+
             return loss, accuracy
 
         train_ds = dict(input=train_x, output=train_y)
@@ -651,6 +652,9 @@ class Discriminator(_NetworkWrapper):
             self.metrics = collections.defaultdict(list)
 
         dropout_rng1 = jax.random.PRNGKey(rng.integers(2**63))
+
+        if (cb_epoch := callbacks.get("epoch")) is not None:
+            cb_epoch(0)
 
         for epoch in range(1, epochs + 1):
             dropout_rng1, dropout_rng2 = jax.random.split(dropout_rng1)
@@ -664,8 +668,9 @@ class Discriminator(_NetworkWrapper):
                 test_loss, test_accuracy = eval_model(self.state, test_ds, batch_size)
                 self.metrics["test_loss"].append(test_loss)
                 self.metrics["test_accuracy"].append(test_accuracy)
-            else:
-                print()
+
+            if (cb_epoch := callbacks.get("epoch")) is not None:
+                cb_epoch(epoch)
 
         self.trained = True
 
@@ -673,7 +678,9 @@ class Discriminator(_NetworkWrapper):
         metrics_conclusion = {k: v[-1] for k, v in self.metrics.items()}
         return metrics_conclusion
 
-    def predict(self, x, *, batch_size: int = 1024) -> np.ndarray:
+    def predict(
+        self, x, *, batch_size: int = 1024, callbacks: dict | None = None
+    ) -> np.ndarray:
         """
         Make predictions about data using a pre-fitted neural network.
 
@@ -697,11 +704,20 @@ class Discriminator(_NetworkWrapper):
                 "Cannot make predications as the discriminator has not been trained."
             )
 
+        if callbacks is None:
+            callbacks = {}
+        assert all(k in ("batch",) for k in callbacks)
+
         dataset = dict(input=x)
         y = []
+        n = 0
         variables = dict(params=self.state.params, batch_stats=self.state.batch_stats)
         for batch in batchify(dataset, batch_size):
             y.append(_predict_batch(batch, variables, self.network.apply))
+            if (cb_batch := callbacks.get("batch")) is not None:
+                actual_batch_size = leading_dim_size(batch)
+                n += actual_batch_size
+                cb_batch(n)
         return np.concatenate(y)
 
 

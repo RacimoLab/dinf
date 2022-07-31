@@ -452,8 +452,8 @@ def log_prob(
 
     seeds = rng.integers(low=1, high=2**31, size=num_replicates)
     params = np.tile(theta, (num_replicates, 1))
-    M = dinf.dinf._sim_replicates(
-        sim_func=generator,
+    M = dinf.dinf._get_dataset_parallel(
+        func=generator,
         args=zip(seeds, params),
         num_replicates=num_replicates,
         pool=pool,

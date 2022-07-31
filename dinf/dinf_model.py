@@ -4,7 +4,7 @@ import functools
 import importlib
 import pathlib
 import sys
-from typing import Callable, Dict
+from typing import Callable, Dict, Tuple
 
 from flax import linen as nn
 import numpy as np
@@ -28,9 +28,9 @@ class DinfModel:
     """
     A container that describes the components of a Dinf model.
 
-    Constructing a Dinf model requires:
+    Constructing a Dinf model requires specifying:
 
-     - specifying the inferrable ``parameters``,
+     - the inferrable ``parameters``,
      - a ``generator_func`` function that accepts concrete parameter values,
        produces data under some simulation model, and returns a feature matrix
        (or matrices),
@@ -78,7 +78,7 @@ class DinfModel:
         that may be used to seed a random number generator.
         The subsequent (keyword) arguments correspond to concrete values for
         the :attr:`.parameters`.
-        The return value is either:
+        The return type is either:
 
          - a feature matrix, i.e. an n-dimensional numpy array, or
          - multiple feature matrices, i.e. a dictionary of n-dimensional
@@ -137,7 +137,7 @@ class DinfModel:
 
         The function takes a single (positional) argument, an integer seed,
         that may be used to seed a random number generator.
-        The return value must match the return value of :attr:`generator_func`.
+        The return type must match the return type of :attr:`generator_func`.
 
     :param feature_shape:
         The shape of the feature, or features, returned by
@@ -170,8 +170,8 @@ class DinfModel:
     """
     Wrapper for ``generator_func`` that accepts a single argument containing
     the seed and a vector of parameter values (as opposed to keyword arguments).
-    The signature is ``generator_func_v(a: Tuple[int, v: np.ndarray])``,
-    where the argument is a 2-tuple of ``(seed, vector)``.
+    The signature is ``generator_func_v(arg: Tuple[int, np.ndarray])``,
+    where ``arg`` is a 2-tuple of ``(seed, vector)``.
     """
 
     target_func: Callable | None
@@ -179,7 +179,7 @@ class DinfModel:
     Function that samples features from the target distribution.
     """
 
-    feature_shape: tuple | Dict[str, tuple]
+    feature_shape: Tuple[int, ...] | Dict[str, Tuple[int, ...]]
     """
     Shape of the feature, or features, produced by
     :attr:`.generator_func` and :attr:`.target_func`.

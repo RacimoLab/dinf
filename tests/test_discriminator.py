@@ -366,14 +366,12 @@ class TestDiscriminator:
         with pytest.raises(ValueError, match="Trailing dimensions"):
             d.fit(train_x=x, train_y=y, val_x=x[:, :, :, :1], val_y=y, rng=rng)
 
-    @pytest.mark.usefixtures("capsys")
-    def test_summary(self, capsys):
+    def test_summary(self):
         rng = np.random.default_rng(1234)
         d = discriminator.Discriminator({"a": np.array((30, 40, 1))}).init(rng)
-        d.summary()
-        captured = capsys.readouterr()
-        assert "params" in captured.out
-        assert "batch_stats" in captured.out
+        summary = d.summary()
+        assert "params" in summary
+        assert "batch_stats" in summary
 
     @pytest.mark.usefixtures("tmp_path")
     def test_load_save_roundtrip(self, tmp_path):
