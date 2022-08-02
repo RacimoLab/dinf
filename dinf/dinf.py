@@ -3,6 +3,7 @@ import contextlib
 import functools
 import itertools
 import logging
+import os
 import pathlib
 import signal
 from typing import Callable, Iterable, Protocol, Tuple
@@ -26,6 +27,7 @@ from .discriminator import Discriminator
 from .dinf_model import DinfModel
 from .parameters import Parameters
 from .store import Store
+from .misc import tree_shape, tree_cdr, is_tuple
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +104,7 @@ def _get_dataset_parallel(
     num_replicates: int,
     pool: _SupportsImap,
     callbacks: dict | None = None,
+    out=None,
 ):
     """
     Get features from a generator or target function.
@@ -125,6 +128,9 @@ def _get_dataset_parallel(
 
     result = None
     treedef = None
+    if out is not None:
+        result = jax.tree_util.tree_leaves(out)
+        treedef = jax.tree_util.tree_structure(out)
 
     if (cb := callbacks.get("feature")) is not None:
         cb(0)
@@ -141,7 +147,9 @@ def _get_dataset_parallel(
         if (cb := callbacks.get("feature")) is not None:
             cb(j + 1)
 
-    return jax.tree_util.tree_unflatten(treedef, result)
+    if out is None:
+        out = jax.tree_util.tree_unflatten(treedef, result)
+    return out
 
 
 def _get_generator_dataset(
@@ -151,6 +159,7 @@ def _get_generator_dataset(
     pool: _SupportsImap,
     rng: np.random.Generator,
     callbacks: dict | None = None,
+    out=None,
 ):
     """
     Get features from the generator function.
@@ -175,6 +184,7 @@ def _get_generator_dataset(
         num_replicates=num_replicates,
         pool=pool,
         callbacks=callbacks,
+        out=out,
     )
     return data
 
@@ -186,6 +196,7 @@ def _get_target_dataset(
     pool: _SupportsImap,
     rng: np.random.Generator,
     callbacks: dict | None = None,
+    out=None,
 ):
     """
     Get features from the target function.
@@ -209,8 +220,29 @@ def _get_target_dataset(
         num_replicates=num_replicates,
         pool=pool,
         callbacks=callbacks,
+        out=out,
     )
     return data
+
+
+def _alloc_features(
+    feature_shape,
+    feature_dtype,
+    num_replicates,
+):
+    """
+    Allocate empty numpy array(s) for ``num_replicates`` features.
+    """
+    leaves = []
+    for shape, dtype in zip(
+        jax.tree_util.tree_leaves(feature_shape, is_leaf=is_tuple),
+        jax.tree_util.tree_leaves(feature_dtype, is_leaf=is_tuple),
+    ):
+        leaves.append(np.empty((num_replicates, *shape), dtype=dtype))
+
+    treedef = jax.tree_util.tree_structure(feature_shape, is_leaf=is_tuple)
+    x = jax.tree_util.tree_unflatten(treedef, leaves)
+    return x
 
 
 def _get_combined_dataset(
@@ -222,31 +254,81 @@ def _get_combined_dataset(
     ss,
     callbacks: dict | None = None,
 ):
+    """
+    Get a dataset comprised of both generator and target data.
+
+    The returned data are not shuffled. We rely on Discriminator.fit()
+    to extract data batches at random.
+
+    :param target:
+        The target function.
+    :param generator:
+        The generator function.
+    :param thetas:
+        Parameter values to pass to the generator function.
+        An equivalent number of replicates will be sampled from the target.
+    :param pool:
+        An object with an ``imap()`` method.
+        E.g. a ``multiprocessing.Pool`` object.
+    :param ss:
+        Wrapper for numpy's random number seed sequence.
+    :return:
+        A collection of features.
+    """
     if callbacks is None:
         callbacks = {}
     assert all(k in ("generator/feature", "target/feature") for k in callbacks)
-    ss_generator, ss_target = ss.spawn(("generator", "target"))
+    rng_generator, rng_target = (
+        np.random.default_rng(sj) for sj in ss.spawn(("generator", "target"))
+    )
+
     num_replicates = len(thetas)
-    x_generator = _get_generator_dataset(
+
+    # Get a small initial dataset to infer the shape and dtype of the data.
+    if (n := os.cpu_count()) is None:
+        n = 10
+    n = min(n, num_replicates)
+    x_generator_init = _get_generator_dataset(
         generator=generator,
-        thetas=thetas,
+        thetas=thetas[:n],
         pool=pool,
-        rng=np.random.default_rng(ss_generator),
+        rng=rng_generator,
         callbacks=dict(feature=callbacks.get("generator/feature")),
     )
-    x_target = _get_target_dataset(
+
+    # Allocate enough space for both the generator and target datasets,
+    # so that we don't have to copy them to create a concatenated dataset.
+    # For very large datasets, concatenating would double peak memory use.
+    feature_shape = tree_cdr(tree_shape(x_generator_init))
+    feature_dtype = jax.tree_util.tree_map(lambda a: a.dtype, x_generator_init)
+    x = _alloc_features(feature_shape, feature_dtype, 2 * num_replicates)
+
+    # Copy the initial generator dataset into the allocated memory.
+    for xj, xj_init in zip(
+        jax.tree_util.tree_leaves(x), jax.tree_util.tree_leaves(x_generator_init)
+    ):
+        xj[:n] = xj_init
+
+    if n < num_replicates:
+        _get_generator_dataset(
+            generator=generator,
+            thetas=thetas[n:],
+            pool=pool,
+            rng=rng_generator,
+            callbacks=dict(feature=callbacks.get("generator/feature")),
+            out=jax.tree_util.tree_map(lambda a: a[n:num_replicates], x),
+        )
+
+    _get_target_dataset(
         target=target,
         num_replicates=num_replicates,
         pool=pool,
-        rng=np.random.default_rng(ss_target),
+        rng=rng_target,
         callbacks=dict(feature=callbacks.get("target/feature")),
+        out=jax.tree_util.tree_map(lambda a: a[num_replicates:], x),
     )
-    # XXX: Large copy doubles peak memory.
-    x = jax.tree_util.tree_map(lambda *l: np.concatenate(l), x_generator, x_target)
-    del x_target
-    del x_generator
+
     y = np.concatenate((np.zeros(num_replicates), np.ones(num_replicates)))
-    # Note: training data is not shuffled
     return x, y
 
 

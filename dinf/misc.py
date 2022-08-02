@@ -83,6 +83,10 @@ def ts_ploidy_of_individuals(
 Pytree = Any
 
 
+def is_tuple(a):
+    return isinstance(a, tuple)
+
+
 def _dtree_map(func, *trees: Pytree) -> Pytree:
     return jax.tree_util.tree_map(
         func, *trees, is_leaf=lambda x: not isinstance(x, collections.abc.Mapping)
@@ -122,9 +126,7 @@ def tree_cons(a, tree: Pytree) -> Pytree:
     Prepend ``a`` in all tuples of the given tree.
     """
     return jax.tree_util.tree_map(
-        lambda x: tuple((a,) + tuple(x)),
-        tree,
-        is_leaf=lambda x: isinstance(x, tuple),
+        lambda x: tuple((a,) + tuple(x)), tree, is_leaf=is_tuple
     )
 
 
@@ -132,18 +134,14 @@ def tree_car(tree: Pytree) -> Pytree:
     """
     Return a tree of the leading values of all tuples in the given tree.
     """
-    return jax.tree_util.tree_map(
-        lambda x: x[0], tree, is_leaf=lambda x: isinstance(x, tuple)
-    )
+    return jax.tree_util.tree_map(lambda x: x[0], tree, is_leaf=is_tuple)
 
 
 def tree_cdr(tree: Pytree) -> Pytree:
     """
     Return a tree of the trailing values of all tuples in the given tree.
     """
-    return jax.tree_util.tree_map(
-        lambda x: x[1:], tree, is_leaf=lambda x: isinstance(x, tuple)
-    )
+    return jax.tree_util.tree_map(lambda x: x[1:], tree, is_leaf=is_tuple)
 
 
 def leading_dim_size(tree: Pytree) -> int:
