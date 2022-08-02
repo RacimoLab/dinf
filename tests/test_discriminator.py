@@ -25,8 +25,7 @@ def random_dataset(size=None, shape=None, seed=1234):
         is_leaf=lambda x: isinstance(x, tuple),
     )
     y = rng.integers(low=0, high=2, size=(size,), dtype=np.int8)
-    input_shape = pytree_cdr(shape)
-    return x, y, input_shape
+    return x, y
 
 
 class TestSymmetric:
@@ -49,7 +48,7 @@ class TestSymmetric:
     def test_shape(self, func, k, squash, axis):
         shape = (4, 4, 4, 4)
         sym = discriminator.Symmetric(func=func, k=k)
-        x, _, _ = random_dataset(shape=shape)
+        x, _ = random_dataset(shape=shape)
         variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
         y = sym.apply(variables, x, axis=axis)
 
@@ -61,7 +60,7 @@ class TestSymmetric:
     def test_max(self, axis):
         shape = (4, 4, 4, 1)
         sym = discriminator.Symmetric(func="max")
-        x, _, _ = random_dataset(shape=shape)
+        x, _ = random_dataset(shape=shape)
         variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
         y = sym.apply(variables, x, axis=axis)
         np.testing.assert_allclose(y, np.max(x, axis=axis, keepdims=True))
@@ -70,7 +69,7 @@ class TestSymmetric:
     def test_mean(self, axis):
         shape = (4, 4, 4, 1)
         sym = discriminator.Symmetric(func="mean")
-        x, _, _ = random_dataset(shape=shape)
+        x, _ = random_dataset(shape=shape)
         variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
         y = sym.apply(variables, x, axis=axis)
         np.testing.assert_allclose(y, np.mean(x, axis=axis, keepdims=True))
@@ -79,7 +78,7 @@ class TestSymmetric:
     def test_sum(self, axis):
         shape = (4, 4, 4, 1)
         sym = discriminator.Symmetric(func="sum")
-        x, _, _ = random_dataset(shape=shape)
+        x, _ = random_dataset(shape=shape)
         variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
         y = sym.apply(variables, x, axis=axis)
         np.testing.assert_allclose(y, np.sum(x, axis=axis, keepdims=True))
@@ -88,7 +87,7 @@ class TestSymmetric:
     def test_var(self, axis):
         shape = (4, 4, 4, 1)
         sym = discriminator.Symmetric(func="var")
-        x, _, _ = random_dataset(shape=shape)
+        x, _ = random_dataset(shape=shape)
         variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
         y = sym.apply(variables, x, axis=axis)
         np.testing.assert_allclose(y, np.var(x, axis=axis, keepdims=True))
@@ -98,7 +97,7 @@ class TestSymmetric:
     def test_moments(self, axis, k):
         shape = (4, 4, 4, 1)
         sym = discriminator.Symmetric(func="moments", k=k)
-        x, _, _ = random_dataset(shape=shape)
+        x, _ = random_dataset(shape=shape)
         variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
         y = sym.apply(variables, x, axis=axis)
 
@@ -114,7 +113,7 @@ class TestSymmetric:
     def test_central_moments(self, axis, k):
         shape = (4, 4, 4, 1)
         sym = discriminator.Symmetric(func="central-moments", k=k)
-        x, _, _ = random_dataset(shape=shape)
+        x, _ = random_dataset(shape=shape)
         variables = sym.init(jax.random.PRNGKey(0), x, axis=axis)
         y = sym.apply(variables, x, axis=axis)
 
@@ -128,7 +127,7 @@ class TestSymmetric:
     @pytest.mark.parametrize("func", [None, "not-a-func"])
     def test_bad_func(self, func):
         sym = discriminator.Symmetric(func=func)
-        x, _, _ = random_dataset(50)
+        x, _ = random_dataset(50)
         with pytest.raises(ValueError, match="Unexpected func"):
             sym.init(jax.random.PRNGKey(0), x)
 
@@ -136,7 +135,7 @@ class TestSymmetric:
     @pytest.mark.parametrize("func", ["moments", "central-moments"])
     def test_bad_k(self, func, k):
         sym = discriminator.Symmetric(func=func, k=k)
-        x, _, _ = random_dataset(50)
+        x, _ = random_dataset(50)
         with pytest.raises(ValueError, match="Must have k >= 2"):
             sym.init(jax.random.PRNGKey(0), x)
 
@@ -147,7 +146,7 @@ class _TestCNN:
     @pytest.mark.parametrize("train", [True, False])
     def test_cnn(self, train: bool):
         cnn = self.cnn()
-        x, _, _ = random_dataset(50)
+        x, _ = random_dataset(50)
         variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
         y, new_variables = cnn.apply(
             variables,
@@ -161,7 +160,7 @@ class _TestCNN:
     @pytest.mark.parametrize("seed", (1, 2, 3, 4))
     def test_individual_exchangeability(self, seed):
         cnn = self.cnn()
-        x1, _, _ = random_dataset(50, seed=seed)
+        x1, _ = random_dataset(50, seed=seed)
         variables = cnn.init(jax.random.PRNGKey(0), x1, train=False)
         y1 = cnn.apply(variables, x1, train=False)
 
@@ -177,7 +176,7 @@ class _TestCNN:
     def test_batch_dimension_exchangeability(self, seed):
         cnn = self.cnn()
         size = 50
-        x1, _, _ = random_dataset(size, seed=seed)
+        x1, _ = random_dataset(size, seed=seed)
         variables = cnn.init(jax.random.PRNGKey(0), x1, train=False)
         y1 = cnn.apply(variables, x1, train=False)
 
@@ -195,7 +194,7 @@ class TestExchangeableCNN(_TestCNN):
     cnn = discriminator.ExchangeableCNN
 
     def test_sizes(self):
-        x, _, _ = random_dataset(50)
+        x, _ = random_dataset(50)
 
         cnn = self.cnn(sizes1=(1,), sizes2=(1,))
         variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
@@ -222,7 +221,7 @@ class TestExchangeableCNN(_TestCNN):
         assert sum(1 for k in variables["params"].keys() if "Dense" in k) == 1
 
         # two labels
-        x2, _, _ = random_dataset(shape={"x": (1, 10, 20, 1), "y": (1, 20, 10, 1)})
+        x2, _ = random_dataset(shape={"x": (1, 10, 20, 1), "y": (1, 20, 10, 1)})
         cnn = self.cnn(sizes1=(1, 2, 3), sizes2=(1, 2, 3, 4))
         variables = cnn.init(jax.random.PRNGKey(0), x2, train=False)
         _ = cnn.apply(variables, x2, train=False)
@@ -234,7 +233,7 @@ class TestExchangeablePGGAN(_TestCNN):
     cnn = discriminator.ExchangeablePGGAN
 
     def test_sizes(self):
-        x, _, _ = random_dataset(50)
+        x, _ = random_dataset(50)
 
         cnn = self.cnn(sizes1=(1,), sizes2=(1,))
         variables = cnn.init(jax.random.PRNGKey(0), x, train=False)
@@ -261,7 +260,7 @@ class TestExchangeablePGGAN(_TestCNN):
         assert sum(1 for k in variables["params"].keys() if "Dense" in k) == 4 + 1
 
         # two labels
-        x2, _, _ = random_dataset(shape={"x": (1, 10, 20, 1), "y": (1, 20, 10, 1)})
+        x2, _ = random_dataset(shape={"x": (1, 10, 20, 1), "y": (1, 20, 10, 1)})
         cnn = self.cnn(sizes1=(1, 2, 3), sizes2=(1, 2, 3, 4))
         variables = cnn.init(jax.random.PRNGKey(0), x2, train=False)
         _ = cnn.apply(variables, x2, train=False)
@@ -273,23 +272,22 @@ class TestDiscriminator:
     @pytest.mark.parametrize(
         "input_shape",
         [
-            (32, 64, 1),
-            (32, 64, 4),
-            {"x": np.array((64, 32, 1))},
-            {"x": (64, 32, 1), "y": {"z": (16, 8, 4)}},
+            (1, 32, 64, 1),
+            (1, 32, 64, 4),
+            {"x": np.array((1, 64, 32, 1))},
+            {"x": (1, 64, 32, 1), "y": {"z": (1, 16, 8, 4)}},
         ],
     )
     def test_init(self, input_shape):
         rng = np.random.default_rng(1234)
-        d = discriminator.Discriminator(input_shape)
-        d = d.init(rng)
+        d = discriminator.Discriminator()
+        d._init(input_shape, rng)
         assert d is not None
         assert len(d.state.params) > 0
 
     @pytest.mark.parametrize(
         "input_shape",
         [
-            16,
             (16,),
             (16, 16),
             (32, 64, 10),
@@ -304,8 +302,10 @@ class TestDiscriminator:
         ],
     )
     def test_bad_shape(self, input_shape):
+        rng = np.random.default_rng(1234)
+        d = discriminator.Discriminator()
         with pytest.raises(ValueError, match="features must each have shape"):
-            discriminator.Discriminator(input_shape)
+            d._init(input_shape, rng)
 
     @pytest.mark.parametrize(
         "shape",
@@ -315,17 +315,17 @@ class TestDiscriminator:
         ],
     )
     def test_fit(self, shape):
-        train_x, train_y, input_shape = random_dataset(shape=shape)
-        val_x, val_y, _ = random_dataset(shape=pytree_cons(10, pytree_cdr(shape)))
+        train_x, train_y = random_dataset(shape=shape)
+        val_x, val_y = random_dataset(shape=pytree_cons(10, pytree_cdr(shape)))
 
         rng = np.random.default_rng(1234)
-        d1 = discriminator.Discriminator(input_shape).init(rng)
+        d1 = discriminator.Discriminator()
         d1.fit(train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, rng=rng)
         chex.assert_tree_all_finite(d1.state)
 
         # Results should be deterministic and not depend on validation.
         rng = np.random.default_rng(1234)
-        d2 = discriminator.Discriminator(input_shape).init(rng)
+        d2 = discriminator.Discriminator()
         d2.fit(train_x=train_x, train_y=train_y, rng=rng)
         chex.assert_trees_all_close(
             flax.serialization.to_state_dict(d1.state),
@@ -335,8 +335,8 @@ class TestDiscriminator:
     def test_fit_bad_shapes(self):
         rng = np.random.default_rng(1234)
 
-        x, y, input_shape = random_dataset(shape=(30, 12, 34, 2))
-        d = discriminator.Discriminator(input_shape).init(rng)
+        x, y = random_dataset(shape=(30, 12, 34, 2))
+        d = discriminator.Discriminator()
         d.fit(train_x=x, train_y=y, rng=rng)
 
         with pytest.raises(ValueError, match="Must specify both"):
@@ -368,7 +368,8 @@ class TestDiscriminator:
 
     def test_summary(self):
         rng = np.random.default_rng(1234)
-        d = discriminator.Discriminator({"a": np.array((30, 40, 1))}).init(rng)
+        d = discriminator.Discriminator()
+        d._init({"a": (1, 30, 40, 1)}, rng)
         summary = d.summary()
         assert "params" in summary
         assert "batch_stats" in summary
@@ -376,28 +377,29 @@ class TestDiscriminator:
     @pytest.mark.usefixtures("tmp_path")
     def test_load_save_roundtrip(self, tmp_path):
         rng = np.random.default_rng(1234)
-        x, y, input_shape = random_dataset(50)
-        d1 = discriminator.Discriminator(input_shape).init(rng)
+        x, y = random_dataset(50)
+        d1 = discriminator.Discriminator()
         d1.fit(train_x=x, train_y=y, rng=rng)
         d1_y = d1.predict(x)
         filename = tmp_path / "discriminator.nn"
         d1.to_file(filename)
-        d2 = discriminator.Discriminator(input_shape).from_file(filename)
+        d2 = discriminator.Discriminator.from_file(filename)
         d2_y = d2.predict(x)
         np.testing.assert_allclose(d1_y, d2_y)
-        d3 = discriminator.Discriminator(None).from_file(filename)
+        d3 = discriminator.Discriminator.from_file(filename)
         d3_y = d3.predict(x)
         np.testing.assert_allclose(d1_y, d3_y)
 
     @pytest.mark.parametrize("discriminator_format", [0, "0.0.1"])
     def test_load_old_file(self, tmp_path, discriminator_format):
         rng = np.random.default_rng(1234)
-        d1 = discriminator.Discriminator((30, 40, 1)).init(rng)
+        d1 = discriminator.Discriminator()
+        d1._init((1, 30, 40, 1), rng)
         d1.format_version = discriminator_format
         filename = tmp_path / "discriminator.nn"
         d1.to_file(filename)
         with pytest.raises(ValueError, match="network is not compatible"):
-            discriminator.Discriminator((30, 40, 1)).from_file(filename)
+            discriminator.Discriminator.from_file(filename)
 
     @pytest.mark.parametrize(
         "shape",
@@ -407,11 +409,11 @@ class TestDiscriminator:
         ],
     )
     def test_predict(self, shape):
-        train_x, train_y, input_shape = random_dataset(shape=shape)
-        val_x, val_y, _ = random_dataset(shape=pytree_cons(10, pytree_cdr(shape)))
+        train_x, train_y = random_dataset(shape=shape)
+        val_x, val_y = random_dataset(shape=pytree_cons(10, pytree_cdr(shape)))
 
         rng = np.random.default_rng(1234)
-        d = discriminator.Discriminator(input_shape).init(rng)
+        d = discriminator.Discriminator()
         d.fit(train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, rng=rng)
 
         y1 = d.predict(val_x)
@@ -425,8 +427,8 @@ class TestDiscriminator:
 
     def test_predict_bad_shapes(self):
         rng = np.random.default_rng(1234)
-        x, y, input_shape = random_dataset(shape=(30, 12, 34, 2))
-        d = discriminator.Discriminator(input_shape).init(rng)
+        x, y = random_dataset(shape=(30, 12, 34, 2))
+        d = discriminator.Discriminator()
         d.fit(train_x=x, train_y=y, rng=rng)
 
         with pytest.raises(ValueError, match="Trailing dimensions"):
@@ -437,9 +439,8 @@ class TestDiscriminator:
             d.predict(x[:, :, :, :1])
 
     def test_predict_without_fit(self):
-        rng = np.random.default_rng(1234)
-        x, _, input_shape = random_dataset(shape=(30, 12, 34, 2))
-        d = discriminator.Discriminator(input_shape).init(rng)
+        x, _ = random_dataset(shape=(30, 12, 34, 2))
+        d = discriminator.Discriminator()
         with pytest.raises(ValueError, match="has not been trained"):
             d.predict(x)
 

@@ -585,9 +585,7 @@ def train(
     """
     assert dinf_model.target_func is not None
     ss = NamedSeedSequence(seed)
-    ss_train, ss_test, ss_discr_init = ss.spawn(
-        ("thetas:train", "thetas:test", "discriminator:init")
-    )
+    ss_train, ss_test = ss.spawn(("thetas:train", "thetas:test"))
 
     training_thetas = dinf_model.parameters.draw_prior(
         training_replicates // 2, rng=np.random.default_rng(ss_train)
@@ -596,9 +594,7 @@ def train(
         test_replicates // 2, rng=np.random.default_rng(ss_test)
     )
 
-    discriminator = Discriminator(
-        dinf_model.feature_shape, network=dinf_model.discriminator_network
-    ).init(np.random.default_rng(ss_discr_init))
+    discriminator = Discriminator(network=dinf_model.discriminator_network)
 
     with process_pool(parallelism, dinf_model) as pool:
         _train_discriminator(
@@ -866,8 +862,8 @@ def mcmc_gan(
     resume = len(store) > 0
 
     ss = NamedSeedSequence(seed)
-    ss_loop, ss_mcmc, ss_thetas, ss_discr_init = ss.spawn(
-        ("mcmc-gan:loop", "mcmc-gan:mcmc", "mcmc-gan:thetas", "discriminator:init")
+    ss_loop, ss_mcmc, ss_thetas = ss.spawn(
+        ("mcmc-gan:loop", "mcmc-gan:mcmc", "mcmc-gan:thetas")
     )
     rng_thetas = np.random.default_rng(ss_thetas)
     rng_mcmc = np.random.default_rng(ss_mcmc)
@@ -876,11 +872,10 @@ def mcmc_gan(
 
     sampling_mode = "reflect"
 
-    discriminator = Discriminator(
-        dinf_model.feature_shape, network=dinf_model.discriminator_network
-    )
     if resume:
-        discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
+        discriminator = Discriminator.from_file(
+            store[-1] / "discriminator.nn", network=dinf_model.discriminator_network
+        )
         thetas, y = _load_results_unstructured(
             store[-1] / "mcmc.npz", parameters=parameters
         )
@@ -902,7 +897,8 @@ def mcmc_gan(
             mode=sampling_mode,
         )
     else:
-        discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
+        discriminator = Discriminator(network=dinf_model.discriminator_network)
+
         # Starting point for the mcmc chain.
         start = parameters.draw_prior(walkers, rng=rng_thetas)
 
@@ -1264,9 +1260,7 @@ def abc_gan(
     resume = len(store) > 0
 
     ss = NamedSeedSequence(seed)
-    ss_loop, ss_thetas, ss_discr_init = ss.spawn(
-        ("abc-gan:loop", "abc-gan:thetas", "discriminator:init")
-    )
+    ss_loop, ss_thetas = ss.spawn(("abc-gan:loop", "abc-gan:thetas"))
     rng_thetas = np.random.default_rng(ss_thetas)
 
     parameters = dinf_model.parameters
@@ -1276,11 +1270,10 @@ def abc_gan(
     # This effect was even more pronouned than for "truncate".
     sampling_mode = "reflect"
 
-    discriminator = Discriminator(
-        dinf_model.feature_shape, network=dinf_model.discriminator_network
-    )
     if resume:
-        discriminator = discriminator.from_file(store[-1] / "discriminator.nn")
+        discriminator = Discriminator.from_file(
+            store[-1] / "discriminator.nn", network=dinf_model.discriminator_network
+        )
         thetas, y = _load_results_unstructured(
             store[-1] / "abc.npz", parameters=parameters
         )
@@ -1304,7 +1297,7 @@ def abc_gan(
             mode=sampling_mode,
         )
     else:
-        discriminator = discriminator.init(np.random.default_rng(ss_discr_init))
+        discriminator = Discriminator(network=dinf_model.discriminator_network)
         training_thetas = parameters.draw_prior(
             training_replicates // 2, rng=rng_thetas
         )
@@ -1448,12 +1441,10 @@ def pretraining_pg_gan(
     max_pretraining_iterations times, each with training_replicates reps.
     """
 
-    ss_discr_init, ss_thetas = ss.spawn(("discriminator:init", "thetas"))
+    (ss_thetas,) = ss.spawn(("thetas",))
     rng_thetas = np.random.default_rng(ss_thetas)
 
-    discriminator = Discriminator(
-        dinf_model.feature_shape, network=dinf_model.discriminator_network
-    ).init(np.random.default_rng(ss_discr_init))
+    discriminator = Discriminator(network=dinf_model.discriminator_network)
     acc_best = 0
     theta_best = None
 
@@ -1507,13 +1498,11 @@ def pretraining_dinf(
     with the highest log probability from a fresh set of candidates
     drawn from the prior.
     """
-    ss_discr_init, ss_thetas = ss.spawn(("discriminator:init", "thetas"))
+    (ss_thetas,) = ss.spawn(("thetas",))
     rng = np.random.default_rng(ss_thetas)
 
     parameters = dinf_model.parameters
-    discriminator = Discriminator(
-        dinf_model.feature_shape, network=dinf_model.discriminator_network
-    ).init(np.random.default_rng(ss_discr_init))
+    discriminator = Discriminator(network=dinf_model.discriminator_network)
 
     for k in range(max_pretraining_iterations):
         training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
@@ -1780,9 +1769,9 @@ def pg_gan(
     store.assert_complete(["discriminator.nn", "pg-gan-proposals.npz"])
 
     if resume:
-        discriminator = Discriminator(
-            dinf_model.feature_shape, network=dinf_model.discriminator_network
-        ).from_file(store[-1] / "discriminator.nn")
+        discriminator = Discriminator.from_file(
+            store[-1] / "discriminator.nn", network=dinf_model.discriminator_network
+        )
         proposal_thetas, probs = _load_results_unstructured(
             store[-1] / "pg-gan-proposals.npz", parameters=parameters
         )

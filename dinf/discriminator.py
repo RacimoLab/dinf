@@ -303,12 +303,12 @@ class ExchangeableCNN(nn.Module):
 
 
 @dataclasses.dataclass
-class _NetworkWrapper:
+class Discriminator:
     """
-    Base class for Discriminator wrapper.
+    Wrapper for the discriminator neural network that classifies genotype matrices.
     """
 
-    input_shape: Pytree
+    input_shape: Pytree | None = dataclasses.field(init=False, default=None)
     """The shape of the input to the neural network."""
 
     network: nn.Module | None = None
@@ -326,42 +326,55 @@ class _NetworkWrapper:
     """Loss and accuracy metrics obtained when training the network."""
 
     # Bump this after making internal changes.
-    format_version: int = 3
+    format_version: int = 4
     """Version number for the serialised network on disk."""
 
-    _add_batch_dim: bool = True
     _inited: bool = False
 
     def __post_init__(self):
-        assert self.network is not None
+        if self.network is None:
+            self.network = ExchangeableCNN()
 
         if self.state is None:
             self.state = TrainState.create(
                 apply_fn=self.network.apply,
-                tx=optax.chain(
-                    optax.clip(1.0),
-                    optax.adam(learning_rate=0.001),
-                ),
+                tx=optax.chain(optax.clip(1.0), optax.adam(learning_rate=0.001)),
                 params={},
                 batch_stats={},
             )
-        if self.input_shape is not None and self._add_batch_dim:
-            # Add leading batch dimension.
-            if isinstance(self.input_shape, int):
-                self.input_shape = (self.input_shape,)
-            self.input_shape = pytree_cons(1, self.input_shape)
 
-    def init(self, rng: np.random.Generator):
+    def _init(self, input_shape, rng: np.random.Generator):
         """
-        Build a neural network with the given input shape.
+        Initialise the neural network with the given input shape.
 
+        :param input_shape:
+            The shape of the input to the neural network.
         :param numpy.random.Generator rng:
             The numpy random number generator.
-        :return:
-            A new network wrapper object.
         """
-        assert self.input_shape is not None
+        assert self.network is not None
         assert self.state is not None
+        assert self.input_shape is None
+
+        # Set the leading (batch) dimension to 1.
+        self.input_shape = pytree_cons(1, pytree_cdr(input_shape))
+
+        # Sanity checks.
+        if not jax.tree_util.tree_all(
+            jax.tree_util.tree_map(
+                lambda x: np.shape(x) == (4,) and x[1] >= 2 and x[2] >= 4 and x[3] <= 4,
+                self.input_shape,
+                is_leaf=lambda x: isinstance(x, tuple),
+            )
+        ):
+            raise ValueError(
+                "Input features must each have shape (b, n, m, c), where "
+                "b is the number of data instances in the batch,"
+                "n >= 2 is the number of (pseudo)haplotypes, "
+                "m >= 4 is the length of the (pseudo)haplotypes, "
+                "and c <= 4 is the number of channels.\n"
+                f"input_shape={self.input_shape}"
+            )
 
         logger.info("initialising network with shape %s", self.input_shape)
 
@@ -376,31 +389,37 @@ class _NetworkWrapper:
         )
         key = jax.random.PRNGKey(rng.integers(2**63))
         variables = init(key, dummy_input)
-        state = type(self.state).create(
+
+        self.state = TrainState.create(
             apply_fn=self.state.apply_fn,
             tx=self.state.tx,
             params=variables["params"],
             batch_stats=variables.get("batch_stats", {}),
         )
-        discr = dataclasses.replace(
-            self, state=state, _add_batch_dim=False, _inited=True
-        )
-        logger.debug("%s", rich.text.Text.from_ansi(discr.summary()))
-        return discr
+        self._inited = True
 
-    def from_file(self, filename: str | pathlib.Path, /):
+        logger.debug("%s", rich.text.Text.from_ansi(self.summary()))
+
+    @classmethod
+    def from_file(cls, filename: str | pathlib.Path, /, *, network=None, state=None):
         """
-        Load neural network training state from the given file.
+        Load neural network weights from the given file.
 
         :param filename:
             The filename of the saved model.
+        :param network:
+            The flax neural network.
+        :param state:
+            The flax train state.
         :return:
-            A new network wrapper object.
+            A new Discriminator object.
         """
         logger.info("%s: loading network weights", filename)
         with open(filename, "rb") as f:
             data = flax.serialization.msgpack_restore(f.read())
-        discr = self.fromdict(data, _err_prefix=f"{filename}: ")
+        discr = cls.fromdict(
+            data, network=network, state=state, _err_prefix=f"{filename}: "
+        )
         logger.debug("%s", rich.text.Text.from_ansi(discr.summary()))
         return discr
 
@@ -415,11 +434,22 @@ class _NetworkWrapper:
         with open(filename, "wb") as f:
             f.write(flax.serialization.msgpack_serialize(data))
 
-    def fromdict(self, data: dict, _err_prefix: str = ""):
-        assert self.state is not None
+    @classmethod
+    def fromdict(
+        cls, data: dict, /, *, network=None, state=None, _err_prefix: str = ""
+    ):
+        """
+        Load neural network weights from the given dict.
 
+        :param data:
+            The dict from which the network weights will be loaded.
+        :param network:
+            The flax neural network.
+        :return:
+            A new Discriminator object.
+        """
         format_version = data.get("format_version")
-        if format_version is not None and format_version != self.format_version:
+        if format_version is not None and format_version != cls.format_version:
             raise ValueError(
                 f"{_err_prefix}saved network is not compatible with this "
                 "version of dinf. Either train a new network or use an "
@@ -438,19 +468,25 @@ class _NetworkWrapper:
                 f"Expected {expected_fields},\nbut got {set(data.keys())}."
             )
 
-        data["input_shape"] = jax.tree_util.tree_map(
+        discr = cls(network=network, state=state)
+        assert discr.network is not None
+        assert discr.state is not None
+
+        discr.input_shape = jax.tree_util.tree_map(
             tuple,
             data["input_shape"],
             is_leaf=lambda x: isinstance(x, list),
         )
-        data["state"] = type(self.state).create(
-            apply_fn=self.state.apply_fn,
-            tx=self.state.tx,
+        discr.state = TrainState.create(
+            apply_fn=discr.state.apply_fn,
+            tx=discr.state.tx,
             params=data["state"]["params"],
             batch_stats=data["state"].get("batch_stats", {}),
         )
-        data["metrics"] = collections.defaultdict(list, **data["metrics"])
-        return dataclasses.replace(self, _add_batch_dim=False, _inited=True, **data)
+        discr.trained = data["trained"]
+        discr.metrics = collections.defaultdict(list, **data["metrics"])
+        discr._inited = True
+        return discr
 
     def asdict(self) -> dict:
         input_shape = jax.tree_util.tree_map(
@@ -480,46 +516,6 @@ class _NetworkWrapper:
         )
         return self.network.tabulate(jax.random.PRNGKey(0), a, train=False)
 
-
-@dataclasses.dataclass
-class Discriminator(_NetworkWrapper):
-    """
-    Wrapper of the discriminator network for classifying genotype matrices.
-
-    :param input_shape:
-        The shape of the input data for the network. This is a dictionary
-        that maps a label to a feature array. Each feature array has shape
-        (n, m, c), where
-        n >= 2 is the number of (pseudo)haplotypes,
-        m >= 4 is the length of the (pseudo)haplotypes,
-        and c <= 4 is the number of channels.
-    """
-
-    def __post_init__(self):
-        if self.network is None:
-            self.network = ExchangeableCNN()
-        super().__post_init__()
-
-        if self.input_shape is None:
-            return
-
-        # Sanity checks.
-        if not jax.tree_util.tree_all(
-            jax.tree_util.tree_map(
-                lambda x: np.shape(x) == (4,) and x[1] >= 2 and x[2] >= 4 and x[3] <= 4,
-                self.input_shape,
-                is_leaf=lambda x: isinstance(x, tuple),
-            )
-        ):
-            raise ValueError(
-                "Input features must each have shape (b, n, m, c), where "
-                "b is the number of batches,"
-                "n >= 2 is the number of (pseudo)haplotypes, "
-                "m >= 4 is the length of the (pseudo)haplotypes, "
-                "and c <= 4 is the number of channels.\n"
-                f"input_shape={self.input_shape}"
-            )
-
     def fit(
         self,
         *,
@@ -538,9 +534,9 @@ class Discriminator(_NetworkWrapper):
         Fit discriminator to training data.
 
         :param train_x: Training data.
-        :param train_y: Labels for training data.
+        :param train_y: Labels for training data (zeros and ones).
         :param val_x: Validation data.
-        :param val_y: Labels for validation data.
+        :param val_y: Labels for validation data (zeros and ones).
         :param batch_size: Size of minibatch for gradient update step.
         :param epochs: The number of full passes over the training data.
         :param numpy.random.Generator rng:
@@ -550,21 +546,21 @@ class Discriminator(_NetworkWrapper):
             fit() (if any). If false, loss/accuracy metrics will be appended
             to the existing metrics.
         """
-        assert self.network is not None
-        assert self.state is not None
-        assert self.input_shape is not None
-        assert self._inited
+        if callbacks is None:
+            callbacks = {}
+        assert all(k in ("train_batch", "test_batch", "epoch") for k in callbacks)
+
         if leading_dim_size(train_x) != leading_dim_size(train_y):
             raise ValueError(
                 "Leading dimensions of train_x and train_y must be the same.\n"
                 f"train_x={pytree_shape(train_x)}\n"
                 f"train_y={pytree_shape(train_y)}"
             )
-        if not pytree_equal(
+        if self.input_shape is not None and not pytree_equal(
             *map(pytree_cdr, [self.input_shape, pytree_shape(train_x)])
         ):
             raise ValueError(
-                "Trailing dimensions of train_x must match input_shape.\n"
+                "Trailing dimensions of train_x must match network's input_shape.\n"
                 f"input_shape={self.input_shape}\n"
                 f"train_x={pytree_shape(train_x)}"
             )
@@ -583,17 +579,13 @@ class Discriminator(_NetworkWrapper):
                 )
 
             if not pytree_equal(
-                *map(pytree_cdr, [self.input_shape, pytree_shape(val_x)])
+                *map(pytree_cdr, [pytree_shape(train_x), pytree_shape(val_x)])
             ):
                 raise ValueError(
-                    "Trailing dimensions of val_x must match input_shape.\n"
-                    f"input_shape={self.input_shape}\n"
+                    "Trailing dimensions of val_x must match train_x.\n"
+                    f"train_x={pytree_shape(train_x)}\n"
                     f"val_x={pytree_shape(val_x)}"
                 )
-
-        if callbacks is None:
-            callbacks = {}
-        assert all(k in ("train_batch", "test_batch", "epoch") for k in callbacks)
 
         def running_metrics(n, batch_size, current_metrics, metrics):
             new_metrics = jax.tree_util.tree_map(
@@ -640,6 +632,14 @@ class Discriminator(_NetworkWrapper):
 
             return loss, accuracy
 
+        if not self._inited:
+            self._init(pytree_shape(train_x), rng=rng)
+
+        assert self.network is not None
+        assert self.state is not None
+        assert self.input_shape is not None
+        assert self._inited
+
         train_ds = dict(input=train_x, output=train_y)
         test_ds = dict(input=val_x, output=val_y)
         do_eval = val_x is not None
@@ -684,6 +684,10 @@ class Discriminator(_NetworkWrapper):
         :param batch_size: Size of data batches for prediction.
         :return: A vector of predictions, one for each input instance.
         """
+        if not self.trained:
+            raise ValueError(
+                "Cannot make predications as the discriminator has not been trained."
+            )
         assert self.network is not None
         assert self.state is not None
         assert self.input_shape is not None
@@ -693,11 +697,6 @@ class Discriminator(_NetworkWrapper):
                 "Trailing dimensions of x must match input_shape.\n"
                 f"input_shape={self.input_shape}\n"
                 f"x={pytree_shape(x)}"
-            )
-
-        if not self.trained:
-            raise ValueError(
-                "Cannot make predications as the discriminator has not been trained."
             )
 
         if callbacks is None:

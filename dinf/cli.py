@@ -690,9 +690,9 @@ class Predict(_SubCommand):
 
     def __call__(self, args: argparse.Namespace):
         dinf_model = dinf.DinfModel.from_file(args.model)
-        discriminator = dinf.Discriminator(
-            dinf_model.feature_shape, network=dinf_model.discriminator_network
-        ).from_file(args.discriminator_file)
+        discriminator = dinf.Discriminator.from_file(
+            args.discriminator_file, network=dinf_model.discriminator_network
+        )
         check_output_file(args.output_file)
 
         progress = rich.progress.Progress(
