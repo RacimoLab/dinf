@@ -766,7 +766,7 @@ class Check(_SubCommand):
     Basic dinf_model health checks.
 
     Checks that the target and generator functions work and return the
-    same feature shapes.
+    same feature shapes and dtypes.
     """
 
     def __init__(self, subparsers):

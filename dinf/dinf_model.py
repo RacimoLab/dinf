@@ -4,7 +4,7 @@ import functools
 import importlib
 import pathlib
 import sys
-from typing import Callable, Dict, Tuple
+from typing import Callable
 
 from flax import linen as nn
 import numpy as np
@@ -36,9 +36,6 @@ class DinfModel:
        (or matrices),
      - a ``target_func`` function that samples from the target dataset,
        and returns a feature matrix (or matrices),
-     - the ``feature_shape``, which is the shape of the feature matrix
-       (or matrices) that are returned by both the ``generator_func``
-       and the ``target_func``.
 
     .. code::
 
@@ -64,7 +61,6 @@ class DinfModel:
             parameters=parameters,
             generator_func=generator,
             target_func=target,
-            feature_shape=features.shape,
         )
 
     :param parameters:
@@ -139,18 +135,6 @@ class DinfModel:
         that may be used to seed a random number generator.
         The return type must match the return type of :attr:`generator_func`.
 
-    :param feature_shape:
-        The shape of the feature, or features, returned by
-        :attr:`.generator_func` and :attr:`.target_func`.
-
-         - When a single feature matrix is returned, i.e. an n-dimensional
-           numpy array, the ``feature_shape`` is a tuple of array dimensions
-           (c.f. :attr:`numpy.ndarray.shape`).
-         - When multiple feature matrices are returned,
-           i.e. a dictionary of n-dimensional numpy arrays,
-           the ``feature_shape`` is also a dictionary, which maps
-           feature labels to the shape of the given feature matrix.
-
     :param discriminator_network:
         A :doc:`flax <flax:index>` neural network.
         If not specified, :class:`ExchangeableCNN` will be used.
@@ -177,12 +161,6 @@ class DinfModel:
     target_func: Callable | None
     """
     Function that samples features from the target distribution.
-    """
-
-    feature_shape: Tuple[int, ...] | Dict[str, Tuple[int, ...]]
-    """
-    Shape of the feature, or features, produced by
-    :attr:`.generator_func` and :attr:`.target_func`.
     """
 
     discriminator_network: nn.Module | None = None
@@ -244,23 +222,16 @@ class DinfModel:
             )
 
         x_g = self.generator_func_v((rng.integers(low=0, high=2**31), thetas[0]))
-        if not pytree_equal(pytree_shape(x_g), self.feature_shape):
+        x_t = self.target_func(rng.integers(low=0, high=2**31))
+        if not pytree_equal(pytree_shape(x_g), pytree_shape(x_t)):
             raise ValueError(
                 f"generator_func produced feature shape {pytree_shape(x_g)}, "
-                f"but feature_shape is {self.feature_shape}"
+                f"but target_func produced feature shape {pytree_shape(x_t)}."
             )
-
-        x_t = self.target_func(rng.integers(low=0, high=2**31))
-        if not pytree_equal(pytree_shape(x_t), self.feature_shape):
-            raise ValueError(
-                f"target_func produced feature shape {pytree_shape(x_t)}, "
-                f"but feature_shape is {self.feature_shape}"
-            )
-
         if not pytree_equal(pytree_dtype(x_g), pytree_dtype(x_t)):
             raise ValueError(
                 f"generator_func produced feature dtype {pytree_dtype(x_g)}, "
-                f"but target_func produced {pytree_dtype(x_t)}, "
+                f"but target_func produced feature dtype {pytree_dtype(x_t)}."
             )
 
     @staticmethod

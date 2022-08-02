@@ -46,17 +46,14 @@ import dinf
 
 dinf_model = dinf.DinfModel(
     parameters=parameters,
-    feature_shape=features.shape,
     generator_func=generator,
     target_func=None,
 )
 ```
 
-Defining the model then procedes by defining the `parameters`,
+Defining the model then procedes by describing the `parameters`,
 writing the `generator_func` function,
-writing the `target_func` function (if any),
-and describing the `feature_shape`---the shape of the
-features produced by both the generator and the target function.
+and writing the `target_func` function (if any).
 It's not necessary to specify the architecture of the discriminator.
 
 ## Parameters
@@ -95,6 +92,8 @@ of the genetic data into the desired format is referred to as
 
 ### Features
 
+Dinf features are typically genotype matrices,
+or a collection of matrices (e.g. when modelling multiple populations).
 It's important that there is agreement between the features extracted from the
 generator and the features extracted from the target dataset.
 Ideally, the only differences will be due to the accuracy of the simulation
@@ -102,8 +101,11 @@ model and the parameter values, not due to data filtering or quality issues.
 To ensure consistency, the Dinf API provides helper classes for
 feature extraction that have methods for extracting features from
 vcf files and from {class}`tskit.TreeSequence` objects.
-In this example, we'll use the {class}`.BinnedHaplotypeMatrix` feature
-extractor class.
+The [](sec_guide_features) page describes the different feature extraction
+classes provided by the Dinf API,
+and shows heatmap plots for matrices from each class.
+In the example model here, we'll use the {class}`.BinnedHaplotypeMatrix`
+feature extractor class.
 
 
 ```python
@@ -118,18 +120,12 @@ features = dinf.BinnedHaplotypeMatrix(
 )
 ```
 
-To initialise the discriminator, Dinf needs to know the shape of the features
-that the discriminator will be given. These features are typically
-multidimensional arrays (or a collection of multidimensional arrays,
-when modelling multiple populations), where the feature shape is a tuple of
-array dimensions of the feature.
-The `features` object defined above has a `shape` property that can used for the
-{attr}`.DinfModel.feature_shape`.
+
 
 ### Genetic simulator
 
 {attr}`.DinfModel.generator_func` is a user-defined function that produces data
-features matching the `feature_shape`.
+features using a genetic simulator.
 The function accepts a single positional argument `seed`,
 followed by one keyword argument for each inferrable parameter.
 So for our example there's one argument for `N0` and one for `N1`.
