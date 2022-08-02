@@ -27,7 +27,7 @@ from .discriminator import Discriminator
 from .dinf_model import DinfModel
 from .parameters import Parameters
 from .store import Store
-from .misc import pytree_shape, pytree_cdr, is_tuple
+from .misc import pytree_shape, pytree_dtype, pytree_cdr, is_tuple
 
 logger = logging.getLogger(__name__)
 
@@ -300,7 +300,7 @@ def _get_combined_dataset(
     # so that we don't have to copy them to create a concatenated dataset.
     # For very large datasets, concatenating would double peak memory use.
     feature_shape = pytree_cdr(pytree_shape(x_generator_init))
-    feature_dtype = jax.tree_util.tree_map(lambda a: a.dtype, x_generator_init)
+    feature_dtype = pytree_dtype(x_generator_init)
     x = _alloc_features(feature_shape, feature_dtype, 2 * num_replicates)
 
     # Copy the initial generator dataset into the allocated memory.

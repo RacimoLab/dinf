@@ -65,6 +65,19 @@ class TestDinfModel:
         with pytest.raises(ValueError, match="target_func .* shape"):
             g.check()
 
+    def test_mismatched_dtype(self):
+        def target(seed):
+            return {"a": np.zeros(10, dtype=int)}
+
+        g = dinf.DinfModel(
+            target_func=target,
+            generator_func=_generator_func,
+            parameters=_parameters,
+            feature_shape=feature_shape,
+        )
+        with pytest.raises(ValueError, match="generator_func .* dtype"):
+            g.check()
+
     def test_bad_custom_param(self):
         class TriangleParam(dinf.Param):
             def draw_prior(self, size, rng):

@@ -9,6 +9,7 @@ from dinf.misc import (
     ts_ploidy_of_individuals,
     pytree_equal,
     pytree_shape,
+    pytree_dtype,
     pytree_cons,
     pytree_car,
     pytree_cdr,
@@ -89,7 +90,9 @@ def test_pytree_equal():
     assert not pytree_equal(1, 2, 1)
     assert not pytree_equal(1, 2, 2)
     assert not pytree_equal(np.array([2, 2, 3]), np.array([1, 2, 3]))
-    assert not pytree_equal(np.array([2, 2, 3]), np.array([1, 2, 3]), np.array([2, 2, 3]))
+    assert not pytree_equal(
+        np.array([2, 2, 3]), np.array([1, 2, 3]), np.array([2, 2, 3])
+    )
     assert not pytree_equal(np.array([2, 2, 3]), np.array([2, 2, 3, 3]))
     assert not pytree_equal({"x": 1}, {"y": 1})
     assert not pytree_equal({"x": 1}, {"y": 1}, {"x": 1})
@@ -119,7 +122,7 @@ def test_pytree_equal():
         {"x": {"y": np.zeros((1, 2, 3)), "w": {"z": np.zeros((4, 5))}}},
     ],
 )
-def test_tree_shape_1(a):
+def test_pytree_shape_1(a):
     a_shape = pytree_shape(a)
     assert pytree_equal(a, a)
     assert pytree_equal(a_shape, a_shape)
@@ -140,13 +143,31 @@ def test_tree_shape_1(a):
     assert pytree_equal(pytree_shape(a), a_shape)
 
 
-def test_tree_shape_2():
+def test_pytree_shape_2():
     a = {"a": np.zeros((1, 2, 3)), "b": np.zeros((4, 5))}
     assert pytree_equal(pytree_shape(a), {"a": (1, 2, 3), "b": (4, 5)})
-    assert pytree_equal(pytree_shape(a), {"a": np.array((1, 2, 3)), "b": np.array((4, 5))})
+    assert pytree_equal(
+        pytree_shape(a), {"a": np.array((1, 2, 3)), "b": np.array((4, 5))}
+    )
 
 
-def test_tree_cons():
+def test_pytree_dtype():
+    for a, dt in [
+        (np.zeros((1, 2, 3), dtype=int), int),
+        (np.zeros((1, 2, 3), dtype=np.int8), np.int8),
+        (np.zeros((1, 2, 3), dtype=np.float32), np.float32),
+        (
+            {
+                "x": np.zeros((1, 2, 3), dtype=int),
+                "y": np.zeros((4, 5), dtype=np.float32),
+            },
+            {"x": int, "y": np.float32},
+        ),
+    ]:
+        assert pytree_equal(pytree_dtype(a), dt)
+
+
+def test_pytree_cons():
     assert pytree_cons(1, (2, 3)) == (1, 2, 3)
     assert pytree_cons(3, {"x": (2, 1)}) == {"x": (3, 2, 1)}
     assert pytree_cons(5, {"x": (2, 1), "y": {"z": (3, 4)}}) == {
@@ -155,7 +176,7 @@ def test_tree_cons():
     }
 
 
-def test_tree_car():
+def test_pytree_car():
     assert pytree_car((1, 2, 3)) == 1
     assert pytree_car({"x": (3, 2, 1)}) == {"x": 3}
     assert pytree_car({"x": (5, 2, 1), "y": {"z": (5, 3, 4)}}) == {
@@ -164,7 +185,7 @@ def test_tree_car():
     }
 
 
-def test_tree_cdr():
+def test_pytree_cdr():
     assert pytree_cdr((1, 2, 3)) == (2, 3)
     assert pytree_cdr({"x": (3, 2, 1)}) == {"x": (2, 1)}
     assert pytree_cdr({"x": (5, 2, 1), "y": {"z": (5, 3, 4)}}) == {

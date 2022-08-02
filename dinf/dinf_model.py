@@ -10,7 +10,7 @@ from flax import linen as nn
 import numpy as np
 
 from .parameters import Parameters
-from .misc import pytree_equal, pytree_shape
+from .misc import pytree_equal, pytree_shape, pytree_dtype
 
 
 def _sim_shim(args, *, func, keys):
@@ -255,6 +255,12 @@ class DinfModel:
             raise ValueError(
                 f"target_func produced feature shape {pytree_shape(x_t)}, "
                 f"but feature_shape is {self.feature_shape}"
+            )
+
+        if not pytree_equal(pytree_dtype(x_g), pytree_dtype(x_t)):
+            raise ValueError(
+                f"generator_func produced feature dtype {pytree_dtype(x_g)}, "
+                f"but target_func produced {pytree_dtype(x_t)}, "
             )
 
     @staticmethod

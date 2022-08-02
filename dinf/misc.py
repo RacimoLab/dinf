@@ -112,13 +112,17 @@ def pytree_equal(tree: Pytree, *others: Pytree) -> bool:
 def pytree_shape(tree: Pytree) -> Pytree:
     """
     Return a pytree with the same dictionary structure as the given tree,
-    but with non-dictionaries replaced by their shape.
+    but with non-dictionaries replaced by their numpy shape.
     """
-    return jax.tree_util.tree_map(
-        lambda x: np.shape(x),
-        tree,
-        is_leaf=lambda x: isinstance(x, (list, tuple)),
-    )
+    return jax.tree_util.tree_map(np.shape, tree, is_leaf=is_tuple)
+
+
+def pytree_dtype(tree: Pytree) -> Pytree:
+    """
+    Return a pytree with the same dictionary structure as the given tree,
+    but with non-dictionaries replaced by their numpy dtype.
+    """
+    return jax.tree_util.tree_map(lambda x: x.dtype, tree)
 
 
 def pytree_cons(a, tree: Pytree) -> Pytree:

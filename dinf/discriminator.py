@@ -560,7 +560,9 @@ class Discriminator(_NetworkWrapper):
                 f"train_x={pytree_shape(train_x)}\n"
                 f"train_y={pytree_shape(train_y)}"
             )
-        if not pytree_equal(*map(pytree_cdr, [self.input_shape, pytree_shape(train_x)])):
+        if not pytree_equal(
+            *map(pytree_cdr, [self.input_shape, pytree_shape(train_x)])
+        ):
             raise ValueError(
                 "Trailing dimensions of train_x must match input_shape.\n"
                 f"input_shape={self.input_shape}\n"
@@ -580,20 +582,14 @@ class Discriminator(_NetworkWrapper):
                     f"val_y={pytree_shape(val_y)}"
                 )
 
-            if not pytree_equal(*map(pytree_cdr, [self.input_shape, pytree_shape(val_x)])):
+            if not pytree_equal(
+                *map(pytree_cdr, [self.input_shape, pytree_shape(val_x)])
+            ):
                 raise ValueError(
                     "Trailing dimensions of val_x must match input_shape.\n"
                     f"input_shape={self.input_shape}\n"
                     f"val_x={pytree_shape(val_x)}"
                 )
-
-            # For a binary classifier, y has no trailing dimensions.
-            # if not pytree_equal(*map(pytree_cdr, map(pytree_shape, [train_y, val_y]))):
-            #    raise ValueError(
-            #        "Trailing dimensions of train_y and val_y must match.\n"
-            #        f"train_y={pytree_cdr(train_y)}\n"
-            #        f"val_y={pytree_cdr(val_y)}"
-            #    )
 
         if callbacks is None:
             callbacks = {}
