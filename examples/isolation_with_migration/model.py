@@ -106,5 +106,4 @@ dinf_model = dinf.DinfModel(
     target_func=None,
     generator_func=generator,
     parameters=parameters,
-    feature_shape=features.shape,
 )

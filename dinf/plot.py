@@ -754,7 +754,7 @@ class _Metrics(_SubCommand):
 
     def __call__(self, args: argparse.Namespace):
         metrics_collection = {
-            pathlib.Path(d).name: dinf.Discriminator(None).from_file(d).metrics
+            pathlib.Path(d).name: dinf.Discriminator.from_file(d).metrics
             for d in args.discriminators
         }
         fig, axs = metrics(
@@ -1148,7 +1148,7 @@ class _Gan(_SubCommand):
             assert data.dtype.names == x_params
 
         metrics_collection = {
-            f"Iteration {j}": dinf.Discriminator(None).from_file(d).metrics
+            f"Iteration {j}": dinf.Discriminator.from_file(d).metrics
             for j, d in enumerate(args.discriminators)
         }
 

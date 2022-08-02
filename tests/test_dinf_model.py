@@ -15,8 +15,6 @@ def _target_func(seed):
     return _generator_func(seed, 10)
 
 
-feature_shape = {"a": np.array([10])}
-
 _parameters = dinf.Parameters(my_param=dinf.Param(low=0, high=100))
 
 
@@ -26,7 +24,6 @@ class TestDinfModel:
             target_func=_target_func,
             generator_func=_generator_func,
             parameters=_parameters,
-            feature_shape=feature_shape,
         )
         g.check()
 
@@ -36,10 +33,9 @@ class TestDinfModel:
                 target_func=_target_func,
                 generator_func=_generator_func,
                 parameters=dinf.Parameters(),
-                feature_shape=feature_shape,
             )
 
-    def test_wrong_generator_shape(self):
+    def test_mismatched_shape(self):
         def generator(seed, my_param):
             return {"a": np.array([1.0, 2.0])}
 
@@ -47,22 +43,20 @@ class TestDinfModel:
             target_func=_target_func,
             generator_func=generator,
             parameters=_parameters,
-            feature_shape=feature_shape,
         )
         with pytest.raises(ValueError, match="generator_func .* shape"):
             g.check()
 
-    def test_wrong_target_shape(self):
+    def test_mismatched_dtype(self):
         def target(seed):
-            return {"a": np.array([1.0, 2.0])}
+            return {"a": np.zeros(10, dtype=int)}
 
         g = dinf.DinfModel(
             target_func=target,
             generator_func=_generator_func,
             parameters=_parameters,
-            feature_shape=feature_shape,
         )
-        with pytest.raises(ValueError, match="target_func .* shape"):
+        with pytest.raises(ValueError, match="generator_func .* dtype"):
             g.check()
 
     def test_bad_custom_param(self):
@@ -77,7 +71,6 @@ class TestDinfModel:
             target_func=_target_func,
             generator_func=_generator_func,
             parameters=parameters,
-            feature_shape=feature_shape,
         )
         with pytest.raises(ValueError, match="parameters.draw.* shape"):
             g.check()
@@ -88,7 +81,6 @@ class TestDinfModel:
                 target_func=None,
                 generator_func=_generator_func,
                 parameters=_parameters,
-                feature_shape=feature_shape,
             )
 
     def test_from_file_no_spec(self):

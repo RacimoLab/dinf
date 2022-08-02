@@ -1,8 +1,12 @@
 from __future__ import annotations
 import argparse
 import inspect
+import logging
 import os
 import pathlib
+
+import rich.logging
+import rich.progress
 
 import dinf
 
@@ -60,6 +64,24 @@ class _SubCommand:
             formatter_class=ADRDFormatter,
         )
         self.parser.set_defaults(func=self)
+
+        group = self.parser.add_mutually_exclusive_group()
+        group.add_argument(
+            "-v",
+            "--verbose",
+            action="count",
+            default=0,
+            help=(
+                "Increase verbosity. Specify once for INFO messages and "
+                "twice for DEBUG messages."
+            ),
+        )
+        group.add_argument(
+            "-q",
+            "--quiet",
+            action="store_true",
+            help="Disable output. Only ERROR and CRITICAL messages are printed.",
+        )
 
     def add_common_parser_group(self):
         group = self.parser.add_argument_group(title="common arguments")
@@ -191,32 +213,136 @@ class AbcGan(_SubCommand):
 
     def __call__(self, args: argparse.Namespace):
         dinf_model = dinf.DinfModel.from_file(args.model)
-        dinf.dinf.abc_gan(
-            dinf_model=dinf_model,
-            iterations=args.iterations,
-            training_replicates=args.training_replicates,
-            test_replicates=args.test_replicates,
-            proposal_replicates=args.proposal_replicates,
-            epochs=args.epochs,
-            working_directory=args.working_directory,
-            parallelism=args.parallelism,
-            seed=args.seed,
+
+        progress = rich.progress.Progress(
+            rich.progress.TextColumn("[progress.description]{task.description}"),
+            rich.progress.BarColumn(),
+            rich.progress.TextColumn(
+                "[progress.percentage]{task.completed}/{task.total}"
+            ),
+            rich.progress.TimeRemainingColumn(),
+            rich.progress.TextColumn("{task.fields[_loss]}"),
+            rich.progress.TextColumn("{task.fields[_accuracy]}"),
         )
+
+        def cb_counter(description):
+            task_id = task_ids[description]
+
+            def cb(n):
+                progress.update(task_id, visible=True)
+                if n < progress.tasks[task_id].completed:
+                    progress.reset(task_id)
+                if n > 0:
+                    progress.advance(task_id)
+
+            return cb
+
+        def cb_iteration(description):
+            task_id = task_ids[description]
+
+            def cb(n):
+                if not progress.tasks[task_id].visible:
+                    # Set total iterations in the 'resume' case.
+                    progress.reset(task_id, total=n + args.iterations)
+                progress.update(task_id, completed=n, visible=True)
+
+            return cb
+
+        def cb_batch(description):
+            task_id = task_ids[description]
+
+            def cb(n, loss, accuracy):
+                if n < progress.tasks[task_id].completed:
+                    progress.reset(task_id)
+                progress.update(
+                    task_id,
+                    completed=n,
+                    visible=True,
+                    _loss=f"loss {loss:.4f}",
+                    _accuracy=f"accuracy {accuracy:.4f}",
+                )
+
+            return cb
+
+        def cb_predict_batch(description):
+            task_id = task_ids[description]
+
+            def cb(n):
+                if n < progress.tasks[task_id].completed:
+                    progress.reset(task_id)
+                progress.update(
+                    task_id,
+                    completed=n,
+                    visible=True,
+                )
+
+            return cb
+
+        n_test = args.test_replicates // 2
+        n_train = args.training_replicates // 2
+        task_ids = {}
+        callbacks = {}
+
+        for description, total, cb_name, cb_func in [
+            ("Generator/test", n_test, "test/generator/feature", cb_counter),
+            ("Target/test", n_test, "test/target/feature", cb_counter),
+            ("Iteration", args.iterations, "iteration", cb_iteration),
+            (" Generator/train", n_train, "train/generator/feature", cb_counter),
+            (" Target/train", n_train, "train/target/feature", cb_counter),
+            (" Epoch", args.epochs, "fit/epoch", cb_counter),
+            ("  Train", args.training_replicates, "fit/train_batch", cb_batch),
+            ("  Test", args.test_replicates, "fit/test_batch", cb_batch),
+            (
+                " Generator/proposal",
+                args.proposal_replicates,
+                "proposal/feature",
+                cb_counter,
+            ),
+            ("Predict", args.proposal_replicates, "predict/batch", cb_predict_batch),
+        ]:
+            task_ids[description] = progress.add_task(
+                description,
+                total=total,
+                visible=False,
+                _loss="",
+                _accuracy="",
+            )
+            callbacks[cb_name] = cb_func(description)
+
+        if args.quiet:
+            callbacks = {}
+
+        with progress:
+            dinf.dinf.abc_gan(
+                dinf_model=dinf_model,
+                iterations=args.iterations,
+                training_replicates=args.training_replicates,
+                test_replicates=args.test_replicates,
+                proposal_replicates=args.proposal_replicates,
+                epochs=args.epochs,
+                working_directory=args.working_directory,
+                parallelism=args.parallelism,
+                seed=args.seed,
+                callbacks=callbacks,
+            )
 
 
 class McmcGan(_SubCommand):
     """
     Run the MCMC GAN.
 
-    Each iteration of the GAN can be conceptually divided into:
-    - constructing train/test datasets for the discriminator,
-    - training the discriminator for a certain number of epochs,
-    - running the MCMC.
+    Conceptually, the GAN takes the following steps for iteration j:
+
+      - sample training dataset from the prior[j] distribution,
+      - train the discriminator,
+      - run the MCMC,
+      - obtain posterior[j] as weighted KDE of MCMC sample,
+      - set prior[j+1] = posterior[j].
 
     In the first iteration, the parameter values given to the generator
-    to produce the test/train datasets are drawn from the parameters' prior
+    to produce the training dataset are drawn from the parameters' prior
     distribution. In subsequent iterations, the parameter values are drawn
-    by sampling with replacement from the previous iteration's MCMC chains.
+    from a weighted gaussian KDE of the previous iteration's MCMC chains.
     """
 
     def __init__(self, subparsers):
@@ -243,7 +369,7 @@ class McmcGan(_SubCommand):
         group.add_argument(
             "--Dx-replicates",
             type=int,
-            default=64,
+            default=32,
             help="Number of generator replicates for approximating E[D(x)|θ].",
         )
 
@@ -251,19 +377,100 @@ class McmcGan(_SubCommand):
 
     def __call__(self, args: argparse.Namespace):
         dinf_model = dinf.DinfModel.from_file(args.model)
-        dinf.mcmc_gan(
-            dinf_model=dinf_model,
-            iterations=args.iterations,
-            training_replicates=args.training_replicates,
-            test_replicates=args.test_replicates,
-            epochs=args.epochs,
-            walkers=args.walkers,
-            steps=args.steps,
-            Dx_replicates=args.Dx_replicates,
-            working_directory=args.working_directory,
-            parallelism=args.parallelism,
-            seed=args.seed,
+
+        progress = rich.progress.Progress(
+            rich.progress.TextColumn("[progress.description]{task.description}"),
+            rich.progress.BarColumn(),
+            rich.progress.TextColumn(
+                "[progress.percentage]{task.completed}/{task.total}"
+            ),
+            rich.progress.TimeRemainingColumn(),
+            rich.progress.TextColumn("{task.fields[_loss]}"),
+            rich.progress.TextColumn("{task.fields[_accuracy]}"),
         )
+
+        def cb_counter(description):
+            task_id = task_ids[description]
+
+            def cb(n):
+                progress.update(task_id, visible=True)
+                if n < progress.tasks[task_id].completed:
+                    progress.reset(task_id)
+                if n > 0:
+                    progress.advance(task_id)
+
+            return cb
+
+        def cb_iteration(description):
+            task_id = task_ids[description]
+
+            def cb(n):
+                if not progress.tasks[task_id].visible:
+                    # Set total iterations in the 'resume' case.
+                    progress.reset(task_id, total=n + args.iterations)
+                progress.update(task_id, completed=n, visible=True)
+
+            return cb
+
+        def cb_batch(description):
+            task_id = task_ids[description]
+
+            def cb(n, loss, accuracy):
+                if n < progress.tasks[task_id].completed:
+                    progress.reset(task_id)
+                progress.update(
+                    task_id,
+                    completed=n,
+                    visible=True,
+                    _loss=f"loss {loss:.4f}",
+                    _accuracy=f"accuracy {accuracy:.4f}",
+                )
+
+            return cb
+
+        n_test = args.test_replicates // 2
+        n_train = args.training_replicates // 2
+        task_ids = {}
+        callbacks = {}
+
+        for description, total, cb_name, cb_func in [
+            ("Generator/test", n_test, "test/generator/feature", cb_counter),
+            ("Target/test", n_test, "test/target/feature", cb_counter),
+            ("Iteration", args.iterations, "iteration", cb_iteration),
+            (" Generator/train", n_train, "train/generator/feature", cb_counter),
+            (" Target/train", n_train, "train/target/feature", cb_counter),
+            (" Epoch", args.epochs, "fit/epoch", cb_counter),
+            ("  Train", args.training_replicates, "fit/train_batch", cb_batch),
+            ("  Test", args.test_replicates, "fit/test_batch", cb_batch),
+            (" MCMC", args.steps, "mcmc", cb_counter),
+        ]:
+            task_ids[description] = progress.add_task(
+                description,
+                total=total,
+                visible=False,
+                _loss="",
+                _accuracy="",
+            )
+            callbacks[cb_name] = cb_func(description)
+
+        if args.quiet:
+            callbacks = {}
+
+        with progress:
+            dinf.mcmc_gan(
+                dinf_model=dinf_model,
+                iterations=args.iterations,
+                training_replicates=args.training_replicates,
+                test_replicates=args.test_replicates,
+                epochs=args.epochs,
+                walkers=args.walkers,
+                steps=args.steps,
+                Dx_replicates=args.Dx_replicates,
+                working_directory=args.working_directory,
+                parallelism=args.parallelism,
+                seed=args.seed,
+                callbacks=callbacks,
+            )
 
 
 class PgGan(_SubCommand):
@@ -281,7 +488,7 @@ class PgGan(_SubCommand):
         group.add_argument(
             "--Dx-replicates",
             type=int,
-            default=64,
+            default=32,
             help="Number of generator replicates for approximating E[D(x)|θ].",
         )
         group.add_argument(
@@ -345,14 +552,86 @@ class Train(_SubCommand):
         dinf_model = dinf.DinfModel.from_file(args.model)
         if args.epochs > 0:
             check_output_file(args.discriminator_file)
-        discriminator = dinf.train(
-            dinf_model=dinf_model,
-            training_replicates=args.training_replicates,
-            test_replicates=args.test_replicates,
-            epochs=args.epochs,
-            parallelism=args.parallelism,
-            seed=args.seed,
+
+        progress = rich.progress.Progress(
+            rich.progress.TextColumn("[progress.description]{task.description}"),
+            rich.progress.BarColumn(),
+            rich.progress.TextColumn(
+                "[progress.percentage]{task.completed}/{task.total}"
+            ),
+            rich.progress.TimeRemainingColumn(),
+            rich.progress.TextColumn("{task.fields[_loss]}"),
+            rich.progress.TextColumn("{task.fields[_accuracy]}"),
         )
+
+        nreps = (args.training_replicates + args.test_replicates) // 2
+        task_ids = {
+            description: progress.add_task(
+                description,
+                total=total,
+                visible=False,
+                _loss="",
+                _accuracy="",
+            )
+            for description, total in [
+                ("Generator", nreps),
+                ("Target", nreps),
+                ("Epoch", args.epochs),
+                ("Train", args.training_replicates),
+                ("Test", args.test_replicates),
+            ]
+        }
+
+        def cb_counter(description):
+            task_id = task_ids[description]
+
+            def cb(n):
+                progress.update(task_id, visible=True)
+                if n > 0:
+                    progress.advance(task_id)
+
+            return cb
+
+        def cb_batch(description):
+            task_id = task_ids[description]
+
+            def cb(n, loss, accuracy):
+                if n < progress.tasks[task_id].completed:
+                    progress.reset(task_id)
+                progress.update(
+                    task_id,
+                    completed=n,
+                    visible=True,
+                    _loss=f"loss {loss:.4f}",
+                    _accuracy=f"accuracy {accuracy:.4f}",
+                )
+
+            return cb
+
+        callbacks = {
+            "train/generator/feature": cb_counter("Generator"),
+            "train/target/feature": cb_counter("Target"),
+            "test/generator/feature": cb_counter("Generator"),
+            "test/target/feature": cb_counter("Target"),
+            "discriminator/fit/epoch": cb_counter("Epoch"),
+            "discriminator/fit/train_batch": cb_batch("Train"),
+            "discriminator/fit/test_batch": cb_batch("Test"),
+        }
+
+        if args.quiet:
+            callbacks = {}
+
+        with progress:
+            discriminator = dinf.train(
+                dinf_model=dinf_model,
+                training_replicates=args.training_replicates,
+                test_replicates=args.test_replicates,
+                epochs=args.epochs,
+                parallelism=args.parallelism,
+                seed=args.seed,
+                callbacks=callbacks,
+            )
+
         if args.epochs > 0:
             discriminator.to_file(args.discriminator_file)
 
@@ -411,18 +690,69 @@ class Predict(_SubCommand):
 
     def __call__(self, args: argparse.Namespace):
         dinf_model = dinf.DinfModel.from_file(args.model)
-        discriminator = dinf.Discriminator(
-            dinf_model.feature_shape, network=dinf_model.discriminator_network
-        ).from_file(args.discriminator_file)
-        check_output_file(args.output_file)
-        thetas, probs = dinf.predict(
-            discriminator=discriminator,
-            dinf_model=dinf_model,
-            replicates=args.replicates,
-            sample_target=args.target,
-            parallelism=args.parallelism,
-            seed=args.seed,
+        discriminator = dinf.Discriminator.from_file(
+            args.discriminator_file, network=dinf_model.discriminator_network
         )
+        check_output_file(args.output_file)
+
+        progress = rich.progress.Progress(
+            rich.progress.TextColumn("[progress.description]{task.description}"),
+            rich.progress.BarColumn(),
+            rich.progress.TextColumn(
+                "[progress.percentage]{task.completed}/{task.total}"
+            ),
+            rich.progress.TimeRemainingColumn(),
+        )
+
+        task_ids = {
+            description: progress.add_task(description, total=total, visible=False)
+            for description, total in [
+                ("Generator", args.replicates),
+                ("Target", args.replicates),
+                ("Predict", args.replicates),
+            ]
+        }
+
+        def cb_counter(description):
+            task_id = task_ids[description]
+
+            def cb(n):
+                progress.update(task_id, visible=True)
+                if n > 0:
+                    progress.advance(task_id)
+
+            return cb
+
+        def cb_batch(description):
+            task_id = task_ids[description]
+
+            def cb(n):
+                if n < progress.tasks[task_id].completed:
+                    progress.reset(task_id)
+                progress.update(task_id, completed=n, visible=True)
+
+            return cb
+
+        callbacks = {
+            "predict/generator/feature": cb_counter("Generator"),
+            "predict/target/feature": cb_counter("Target"),
+            "discriminator/predict/batch": cb_batch("Predict"),
+        }
+
+        if args.quiet:
+            callbacks = {}
+
+        with progress:
+            thetas, probs = dinf.predict(
+                discriminator=discriminator,
+                dinf_model=dinf_model,
+                replicates=args.replicates,
+                sample_target=args.target,
+                parallelism=args.parallelism,
+                seed=args.seed,
+                callbacks=callbacks,
+            )
+
         dinf.save_results(
             args.output_file,
             thetas=thetas,
@@ -436,7 +766,7 @@ class Check(_SubCommand):
     Basic dinf_model health checks.
 
     Checks that the target and generator functions work and return the
-    same feature shapes.
+    same feature shapes and dtypes.
     """
 
     def __init__(self, subparsers):
@@ -465,7 +795,6 @@ def main(args_list=None):
     Check(subparsers)
     Train(subparsers)
     Predict(subparsers)
-
     AbcGan(subparsers)
     McmcGan(subparsers)
     PgGan(subparsers)
@@ -474,5 +803,29 @@ def main(args_list=None):
     if args.subcommand is None:
         top_parser.print_help()
         exit(1)
+
+    # Set root logger's level to WARNING (the default),
+    # or ERROR if --quiet is specified.
+    level = "WARNING"
+    if args.quiet:
+        level = "ERROR"
+    logging.basicConfig(
+        level=level,
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[rich.logging.RichHandler()],
+        # Yes, really set the root logging configuration!
+        force=True,
+    )
+
+    # If --verbose is specified, we increase the log level for dinf code.
+    # The root logger's level remains at WARNING so that we don't get
+    # additional messages from third-party packages.
+    assert not (args.verbose and args.quiet)
+    if args.verbose == 1:
+        level = "INFO"
+    elif args.verbose >= 2:
+        level = "DEBUG"
+    logging.getLogger(dinf.__name__).setLevel(level)
 
     args.func(args)

@@ -898,8 +898,8 @@ class _TestMultiple:
         )
 
         features = feature_extractor.from_ts(ts, individuals=individuals)
-        assert dinf.misc.tree_equal(
-            feature_extractor.shape, dinf.misc.tree_shape(features)
+        assert dinf.misc.pytree_equal(
+            feature_extractor.shape, dinf.misc.pytree_shape(features)
         )
 
     @pytest.mark.usefixtures("tmp_path")
@@ -1075,8 +1075,8 @@ class _TestMultiple:
             global_maf_thresh=global_maf_thresh,
         )
         ts_features = feature_extractor.from_ts(ts, individuals=individuals)
-        assert dinf.misc.tree_equal(
-            feature_extractor.shape, dinf.misc.tree_shape(ts_features)
+        assert dinf.misc.pytree_equal(
+            feature_extractor.shape, dinf.misc.pytree_shape(ts_features)
         )
 
         vcf_path = tmp_path / "1.vcf"
@@ -1104,8 +1104,8 @@ class _TestMultiple:
             min_seg_sites=1,
             rng=np.random.default_rng(1234),
         )
-        assert dinf.misc.tree_equal(
-            feature_extractor.shape, dinf.misc.tree_shape(vcf_features)
+        assert dinf.misc.pytree_equal(
+            feature_extractor.shape, dinf.misc.pytree_shape(vcf_features)
         )
 
         def row_sorted(A):

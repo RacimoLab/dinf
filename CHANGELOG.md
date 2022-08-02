@@ -2,7 +2,11 @@
 
 ## unreleased
 
+* Removed DinfModel.feature_shape.
+* Simplified Discriminator API.
+* Add progress bars and do logging with `rich`.
 * Fix KDE bandwidth for abc-gan.
+* Separate the train/test datasets from abc-gan proposals.
 * Reduce memory use for jobs with millions of simulations.
 * Remove alfi-mcmc-gan.
 

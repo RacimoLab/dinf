@@ -83,6 +83,10 @@ def ts_ploidy_of_individuals(
 Pytree = Any
 
 
+def is_tuple(a):
+    return isinstance(a, tuple)
+
+
 def _dtree_map(func, *trees: Pytree) -> Pytree:
     return jax.tree_util.tree_map(
         func, *trees, is_leaf=lambda x: not isinstance(x, collections.abc.Mapping)
@@ -93,7 +97,7 @@ def _dtree_structure(tree: Pytree) -> Pytree:
     return jax.tree_util.tree_structure(_dtree_map(lambda _: (), tree))
 
 
-def tree_equal(tree: Pytree, *others: Pytree) -> bool:
+def pytree_equal(tree: Pytree, *others: Pytree) -> bool:
     """
     Return True if tree is the same as all the others, False otherwise.
     """
@@ -105,50 +109,48 @@ def tree_equal(tree: Pytree, *others: Pytree) -> bool:
     )
 
 
-def tree_shape(tree: Pytree) -> Pytree:
+def pytree_shape(tree: Pytree) -> Pytree:
     """
     Return a pytree with the same dictionary structure as the given tree,
-    but with non-dictionaries replaced by their shape.
+    but with non-dictionaries replaced by their numpy shape.
     """
-    return jax.tree_util.tree_map(
-        lambda x: np.shape(x),
-        tree,
-        is_leaf=lambda x: isinstance(x, (list, tuple)),
-    )
+    return jax.tree_util.tree_map(np.shape, tree, is_leaf=is_tuple)
 
 
-def tree_cons(a, tree: Pytree) -> Pytree:
+def pytree_dtype(tree: Pytree) -> Pytree:
+    """
+    Return a pytree with the same dictionary structure as the given tree,
+    but with non-dictionaries replaced by their numpy dtype.
+    """
+    return jax.tree_util.tree_map(lambda x: x.dtype, tree)
+
+
+def pytree_cons(a, tree: Pytree) -> Pytree:
     """
     Prepend ``a`` in all tuples of the given tree.
     """
     return jax.tree_util.tree_map(
-        lambda x: tuple((a,) + tuple(x)),
-        tree,
-        is_leaf=lambda x: isinstance(x, tuple),
+        lambda x: tuple((a,) + tuple(x)), tree, is_leaf=is_tuple
     )
 
 
-def tree_car(tree: Pytree) -> Pytree:
+def pytree_car(tree: Pytree) -> Pytree:
     """
     Return a tree of the leading values of all tuples in the given tree.
     """
-    return jax.tree_util.tree_map(
-        lambda x: x[0], tree, is_leaf=lambda x: isinstance(x, tuple)
-    )
+    return jax.tree_util.tree_map(lambda x: x[0], tree, is_leaf=is_tuple)
 
 
-def tree_cdr(tree: Pytree) -> Pytree:
+def pytree_cdr(tree: Pytree) -> Pytree:
     """
     Return a tree of the trailing values of all tuples in the given tree.
     """
-    return jax.tree_util.tree_map(
-        lambda x: x[1:], tree, is_leaf=lambda x: isinstance(x, tuple)
-    )
+    return jax.tree_util.tree_map(lambda x: x[1:], tree, is_leaf=is_tuple)
 
 
 def leading_dim_size(tree: Pytree) -> int:
     """Size of the leading dimension (e.g. batch dimension) of each feature."""
-    sizes = np.array(jax.tree_util.tree_flatten(tree_car(tree_shape(tree)))[0])
+    sizes = np.array(jax.tree_util.tree_flatten(pytree_car(pytree_shape(tree)))[0])
     # All features should have the same size for the leading dimension.
     assert np.all(sizes[0] == sizes[1:])
     return sizes[0]

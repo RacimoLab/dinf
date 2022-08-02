@@ -2,9 +2,8 @@ from __future__ import annotations
 import collections
 import dataclasses
 import functools
+import logging
 import pathlib
-import sys
-import time
 from typing import Callable, Tuple
 
 from flax import linen as nn
@@ -13,18 +12,19 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
+import rich.text
 
 from .misc import (
     Pytree,
-    tree_equal,
-    tree_shape,
-    tree_cons,
-    tree_cdr,
+    pytree_equal,
+    pytree_shape,
+    pytree_cons,
+    pytree_cdr,
     leading_dim_size,
+    is_tuple,
 )
 
-# Small fudge-factor to avoid numerical instability.
-EPSILON = jnp.finfo(jnp.float32).eps
+logger = logging.getLogger(__name__)
 
 
 # Because we use batch normalisation, the training state needs to also record
@@ -304,12 +304,12 @@ class ExchangeableCNN(nn.Module):
 
 
 @dataclasses.dataclass
-class _NetworkWrapper:
+class Discriminator:
     """
-    Base class for Discriminator wrapper.
+    Wrapper for the discriminator neural network that classifies genotype matrices.
     """
 
-    input_shape: Pytree
+    input_shape: Pytree | None = dataclasses.field(init=False, default=None)
     """The shape of the input to the neural network."""
 
     network: nn.Module | None = None
@@ -327,76 +327,100 @@ class _NetworkWrapper:
     """Loss and accuracy metrics obtained when training the network."""
 
     # Bump this after making internal changes.
-    format_version: int = 3
+    format_version: int = 4
     """Version number for the serialised network on disk."""
 
-    _add_batch_dim: bool = True
     _inited: bool = False
 
     def __post_init__(self):
-        assert self.network is not None
+        if self.network is None:
+            self.network = ExchangeableCNN()
 
         if self.state is None:
             self.state = TrainState.create(
                 apply_fn=self.network.apply,
-                tx=optax.chain(
-                    optax.clip(1.0),
-                    optax.adam(learning_rate=0.001),
-                ),
+                tx=optax.chain(optax.clip(1.0), optax.adam(learning_rate=0.001)),
                 params={},
                 batch_stats={},
             )
-        if self.input_shape is not None and self._add_batch_dim:
-            # Add leading batch dimension.
-            if isinstance(self.input_shape, int):
-                self.input_shape = (self.input_shape,)
-            self.input_shape = tree_cons(1, self.input_shape)
 
-    def init(self, rng: np.random.Generator):
+    def _init(self, input_shape, rng: np.random.Generator):
         """
-        Build a neural network with the given input shape.
+        Initialise the neural network with the given input shape.
 
+        :param input_shape:
+            The shape of the input to the neural network.
         :param numpy.random.Generator rng:
             The numpy random number generator.
-        :return:
-            A new network wrapper object.
         """
-        assert self.input_shape is not None
+        assert self.network is not None
         assert self.state is not None
+        assert self.input_shape is None
+
+        # Set the leading (batch) dimension to 1.
+        self.input_shape = pytree_cons(1, pytree_cdr(input_shape))
+
+        # Sanity checks.
+        if not jax.tree_util.tree_all(
+            jax.tree_util.tree_map(
+                lambda x: np.shape(x) == (4,) and x[1] >= 2 and x[2] >= 4 and x[3] <= 4,
+                self.input_shape,
+                is_leaf=is_tuple,
+            )
+        ):
+            raise ValueError(
+                "Input features must each have shape (b, n, m, c), where "
+                "b is the number of data instances in the batch,"
+                "n >= 2 is the number of (pseudo)haplotypes, "
+                "m >= 4 is the length of the (pseudo)haplotypes, "
+                "and c <= 4 is the number of channels.\n"
+                f"input_shape={self.input_shape}"
+            )
+
+        logger.info("initialising network with shape %s", self.input_shape)
 
         @jax.jit
         def init(*args):
             return self.network.init(*args, train=False)
 
         dummy_input = jax.tree_util.tree_map(
-            lambda x: jnp.zeros(x, dtype=np.float32),
-            self.input_shape,
-            is_leaf=lambda x: isinstance(x, tuple),
+            lambda x: jnp.zeros(x, dtype=np.float32), self.input_shape, is_leaf=is_tuple
         )
         key = jax.random.PRNGKey(rng.integers(2**63))
         variables = init(key, dummy_input)
-        state = type(self.state).create(
+
+        self.state = TrainState.create(
             apply_fn=self.state.apply_fn,
             tx=self.state.tx,
             params=variables["params"],
             batch_stats=variables.get("batch_stats", {}),
         )
-        return dataclasses.replace(
-            self, state=state, _add_batch_dim=False, _inited=True
-        )
+        self._inited = True
 
-    def from_file(self, filename: str | pathlib.Path, /):
+        logger.debug("%s", self)
+
+    @classmethod
+    def from_file(cls, filename: str | pathlib.Path, /, *, network=None, state=None):
         """
-        Load neural network training state from the given file.
+        Load neural network weights from the given file.
 
         :param filename:
             The filename of the saved model.
+        :param network:
+            The flax neural network.
+        :param state:
+            The flax train state.
         :return:
-            A new network wrapper object.
+            A new Discriminator object.
         """
+        logger.info("%s: loading network weights", filename)
         with open(filename, "rb") as f:
             data = flax.serialization.msgpack_restore(f.read())
-        return self.fromdict(data, _err_prefix=f"{filename}: ")
+        discr = cls.fromdict(
+            data, network=network, state=state, _err_prefix=f"{filename}: "
+        )
+        logger.debug("%s", discr)
+        return discr
 
     def to_file(self, filename: str | pathlib.Path, /) -> None:
         """
@@ -404,15 +428,27 @@ class _NetworkWrapper:
 
         :param filename: The path where the model will be saved.
         """
+        logger.debug("%s: saving network weights", filename)
         data = self.asdict()
         with open(filename, "wb") as f:
             f.write(flax.serialization.msgpack_serialize(data))
 
-    def fromdict(self, data: dict, _err_prefix: str = ""):
-        assert self.state is not None
+    @classmethod
+    def fromdict(
+        cls, data: dict, /, *, network=None, state=None, _err_prefix: str = ""
+    ):
+        """
+        Load neural network weights from the given dict.
 
+        :param data:
+            The dict from which the network weights will be loaded.
+        :param network:
+            The flax neural network.
+        :return:
+            A new Discriminator object.
+        """
         format_version = data.get("format_version")
-        if format_version is not None and format_version != self.format_version:
+        if format_version is not None and format_version != cls.format_version:
             raise ValueError(
                 f"{_err_prefix}saved network is not compatible with this "
                 "version of dinf. Either train a new network or use an "
@@ -431,26 +467,28 @@ class _NetworkWrapper:
                 f"Expected {expected_fields},\nbut got {set(data.keys())}."
             )
 
-        data["input_shape"] = jax.tree_util.tree_map(
+        discr = cls(network=network, state=state)
+        assert discr.network is not None
+        assert discr.state is not None
+
+        discr.input_shape = jax.tree_util.tree_map(
             tuple,
             data["input_shape"],
             is_leaf=lambda x: isinstance(x, list),
         )
-        data["state"] = type(self.state).create(
-            apply_fn=self.state.apply_fn,
-            tx=self.state.tx,
+        discr.state = TrainState.create(
+            apply_fn=discr.state.apply_fn,
+            tx=discr.state.tx,
             params=data["state"]["params"],
             batch_stats=data["state"].get("batch_stats", {}),
         )
-        data["metrics"] = collections.defaultdict(list, **data["metrics"])
-        return dataclasses.replace(self, _add_batch_dim=False, _inited=True, **data)
+        discr.trained = data["trained"]
+        discr.metrics = collections.defaultdict(list, **data["metrics"])
+        discr._inited = True
+        return discr
 
     def asdict(self) -> dict:
-        input_shape = jax.tree_util.tree_map(
-            list,
-            self.input_shape,
-            is_leaf=lambda x: isinstance(x, tuple),
-        )
+        input_shape = jax.tree_util.tree_map(list, self.input_shape, is_leaf=is_tuple)
         state = flax.serialization.to_state_dict(self.state)
         metrics = {k: np.array(v) for k, v in self.metrics.items()}
         return dict(
@@ -462,56 +500,17 @@ class _NetworkWrapper:
         )
 
     def summary(self):
-        """Print a summary of the neural network."""
+        """Return a summary of the neural network."""
         # XXX: The order of layers in the CNN are lost because of
         # https://github.com/google/jax/issues/4085
 
         a = jax.tree_util.tree_map(
-            lambda x: jnp.zeros(x, dtype=np.float32),
-            self.input_shape,
-            is_leaf=lambda x: isinstance(x, tuple),
+            lambda x: jnp.zeros(x, dtype=np.float32), self.input_shape, is_leaf=is_tuple
         )
-        print(self.network.tabulate(jax.random.PRNGKey(0), a, train=False))
+        return self.network.tabulate(jax.random.PRNGKey(0), a, train=False)
 
-
-@dataclasses.dataclass
-class Discriminator(_NetworkWrapper):
-    """
-    Wrapper of the discriminator network for classifying genotype matrices.
-
-    :param input_shape:
-        The shape of the input data for the network. This is a dictionary
-        that maps a label to a feature array. Each feature array has shape
-        (n, m, c), where
-        n >= 2 is the number of (pseudo)haplotypes,
-        m >= 4 is the length of the (pseudo)haplotypes,
-        and c <= 4 is the number of channels.
-    """
-
-    def __post_init__(self):
-        if self.network is None:
-            self.network = ExchangeableCNN()
-        super().__post_init__()
-
-        if self.input_shape is None:
-            return
-
-        # Sanity checks.
-        if not jax.tree_util.tree_all(
-            jax.tree_util.tree_map(
-                lambda x: np.shape(x) == (4,) and x[1] >= 2 and x[2] >= 4 and x[3] <= 4,
-                self.input_shape,
-                is_leaf=lambda x: isinstance(x, tuple),
-            )
-        ):
-            raise ValueError(
-                "Input features must each have shape (b, n, m, c), where "
-                "b is the number of batches,"
-                "n >= 2 is the number of (pseudo)haplotypes, "
-                "m >= 4 is the length of the (pseudo)haplotypes, "
-                "and c <= 4 is the number of channels.\n"
-                f"input_shape={self.input_shape}"
-            )
+    def __str__(self):
+        return str(rich.text.Text.from_ansi(self.summary()))
 
     def fit(
         self,
@@ -525,14 +524,15 @@ class Discriminator(_NetworkWrapper):
         rng: np.random.Generator,
         reset_metrics: bool = False,
         entropy_regularisation: bool = False,
+        callbacks: dict | None = None,
     ):
         """
         Fit discriminator to training data.
 
         :param train_x: Training data.
-        :param train_y: Labels for training data.
+        :param train_y: Labels for training data (zeros and ones).
         :param val_x: Validation data.
-        :param val_y: Labels for validation data.
+        :param val_y: Labels for validation data (zeros and ones).
         :param batch_size: Size of minibatch for gradient update step.
         :param epochs: The number of full passes over the training data.
         :param numpy.random.Generator rng:
@@ -542,21 +542,23 @@ class Discriminator(_NetworkWrapper):
             fit() (if any). If false, loss/accuracy metrics will be appended
             to the existing metrics.
         """
-        assert self.network is not None
-        assert self.state is not None
-        assert self.input_shape is not None
-        assert self._inited
+        if callbacks is None:
+            callbacks = {}
+        assert all(k in ("train_batch", "test_batch", "epoch") for k in callbacks)
+
         if leading_dim_size(train_x) != leading_dim_size(train_y):
             raise ValueError(
                 "Leading dimensions of train_x and train_y must be the same.\n"
-                f"train_x={tree_shape(train_x)}\n"
-                f"train_y={tree_shape(train_y)}"
+                f"train_x={pytree_shape(train_x)}\n"
+                f"train_y={pytree_shape(train_y)}"
             )
-        if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(train_x)])):
+        if self.input_shape is not None and not pytree_equal(
+            *map(pytree_cdr, [self.input_shape, pytree_shape(train_x)])
+        ):
             raise ValueError(
-                "Trailing dimensions of train_x must match input_shape.\n"
+                "Trailing dimensions of train_x must match network's input_shape.\n"
                 f"input_shape={self.input_shape}\n"
-                f"train_x={tree_shape(train_x)}"
+                f"train_x={pytree_shape(train_x)}"
             )
 
         if (val_x is None and val_y is not None) or (
@@ -568,24 +570,18 @@ class Discriminator(_NetworkWrapper):
             if leading_dim_size(val_x) != leading_dim_size(val_y):
                 raise ValueError(
                     "Leading dimensions of val_x and val_y must be the same.\n"
-                    f"val_x={tree_shape(val_x)}\n"
-                    f"val_y={tree_shape(val_y)}"
+                    f"val_x={pytree_shape(val_x)}\n"
+                    f"val_y={pytree_shape(val_y)}"
                 )
 
-            if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(val_x)])):
+            if not pytree_equal(
+                *map(pytree_cdr, [pytree_shape(train_x), pytree_shape(val_x)])
+            ):
                 raise ValueError(
-                    "Trailing dimensions of val_x must match input_shape.\n"
-                    f"input_shape={self.input_shape}\n"
-                    f"val_x={tree_shape(val_x)}"
+                    "Trailing dimensions of val_x must match train_x.\n"
+                    f"train_x={pytree_shape(train_x)}\n"
+                    f"val_x={pytree_shape(val_x)}"
                 )
-
-            # For a binary classifier, y has no trailing dimensions.
-            # if not tree_equal(*map(tree_cdr, map(tree_shape, [train_y, val_y]))):
-            #    raise ValueError(
-            #        "Trailing dimensions of train_y and val_y must match.\n"
-            #        f"train_y={tree_cdr(train_y)}\n"
-            #        f"val_y={tree_cdr(val_y)}"
-            #    )
 
         def running_metrics(n, batch_size, current_metrics, metrics):
             new_metrics = jax.tree_util.tree_map(
@@ -596,19 +592,8 @@ class Discriminator(_NetworkWrapper):
         def train_epoch(state, train_ds, batch_size, epoch, dropout_rng, rng=rng):
             """Train for a single epoch."""
 
-            def print_metrics(n, metrics_sum, end):
-                loss = metrics_sum["loss"] / n
-                accuracy = metrics_sum["accuracy"] / n
-                print(
-                    f"[epoch {epoch}|{n}] "
-                    f"train loss {loss:.4f}, accuracy {accuracy:.4f}",
-                    end=end,
-                )
-                return loss, accuracy
-
             metrics_sum = dict(loss=0, accuracy=0)
             n = 0
-            t_prev = time.time()
             for batch in batchify(train_ds, batch_size, random=True, rng=rng):
                 state, batch_metrics = _train_step(
                     state,
@@ -620,28 +605,36 @@ class Discriminator(_NetworkWrapper):
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
                 )
-                t_now = time.time()
-                if t_now - t_prev > 0.5:
-                    print_metrics(n, metrics_sum, end="\r")
-                    t_prev = t_now
+                loss = metrics_sum["loss"] / n
+                accuracy = metrics_sum["accuracy"] / n
+                if (cb_train_batch := callbacks.get("train_batch")) is not None:
+                    cb_train_batch(n, loss, accuracy)
 
-            loss, accuracy = print_metrics(n, metrics_sum, end="")
-            sys.stdout.flush()
             return loss, accuracy, state
 
-        def eval_model(state, test_ds, batch_size):
+        def eval_model(state, test_ds, batch_size, rng=rng):
             metrics_sum = dict(loss=0, accuracy=0)
             n = 0
-            for batch in batchify(test_ds, batch_size):
+            for batch in batchify(test_ds, batch_size, random=True, rng=rng):
                 batch_metrics = _eval_step(state, batch)
                 actual_batch_size = leading_dim_size(batch["input"])
                 n, metrics_sum = running_metrics(
                     n, actual_batch_size, metrics_sum, batch_metrics
                 )
-            loss = metrics_sum["loss"] / n
-            accuracy = metrics_sum["accuracy"] / n
-            print(f"; test loss {loss:.4f}, accuracy {accuracy:.4f}")
+                loss = metrics_sum["loss"] / n
+                accuracy = metrics_sum["accuracy"] / n
+                if (cb_test_batch := callbacks.get("test_batch")) is not None:
+                    cb_test_batch(n, loss, accuracy)
+
             return loss, accuracy
+
+        if not self._inited:
+            self._init(pytree_shape(train_x), rng=rng)
+
+        assert self.network is not None
+        assert self.state is not None
+        assert self.input_shape is not None
+        assert self._inited
 
         train_ds = dict(input=train_x, output=train_y)
         test_ds = dict(input=val_x, output=val_y)
@@ -651,6 +644,9 @@ class Discriminator(_NetworkWrapper):
             self.metrics = collections.defaultdict(list)
 
         dropout_rng1 = jax.random.PRNGKey(rng.integers(2**63))
+
+        if (cb_epoch := callbacks.get("epoch")) is not None:
+            cb_epoch(0)
 
         for epoch in range(1, epochs + 1):
             dropout_rng1, dropout_rng2 = jax.random.split(dropout_rng1)
@@ -664,8 +660,9 @@ class Discriminator(_NetworkWrapper):
                 test_loss, test_accuracy = eval_model(self.state, test_ds, batch_size)
                 self.metrics["test_loss"].append(test_loss)
                 self.metrics["test_accuracy"].append(test_accuracy)
-            else:
-                print()
+
+            if (cb_epoch := callbacks.get("epoch")) is not None:
+                cb_epoch(epoch)
 
         self.trained = True
 
@@ -673,7 +670,9 @@ class Discriminator(_NetworkWrapper):
         metrics_conclusion = {k: v[-1] for k, v in self.metrics.items()}
         return metrics_conclusion
 
-    def predict(self, x, *, batch_size: int = 1024) -> np.ndarray:
+    def predict(
+        self, x, *, batch_size: int = 1024, callbacks: dict | None = None
+    ) -> np.ndarray:
         """
         Make predictions about data using a pre-fitted neural network.
 
@@ -681,27 +680,35 @@ class Discriminator(_NetworkWrapper):
         :param batch_size: Size of data batches for prediction.
         :return: A vector of predictions, one for each input instance.
         """
-        assert self.network is not None
-        assert self.state is not None
-        assert self.input_shape is not None
-        assert leading_dim_size(x) > 0
-        if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(x)])):
-            raise ValueError(
-                "Trailing dimensions of x must match input_shape.\n"
-                f"input_shape={self.input_shape}\n"
-                f"x={tree_shape(x)}"
-            )
-
         if not self.trained:
             raise ValueError(
                 "Cannot make predications as the discriminator has not been trained."
             )
+        assert self.network is not None
+        assert self.state is not None
+        assert self.input_shape is not None
+        assert leading_dim_size(x) > 0
+        if not pytree_equal(*map(pytree_cdr, [self.input_shape, pytree_shape(x)])):
+            raise ValueError(
+                "Trailing dimensions of x must match input_shape.\n"
+                f"input_shape={self.input_shape}\n"
+                f"x={pytree_shape(x)}"
+            )
+
+        if callbacks is None:
+            callbacks = {}
+        assert all(k in ("batch",) for k in callbacks)
 
         dataset = dict(input=x)
         y = []
+        n = 0
         variables = dict(params=self.state.params, batch_stats=self.state.batch_stats)
         for batch in batchify(dataset, batch_size):
             y.append(_predict_batch(batch, variables, self.network.apply))
+            if (cb_batch := callbacks.get("batch")) is not None:
+                actual_batch_size = leading_dim_size(batch)
+                n += actual_batch_size
+                cb_batch(n)
         return np.concatenate(y)
 
 

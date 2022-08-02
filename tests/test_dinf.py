@@ -19,9 +19,7 @@ def get_dinf_model():
 
 
 def check_discriminator(filename: str | pathlib.Path, dinf_model: dinf.DinfModel):
-    dinf.Discriminator(
-        dinf_model.feature_shape, network=dinf_model.discriminator_network
-    ).from_file(filename)
+    dinf.Discriminator.from_file(filename, network=dinf_model.discriminator_network)
 
 
 def check_npz(
@@ -452,8 +450,8 @@ def log_prob(
 
     seeds = rng.integers(low=1, high=2**31, size=num_replicates)
     params = np.tile(theta, (num_replicates, 1))
-    M = dinf.dinf._sim_replicates(
-        sim_func=generator,
+    M = dinf.dinf._get_dataset_parallel(
+        func=generator,
         args=zip(seeds, params),
         num_replicates=num_replicates,
         pool=pool,
@@ -468,7 +466,7 @@ class TestLogProb:
     def setup_class(cls):
         cls.dinf_model = get_dinf_model()
         rng = np.random.default_rng(111)
-        cls.discriminator = dinf.Discriminator(cls.dinf_model.feature_shape).init(rng)
+        cls.discriminator = dinf.Discriminator()
         training_thetas = cls.dinf_model.parameters.draw_prior(100, rng=rng)
         test_thetas = cls.dinf_model.parameters.draw_prior(0, rng=rng)
         with dinf.dinf.process_pool(None, cls.dinf_model) as pool:

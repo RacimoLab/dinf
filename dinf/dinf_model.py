@@ -4,13 +4,13 @@ import functools
 import importlib
 import pathlib
 import sys
-from typing import Callable, Dict
+from typing import Callable
 
 from flax import linen as nn
 import numpy as np
 
 from .parameters import Parameters
-from .misc import tree_equal, tree_shape
+from .misc import pytree_equal, pytree_shape, pytree_dtype
 
 
 def _sim_shim(args, *, func, keys):
@@ -28,17 +28,14 @@ class DinfModel:
     """
     A container that describes the components of a Dinf model.
 
-    Constructing a Dinf model requires:
+    Constructing a Dinf model requires specifying:
 
-     - specifying the inferrable ``parameters``,
+     - the inferrable ``parameters``,
      - a ``generator_func`` function that accepts concrete parameter values,
        produces data under some simulation model, and returns a feature matrix
-       (or matrices),
+       (or matrices), and
      - a ``target_func`` function that samples from the target dataset,
-       and returns a feature matrix (or matrices),
-     - the ``feature_shape``, which is the shape of the feature matrix
-       (or matrices) that are returned by both the ``generator_func``
-       and the ``target_func``.
+       and returns a feature matrix (or matrices).
 
     .. code::
 
@@ -64,7 +61,6 @@ class DinfModel:
             parameters=parameters,
             generator_func=generator,
             target_func=target,
-            feature_shape=features.shape,
         )
 
     :param parameters:
@@ -78,7 +74,7 @@ class DinfModel:
         that may be used to seed a random number generator.
         The subsequent (keyword) arguments correspond to concrete values for
         the :attr:`.parameters`.
-        The return value is either:
+        The return type is either:
 
          - a feature matrix, i.e. an n-dimensional numpy array, or
          - multiple feature matrices, i.e. a dictionary of n-dimensional
@@ -137,19 +133,7 @@ class DinfModel:
 
         The function takes a single (positional) argument, an integer seed,
         that may be used to seed a random number generator.
-        The return value must match the return value of :attr:`generator_func`.
-
-    :param feature_shape:
-        The shape of the feature, or features, returned by
-        :attr:`.generator_func` and :attr:`.target_func`.
-
-         - When a single feature matrix is returned, i.e. an n-dimensional
-           numpy array, the ``feature_shape`` is a tuple of array dimensions
-           (c.f. :attr:`numpy.ndarray.shape`).
-         - When multiple feature matrices are returned,
-           i.e. a dictionary of n-dimensional numpy arrays,
-           the ``feature_shape`` is also a dictionary, which maps
-           feature labels to the shape of the given feature matrix.
+        The return type must match the return type of :attr:`generator_func`.
 
     :param discriminator_network:
         A :doc:`flax <flax:index>` neural network.
@@ -170,19 +154,13 @@ class DinfModel:
     """
     Wrapper for ``generator_func`` that accepts a single argument containing
     the seed and a vector of parameter values (as opposed to keyword arguments).
-    The signature is ``generator_func_v(a: Tuple[int, v: np.ndarray])``,
-    where the argument is a 2-tuple of ``(seed, vector)``.
+    The signature is ``generator_func_v(arg: Tuple[int, np.ndarray])``,
+    where ``arg`` is a 2-tuple of ``(seed, vector)``.
     """
 
     target_func: Callable | None
     """
     Function that samples features from the target distribution.
-    """
-
-    feature_shape: tuple | Dict[str, tuple]
-    """
-    Shape of the feature, or features, produced by
-    :attr:`.generator_func` and :attr:`.target_func`.
     """
 
     discriminator_network: nn.Module | None = None
@@ -244,17 +222,16 @@ class DinfModel:
             )
 
         x_g = self.generator_func_v((rng.integers(low=0, high=2**31), thetas[0]))
-        if not tree_equal(tree_shape(x_g), self.feature_shape):
-            raise ValueError(
-                f"generator_func produced feature shape {tree_shape(x_g)}, "
-                f"but feature_shape is {self.feature_shape}"
-            )
-
         x_t = self.target_func(rng.integers(low=0, high=2**31))
-        if not tree_equal(tree_shape(x_t), self.feature_shape):
+        if not pytree_equal(pytree_shape(x_g), pytree_shape(x_t)):
             raise ValueError(
-                f"target_func produced feature shape {tree_shape(x_t)}, "
-                f"but feature_shape is {self.feature_shape}"
+                f"generator_func produced feature shape {pytree_shape(x_g)}, "
+                f"but target_func produced feature shape {pytree_shape(x_t)}."
+            )
+        if not pytree_equal(pytree_dtype(x_g), pytree_dtype(x_t)):
+            raise ValueError(
+                f"generator_func produced feature dtype {pytree_dtype(x_g)}, "
+                f"but target_func produced feature dtype {pytree_dtype(x_t)}."
             )
 
     @staticmethod

@@ -2,15 +2,12 @@ from __future__ import annotations
 from typing import Dict, Iterable, List, Tuple
 import collections
 import itertools
-import logging
 import os
 import pathlib
 import warnings
 
 import numpy as np
 import cyvcf2
-
-logger = logging.getLogger(__name__)
 
 
 def get_samples_from_1kgp_metadata(filename: str, /, *, populations: list) -> dict:
