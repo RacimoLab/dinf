@@ -49,6 +49,8 @@ const thebe_selector_input = "pre"
 const thebe_selector_output = ".output, .cell_output"
 </script>
     <script async="async" src="../../_static/sphinx-thebe.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.1/dist/embed-amd.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -227,7 +229,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev35
+            dinf 0.2.1.dev44
             </div>
             
         </div>
@@ -359,13 +361,13 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">importlib</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
 
 <span class="kn">from</span> <span class="nn">flax</span> <span class="kn">import</span> <span class="n">linen</span> <span class="k">as</span> <span class="n">nn</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">.parameters</span> <span class="kn">import</span> <span class="n">Parameters</span>
-<span class="kn">from</span> <span class="nn">.misc</span> <span class="kn">import</span> <span class="n">tree_equal</span><span class="p">,</span> <span class="n">tree_shape</span>
+<span class="kn">from</span> <span class="nn">.misc</span> <span class="kn">import</span> <span class="n">pytree_equal</span><span class="p">,</span> <span class="n">pytree_shape</span><span class="p">,</span> <span class="n">pytree_dtype</span>
 
 
 <span class="k">def</span> <span class="nf">_sim_shim</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">keys</span><span class="p">):</span>
@@ -383,17 +385,14 @@ title="Open an issue"
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A container that describes the components of a Dinf model.</span>
 
-<span class="sd">    Constructing a Dinf model requires:</span>
+<span class="sd">    Constructing a Dinf model requires specifying:</span>
 
-<span class="sd">     - specifying the inferrable ``parameters``,</span>
+<span class="sd">     - the inferrable ``parameters``,</span>
 <span class="sd">     - a ``generator_func`` function that accepts concrete parameter values,</span>
 <span class="sd">       produces data under some simulation model, and returns a feature matrix</span>
-<span class="sd">       (or matrices),</span>
+<span class="sd">       (or matrices), and</span>
 <span class="sd">     - a ``target_func`` function that samples from the target dataset,</span>
-<span class="sd">       and returns a feature matrix (or matrices),</span>
-<span class="sd">     - the ``feature_shape``, which is the shape of the feature matrix</span>
-<span class="sd">       (or matrices) that are returned by both the ``generator_func``</span>
-<span class="sd">       and the ``target_func``.</span>
+<span class="sd">       and returns a feature matrix (or matrices).</span>
 
 <span class="sd">    .. code::</span>
 
@@ -419,7 +418,6 @@ title="Open an issue"
 <span class="sd">            parameters=parameters,</span>
 <span class="sd">            generator_func=generator,</span>
 <span class="sd">            target_func=target,</span>
-<span class="sd">            feature_shape=features.shape,</span>
 <span class="sd">        )</span>
 
 <span class="sd">    :param parameters:</span>
@@ -433,7 +431,7 @@ title="Open an issue"
 <span class="sd">        that may be used to seed a random number generator.</span>
 <span class="sd">        The subsequent (keyword) arguments correspond to concrete values for</span>
 <span class="sd">        the :attr:`.parameters`.</span>
-<span class="sd">        The return value is either:</span>
+<span class="sd">        The return type is either:</span>
 
 <span class="sd">         - a feature matrix, i.e. an n-dimensional numpy array, or</span>
 <span class="sd">         - multiple feature matrices, i.e. a dictionary of n-dimensional</span>
@@ -492,19 +490,7 @@ title="Open an issue"
 
 <span class="sd">        The function takes a single (positional) argument, an integer seed,</span>
 <span class="sd">        that may be used to seed a random number generator.</span>
-<span class="sd">        The return value must match the return value of :attr:`generator_func`.</span>
-
-<span class="sd">    :param feature_shape:</span>
-<span class="sd">        The shape of the feature, or features, returned by</span>
-<span class="sd">        :attr:`.generator_func` and :attr:`.target_func`.</span>
-
-<span class="sd">         - When a single feature matrix is returned, i.e. an n-dimensional</span>
-<span class="sd">           numpy array, the ``feature_shape`` is a tuple of array dimensions</span>
-<span class="sd">           (c.f. :attr:`numpy.ndarray.shape`).</span>
-<span class="sd">         - When multiple feature matrices are returned,</span>
-<span class="sd">           i.e. a dictionary of n-dimensional numpy arrays,</span>
-<span class="sd">           the ``feature_shape`` is also a dictionary, which maps</span>
-<span class="sd">           feature labels to the shape of the given feature matrix.</span>
+<span class="sd">        The return type must match the return type of :attr:`generator_func`.</span>
 
 <span class="sd">    :param discriminator_network:</span>
 <span class="sd">        A :doc:`flax &lt;flax:index&gt;` neural network.</span>
@@ -525,19 +511,13 @@ title="Open an issue"
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Wrapper for ``generator_func`` that accepts a single argument containing</span>
 <span class="sd">    the seed and a vector of parameter values (as opposed to keyword arguments).</span>
-<span class="sd">    The signature is ``generator_func_v(a: Tuple[int, v: np.ndarray])``,</span>
-<span class="sd">    where the argument is a 2-tuple of ``(seed, vector)``.</span>
+<span class="sd">    The signature is ``generator_func_v(arg: Tuple[int, np.ndarray])``,</span>
+<span class="sd">    where ``arg`` is a 2-tuple of ``(seed, vector)``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">target_func</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Function that samples features from the target distribution.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">feature_shape</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">|</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">]</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Shape of the feature, or features, produced by</span>
-<span class="sd">    :attr:`.generator_func` and :attr:`.target_func`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">discriminator_network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -599,17 +579,16 @@ title="Open an issue"
             <span class="p">)</span>
 
         <span class="n">x_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">((</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">),</span> <span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">tree_equal</span><span class="p">(</span><span class="n">tree_shape</span><span class="p">(</span><span class="n">x_g</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;generator_func produced feature shape </span><span class="si">{</span><span class="n">tree_shape</span><span class="p">(</span><span class="n">x_g</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;but feature_shape is </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
-
         <span class="n">x_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_func</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">))</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">tree_equal</span><span class="p">(</span><span class="n">tree_shape</span><span class="p">(</span><span class="n">x_t</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pytree_equal</span><span class="p">(</span><span class="n">pytree_shape</span><span class="p">(</span><span class="n">x_g</span><span class="p">),</span> <span class="n">pytree_shape</span><span class="p">(</span><span class="n">x_t</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;target_func produced feature shape </span><span class="si">{</span><span class="n">tree_shape</span><span class="p">(</span><span class="n">x_t</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;but feature_shape is </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_shape</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;generator_func produced feature shape </span><span class="si">{</span><span class="n">pytree_shape</span><span class="p">(</span><span class="n">x_g</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;but target_func produced feature shape </span><span class="si">{</span><span class="n">pytree_shape</span><span class="p">(</span><span class="n">x_t</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pytree_equal</span><span class="p">(</span><span class="n">pytree_dtype</span><span class="p">(</span><span class="n">x_g</span><span class="p">),</span> <span class="n">pytree_dtype</span><span class="p">(</span><span class="n">x_t</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;generator_func produced feature dtype </span><span class="si">{</span><span class="n">pytree_dtype</span><span class="p">(</span><span class="n">x_g</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;but target_func produced feature dtype </span><span class="si">{</span><span class="n">pytree_dtype</span><span class="p">(</span><span class="n">x_t</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
             <span class="p">)</span></div>
 
 <div class="viewcode-block" id="DinfModel.from_file"><a class="viewcode-back" href="../../api.html#dinf.DinfModel.from_file">[docs]</a>    <span class="nd">@staticmethod</span>
@@ -660,7 +639,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev35+g87c18b9
+      dinf 0.2.1.dev44+gadbb354
     </div>
 </p>
         </footer>

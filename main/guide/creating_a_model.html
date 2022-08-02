@@ -50,6 +50,8 @@ const thebe_selector_input = "pre"
 const thebe_selector_output = ".output, .cell_output"
 </script>
     <script async="async" src="../_static/sphinx-thebe.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.1/dist/embed-amd.js"></script>
     <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -232,7 +234,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev35
+            dinf 0.2.1.dev44
             </div>
             
         </div>
@@ -574,17 +576,14 @@ This object describes various components of the model.</p>
 
 <span class="n">dinf_model</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="p">(</span>
     <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
-    <span class="n">feature_shape</span><span class="o">=</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
     <span class="n">generator_func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
     <span class="n">target_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>Defining the model then procedes by defining the <code class="docutils literal notranslate"><span class="pre">parameters</span></code>,
+<p>Defining the model then procedes by describing the <code class="docutils literal notranslate"><span class="pre">parameters</span></code>,
 writing the <code class="docutils literal notranslate"><span class="pre">generator_func</span></code> function,
-writing the <code class="docutils literal notranslate"><span class="pre">target_func</span></code> function (if any),
-and describing the <code class="docutils literal notranslate"><span class="pre">feature_shape</span></code>—the shape of the
-features produced by both the generator and the target function.
+and writing the <code class="docutils literal notranslate"><span class="pre">target_func</span></code> function (if any).
 It’s not necessary to specify the architecture of the discriminator.</p>
 </section>
 <section id="parameters">
@@ -618,15 +617,20 @@ of the genetic data into the desired format is referred to as
 <em>feature extraction</em>.</p>
 <section id="features">
 <h3><span class="section-number">1.3.1. </span>Features<a class="headerlink" href="#features" title="Permalink to this headline">#</a></h3>
-<p>It’s important that there is agreement between the features extracted from the
+<p>Dinf features are typically genotype matrices,
+or a collection of matrices (e.g. when modelling multiple populations).
+It’s important that there is agreement between the features extracted from the
 generator and the features extracted from the target dataset.
 Ideally, the only differences will be due to the accuracy of the simulation
 model and the parameter values, not due to data filtering or quality issues.
 To ensure consistency, the Dinf API provides helper classes for
 feature extraction that have methods for extracting features from
 vcf files and from <a class="reference external" href="https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence" title="(in Python)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tskit.TreeSequence</span></code></a> objects.
-In this example, we’ll use the <a class="reference internal" href="../api.html#dinf.BinnedHaplotypeMatrix" title="dinf.BinnedHaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinnedHaplotypeMatrix</span></code></a> feature
-extractor class.</p>
+The <a class="reference internal" href="features.html#sec-guide-features"><span class="std std-ref">Feature matrices</span></a> page describes the different feature extraction
+classes provided by the Dinf API,
+and shows heatmap plots for matrices from each class.
+In the example model here, we’ll use the <a class="reference internal" href="../api.html#dinf.BinnedHaplotypeMatrix" title="dinf.BinnedHaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinnedHaplotypeMatrix</span></code></a>
+feature extractor class.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">num_individuals</span> <span class="o">=</span> <span class="mi">16</span>
 
 <span class="n">features</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">BinnedHaplotypeMatrix</span><span class="p">(</span>
@@ -638,18 +642,11 @@ extractor class.</p>
 <span class="p">)</span>
 </pre></div>
 </div>
-<p>To initialise the discriminator, Dinf needs to know the shape of the features
-that the discriminator will be given. These features are typically
-multidimensional arrays (or a collection of multidimensional arrays,
-when modelling multiple populations), where the feature shape is a tuple of
-array dimensions of the feature.
-The <code class="docutils literal notranslate"><span class="pre">features</span></code> object defined above has a <code class="docutils literal notranslate"><span class="pre">shape</span></code> property that can used for the
-<a class="reference internal" href="../api.html#dinf.DinfModel.feature_shape" title="dinf.DinfModel.feature_shape"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DinfModel.feature_shape</span></code></a>.</p>
 </section>
 <section id="genetic-simulator">
 <h3><span class="section-number">1.3.2. </span>Genetic simulator<a class="headerlink" href="#genetic-simulator" title="Permalink to this headline">#</a></h3>
 <p><a class="reference internal" href="../api.html#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DinfModel.generator_func</span></code></a> is a user-defined function that produces data
-features matching the <code class="docutils literal notranslate"><span class="pre">feature_shape</span></code>.
+features using a genetic simulator.
 The function accepts a single positional argument <code class="docutils literal notranslate"><span class="pre">seed</span></code>,
 followed by one keyword argument for each inferrable parameter.
 So for our example there’s one argument for <code class="docutils literal notranslate"><span class="pre">N0</span></code> and one for <code class="docutils literal notranslate"><span class="pre">N1</span></code>.
@@ -816,7 +813,6 @@ that treats haplotypes within populations as exchangeable.</p>
     <span class="n">target_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">generator_func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
     <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
-    <span class="n">feature_shape</span><span class="o">=</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -875,7 +871,7 @@ that treats haplotypes within populations as exchangeable.</p>
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev35+g87c18b9
+      dinf 0.2.1.dev44+gadbb354
     </div>
 </p>
         </footer>

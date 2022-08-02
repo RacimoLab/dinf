@@ -50,6 +50,8 @@ const thebe_selector_input = "pre"
 const thebe_selector_output = ".output, .cell_output"
 </script>
     <script async="async" src="_static/sphinx-thebe.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.1/dist/embed-amd.js"></script>
     <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
     <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -232,7 +234,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev35
+            dinf 0.2.1.dev44
             </div>
             
         </div>
@@ -761,8 +763,8 @@ title="Print to PDF"
 <col style="width: 90%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.Discriminator" title="dinf.Discriminator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Discriminator</span></code></a>(input_shape[, network, state, ...])</p></td>
-<td><p>Wrapper of the discriminator network for classifying genotype matrices.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.Discriminator" title="dinf.Discriminator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Discriminator</span></code></a>([network, state, trained, ...])</p></td>
+<td><p>Wrapper for the discriminator neural network that classifies genotype matrices.</p></td>
 </tr>
 </tbody>
 </table>
@@ -855,20 +857,17 @@ title="Print to PDF"
 <span id="id1"></span><h3>Defining a Dinf model<a class="headerlink" href="#sec-api-defining-a-dinf-model" title="Permalink to this headline">#</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="dinf.DinfModel">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">DinfModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discriminator_network</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf_model.html#DinfModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.DinfModel" title="Permalink to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">DinfModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generator_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discriminator_network</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf_model.html#DinfModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.DinfModel" title="Permalink to this definition">#</a></dt>
 <dd><p>A container that describes the components of a Dinf model.</p>
-<p>Constructing a Dinf model requires:</p>
+<p>Constructing a Dinf model requires specifying:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p>specifying the inferrable <code class="docutils literal notranslate"><span class="pre">parameters</span></code>,</p></li>
+<li><p>the inferrable <code class="docutils literal notranslate"><span class="pre">parameters</span></code>,</p></li>
 <li><p>a <code class="docutils literal notranslate"><span class="pre">generator_func</span></code> function that accepts concrete parameter values,
 produces data under some simulation model, and returns a feature matrix
-(or matrices),</p></li>
+(or matrices), and</p></li>
 <li><p>a <code class="docutils literal notranslate"><span class="pre">target_func</span></code> function that samples from the target dataset,
-and returns a feature matrix (or matrices),</p></li>
-<li><p>the <code class="docutils literal notranslate"><span class="pre">feature_shape</span></code>, which is the shape of the feature matrix
-(or matrices) that are returned by both the <code class="docutils literal notranslate"><span class="pre">generator_func</span></code>
-and the <code class="docutils literal notranslate"><span class="pre">target_func</span></code>.</p></li>
+and returns a feature matrix (or matrices).</p></li>
 </ul>
 </div></blockquote>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">dinf</span>
@@ -893,7 +892,6 @@ and the <code class="docutils literal notranslate"><span class="pre">target_func
     <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
     <span class="n">generator_func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
     <span class="n">target_func</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
-    <span class="n">feature_shape</span><span class="o">=</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -907,7 +905,7 @@ provided to the <a class="reference internal" href="#dinf.DinfModel.generator_fu
 that may be used to seed a random number generator.
 The subsequent (keyword) arguments correspond to concrete values for
 the <a class="reference internal" href="#dinf.DinfModel.parameters" title="dinf.DinfModel.parameters"><code class="xref py py-attr docutils literal notranslate"><span class="pre">parameters</span></code></a>.
-The return value is either:</p>
+The return type is either:</p>
 <blockquote>
 <div><ul>
 <li><p>a feature matrix, i.e. an n-dimensional numpy array, or</p></li>
@@ -964,21 +962,7 @@ the target dataset using each parameter’s <a class="reference internal" href="
 value.</p>
 <p>The function takes a single (positional) argument, an integer seed,
 that may be used to seed a random number generator.
-The return value must match the return value of <a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a>.</p>
-</p></li>
-<li><p><strong>feature_shape</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><em>tuple</em></a><em> | </em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><em>tuple</em></a><em>]</em>) – <p>The shape of the feature, or features, returned by
-<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a> and <a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">target_func</span></code></a>.</p>
-<blockquote>
-<div><ul>
-<li><p>When a single feature matrix is returned, i.e. an n-dimensional
-numpy array, the <code class="docutils literal notranslate"><span class="pre">feature_shape</span></code> is a tuple of array dimensions
-(c.f. <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.shape.html#numpy.ndarray.shape" title="(in NumPy v1.23)"><code class="xref py py-attr docutils literal notranslate"><span class="pre">numpy.ndarray.shape</span></code></a>).</p></li>
-<li><p>When multiple feature matrices are returned,
-i.e. a dictionary of n-dimensional numpy arrays,
-the <code class="docutils literal notranslate"><span class="pre">feature_shape</span></code> is also a dictionary, which maps
-feature labels to the shape of the given feature matrix.</p></li>
-</ul>
-</div></blockquote>
+The return type must match the return type of <a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a>.</p>
 </p></li>
 <li><p><strong>discriminator_network</strong> (<em>nn.Module</em><em> | </em><em>None</em>) – A <a class="reference external" href="https://flax.readthedocs.io/en/latest/index.html" title="(in Flax)"><span class="xref std std-doc">flax</span></a> neural network.
 If not specified, <a class="reference internal" href="#dinf.ExchangeableCNN" title="dinf.ExchangeableCNN"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExchangeableCNN</span></code></a> will be used.</p></li>
@@ -1005,21 +989,14 @@ If not specified, <a class="reference internal" href="#dinf.ExchangeableCNN" tit
 <span class="sig-name descname"><span class="pre">generator_func_v</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span></em><a class="headerlink" href="#dinf.DinfModel.generator_func_v" title="Permalink to this definition">#</a></dt>
 <dd><p>Wrapper for <code class="docutils literal notranslate"><span class="pre">generator_func</span></code> that accepts a single argument containing
 the seed and a vector of parameter values (as opposed to keyword arguments).
-The signature is <code class="docutils literal notranslate"><span class="pre">generator_func_v(a:</span> <span class="pre">Tuple[int,</span> <span class="pre">v:</span> <span class="pre">np.ndarray])</span></code>,
-where the argument is a 2-tuple of <code class="docutils literal notranslate"><span class="pre">(seed,</span> <span class="pre">vector)</span></code>.</p>
+The signature is <code class="docutils literal notranslate"><span class="pre">generator_func_v(arg:</span> <span class="pre">Tuple[int,</span> <span class="pre">np.ndarray])</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">arg</span></code> is a 2-tuple of <code class="docutils literal notranslate"><span class="pre">(seed,</span> <span class="pre">vector)</span></code>.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="dinf.DinfModel.target_func">
 <span class="sig-name descname"><span class="pre">target_func</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></em><a class="headerlink" href="#dinf.DinfModel.target_func" title="Permalink to this definition">#</a></dt>
 <dd><p>Function that samples features from the target distribution.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="dinf.DinfModel.feature_shape">
-<span class="sig-name descname"><span class="pre">feature_shape</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><span class="pre">tuple</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.10)"><span class="pre">tuple</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.DinfModel.feature_shape" title="Permalink to this definition">#</a></dt>
-<dd><p>Shape of the feature, or features, produced by
-<a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a> and <a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">target_func</span></code></a>.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -1885,7 +1862,7 @@ the start of the genomic window.</p></li>
 <span id="id4"></span><h3>Training<a class="headerlink" href="#sec-api-train" title="Permalink to this headline">#</a></h3>
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.train">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.train" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callbacks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.train" title="Permalink to this definition">#</a></dt>
 <dd><p>Train a discriminator network.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1900,6 +1877,7 @@ the discriminator.</p></li>
 <a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.generator_func()</span></code></a> and
 <a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.target_func()</span></code></a>.</p></li>
 <li><p><strong>seed</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Seed for the random number generator.</p></li>
+<li><p><strong>callbacks</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><em>dict</em></a><em> | </em><em>None</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1916,7 +1894,7 @@ the discriminator.</p></li>
 <span id="id5"></span><h3>Inference<a class="headerlink" href="#sec-api-inference" title="Permalink to this headline">#</a></h3>
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.predict">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discriminator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.predict" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">discriminator</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callbacks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.predict" title="Permalink to this definition">#</a></dt>
 <dd><p>Sample features and make predictions using the discriminator.</p>
 <p>Features are sampled from the generator by default.
 To instead sample features from the target dataset, use the
@@ -1933,6 +1911,7 @@ If False (the default), features are sampled from the generator.</p></li>
 <a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.target_func()</span></code></a>.</p></li>
 <li><p><strong>seed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em> | </em><em>None</em>) – Seed for the random number generator.</p></li>
 <li><p><strong>discriminator</strong> (<a class="reference internal" href="#dinf.Discriminator" title="dinf.Discriminator"><em>Discriminator</em></a>) – </p></li>
+<li><p><strong>callbacks</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><em>dict</em></a><em> | </em><em>None</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1950,7 +1929,7 @@ probs[j] is the discriminator prediction for the j’th draw.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.abc_gan">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">abc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proposal_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#abc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.abc_gan" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">abc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proposal_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callbacks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#abc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.abc_gan" title="Permalink to this definition">#</a></dt>
 <dd><p>Adversarial Abstract Bayesian Computation.</p>
 <p>Conceptually, the GAN takes the following steps for iteration j:</p>
 <blockquote>
@@ -1991,6 +1970,7 @@ directory will be used.</p></li>
 <a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.generator_func()</span></code></a> and
 <a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.target_func()</span></code></a>.</p></li>
 <li><p><strong>seed</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Seed for the random number generator.</p></li>
+<li><p><strong>callbacks</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><em>dict</em></a><em> | </em><em>None</em>) – </p></li>
 </ul>
 </dd>
 </dl>
@@ -1998,20 +1978,24 @@ directory will be used.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.mcmc_gan">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">mcmc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">walkers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Dx_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#mcmc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.mcmc_gan" title="Permalink to this definition">#</a></dt>
-<dd><p>Run the MCMC GAN.</p>
-<p>Each iteration of the GAN can be conceptually divided into parts:</p>
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">mcmc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">walkers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Dx_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callbacks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#mcmc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.mcmc_gan" title="Permalink to this definition">#</a></dt>
+<dd><blockquote>
+<div><p>Run the MCMC GAN.</p>
+</div></blockquote>
+<p>Conceptually, the GAN takes the following steps for iteration j:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p>construct train/test datasets for the discriminator,</p></li>
-<li><p>train the discriminator for a certain number of epochs,</p></li>
-<li><p>run the MCMC.</p></li>
+<li><p>sample training dataset from the prior[j] distribution,</p></li>
+<li><p>train the discriminator,</p></li>
+<li><p>run the MCMC,</p></li>
+<li><p>obtain posterior[j] as weighted KDE of MCMC sample,</p></li>
+<li><p>set prior[j+1] = posterior[j].</p></li>
 </ul>
 </div></blockquote>
 <p>In the first iteration, the parameter values given to the generator
-to produce the test/train datasets are drawn from the parameters’ prior
+to produce the training dataset are drawn from the parameters’ prior
 distribution. In subsequent iterations, the parameter values are drawn
-by sampling without replacement from the previous iteration’s MCMC chains.</p>
+from a weighted gaussian KDE of the previous iteration’s MCMC chains.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -2032,6 +2016,7 @@ directory will be used.</p></li>
 <a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.generator_func()</span></code></a> and
 <a class="reference internal" href="#dinf.DinfModel.target_func" title="dinf.DinfModel.target_func"><code class="xref py py-meth docutils literal notranslate"><span class="pre">DinfModel.target_func()</span></code></a>.</p></li>
 <li><p><strong>seed</strong> (<em>None</em><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Seed for the random number generator.</p></li>
+<li><p><strong>callbacks</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><em>dict</em></a><em> | </em><em>None</em>) – </p></li>
 </ul>
 </dd>
 </dl>
@@ -2134,23 +2119,16 @@ directory will be used.</p></li>
 <span id="id6"></span><h3>Classification<a class="headerlink" href="#sec-api-classification" title="Permalink to this headline">#</a></h3>
 <dl class="py class">
 <dt class="sig sig-object py" id="dinf.Discriminator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">Discriminator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">network=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trained=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_version=3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_add_batch_dim=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_inited=False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator" title="Permalink to this definition">#</a></dt>
-<dd><p>Wrapper of the discriminator network for classifying genotype matrices.</p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">Discriminator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trained=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_version=4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_inited=False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator" title="Permalink to this definition">#</a></dt>
+<dd><p>Wrapper for the discriminator neural network that classifies genotype matrices.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>input_shape</strong> (<em>Pytree</em>) – The shape of the input data for the network. This is a dictionary
-that maps a label to a feature array. Each feature array has shape
-(n, m, c), where
-n &gt;= 2 is the number of (pseudo)haplotypes,
-m &gt;= 4 is the length of the (pseudo)haplotypes,
-and c &lt;= 4 is the number of channels.</p></li>
 <li><p><strong>network</strong> (<em>nn.Module</em><em> | </em><em>None</em>) – </p></li>
 <li><p><strong>state</strong> (<em>TrainState</em><em> | </em><em>None</em>) – </p></li>
 <li><p><strong>trained</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – </p></li>
 <li><p><strong>metrics</strong> (<a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.10)"><em>collections.abc.Mapping</em></a>) – </p></li>
 <li><p><strong>format_version</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – </p></li>
-<li><p><strong>_add_batch_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – </p></li>
 <li><p><strong>_inited</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – </p></li>
 </ul>
 </dd>
@@ -2159,36 +2137,26 @@ and c &lt;= 4 is the number of channels.</p></li>
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="dinf.Discriminator.init">
-<span class="sig-name descname"><span class="pre">init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.Discriminator.init" title="Permalink to this definition">#</a></dt>
-<dd><p>Build a neural network with the given input shape.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A new network wrapper object.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.from_file">
-<span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.Discriminator.from_file" title="Permalink to this definition">#</a></dt>
-<dd><p>Load neural network training state from the given file.</p>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">network</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.from_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.from_file" title="Permalink to this definition">#</a></dt>
+<dd><p>Load neural network weights from the given file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – The filename of the saved model.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.10)"><em>pathlib.Path</em></a>) – The filename of the saved model.</p></li>
+<li><p><strong>network</strong> – The flax neural network.</p></li>
+<li><p><strong>state</strong> – The flax train state.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A new network wrapper object.</p>
+<dd class="field-even"><p>A new Discriminator object.</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.to_file">
-<span class="sig-name descname"><span class="pre">to_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#dinf.Discriminator.to_file" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">to_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.to_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.to_file" title="Permalink to this definition">#</a></dt>
 <dd><p>Save neural network to the given file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2202,15 +2170,15 @@ and c &lt;= 4 is the number of channels.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entropy_regularisation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.fit" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entropy_regularisation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callbacks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.fit" title="Permalink to this definition">#</a></dt>
 <dd><p>Fit discriminator to training data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>train_x</strong> – Training data.</p></li>
-<li><p><strong>train_y</strong> – Labels for training data.</p></li>
+<li><p><strong>train_y</strong> – Labels for training data (zeros and ones).</p></li>
 <li><p><strong>val_x</strong> – Validation data.</p></li>
-<li><p><strong>val_y</strong> – Labels for validation data.</p></li>
+<li><p><strong>val_y</strong> – Labels for validation data (zeros and ones).</p></li>
 <li><p><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of minibatch for gradient update step.</p></li>
 <li><p><strong>epochs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of full passes over the training data.</p></li>
 <li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
@@ -2218,6 +2186,7 @@ and c &lt;= 4 is the number of channels.</p></li>
 fit() (if any). If false, loss/accuracy metrics will be appended
 to the existing metrics.</p></li>
 <li><p><strong>entropy_regularisation</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – </p></li>
+<li><p><strong>callbacks</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><em>dict</em></a><em> | </em><em>None</em>) – </p></li>
 </ul>
 </dd>
 </dl>
@@ -2225,28 +2194,29 @@ to the existing metrics.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.predict">
-<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.predict" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callbacks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.predict" title="Permalink to this definition">#</a></dt>
 <dd><p>Make predictions about data using a pre-fitted neural network.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> – The data instances about which to make predictions.</p></li>
 <li><p><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of data batches for prediction.</p></li>
+<li><p><strong>callbacks</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><em>dict</em></a><em> | </em><em>None</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A vector of predictions, one for each input instance.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
+<dd class="field-odd"><p>np.ndarray</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.summary">
-<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#dinf.Discriminator.summary" title="Permalink to this definition">#</a></dt>
-<dd><p>Print a summary of the neural network.</p>
+<span class="sig-name descname"><span class="pre">summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.summary" title="Permalink to this definition">#</a></dt>
+<dd><p>Return a summary of the neural network.</p>
 </dd></dl>
 
 </dd></dl>
@@ -2788,7 +2758,7 @@ If None, an axes will be created with <a class="reference external" href="https:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev35+g87c18b9
+      dinf 0.2.1.dev44+gadbb354
     </div>
 </p>
         </footer>

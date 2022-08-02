@@ -50,6 +50,8 @@ const thebe_selector_input = "pre"
 const thebe_selector_output = ".output, .cell_output"
 </script>
     <script async="async" src="_static/sphinx-thebe.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.1/dist/embed-amd.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="Development" href="development.html" />
@@ -229,7 +231,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev35
+            dinf 0.2.1.dev44
             </div>
             
         </div>
@@ -479,7 +481,11 @@ title="Print to PDF"
 <section id="unreleased">
 <h2>unreleased<a class="headerlink" href="#unreleased" title="Permalink to this headline">#</a></h2>
 <ul class="simple">
+<li><p>Removed DinfModel.feature_shape.</p></li>
+<li><p>Simplified Discriminator API.</p></li>
+<li><p>Add progress bars and do logging with <code class="docutils literal notranslate"><span class="pre">rich</span></code>.</p></li>
 <li><p>Fix KDE bandwidth for abc-gan.</p></li>
+<li><p>Separate the train/test datasets from abc-gan proposals.</p></li>
 <li><p>Reduce memory use for jobs with millions of simulations.</p></li>
 <li><p>Remove alfi-mcmc-gan.</p></li>
 </ul>
@@ -548,7 +554,7 @@ of each.</p></li>
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev35+g87c18b9
+      dinf 0.2.1.dev44+gadbb354
     </div>
 </p>
         </footer>

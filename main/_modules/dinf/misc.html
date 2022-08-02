@@ -49,6 +49,8 @@ const thebe_selector_input = "pre"
 const thebe_selector_output = ".output, .cell_output"
 </script>
     <script async="async" src="../../_static/sphinx-thebe.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://unpkg.com/@jupyter-widgets/html-manager@^0.20.1/dist/embed-amd.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -227,7 +229,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev35
+            dinf 0.2.1.dev44
             </div>
             
         </div>
@@ -438,6 +440,10 @@ title="Open an issue"
 <span class="n">Pytree</span> <span class="o">=</span> <span class="n">Any</span>
 
 
+<span class="k">def</span> <span class="nf">is_tuple</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+
+
 <span class="k">def</span> <span class="nf">_dtree_map</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">trees</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
         <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">trees</span><span class="p">,</span> <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">)</span>
@@ -448,7 +454,7 @@ title="Open an issue"
     <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_structure</span><span class="p">(</span><span class="n">_dtree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="p">(),</span> <span class="n">tree</span><span class="p">))</span>
 
 
-<span class="k">def</span> <span class="nf">tree_equal</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">,</span> <span class="o">*</span><span class="n">others</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">pytree_equal</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">,</span> <span class="o">*</span><span class="n">others</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return True if tree is the same as all the others, False otherwise.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -460,50 +466,48 @@ title="Open an issue"
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">tree_shape</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">pytree_shape</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a pytree with the same dictionary structure as the given tree,</span>
-<span class="sd">    but with non-dictionaries replaced by their shape.</span>
+<span class="sd">    but with non-dictionaries replaced by their numpy shape.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
-        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
-        <span class="n">tree</span><span class="p">,</span>
-        <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)),</span>
-    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">tree</span><span class="p">,</span> <span class="n">is_leaf</span><span class="o">=</span><span class="n">is_tuple</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">tree_cons</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">pytree_dtype</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a pytree with the same dictionary structure as the given tree,</span>
+<span class="sd">    but with non-dictionaries replaced by their numpy dtype.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">tree</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">pytree_cons</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Prepend ``a`` in all tuples of the given tree.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
-        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">((</span><span class="n">a</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span>
-        <span class="n">tree</span><span class="p">,</span>
-        <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">((</span><span class="n">a</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">tree</span><span class="p">,</span> <span class="n">is_leaf</span><span class="o">=</span><span class="n">is_tuple</span>
     <span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">tree_car</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">pytree_car</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a tree of the leading values of all tuples in the given tree.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
-        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tree</span><span class="p">,</span> <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tree</span><span class="p">,</span> <span class="n">is_leaf</span><span class="o">=</span><span class="n">is_tuple</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">tree_cdr</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">pytree_cdr</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a tree of the trailing values of all tuples in the given tree.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
-        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">tree</span><span class="p">,</span> <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">tree</span><span class="p">,</span> <span class="n">is_leaf</span><span class="o">=</span><span class="n">is_tuple</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">leading_dim_size</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Size of the leading dimension (e.g. batch dimension) of each feature.&quot;&quot;&quot;</span>
-    <span class="n">sizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_flatten</span><span class="p">(</span><span class="n">tree_car</span><span class="p">(</span><span class="n">tree_shape</span><span class="p">(</span><span class="n">tree</span><span class="p">)))[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">sizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_flatten</span><span class="p">(</span><span class="n">pytree_car</span><span class="p">(</span><span class="n">pytree_shape</span><span class="p">(</span><span class="n">tree</span><span class="p">)))[</span><span class="mi">0</span><span class="p">])</span>
     <span class="c1"># All features should have the same size for the leading dimension.</span>
     <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
     <span class="k">return</span> <span class="n">sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -676,7 +680,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev35+g87c18b9
+      dinf 0.2.1.dev44+gadbb354
     </div>
 </p>
         </footer>
