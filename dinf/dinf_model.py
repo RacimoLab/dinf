@@ -33,9 +33,9 @@ class DinfModel:
      - the inferrable ``parameters``,
      - a ``generator_func`` function that accepts concrete parameter values,
        produces data under some simulation model, and returns a feature matrix
-       (or matrices),
+       (or matrices), and
      - a ``target_func`` function that samples from the target dataset,
-       and returns a feature matrix (or matrices),
+       and returns a feature matrix (or matrices).
 
     .. code::
 
