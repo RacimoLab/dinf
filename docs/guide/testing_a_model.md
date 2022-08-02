@@ -130,6 +130,8 @@ dinf.plot.main(
 The plot shows that the test loss is decreasing over time, and the
 test accuracy is increasing. This suggests that the discriminator is capable
 of learning from the model.
+For larger models, particularly with multiple feature matrices,
+more epochs may be needed before seeing a trend.
 To obtain more impressive accuracy, additional replicates will be needed.
 Other ways to improve the accuracy are discussed on the
 [](sec_guide_accuracy) page.

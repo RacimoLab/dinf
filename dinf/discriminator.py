@@ -21,6 +21,7 @@ from .misc import (
     pytree_cons,
     pytree_cdr,
     leading_dim_size,
+    is_tuple,
 )
 
 logger = logging.getLogger(__name__)
@@ -364,7 +365,7 @@ class Discriminator:
             jax.tree_util.tree_map(
                 lambda x: np.shape(x) == (4,) and x[1] >= 2 and x[2] >= 4 and x[3] <= 4,
                 self.input_shape,
-                is_leaf=lambda x: isinstance(x, tuple),
+                is_leaf=is_tuple,
             )
         ):
             raise ValueError(
@@ -383,9 +384,7 @@ class Discriminator:
             return self.network.init(*args, train=False)
 
         dummy_input = jax.tree_util.tree_map(
-            lambda x: jnp.zeros(x, dtype=np.float32),
-            self.input_shape,
-            is_leaf=lambda x: isinstance(x, tuple),
+            lambda x: jnp.zeros(x, dtype=np.float32), self.input_shape, is_leaf=is_tuple
         )
         key = jax.random.PRNGKey(rng.integers(2**63))
         variables = init(key, dummy_input)
@@ -398,7 +397,7 @@ class Discriminator:
         )
         self._inited = True
 
-        logger.debug("%s", rich.text.Text.from_ansi(self.summary()))
+        logger.debug("%s", self)
 
     @classmethod
     def from_file(cls, filename: str | pathlib.Path, /, *, network=None, state=None):
@@ -420,7 +419,7 @@ class Discriminator:
         discr = cls.fromdict(
             data, network=network, state=state, _err_prefix=f"{filename}: "
         )
-        logger.debug("%s", rich.text.Text.from_ansi(discr.summary()))
+        logger.debug("%s", discr)
         return discr
 
     def to_file(self, filename: str | pathlib.Path, /) -> None:
@@ -489,11 +488,7 @@ class Discriminator:
         return discr
 
     def asdict(self) -> dict:
-        input_shape = jax.tree_util.tree_map(
-            list,
-            self.input_shape,
-            is_leaf=lambda x: isinstance(x, tuple),
-        )
+        input_shape = jax.tree_util.tree_map(list, self.input_shape, is_leaf=is_tuple)
         state = flax.serialization.to_state_dict(self.state)
         metrics = {k: np.array(v) for k, v in self.metrics.items()}
         return dict(
@@ -510,11 +505,12 @@ class Discriminator:
         # https://github.com/google/jax/issues/4085
 
         a = jax.tree_util.tree_map(
-            lambda x: jnp.zeros(x, dtype=np.float32),
-            self.input_shape,
-            is_leaf=lambda x: isinstance(x, tuple),
+            lambda x: jnp.zeros(x, dtype=np.float32), self.input_shape, is_leaf=is_tuple
         )
         return self.network.tabulate(jax.random.PRNGKey(0), a, train=False)
+
+    def __str__(self):
+        return str(rich.text.Text.from_ansi(self.summary()))
 
     def fit(
         self,
