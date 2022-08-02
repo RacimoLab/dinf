@@ -10,7 +10,7 @@ from flax import linen as nn
 import numpy as np
 
 from .parameters import Parameters
-from .misc import tree_equal, tree_shape
+from .misc import pytree_equal, pytree_shape
 
 
 def _sim_shim(args, *, func, keys):
@@ -244,16 +244,16 @@ class DinfModel:
             )
 
         x_g = self.generator_func_v((rng.integers(low=0, high=2**31), thetas[0]))
-        if not tree_equal(tree_shape(x_g), self.feature_shape):
+        if not pytree_equal(pytree_shape(x_g), self.feature_shape):
             raise ValueError(
-                f"generator_func produced feature shape {tree_shape(x_g)}, "
+                f"generator_func produced feature shape {pytree_shape(x_g)}, "
                 f"but feature_shape is {self.feature_shape}"
             )
 
         x_t = self.target_func(rng.integers(low=0, high=2**31))
-        if not tree_equal(tree_shape(x_t), self.feature_shape):
+        if not pytree_equal(pytree_shape(x_t), self.feature_shape):
             raise ValueError(
-                f"target_func produced feature shape {tree_shape(x_t)}, "
+                f"target_func produced feature shape {pytree_shape(x_t)}, "
                 f"but feature_shape is {self.feature_shape}"
             )
 

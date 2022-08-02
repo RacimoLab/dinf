@@ -16,10 +16,10 @@ import rich.text
 
 from .misc import (
     Pytree,
-    tree_equal,
-    tree_shape,
-    tree_cons,
-    tree_cdr,
+    pytree_equal,
+    pytree_shape,
+    pytree_cons,
+    pytree_cdr,
     leading_dim_size,
 )
 
@@ -349,7 +349,7 @@ class _NetworkWrapper:
             # Add leading batch dimension.
             if isinstance(self.input_shape, int):
                 self.input_shape = (self.input_shape,)
-            self.input_shape = tree_cons(1, self.input_shape)
+            self.input_shape = pytree_cons(1, self.input_shape)
 
     def init(self, rng: np.random.Generator):
         """
@@ -557,14 +557,14 @@ class Discriminator(_NetworkWrapper):
         if leading_dim_size(train_x) != leading_dim_size(train_y):
             raise ValueError(
                 "Leading dimensions of train_x and train_y must be the same.\n"
-                f"train_x={tree_shape(train_x)}\n"
-                f"train_y={tree_shape(train_y)}"
+                f"train_x={pytree_shape(train_x)}\n"
+                f"train_y={pytree_shape(train_y)}"
             )
-        if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(train_x)])):
+        if not pytree_equal(*map(pytree_cdr, [self.input_shape, pytree_shape(train_x)])):
             raise ValueError(
                 "Trailing dimensions of train_x must match input_shape.\n"
                 f"input_shape={self.input_shape}\n"
-                f"train_x={tree_shape(train_x)}"
+                f"train_x={pytree_shape(train_x)}"
             )
 
         if (val_x is None and val_y is not None) or (
@@ -576,23 +576,23 @@ class Discriminator(_NetworkWrapper):
             if leading_dim_size(val_x) != leading_dim_size(val_y):
                 raise ValueError(
                     "Leading dimensions of val_x and val_y must be the same.\n"
-                    f"val_x={tree_shape(val_x)}\n"
-                    f"val_y={tree_shape(val_y)}"
+                    f"val_x={pytree_shape(val_x)}\n"
+                    f"val_y={pytree_shape(val_y)}"
                 )
 
-            if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(val_x)])):
+            if not pytree_equal(*map(pytree_cdr, [self.input_shape, pytree_shape(val_x)])):
                 raise ValueError(
                     "Trailing dimensions of val_x must match input_shape.\n"
                     f"input_shape={self.input_shape}\n"
-                    f"val_x={tree_shape(val_x)}"
+                    f"val_x={pytree_shape(val_x)}"
                 )
 
             # For a binary classifier, y has no trailing dimensions.
-            # if not tree_equal(*map(tree_cdr, map(tree_shape, [train_y, val_y]))):
+            # if not pytree_equal(*map(pytree_cdr, map(pytree_shape, [train_y, val_y]))):
             #    raise ValueError(
             #        "Trailing dimensions of train_y and val_y must match.\n"
-            #        f"train_y={tree_cdr(train_y)}\n"
-            #        f"val_y={tree_cdr(val_y)}"
+            #        f"train_y={pytree_cdr(train_y)}\n"
+            #        f"val_y={pytree_cdr(val_y)}"
             #    )
 
         if callbacks is None:
@@ -692,11 +692,11 @@ class Discriminator(_NetworkWrapper):
         assert self.state is not None
         assert self.input_shape is not None
         assert leading_dim_size(x) > 0
-        if not tree_equal(*map(tree_cdr, [self.input_shape, tree_shape(x)])):
+        if not pytree_equal(*map(pytree_cdr, [self.input_shape, pytree_shape(x)])):
             raise ValueError(
                 "Trailing dimensions of x must match input_shape.\n"
                 f"input_shape={self.input_shape}\n"
-                f"x={tree_shape(x)}"
+                f"x={pytree_shape(x)}"
             )
 
         if not self.trained:

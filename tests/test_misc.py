@@ -7,11 +7,11 @@ from dinf.misc import (
     ts_individuals,
     ts_nodes_of_individuals,
     ts_ploidy_of_individuals,
-    tree_equal,
-    tree_shape,
-    tree_cons,
-    tree_car,
-    tree_cdr,
+    pytree_equal,
+    pytree_shape,
+    pytree_cons,
+    pytree_car,
+    pytree_cdr,
     leading_dim_size,
 )
 
@@ -74,37 +74,37 @@ def test_ploidy_of_individuals(sim_ploidy):
         assert len(ts.individual(i).nodes) == ploidy
 
 
-def test_tree_equal():
-    assert tree_equal(1, 1)
-    assert tree_equal(1, 1, 1, 1)
-    assert tree_equal(np.array([1, 2, 3]), np.array([1, 2, 3]))
-    assert tree_equal({"x": 1}, {"x": 1})
-    assert tree_equal({"x": np.array([1, 2, 3])}, {"x": np.array((1, 2, 3))})
-    assert tree_equal({"x": np.array([1, 2, 3])}, {"x": np.array((1, 2, 3))})
-    assert tree_equal(
+def test_pytree_equal():
+    assert pytree_equal(1, 1)
+    assert pytree_equal(1, 1, 1, 1)
+    assert pytree_equal(np.array([1, 2, 3]), np.array([1, 2, 3]))
+    assert pytree_equal({"x": 1}, {"x": 1})
+    assert pytree_equal({"x": np.array([1, 2, 3])}, {"x": np.array((1, 2, 3))})
+    assert pytree_equal({"x": np.array([1, 2, 3])}, {"x": np.array((1, 2, 3))})
+    assert pytree_equal(
         {"x": np.array([1, 2, 3]), "y": {"w": {"z": np.zeros((1, 2))}}},
         {"x": np.array([1, 2, 3]), "y": {"w": {"z": np.zeros((1, 2))}}},
     )
-    assert not tree_equal(1, 2)
-    assert not tree_equal(1, 2, 1)
-    assert not tree_equal(1, 2, 2)
-    assert not tree_equal(np.array([2, 2, 3]), np.array([1, 2, 3]))
-    assert not tree_equal(np.array([2, 2, 3]), np.array([1, 2, 3]), np.array([2, 2, 3]))
-    assert not tree_equal(np.array([2, 2, 3]), np.array([2, 2, 3, 3]))
-    assert not tree_equal({"x": 1}, {"y": 1})
-    assert not tree_equal({"x": 1}, {"y": 1}, {"x": 1})
-    assert not tree_equal({"x": 1}, {"x": 2})
-    assert not tree_equal({"x": 1}, {"x": 2}, {"x": 1})
-    assert not tree_equal({"x": np.array([1, 2, 3])}, {"y": np.array([1, 2, 3])})
-    assert not tree_equal({"x": np.array([2, 2, 3])}, {"x": np.array([1, 2, 3])})
-    assert not tree_equal(
+    assert not pytree_equal(1, 2)
+    assert not pytree_equal(1, 2, 1)
+    assert not pytree_equal(1, 2, 2)
+    assert not pytree_equal(np.array([2, 2, 3]), np.array([1, 2, 3]))
+    assert not pytree_equal(np.array([2, 2, 3]), np.array([1, 2, 3]), np.array([2, 2, 3]))
+    assert not pytree_equal(np.array([2, 2, 3]), np.array([2, 2, 3, 3]))
+    assert not pytree_equal({"x": 1}, {"y": 1})
+    assert not pytree_equal({"x": 1}, {"y": 1}, {"x": 1})
+    assert not pytree_equal({"x": 1}, {"x": 2})
+    assert not pytree_equal({"x": 1}, {"x": 2}, {"x": 1})
+    assert not pytree_equal({"x": np.array([1, 2, 3])}, {"y": np.array([1, 2, 3])})
+    assert not pytree_equal({"x": np.array([2, 2, 3])}, {"x": np.array([1, 2, 3])})
+    assert not pytree_equal(
         {"x": np.array([1, 2, 3]), "y": 4}, {"x": np.array([1, 2, 3])}
     )
-    assert not tree_equal(
+    assert not pytree_equal(
         {"x": np.array([1, 2, 3]), "y": {"w": {"z": np.zeros([1, 2])}}},
         {"x": np.array([1, 2, 3]), "y": {"w": {"a": np.zeros([1, 2])}}},
     )
-    assert not tree_equal(
+    assert not pytree_equal(
         {"x": np.array([1, 2, 3]), "y": {"w": {"z": np.zeros([1, 2])}}},
         {"x": np.array([1, 2, 3]), "y": {"w": {"a": np.zeros([1, 2])}}},
         {"x": np.array([1, 2, 3]), "y": {"w": {"z": np.zeros([1, 2])}}},
@@ -120,54 +120,54 @@ def test_tree_equal():
     ],
 )
 def test_tree_shape_1(a):
-    a_shape = tree_shape(a)
-    assert tree_equal(a, a)
-    assert tree_equal(a_shape, a_shape)
-    assert tree_equal(
+    a_shape = pytree_shape(a)
+    assert pytree_equal(a, a)
+    assert pytree_equal(a_shape, a_shape)
+    assert pytree_equal(
         jax.tree_util.tree_structure(a, is_leaf=lambda x: isinstance(x, tuple)),
         jax.tree_util.tree_structure(a_shape, is_leaf=lambda x: isinstance(x, tuple)),
     )
-    assert tree_equal(
+    assert pytree_equal(
         jax.tree_util.tree_structure(a_shape, is_leaf=lambda x: isinstance(x, tuple)),
         jax.tree_util.tree_structure(a, is_leaf=lambda x: isinstance(x, tuple)),
     )
     b = jax.tree_util.tree_map(
         np.zeros, a_shape, is_leaf=lambda x: isinstance(x, tuple)
     )
-    assert tree_equal(a, b)
-    assert tree_equal(b, a)
-    assert tree_equal(a_shape, tree_shape(a))
-    assert tree_equal(tree_shape(a), a_shape)
+    assert pytree_equal(a, b)
+    assert pytree_equal(b, a)
+    assert pytree_equal(a_shape, pytree_shape(a))
+    assert pytree_equal(pytree_shape(a), a_shape)
 
 
 def test_tree_shape_2():
     a = {"a": np.zeros((1, 2, 3)), "b": np.zeros((4, 5))}
-    assert tree_equal(tree_shape(a), {"a": (1, 2, 3), "b": (4, 5)})
-    assert tree_equal(tree_shape(a), {"a": np.array((1, 2, 3)), "b": np.array((4, 5))})
+    assert pytree_equal(pytree_shape(a), {"a": (1, 2, 3), "b": (4, 5)})
+    assert pytree_equal(pytree_shape(a), {"a": np.array((1, 2, 3)), "b": np.array((4, 5))})
 
 
 def test_tree_cons():
-    assert tree_cons(1, (2, 3)) == (1, 2, 3)
-    assert tree_cons(3, {"x": (2, 1)}) == {"x": (3, 2, 1)}
-    assert tree_cons(5, {"x": (2, 1), "y": {"z": (3, 4)}}) == {
+    assert pytree_cons(1, (2, 3)) == (1, 2, 3)
+    assert pytree_cons(3, {"x": (2, 1)}) == {"x": (3, 2, 1)}
+    assert pytree_cons(5, {"x": (2, 1), "y": {"z": (3, 4)}}) == {
         "x": (5, 2, 1),
         "y": {"z": (5, 3, 4)},
     }
 
 
 def test_tree_car():
-    assert tree_car((1, 2, 3)) == 1
-    assert tree_car({"x": (3, 2, 1)}) == {"x": 3}
-    assert tree_car({"x": (5, 2, 1), "y": {"z": (5, 3, 4)}}) == {
+    assert pytree_car((1, 2, 3)) == 1
+    assert pytree_car({"x": (3, 2, 1)}) == {"x": 3}
+    assert pytree_car({"x": (5, 2, 1), "y": {"z": (5, 3, 4)}}) == {
         "x": 5,
         "y": {"z": 5},
     }
 
 
 def test_tree_cdr():
-    assert tree_cdr((1, 2, 3)) == (2, 3)
-    assert tree_cdr({"x": (3, 2, 1)}) == {"x": (2, 1)}
-    assert tree_cdr({"x": (5, 2, 1), "y": {"z": (5, 3, 4)}}) == {
+    assert pytree_cdr((1, 2, 3)) == (2, 3)
+    assert pytree_cdr({"x": (3, 2, 1)}) == {"x": (2, 1)}
+    assert pytree_cdr({"x": (5, 2, 1), "y": {"z": (5, 3, 4)}}) == {
         "x": (2, 1),
         "y": {"z": (3, 4)},
     }
@@ -182,11 +182,11 @@ def test_tree_cdr():
     ],
 )
 def test_cons_car_cdr(a, d):
-    cons = tree_cons(a, d)
-    assert tree_car(cons) == jax.tree_util.tree_map(
+    cons = pytree_cons(a, d)
+    assert pytree_car(cons) == jax.tree_util.tree_map(
         lambda _: a, cons, is_leaf=lambda x: isinstance(x, tuple)
     )
-    assert tree_cdr(cons) == d
+    assert pytree_cdr(cons) == d
 
 
 @pytest.mark.parametrize(

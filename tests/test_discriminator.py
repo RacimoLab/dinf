@@ -7,7 +7,7 @@ import flax
 import pytest
 
 from dinf import discriminator
-from dinf.misc import leading_dim_size, tree_cons, tree_car, tree_cdr
+from dinf.misc import leading_dim_size, pytree_cons, pytree_car, pytree_cdr
 
 
 def random_dataset(size=None, shape=None, seed=1234):
@@ -18,14 +18,14 @@ def random_dataset(size=None, shape=None, seed=1234):
         shape = {"x": (size, 32, 32, 1)}
     else:
         assert size is None
-        size = jax.tree_util.tree_flatten(tree_car(shape))[0][0]
+        size = jax.tree_util.tree_flatten(pytree_car(shape))[0][0]
     x = jax.tree_util.tree_map(
         lambda s: rng.integers(low=0, high=128, size=s, dtype=np.int8),
         shape,
         is_leaf=lambda x: isinstance(x, tuple),
     )
     y = rng.integers(low=0, high=2, size=(size,), dtype=np.int8)
-    input_shape = tree_cdr(shape)
+    input_shape = pytree_cdr(shape)
     return x, y, input_shape
 
 
@@ -316,7 +316,7 @@ class TestDiscriminator:
     )
     def test_fit(self, shape):
         train_x, train_y, input_shape = random_dataset(shape=shape)
-        val_x, val_y, _ = random_dataset(shape=tree_cons(10, tree_cdr(shape)))
+        val_x, val_y, _ = random_dataset(shape=pytree_cons(10, pytree_cdr(shape)))
 
         rng = np.random.default_rng(1234)
         d1 = discriminator.Discriminator(input_shape).init(rng)
@@ -408,7 +408,7 @@ class TestDiscriminator:
     )
     def test_predict(self, shape):
         train_x, train_y, input_shape = random_dataset(shape=shape)
-        val_x, val_y, _ = random_dataset(shape=tree_cons(10, tree_cdr(shape)))
+        val_x, val_y, _ = random_dataset(shape=pytree_cons(10, pytree_cdr(shape)))
 
         rng = np.random.default_rng(1234)
         d = discriminator.Discriminator(input_shape).init(rng)
