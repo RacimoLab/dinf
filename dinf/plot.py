@@ -1103,9 +1103,10 @@ class _Hist(_SubCommand):
                     hist(x, ax=ax, ci=ci, truth=truth, hist_kw=hist_kw)
                     if args.kde:
                         left = right = None
+                        xlim = ax.get_xlim()
                         if parameters is not None and x_param != "_Pr":
-                            left = parameters[x_param].low
-                            right = parameters[x_param].high
+                            left = max(parameters[x_param].low, xlim[0])
+                            right = min(parameters[x_param].high, xlim[1])
                         xrange, pdf = _kde1d_reflect(
                             data[x_param], weights=data["_Pr"], left=left, right=right
                         )
@@ -1115,9 +1116,7 @@ class _Hist(_SubCommand):
                             y = cdf
                         else:
                             y = pdf
-                        xlim = ax.get_xlim()
                         ax.plot(xrange, y, c="cyan", alpha=0.7)
-                        ax.set_xlim(xlim)  # restore xlim defined by the data
 
                 if args.cumulative:
                     ax.set_ylabel("cumulative density")
