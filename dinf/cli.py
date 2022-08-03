@@ -564,7 +564,6 @@ class Train(_SubCommand):
             rich.progress.TextColumn("{task.fields[_accuracy]}"),
         )
 
-        nreps = (args.training_replicates + args.test_replicates) // 2
         task_ids = {
             description: progress.add_task(
                 description,
@@ -574,11 +573,13 @@ class Train(_SubCommand):
                 _accuracy="",
             )
             for description, total in [
-                ("Generator", nreps),
-                ("Target", nreps),
+                ("Generator/train", args.training_replicates // 2),
+                ("Target/train", args.training_replicates // 2),
+                ("Generator/test", args.test_replicates // 2),
+                ("Target/test", args.test_replicates // 2),
                 ("Epoch", args.epochs),
-                ("Train", args.training_replicates),
-                ("Test", args.test_replicates),
+                (" Train", args.training_replicates),
+                (" Test", args.test_replicates),
             ]
         }
 
@@ -609,13 +610,13 @@ class Train(_SubCommand):
             return cb
 
         callbacks = {
-            "train/generator/feature": cb_counter("Generator"),
-            "train/target/feature": cb_counter("Target"),
-            "test/generator/feature": cb_counter("Generator"),
-            "test/target/feature": cb_counter("Target"),
+            "train/generator/feature": cb_counter("Generator/train"),
+            "train/target/feature": cb_counter("Target/train"),
+            "test/generator/feature": cb_counter("Generator/test"),
+            "test/target/feature": cb_counter("Target/test"),
             "discriminator/fit/epoch": cb_counter("Epoch"),
-            "discriminator/fit/train_batch": cb_batch("Train"),
-            "discriminator/fit/test_batch": cb_batch("Test"),
+            "discriminator/fit/train_batch": cb_batch(" Train"),
+            "discriminator/fit/test_batch": cb_batch(" Test"),
         }
 
         if args.quiet:

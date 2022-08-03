@@ -344,14 +344,14 @@ class Discriminator:
                 batch_stats={},
             )
 
-    def _init(self, input_shape, rng: np.random.Generator):
+    def _init(self, input_shape, *, seed: int):
         """
         Initialise the neural network with the given input shape.
 
         :param input_shape:
             The shape of the input to the neural network.
-        :param numpy.random.Generator rng:
-            The numpy random number generator.
+        :param seed:
+            Seed for the jax random number generator.
         """
         assert self.network is not None
         assert self.state is not None
@@ -386,7 +386,7 @@ class Discriminator:
         dummy_input = jax.tree_util.tree_map(
             lambda x: jnp.zeros(x, dtype=np.float32), self.input_shape, is_leaf=is_tuple
         )
-        key = jax.random.PRNGKey(rng.integers(2**63))
+        key = jax.random.PRNGKey(seed)
         variables = init(key, dummy_input)
 
         self.state = TrainState.create(
@@ -521,7 +521,7 @@ class Discriminator:
         val_y=None,
         batch_size: int = 64,
         epochs: int = 1,
-        rng: np.random.Generator,
+        ss: np.random.SeedSequence,
         reset_metrics: bool = False,
         entropy_regularisation: bool = False,
         callbacks: dict | None = None,
@@ -529,14 +529,20 @@ class Discriminator:
         """
         Fit discriminator to training data.
 
-        :param train_x: Training data.
-        :param train_y: Labels for training data (zeros and ones).
-        :param val_x: Validation data.
-        :param val_y: Labels for validation data (zeros and ones).
-        :param batch_size: Size of minibatch for gradient update step.
-        :param epochs: The number of full passes over the training data.
-        :param numpy.random.Generator rng:
-            The numpy random number generator.
+        :param train_x:
+            Training data.
+        :param train_y:
+            Labels for training data (zeros and ones).
+        :param val_x:
+            Validation data.
+        :param val_y:
+            Labels for validation data (zeros and ones).
+        :param batch_size:
+            Size of minibatch for gradient update step.
+        :param epochs:
+            The number of full passes over the training data.
+        :param numpy.random.SeedSequence ss:
+            Numpy random number seed sequence.
         :param reset_metrics:
             If true, remove loss/accuracy metrics from previous calls to
             fit() (if any). If false, loss/accuracy metrics will be appended
@@ -589,7 +595,7 @@ class Discriminator:
             )
             return n + batch_size, new_metrics
 
-        def train_epoch(state, train_ds, batch_size, epoch, dropout_rng, rng=rng):
+        def train_epoch(state, train_ds, batch_size, epoch, dropout_rng, rng):
             """Train for a single epoch."""
 
             metrics_sum = dict(loss=0, accuracy=0)
@@ -612,7 +618,7 @@ class Discriminator:
 
             return loss, accuracy, state
 
-        def eval_model(state, test_ds, batch_size, rng=rng):
+        def eval_model(state, test_ds, batch_size, rng):
             metrics_sum = dict(loss=0, accuracy=0)
             n = 0
             for batch in batchify(test_ds, batch_size, random=True, rng=rng):
@@ -628,8 +634,12 @@ class Discriminator:
 
             return loss, accuracy
 
+        ss_jax, ss_train, ss_eval = ss.spawn(3)
+        seed_init, seed_dropout = ss_jax.generate_state(2)
+        rng_train, rng_eval = (np.random.default_rng(sj) for sj in (ss_train, ss_eval))
+
         if not self._inited:
-            self._init(pytree_shape(train_x), rng=rng)
+            self._init(pytree_shape(train_x), seed=seed_init)
 
         assert self.network is not None
         assert self.state is not None
@@ -643,7 +653,7 @@ class Discriminator:
         if reset_metrics:
             self.metrics = collections.defaultdict(list)
 
-        dropout_rng1 = jax.random.PRNGKey(rng.integers(2**63))
+        dropout_rng1 = jax.random.PRNGKey(seed_dropout)
 
         if (cb_epoch := callbacks.get("epoch")) is not None:
             cb_epoch(0)
@@ -651,13 +661,15 @@ class Discriminator:
         for epoch in range(1, epochs + 1):
             dropout_rng1, dropout_rng2 = jax.random.split(dropout_rng1)
             train_loss, train_accuracy, self.state = train_epoch(
-                self.state, train_ds, batch_size, epoch, dropout_rng2, rng=rng
+                self.state, train_ds, batch_size, epoch, dropout_rng2, rng=rng_train
             )
             self.metrics["train_loss"].append(train_loss)
             self.metrics["train_accuracy"].append(train_accuracy)
 
             if do_eval:
-                test_loss, test_accuracy = eval_model(self.state, test_ds, batch_size)
+                test_loss, test_accuracy = eval_model(
+                    self.state, test_ds, batch_size, rng=rng_eval
+                )
                 self.metrics["test_loss"].append(test_loss)
                 self.metrics["test_accuracy"].append(test_accuracy)
 

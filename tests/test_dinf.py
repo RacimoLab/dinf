@@ -435,7 +435,7 @@ def log_prob(
     discriminator: dinf.Discriminator,
     generator: Callable,
     parameters: dinf.Parameters,
-    rng: np.random.Generator,
+    ss: np.random.SeedSequence,
     num_replicates: int,
     pool,
 ) -> float:
@@ -448,7 +448,7 @@ def log_prob(
         # param out of bounds
         return -np.inf
 
-    seeds = rng.integers(low=1, high=2**31, size=num_replicates)
+    seeds = ss.spawn(num_replicates)
     params = np.tile(theta, (num_replicates, 1))
     M = dinf.dinf._get_dataset_parallel(
         func=generator,
@@ -477,7 +477,7 @@ class TestLogProb:
                 test_thetas=test_thetas,
                 epochs=1,
                 pool=pool,
-                ss=dinf.dinf.NamedSeedSequence(1),
+                ss=np.random.SeedSequence(1),
             )
 
     def test_log_prob(self):
@@ -491,7 +491,7 @@ class TestLogProb:
             discriminator=self.discriminator,
             generator=self.dinf_model.generator_func_v,
             parameters=self.dinf_model.parameters,
-            rng=np.random.default_rng(1),
+            ss=np.random.SeedSequence(1),
             num_replicates=2,
             pool=pool,
         )
@@ -501,7 +501,7 @@ class TestLogProb:
             discriminator=self.discriminator,
             generator=self.dinf_model.generator_func_v,
             parameters=self.dinf_model.parameters,
-            rng=np.random.default_rng(1),
+            ss=np.random.SeedSequence(1),
             num_replicates=2,
             pool=pool,
         )

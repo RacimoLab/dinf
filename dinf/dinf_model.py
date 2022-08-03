@@ -70,7 +70,8 @@ class DinfModel:
     :param generator_func:
         A function that returns features for concrete parameter values.
 
-        The first (positional) argument to the function is an integer seed,
+        The first (positional) argument to the function is a
+        :class:`seed <numpy.random.SeedSequence>`,
         that may be used to seed a random number generator.
         The subsequent (keyword) arguments correspond to concrete values for
         the :attr:`.parameters`.
@@ -93,6 +94,9 @@ class DinfModel:
 
         .. code::
 
+            import dinf
+            import numpy as np
+
             parameters = dinf.Parameters(
                 p0=dinf.Param(...),
                 p1=dinf.Param(...),
@@ -101,20 +105,20 @@ class DinfModel:
 
             # Signature for returning a single feature matrix.
             def generator_func1(
-                seed: int, /, *, p0: float, p1: float, ...
+                seed: np.random.SeedSequence, /, *, p0: float, p1: float, ...
             ) -> np.ndarray:
                 ...
 
             # Signature for returning multiple feature matrices.
             def generator_func2(
-                seed: int, /, *, p0: float, p1: float, ...
+                seed: np.random.SeedSequence, /, *, p0: float, p1: float, ...
             ) -> dict[str, np.ndarray]:
                 ...
 
             # For generator functions accepting large numbers of parameters,
             # the following pattern using ``**kwargs`` may be preferred.
             def generator_func3(
-                seed: int, /, **kwargs: float
+                seed: np.random.SeedSequence, /, **kwargs: float
             )-> dict[str, np.ndarray]:
                 assert kwargs.keys() == parameters.keys()
                 # do something with p0
@@ -131,7 +135,8 @@ class DinfModel:
         the target dataset using each parameter's :attr:`truth <Param.truth>`
         value.
 
-        The function takes a single (positional) argument, an integer seed,
+        The function takes a single (positional) argument, a
+        :class:`seed <numpy.random.SeedSequence>`,
         that may be used to seed a random number generator.
         The return type must match the return type of :attr:`generator_func`.
 
