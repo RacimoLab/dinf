@@ -853,8 +853,6 @@ def mcmc_gan(
 
     parameters = dinf_model.parameters
 
-    sampling_mode = "reflect"
-
     if resume:
         discriminator = Discriminator.from_file(
             store[-1] / "discriminator.nn", network=dinf_model.discriminator_network
@@ -877,7 +875,6 @@ def mcmc_gan(
             size=training_replicates // 2,
             rng=rng_thetas,
             parameters=parameters,
-            mode=sampling_mode,
         )
     else:
         discriminator = Discriminator(network=dinf_model.discriminator_network)
@@ -990,7 +987,6 @@ def mcmc_gan(
                 size=training_replicates // 2,
                 rng=rng_thetas,
                 parameters=parameters,
-                mode=sampling_mode,
             )
 
             n_generator_calls += walkers * steps * Dx_replicates
@@ -1001,32 +997,13 @@ def mcmc_gan(
                 cb_iter(len(store))
 
 
-def _sample_smooth(*, thetas, probs, size: int, rng):
-    """
-    Sample from a smoothed set of weighted observations.
-    """
-    # Weighted sampling of points from the thetas.
-    sample = rng.choice(thetas, size=size, replace=True, p=probs / np.sum(probs))
-    # Calculate bandwidth.
-    _, d = thetas.shape
-    neff = np.sum(probs) ** 2 / np.sum(probs**2)
-    bw_scott = neff ** (-1.0 / (d + 4))  # bandwidth multiplier
-    cov = bw_scott**2 * np.cov(thetas, rowvar=False, aweights=probs)
-    assert not np.any(np.isnan(cov))
-    assert not np.any(np.isinf(cov))
-    # Jitter the sample with an MVN.
-    sample += rng.multivariate_normal(np.zeros(d), cov, size=size)
-    return sample
-
-
 def sample_smooth(
     *,
     thetas: np.ndarray,
     probs: np.ndarray,
     size: int,
     rng: np.random.Generator,
-    parameters: Parameters | None = None,
-    mode: str | None = None,
+    parameters: Parameters,
 ) -> np.ndarray:
     """
     Sample from a smoothed set of weighted observations.
@@ -1036,6 +1013,7 @@ def sample_smooth(
     using a mulivariate normal whose covariance is calculated from the
     thetas. This is equivalent to sampling from a Gaussian KDE, but
     avoids doing an explicit density estimation.
+    Values are sampled until they are within the parameter bounds.
     Scott's rule of thumb is used for bandwidth selection.
 
     :param thetas:
@@ -1049,47 +1027,48 @@ def sample_smooth(
     :param parameters:
         The parameters against which the values' bounds will be checked.
         See the ``mode`` argument.
-    :param mode:
-        The mode determines how to deal with values that are out of the
-        parameter bounds. If mode is not None, then ``parameters`` must
-        also be specified. The options are:
-
-         * ``None`` (*default*): the returned values are not modified
-           after sampling and may be out of bounds.
-         * "transform": thetas are transformed before sampling, and
-           the sampled values are inverse-transformed before being
-           returned.
-           See :meth:`Parameters.transform` and :meth:`Parameters.itransform`.
-         * "truncate": sampled values are truncated at the parameter limits.
-           See :meth:`Parameters.truncate`.
-         * "reflect": sample values that are out of bounds are reflected
-           inside the parameter limits by the same magnitude that they were
-           out of bounds. Values that are too far out of bounds to be
-           reflected are truncated at the parameter limits.
-           See :meth:`Parameters.reflect`.
-
     :return:
         The sampled values.
     """
-    if mode is not None:
-        if mode not in ("transform", "truncate", "reflect"):
-            raise ValueError(f"Unknown sampling mode '{mode}'")
-        if parameters is None:
-            raise ValueError("Must pass 'parameters' when 'mode' is not None")
-    if mode == "transform":
-        assert parameters is not None
-        thetas = parameters.transform(thetas)
-    X = _sample_smooth(thetas=thetas, probs=probs, size=size, rng=rng)
-    if mode == "transform":
-        assert parameters is not None
-        X = parameters.itransform(X)
-    elif mode == "reflect":
-        assert parameters is not None
-        X = parameters.reflect(X)
-    elif mode == "truncate":
-        assert parameters is not None
-        X = parameters.truncate(X)
-    return X
+    # Calculate bandwidth.
+    _, d = thetas.shape
+    neff = np.sum(probs) ** 2 / np.sum(probs**2)
+    bw_scott = neff ** (-1.0 / (d + 4))  # bandwidth multiplier
+    cov = bw_scott**2 * np.cov(thetas, rowvar=False, aweights=probs)
+    assert not np.any(np.isnan(cov))
+    assert not np.any(np.isinf(cov))
+
+    sample = np.empty((size, d))
+    idx: slice | np.ndarray = slice(size)
+    size_needed = size
+    draws = 0
+    p = probs / np.sum(probs)
+    while size_needed > 0:
+        draws += size_needed
+        # Weighted sampling of points from the thetas.
+        mean = rng.choice(thetas, size=size_needed, replace=True, p=p)
+        # Disperse the sample with an MVN.
+        disp = rng.multivariate_normal(np.zeros(d), cov, size=size_needed)
+        sample[idx] = mean + disp
+
+        # Find indices of samples that are out of bounds.
+        idx = np.nonzero(~parameters.bounds_contain(sample))[0]
+
+        size_needed = len(idx)
+        if draws > 1000 * size:
+            raise RuntimeError(
+                f"Failed to get {size} samples from KDE that are within the "
+                f"parameter bounds after {draws} draws. "
+            )
+
+    if draws > 10 * size:
+        logger.warning(
+            "Excessive KDE samples out of parameter bounds: %d of %d draws",
+            draws - size,
+            draws,
+        )
+
+    return sample
 
 
 def geometric_median(
@@ -1240,11 +1219,6 @@ def abc_gan(
 
     parameters = dinf_model.parameters
 
-    # Use mode="reflect", because "transform" seems to produce ABC-GAN
-    # degenerate states due to density accumulation at the bounds.
-    # This effect was even more pronouned than for "truncate".
-    sampling_mode = "reflect"
-
     if resume:
         discriminator = Discriminator.from_file(
             store[-1] / "discriminator.nn", network=dinf_model.discriminator_network
@@ -1261,7 +1235,6 @@ def abc_gan(
             size=training_replicates // 2,
             rng=rng_thetas,
             parameters=parameters,
-            mode=sampling_mode,
         )
         proposal_thetas = sample_smooth(
             thetas=thetas,
@@ -1269,7 +1242,6 @@ def abc_gan(
             size=proposal_replicates,
             rng=rng_thetas,
             parameters=parameters,
-            mode=sampling_mode,
         )
     else:
         discriminator = Discriminator(network=dinf_model.discriminator_network)
@@ -1373,7 +1345,6 @@ def abc_gan(
                 size=training_replicates // 2,
                 rng=rng_thetas,
                 parameters=parameters,
-                mode=sampling_mode,
             )
             proposal_thetas = sample_smooth(
                 thetas=thetas,
@@ -1381,7 +1352,6 @@ def abc_gan(
                 size=proposal_replicates,
                 rng=rng_thetas,
                 parameters=parameters,
-                mode=sampling_mode,
             )
 
             logger.info("Target called %s times.", n_target_calls)

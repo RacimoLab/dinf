@@ -13,7 +13,7 @@ import numpy as np
 from numpy.lib.recfunctions import structured_to_unstructured
 import scipy.stats
 
-from .cli import ADRDFormatter, _DINF_MODEL_HELP
+from .cli import ADRDFormatter, _DINF_MODEL_HELP, set_loglevel
 import dinf
 
 
@@ -506,6 +506,24 @@ class _SubCommand:
             formatter_class=ADRDFormatter,
         )
         self.parser.set_defaults(func=self)
+
+        group = self.parser.add_mutually_exclusive_group()
+        group.add_argument(
+            "-v",
+            "--verbose",
+            action="count",
+            default=0,
+            help=(
+                "Increase verbosity. Specify once for INFO messages and "
+                "twice for DEBUG messages."
+            ),
+        )
+        group.add_argument(
+            "-q",
+            "--quiet",
+            action="store_true",
+            help="Disable output. Only ERROR and CRITICAL messages are printed.",
+        )
 
     def add_argument_output_file(self):
         self.parser.add_argument(
@@ -1031,6 +1049,10 @@ class _Hist(_SubCommand):
 
         datasets_resampled = []
         if args.resample:
+            if parameters is None:
+                raise ValueError(
+                    "When --resample is requested, must also specify --model"
+                )
             rng = np.random.default_rng(123)
             for data in datasets:
                 names = list(data.dtype.names)[1:]
@@ -1042,7 +1064,6 @@ class _Hist(_SubCommand):
                     size=1_000_000,
                     rng=rng,
                     parameters=parameters,
-                    mode="reflect",
                 )
                 X_dict = {name: X[..., j] for j, name in enumerate(names)}
                 datasets_resampled.append(X_dict)
@@ -1094,7 +1115,9 @@ class _Hist(_SubCommand):
                             y = cdf
                         else:
                             y = pdf
+                        xlim = ax.get_xlim()
                         ax.plot(xrange, y, c="cyan", alpha=0.7)
+                        ax.set_xlim(xlim)  # restore xlim defined by the data
 
                 if args.cumulative:
                     ax.set_ylabel("cumulative density")
@@ -1231,6 +1254,7 @@ def main(args_list=None):
         # Bumping the dpi to 140 provides greater parity.
         plt.rc("figure", dpi=140)
 
+    set_loglevel(args.quiet, args.verbose)
     args.func(args)
 
 

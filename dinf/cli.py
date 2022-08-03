@@ -785,6 +785,32 @@ class Check(_SubCommand):
         dinf_model.check()
 
 
+def set_loglevel(quiet, verbose):
+    # Set root logger's level to WARNING (the default),
+    # or ERROR if --quiet is specified.
+    level = "WARNING"
+    if quiet:
+        level = "ERROR"
+    logging.basicConfig(
+        level=level,
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[rich.logging.RichHandler()],
+        # Yes, really set the root logging configuration!
+        force=True,
+    )
+
+    # If --verbose is specified, we increase the log level for dinf code.
+    # The root logger's level remains at WARNING so that we don't get
+    # additional messages from third-party packages.
+    assert not (verbose and quiet)
+    if verbose == 1:
+        level = "INFO"
+    elif verbose >= 2:
+        level = "DEBUG"
+    logging.getLogger(dinf.__name__).setLevel(level)
+
+
 def main(args_list=None):
     top_parser = argparse.ArgumentParser(
         prog="dinf",
@@ -805,28 +831,5 @@ def main(args_list=None):
         top_parser.print_help()
         exit(1)
 
-    # Set root logger's level to WARNING (the default),
-    # or ERROR if --quiet is specified.
-    level = "WARNING"
-    if args.quiet:
-        level = "ERROR"
-    logging.basicConfig(
-        level=level,
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[rich.logging.RichHandler()],
-        # Yes, really set the root logging configuration!
-        force=True,
-    )
-
-    # If --verbose is specified, we increase the log level for dinf code.
-    # The root logger's level remains at WARNING so that we don't get
-    # additional messages from third-party packages.
-    assert not (args.verbose and args.quiet)
-    if args.verbose == 1:
-        level = "INFO"
-    elif args.verbose >= 2:
-        level = "DEBUG"
-    logging.getLogger(dinf.__name__).setLevel(level)
-
+    set_loglevel(args.quiet, args.verbose)
     args.func(args)
