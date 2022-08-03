@@ -688,7 +688,7 @@ class _Demes(_SubCommand):
 
 class _Features(_SubCommand):
     """
-    Plot a feature matrices as heatmaps.
+    Plot feature matrices as heatmaps.
 
     By default, one simulation will be performed with the generator to obtain
     a set of features for plotting. To instead extract features from the
@@ -713,11 +713,11 @@ class _Features(_SubCommand):
             assert dinf_model.target_func is not None
             mats = dinf_model.target_func(args.seed)
         else:
-            rng = np.random.default_rng(args.seed)
+            ss = np.random.SeedSequence(args.seed)
+            ss_generator, ss_thetas = ss.spawn(2)
+            rng = np.random.default_rng(ss_thetas)
             thetas = dinf_model.parameters.draw_prior(1, rng=rng)
-            mats = dinf_model.generator_func_v(
-                (rng.integers(low=0, high=2**31), thetas[0])
-            )
+            mats = dinf_model.generator_func_v((ss_generator, thetas[0]))
 
         if not isinstance(mats, dict):
             mats_dict = {"": mats}

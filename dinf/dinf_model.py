@@ -4,13 +4,19 @@ import functools
 import importlib
 import pathlib
 import sys
-from typing import Callable
+from typing import Callable, Dict, Union, Tuple, Iterable
 
 from flax import linen as nn
+import numpy  # So stupid sphinx will cross-ref the types.
 import numpy as np
 
 from .parameters import Parameters
 from .misc import pytree_equal, pytree_shape, pytree_dtype
+
+FeatureCollection = Union[np.ndarray, Dict[str, np.ndarray]]
+FeatureCollection.__doc__ = (
+    """A feature array or a labelled collection of feature arrays."""
+)
 
 
 def _sim_shim(args, *, func, keys):
@@ -150,20 +156,20 @@ class DinfModel:
     The inferrable parameters.
     """
 
-    generator_func: Callable
+    generator_func: Callable[..., FeatureCollection]
     """
     Function that simulates features using concrete parameter values.
     """
 
-    generator_func_v: Callable = dataclasses.field(init=False)
+    generator_func_v: Callable[
+        [Tuple[numpy.random.SeedSequence, Iterable[float]]], FeatureCollection
+    ] = dataclasses.field(init=False)
     """
     Wrapper for ``generator_func`` that accepts a single argument containing
-    the seed and a vector of parameter values (as opposed to keyword arguments).
-    The signature is ``generator_func_v(arg: Tuple[int, np.ndarray])``,
-    where ``arg`` is a 2-tuple of ``(seed, vector)``.
+    the seed and an iterable of parameter values (as opposed to keyword arguments).
     """
 
-    target_func: Callable | None
+    target_func: Callable[[numpy.random.SeedSequence], FeatureCollection] | None
     """
     Function that samples features from the target distribution.
     """
