@@ -149,25 +149,46 @@ class _SubCommand:
             "-i", "--iterations", type=int, default=1, help="Number of GAN iterations."
         )
         group.add_argument(
-            "-d",
-            "--working-directory",
+            "-o",
+            "--output-folder",
             type=str,
             help=(
                 "Folder to output results. If not specified, the current "
                 "directory will be used."
             ),
         )
-        group.add_argument(
-            "model",
+        self.add_argument_model(parser=group)
+
+    def add_argument_model(self, *, parser=None, required=True):
+        if parser is None:
+            parser = self.parser
+        parser.add_argument(
+            "-m",
+            "--model",
             metavar="model.py",
+            required=required,
             type=pathlib.Path,
             help=_DINF_MODEL_HELP,
         )
 
+    def add_argument_discriminator(self, *, parser=None, help=None):
+        if parser is None:
+            parser = self.parser
+        if help is None:
+            help = "File containing discriminator network weights."
+        parser.add_argument(
+            "-d",
+            "--discriminator",
+            metavar="discriminator.nn",
+            required=True,
+            type=pathlib.Path,
+            help=help,
+        )
 
-class AbcGan(_SubCommand):
+
+class _AbcGan(_SubCommand):
     """
-    Adversarial Abstract Bayesian Computation.
+    Adversarial Abstract Bayesian Computation / Sequential Monte Carlo.
 
     Conceptually, the GAN takes the following steps for iteration j:
 
@@ -192,8 +213,7 @@ class AbcGan(_SubCommand):
 
         group = self.parser.add_argument_group("ABC arguments")
         group.add_argument(
-            "-n",
-            "--top-n",
+            "--top",
             metavar="N",
             type=int,
             help=(
@@ -320,14 +340,15 @@ class AbcGan(_SubCommand):
                 test_replicates=args.test_replicates,
                 proposal_replicates=args.proposal_replicates,
                 epochs=args.epochs,
-                working_directory=args.working_directory,
+                top_n=args.top,
+                output_folder=args.output_folder,
                 parallelism=args.parallelism,
                 seed=args.seed,
                 callbacks=callbacks,
             )
 
 
-class McmcGan(_SubCommand):
+class _McmcGan(_SubCommand):
     """
     Run the MCMC GAN.
 
@@ -466,14 +487,14 @@ class McmcGan(_SubCommand):
                 walkers=args.walkers,
                 steps=args.steps,
                 Dx_replicates=args.Dx_replicates,
-                working_directory=args.working_directory,
+                output_folder=args.output_folder,
                 parallelism=args.parallelism,
                 seed=args.seed,
                 callbacks=callbacks,
             )
 
 
-class PgGan(_SubCommand):
+class _PgGan(_SubCommand):
     """
     Run PG-GAN style simulated annealing.
     """
@@ -517,13 +538,13 @@ class PgGan(_SubCommand):
             Dx_replicates=args.Dx_replicates,
             num_proposals=args.num_proposals,
             max_pretraining_iterations=args.max_pretraining_iterations,
-            working_directory=args.working_directory,
+            output_folder=args.output_folder,
             parallelism=args.parallelism,
             seed=args.seed,
         )
 
 
-class Train(_SubCommand):
+class _Train(_SubCommand):
     """
     Train a discriminator.
     """
@@ -535,23 +556,16 @@ class Train(_SubCommand):
         self.add_train_parser_group()
 
         group = self.parser.add_argument_group()
-        group.add_argument(
-            "model",
-            metavar="model.py",
-            type=pathlib.Path,
-            help=_DINF_MODEL_HELP,
-        )
-        group.add_argument(
-            "discriminator_file",
-            metavar="discriminator.nn",
-            type=pathlib.Path,
+        self.add_argument_model(parser=group)
+        self.add_argument_discriminator(
+            parser=group,
             help="Output file where the discriminator will be saved.",
         )
 
     def __call__(self, args: argparse.Namespace):
         dinf_model = dinf.DinfModel.from_file(args.model)
         if args.epochs > 0:
-            check_output_file(args.discriminator_file)
+            check_output_file(args.discriminator)
 
         progress = rich.progress.Progress(
             rich.progress.TextColumn("[progress.description]{task.description}"),
@@ -634,10 +648,10 @@ class Train(_SubCommand):
             )
 
         if args.epochs > 0:
-            discriminator.to_file(args.discriminator_file)
+            discriminator.to_file(args.discriminator)
 
 
-class Predict(_SubCommand):
+class _Predict(_SubCommand):
     """
     Make predictions using a trained discriminator.
 
@@ -670,18 +684,8 @@ class Predict(_SubCommand):
         )
 
         group = self.parser.add_argument_group()
-        group.add_argument(
-            "model",
-            metavar="model.py",
-            type=pathlib.Path,
-            help=_DINF_MODEL_HELP,
-        )
-        group.add_argument(
-            "discriminator_file",
-            metavar="discriminator.nn",
-            type=pathlib.Path,
-            help="Discriminator to use for predictions.",
-        )
+        self.add_argument_model(parser=group)
+        self.add_argument_discriminator(parser=group)
         group.add_argument(
             "output_file",
             metavar="output.npz",
@@ -692,7 +696,7 @@ class Predict(_SubCommand):
     def __call__(self, args: argparse.Namespace):
         dinf_model = dinf.DinfModel.from_file(args.model)
         discriminator = dinf.Discriminator.from_file(
-            args.discriminator_file, network=dinf_model.discriminator_network
+            args.discriminator, network=dinf_model.discriminator_network
         )
         check_output_file(args.output_file)
 
@@ -762,7 +766,7 @@ class Predict(_SubCommand):
         )
 
 
-class Check(_SubCommand):
+class _Check(_SubCommand):
     """
     Basic dinf_model health checks.
 
@@ -772,13 +776,7 @@ class Check(_SubCommand):
 
     def __init__(self, subparsers):
         super().__init__(subparsers, "check")
-
-        self.parser.add_argument(
-            "model",
-            metavar="model.py",
-            type=pathlib.Path,
-            help=_DINF_MODEL_HELP,
-        )
+        self.add_argument_model()
 
     def __call__(self, args: argparse.Namespace):
         dinf_model = dinf.DinfModel.from_file(args.model)
@@ -816,15 +814,17 @@ def main(args_list=None):
         prog="dinf",
         description="Discriminator-based inference of population parameters.",
     )
-    top_parser.add_argument("--version", action="version", version=dinf.__version__)
+    top_parser.add_argument(
+        "-V", "--version", action="version", version=dinf.__version__
+    )
 
     subparsers = top_parser.add_subparsers(dest="subcommand")
-    Check(subparsers)
-    Train(subparsers)
-    Predict(subparsers)
-    AbcGan(subparsers)
-    McmcGan(subparsers)
-    PgGan(subparsers)
+    _Check(subparsers)
+    _Train(subparsers)
+    _Predict(subparsers)
+    _AbcGan(subparsers)
+    _McmcGan(subparsers)
+    _PgGan(subparsers)
 
     args = top_parser.parse_args(args_list)
     if args.subcommand is None:

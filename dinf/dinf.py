@@ -774,7 +774,7 @@ def mcmc_gan(
     walkers: int,
     steps: int,
     Dx_replicates: int,
-    working_directory: None | str | pathlib.Path = None,
+    output_folder: None | str | pathlib.Path = None,
     parallelism: None | int = None,
     seed: None | int = None,
     callbacks: dict | None = None,
@@ -814,7 +814,7 @@ def mcmc_gan(
         The chain length for each MCMC walker.
     :param Dx_replicates:
         Number of generator replicates for approximating E[D(x)|θ].
-    :param working_directory:
+    :param output_folder:
         Folder to output results. If not specified, the current
         directory will be used.
     :param parallelism:
@@ -843,9 +843,9 @@ def mcmc_gan(
         for k in callbacks
     )
 
-    if working_directory is None:
-        working_directory = "."
-    store = Store(working_directory, create=True)
+    if output_folder is None:
+        output_folder = "."
+    store = Store(output_folder, create=True)
     store.assert_complete(["discriminator.nn", "mcmc.npz"])
     resume = len(store) > 0
 
@@ -1006,7 +1006,7 @@ def abc_gan(
     proposal_replicates: int,
     epochs: int,
     top_n: int | None = None,
-    working_directory: None | str | pathlib.Path = None,
+    output_folder: None | str | pathlib.Path = None,
     parallelism: None | int = None,
     seed: None | int = None,
     callbacks: dict | None = None,
@@ -1050,7 +1050,7 @@ def abc_gan(
         the ``top_n`` best samples, ranked by discriminator prediction.
         Samples are taken from the test replicates, so ``top_n`` must be
         smaller than ``test_replicates``.
-    :param working_directory:
+    :param output_folder:
         Folder to output results. If not specified, the current
         directory will be used.
     :param parallelism:
@@ -1083,9 +1083,9 @@ def abc_gan(
     if top_n is not None and top_n >= proposal_replicates:
         raise ValueError(f"{top_n=}, but {proposal_replicates=}")
 
-    if working_directory is None:
-        working_directory = "."
-    store = Store(working_directory, create=True)
+    if output_folder is None:
+        output_folder = "."
+    store = Store(output_folder, create=True)
     store.assert_complete(["discriminator.nn", "abc.npz"])
     resume = len(store) > 0
 
@@ -1448,7 +1448,7 @@ def pg_gan(
     pretraining_method: str = "dinf",
     proposals_method: str = "rr",
     max_pretraining_iterations: int = 100,
-    working_directory: None | str | pathlib.Path = None,
+    output_folder: None | str | pathlib.Path = None,
     parallelism: None | int = None,
     seed: None | int = None,
 ):
@@ -1538,7 +1538,7 @@ def pg_gan(
 
     :param max_pretraining_iterations:
         The maximum number of pretraining iterations.
-    :param working_directory:
+    :param output_folder:
         Folder to output results. If not specified, the current
         directory will be used.
     :param parallelism:
@@ -1551,9 +1551,9 @@ def pg_gan(
     assert dinf_model.target_func is not None
     num_replicates = training_replicates // 2 + test_replicates // 2
 
-    if working_directory is None:
-        working_directory = "."
-    store = Store(working_directory, create=True)
+    if output_folder is None:
+        output_folder = "."
+    store = Store(output_folder, create=True)
 
     if proposals_method == "pg-gan":
         proposals_func = sanneal_proposals_pg_gan

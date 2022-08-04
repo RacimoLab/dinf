@@ -529,21 +529,10 @@ class _SubCommand:
     def add_argument_abc_thresholds(self):
         group = self.parser.add_mutually_exclusive_group()
         group.add_argument(
-            "-n",
-            "--top-n",
+            "--top",
             metavar="N",
             type=int,
             help="Accept only the N top samples, ranked by probability.",
-        )
-        group.add_argument(
-            "-p",
-            "--probability-threshold",
-            metavar="P",
-            type=float,
-            help=(
-                "Accept only the samples with prediction probabilities "
-                "greater than P."
-            ),
         )
 
     def add_argument_weighted(self):
@@ -571,28 +560,21 @@ class _SubCommand:
             help="The discriminator network(s) to plot.",
         )
 
-    def add_argument_working_directory(self):
+    def add_argument_output_folder(self):
         self.parser.add_argument(
-            "working_directory",
+            "output_folder",
             type=pathlib.Path,
             help="Folder containing results from a GAN run.",
         )
 
-    def add_argument_model(self):
-        self.parser.add_argument(
-            "model",
-            metavar="model.py",
-            type=pathlib.Path,
-            help=_DINF_MODEL_HELP,
-        )
-
-    def add_argument_model_optional(self):
+    def add_argument_model(self, required=True):
         self.parser.add_argument(
             "-m",
             "--model",
             metavar="model.py",
+            required=required,
             type=pathlib.Path,
-            help="Model file from which the parameter truth values with be taken.",
+            help=_DINF_MODEL_HELP,
         )
 
     def get_abc_datasets(self, args):
@@ -603,12 +585,9 @@ class _SubCommand:
             # Flatten MCMC datasets with multiple chains.
             data = data.reshape(-1)
 
-            assert None in (args.top_n, args.probability_threshold)
-            if args.top_n is not None:
-                k = len(data) - args.top_n
+            if args.top is not None:
+                k = len(data) - args.top
                 data = np.partition(data, k, order="_Pr")[k:]
-            elif args.probability_threshold is not None:
-                data = data[np.where(data["_Pr"] > args.probability_threshold)]
 
             datasets.append(data)
 
@@ -617,7 +596,7 @@ class _SubCommand:
     def get_gan_datasets(self, args):
         args.discriminators = []
         args.data_files = []
-        store = dinf.Store(args.working_directory, create=False)
+        store = dinf.Store(args.output_folder, create=False)
         dataset_type = None
         for j, path in enumerate(store):
             if (path / "discriminator.nn").exists():
@@ -783,11 +762,10 @@ class _Hist2d(_SubCommand):
     be indicated by red lines. By default, all values in the
     data file contribute equally to the histogram. For parameter
     values drawn from the prior distribution, this will therefore
-    show the prior distribution. A more informative plot can be
-    obtained by weighting parameter values by the discriminator
-    probabilities using the -W option. Alternately, the data file
-    can be filtered to obtain a posterior sample using the -n
-    or -t options.
+    show the prior distribution. A posterior sample can be obtained
+    by weighting parameter values by the discriminator probabilities
+    using the -W option, and/or rejection sampling the prior sample
+    using the --top option.
     """
 
     def __init__(self, subparsers):
@@ -809,7 +787,7 @@ class _Hist2d(_SubCommand):
             action="append",
             help="Name of parameter to plot on vertical axis.",
         )
-        self.add_argument_model_optional()
+        self.add_argument_model(required=False)
         self.add_argument_data_file(nargs=1)
 
     def __call__(self, args: argparse.Namespace):
@@ -962,10 +940,10 @@ class _Hist(_SubCommand):
     the figure. By default, all values in the data file contribute
     equally to the histogram. For parameter values drawn from the
     prior distribution, this will therefore show the prior
-    distribution. A more informative plot can be obtained by
-    weighting parameter values by the discriminator probabilities
-    using the -W option. Alternately, the data file can be filtered
-    to obtain a posterior sample using the -n or -t options.
+    distribution. A posterior sample can be obtained by weighting
+    parameter values by the discriminator probabilities using the
+    -W option, and/or rejection sampling the prior sample using
+    the --top option.
     """
 
     def __init__(self, subparsers):
@@ -1004,7 +982,7 @@ class _Hist(_SubCommand):
             action="store_true",
             help="Also draw a 1-dimensional marginal kernel density estimate.",
         )
-        self.add_argument_model_optional()
+        self.add_argument_model(required=False)
         self.add_argument_data_file(nargs="+")
 
     def __call__(self, args: argparse.Namespace):
@@ -1131,8 +1109,8 @@ class _Gan(_SubCommand):
             ),
         )
         """
-        self.add_argument_model_optional()
-        self.add_argument_working_directory()
+        self.add_argument_model(required=False)
+        self.add_argument_output_folder()
 
     def __call__(self, args: argparse.Namespace):
         self.get_gan_datasets(args)
@@ -1209,6 +1187,9 @@ class _Gan(_SubCommand):
 def main(args_list=None):
     top_parser = argparse.ArgumentParser(
         prog="dinf.plot", description="Dinf plotting tools."
+    )
+    top_parser.add_argument(
+        "-V", "--version", action="version", version=dinf.__version__
     )
 
     subparsers = top_parser.add_subparsers(dest="subcommand")

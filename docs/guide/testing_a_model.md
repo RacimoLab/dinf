@@ -41,7 +41,7 @@ network.
 The Dinf command line interface can be used to do basic checks of the model.
 
 ```
-dinf check examples/bottleneck/model.py
+dinf check --model examples/bottleneck/model.py
 ```
 
 This will sample parameters from the prior distribution,
@@ -59,14 +59,14 @@ from the prior), and plots the result as a heatmap.
 See [](sec_guide_features) for how to interpret feature matrices.
 
 ```
-dinf-plot features --seed 1 examples/bottleneck/model.py
+dinf-plot features --seed 1 --model examples/bottleneck/model.py
 ```
 ```{code-cell}
 :tags: ["remove-input"]
 import dinf.plot
 
 dinf.plot.main(
-    "features -S 1 ../../examples/bottleneck/model.py".split()
+    "features -S 1 -m ../../examples/bottleneck/model.py".split()
 )
 ```
 
@@ -85,8 +85,8 @@ dinf train \
     --epochs 10 \
     --training-replicates 1000 \
     --test-replicates 1000 \
-    examples/bottleneck/model.py \
-    /tmp/discriminator.nn
+    --model examples/bottleneck/model.py \
+    --discriminator /tmp/discriminator.nn
 ```
 ```{code-cell}
 :tags: ["remove-cell"]
@@ -102,16 +102,16 @@ dinf.cli.main(
         --epochs 10
         --training-replicates 1000
         --test-replicates 1000
-        ../../examples/bottleneck/model.py
-        /tmp/discriminator.nn
+        --model ../../examples/bottleneck/model.py
+        --discriminator /tmp/discriminator.nn
     """.split()
 )
 ```
 
 Msprime simulations are quite fast, and on an 8-core i7-8665U laptop with
 CPU-only training, this completes in about 40 seconds.
-Loss and accuracy metrics are printed to the console by default,
-but they can also be plotted using `dinf-plot` with the `metrics` subcommand.
+Loss and accuracy metrics can be plotted using `dinf-plot` with the
+`metrics` subcommand.
 
 ```
 dinf-plot metrics /tmp/discriminator.nn
