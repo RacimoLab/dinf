@@ -279,9 +279,8 @@ class TestDiscriminator:
         ],
     )
     def test_init(self, input_shape):
-        rng = np.random.default_rng(1234)
         d = discriminator.Discriminator()
-        d._init(input_shape, rng)
+        d._init(input_shape, seed=1234)
         assert d is not None
         assert len(d.state.params) > 0
 
@@ -302,10 +301,9 @@ class TestDiscriminator:
         ],
     )
     def test_bad_shape(self, input_shape):
-        rng = np.random.default_rng(1234)
         d = discriminator.Discriminator()
         with pytest.raises(ValueError, match="features must each have shape"):
-            d._init(input_shape, rng)
+            d._init(input_shape, seed=1234)
 
     @pytest.mark.parametrize(
         "shape",
@@ -318,68 +316,67 @@ class TestDiscriminator:
         train_x, train_y = random_dataset(shape=shape)
         val_x, val_y = random_dataset(shape=pytree_cons(10, pytree_cdr(shape)))
 
-        rng = np.random.default_rng(1234)
+        ss = np.random.SeedSequence(1234)
         d1 = discriminator.Discriminator()
-        d1.fit(train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, rng=rng)
+        d1.fit(train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, ss=ss)
         chex.assert_tree_all_finite(d1.state)
 
         # Results should be deterministic and not depend on validation.
-        rng = np.random.default_rng(1234)
+        ss = np.random.SeedSequence(1234)
         d2 = discriminator.Discriminator()
-        d2.fit(train_x=train_x, train_y=train_y, rng=rng)
+        d2.fit(train_x=train_x, train_y=train_y, ss=ss)
         chex.assert_trees_all_close(
             flax.serialization.to_state_dict(d1.state),
             flax.serialization.to_state_dict(d2.state),
         )
 
     def test_fit_bad_shapes(self):
-        rng = np.random.default_rng(1234)
+        ss = np.random.SeedSequence(1234)
 
         x, y = random_dataset(shape=(30, 12, 34, 2))
         d = discriminator.Discriminator()
-        d.fit(train_x=x, train_y=y, rng=rng)
+        d.fit(train_x=x, train_y=y, ss=ss)
 
         with pytest.raises(ValueError, match="Must specify both"):
-            d.fit(train_x=x, train_y=y, val_x=x, rng=rng)
+            d.fit(train_x=x, train_y=y, val_x=x, ss=ss)
         with pytest.raises(ValueError, match="Must specify both"):
-            d.fit(train_x=x, train_y=y, val_y=y, rng=rng)
+            d.fit(train_x=x, train_y=y, val_y=y, ss=ss)
 
         with pytest.raises(ValueError, match="Leading dimensions"):
-            d.fit(train_x=x[:20, ...], train_y=y, rng=rng)
+            d.fit(train_x=x[:20, ...], train_y=y, ss=ss)
         with pytest.raises(ValueError, match="Leading dimensions"):
-            d.fit(train_x=x, train_y=y[:20], rng=rng)
+            d.fit(train_x=x, train_y=y[:20], ss=ss)
         with pytest.raises(ValueError, match="Leading dimensions"):
-            d.fit(train_x=x, train_y=y, val_x=x[:20, ...], val_y=y, rng=rng)
+            d.fit(train_x=x, train_y=y, val_x=x[:20, ...], val_y=y, ss=ss)
         with pytest.raises(ValueError, match="Leading dimensions"):
-            d.fit(train_x=x, train_y=y, val_x=x, val_y=y[:20], rng=rng)
+            d.fit(train_x=x, train_y=y, val_x=x, val_y=y[:20], ss=ss)
 
         with pytest.raises(ValueError, match="Trailing dimensions"):
-            d.fit(train_x=x[:, :8, :, :], train_y=y, rng=rng)
+            d.fit(train_x=x[:, :8, :, :], train_y=y, ss=ss)
         with pytest.raises(ValueError, match="Trailing dimensions"):
-            d.fit(train_x=x[:, :, :8, :], train_y=y, rng=rng)
+            d.fit(train_x=x[:, :, :8, :], train_y=y, ss=ss)
         with pytest.raises(ValueError, match="Trailing dimensions"):
-            d.fit(train_x=x[:, :, :, :1], train_y=y, rng=rng)
+            d.fit(train_x=x[:, :, :, :1], train_y=y, ss=ss)
         with pytest.raises(ValueError, match="Trailing dimensions"):
-            d.fit(train_x=x, train_y=y, val_x=x[:, :8, :, :], val_y=y, rng=rng)
+            d.fit(train_x=x, train_y=y, val_x=x[:, :8, :, :], val_y=y, ss=ss)
         with pytest.raises(ValueError, match="Trailing dimensions"):
-            d.fit(train_x=x, train_y=y, val_x=x[:, :, :8, :], val_y=y, rng=rng)
+            d.fit(train_x=x, train_y=y, val_x=x[:, :, :8, :], val_y=y, ss=ss)
         with pytest.raises(ValueError, match="Trailing dimensions"):
-            d.fit(train_x=x, train_y=y, val_x=x[:, :, :, :1], val_y=y, rng=rng)
+            d.fit(train_x=x, train_y=y, val_x=x[:, :, :, :1], val_y=y, ss=ss)
 
     def test_summary(self):
-        rng = np.random.default_rng(1234)
         d = discriminator.Discriminator()
-        d._init({"a": (1, 30, 40, 1)}, rng)
+        d._init({"a": (1, 30, 40, 1)}, seed=1234)
         summary = d.summary()
         assert "params" in summary
         assert "batch_stats" in summary
 
     @pytest.mark.usefixtures("tmp_path")
     def test_load_save_roundtrip(self, tmp_path):
-        rng = np.random.default_rng(1234)
+        ss = np.random.SeedSequence(1234)
         x, y = random_dataset(50)
         d1 = discriminator.Discriminator()
-        d1.fit(train_x=x, train_y=y, rng=rng)
+        d1.fit(train_x=x, train_y=y, ss=ss)
         d1_y = d1.predict(x)
         filename = tmp_path / "discriminator.nn"
         d1.to_file(filename)
@@ -392,9 +389,8 @@ class TestDiscriminator:
 
     @pytest.mark.parametrize("discriminator_format", [0, "0.0.1"])
     def test_load_old_file(self, tmp_path, discriminator_format):
-        rng = np.random.default_rng(1234)
         d1 = discriminator.Discriminator()
-        d1._init((1, 30, 40, 1), rng)
+        d1._init((1, 30, 40, 1), seed=1234)
         d1.format_version = discriminator_format
         filename = tmp_path / "discriminator.nn"
         d1.to_file(filename)
@@ -412,9 +408,9 @@ class TestDiscriminator:
         train_x, train_y = random_dataset(shape=shape)
         val_x, val_y = random_dataset(shape=pytree_cons(10, pytree_cdr(shape)))
 
-        rng = np.random.default_rng(1234)
+        ss = np.random.SeedSequence(1234)
         d = discriminator.Discriminator()
-        d.fit(train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, rng=rng)
+        d.fit(train_x=train_x, train_y=train_y, val_x=val_x, val_y=val_y, ss=ss)
 
         y1 = d.predict(val_x)
         assert np.shape(y1) == (10,)
@@ -426,10 +422,10 @@ class TestDiscriminator:
         chex.assert_trees_all_close(y1, y2)
 
     def test_predict_bad_shapes(self):
-        rng = np.random.default_rng(1234)
+        ss = np.random.SeedSequence(1234)
         x, y = random_dataset(shape=(30, 12, 34, 2))
         d = discriminator.Discriminator()
-        d.fit(train_x=x, train_y=y, rng=rng)
+        d.fit(train_x=x, train_y=y, ss=ss)
 
         with pytest.raises(ValueError, match="Trailing dimensions"):
             d.predict(x[:, :8, :, :])

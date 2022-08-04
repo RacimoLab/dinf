@@ -13,7 +13,7 @@ import numpy as np
 from numpy.lib.recfunctions import structured_to_unstructured
 import scipy.stats
 
-from .cli import ADRDFormatter, _DINF_MODEL_HELP
+from .cli import ADRDFormatter, _DINF_MODEL_HELP, set_loglevel
 import dinf
 
 
@@ -507,6 +507,24 @@ class _SubCommand:
         )
         self.parser.set_defaults(func=self)
 
+        group = self.parser.add_mutually_exclusive_group()
+        group.add_argument(
+            "-v",
+            "--verbose",
+            action="count",
+            default=0,
+            help=(
+                "Increase verbosity. Specify once for INFO messages and "
+                "twice for DEBUG messages."
+            ),
+        )
+        group.add_argument(
+            "-q",
+            "--quiet",
+            action="store_true",
+            help="Disable output. Only ERROR and CRITICAL messages are printed.",
+        )
+
     def add_argument_output_file(self):
         self.parser.add_argument(
             "-o",
@@ -688,7 +706,7 @@ class _Demes(_SubCommand):
 
 class _Features(_SubCommand):
     """
-    Plot a feature matrices as heatmaps.
+    Plot feature matrices as heatmaps.
 
     By default, one simulation will be performed with the generator to obtain
     a set of features for plotting. To instead extract features from the
@@ -713,11 +731,11 @@ class _Features(_SubCommand):
             assert dinf_model.target_func is not None
             mats = dinf_model.target_func(args.seed)
         else:
-            rng = np.random.default_rng(args.seed)
+            ss = np.random.SeedSequence(args.seed)
+            ss_generator, ss_thetas = ss.spawn(2)
+            rng = np.random.default_rng(ss_thetas)
             thetas = dinf_model.parameters.draw_prior(1, rng=rng)
-            mats = dinf_model.generator_func_v(
-                (rng.integers(low=0, high=2**31), thetas[0])
-            )
+            mats = dinf_model.generator_func_v((ss_generator, thetas[0]))
 
         if not isinstance(mats, dict):
             mats_dict = {"": mats}
@@ -1031,6 +1049,10 @@ class _Hist(_SubCommand):
 
         datasets_resampled = []
         if args.resample:
+            if parameters is None:
+                raise ValueError(
+                    "When --resample is requested, must also specify --model"
+                )
             rng = np.random.default_rng(123)
             for data in datasets:
                 names = list(data.dtype.names)[1:]
@@ -1042,7 +1064,6 @@ class _Hist(_SubCommand):
                     size=1_000_000,
                     rng=rng,
                     parameters=parameters,
-                    mode="reflect",
                 )
                 X_dict = {name: X[..., j] for j, name in enumerate(names)}
                 datasets_resampled.append(X_dict)
@@ -1082,9 +1103,10 @@ class _Hist(_SubCommand):
                     hist(x, ax=ax, ci=ci, truth=truth, hist_kw=hist_kw)
                     if args.kde:
                         left = right = None
+                        xlim = ax.get_xlim()
                         if parameters is not None and x_param != "_Pr":
-                            left = parameters[x_param].low
-                            right = parameters[x_param].high
+                            left = max(parameters[x_param].low, xlim[0])
+                            right = min(parameters[x_param].high, xlim[1])
                         xrange, pdf = _kde1d_reflect(
                             data[x_param], weights=data["_Pr"], left=left, right=right
                         )
@@ -1231,6 +1253,7 @@ def main(args_list=None):
         # Bumping the dpi to 140 provides greater parity.
         plt.rc("figure", dpi=140)
 
+    set_loglevel(args.quiet, args.verbose)
     args.func(args)
 
 

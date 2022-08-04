@@ -41,6 +41,8 @@ sphinx:
 
   config:
     autodoc_typehints: description
+    autodoc_type_aliases:
+      FeatureCollection: dinf.FeatureCollection
     autodoc_member_order: bysource
     autoclass_content: both
     todo_include_todos: true

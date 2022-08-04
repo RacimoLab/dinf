@@ -564,7 +564,6 @@ class Train(_SubCommand):
             rich.progress.TextColumn("{task.fields[_accuracy]}"),
         )
 
-        nreps = (args.training_replicates + args.test_replicates) // 2
         task_ids = {
             description: progress.add_task(
                 description,
@@ -574,11 +573,13 @@ class Train(_SubCommand):
                 _accuracy="",
             )
             for description, total in [
-                ("Generator", nreps),
-                ("Target", nreps),
+                ("Generator/train", args.training_replicates // 2),
+                ("Target/train", args.training_replicates // 2),
+                ("Generator/test", args.test_replicates // 2),
+                ("Target/test", args.test_replicates // 2),
                 ("Epoch", args.epochs),
-                ("Train", args.training_replicates),
-                ("Test", args.test_replicates),
+                (" Train", args.training_replicates),
+                (" Test", args.test_replicates),
             ]
         }
 
@@ -609,13 +610,13 @@ class Train(_SubCommand):
             return cb
 
         callbacks = {
-            "train/generator/feature": cb_counter("Generator"),
-            "train/target/feature": cb_counter("Target"),
-            "test/generator/feature": cb_counter("Generator"),
-            "test/target/feature": cb_counter("Target"),
+            "train/generator/feature": cb_counter("Generator/train"),
+            "train/target/feature": cb_counter("Target/train"),
+            "test/generator/feature": cb_counter("Generator/test"),
+            "test/target/feature": cb_counter("Target/test"),
             "discriminator/fit/epoch": cb_counter("Epoch"),
-            "discriminator/fit/train_batch": cb_batch("Train"),
-            "discriminator/fit/test_batch": cb_batch("Test"),
+            "discriminator/fit/train_batch": cb_batch(" Train"),
+            "discriminator/fit/test_batch": cb_batch(" Test"),
         }
 
         if args.quiet:
@@ -784,6 +785,32 @@ class Check(_SubCommand):
         dinf_model.check()
 
 
+def set_loglevel(quiet, verbose):
+    # Set root logger's level to WARNING (the default),
+    # or ERROR if --quiet is specified.
+    level = "WARNING"
+    if quiet:
+        level = "ERROR"
+    logging.basicConfig(
+        level=level,
+        format="%(message)s",
+        datefmt="[%X]",
+        handlers=[rich.logging.RichHandler()],
+        # Yes, really set the root logging configuration!
+        force=True,
+    )
+
+    # If --verbose is specified, we increase the log level for dinf code.
+    # The root logger's level remains at WARNING so that we don't get
+    # additional messages from third-party packages.
+    assert not (verbose and quiet)
+    if verbose == 1:
+        level = "INFO"
+    elif verbose >= 2:
+        level = "DEBUG"
+    logging.getLogger(dinf.__name__).setLevel(level)
+
+
 def main(args_list=None):
     top_parser = argparse.ArgumentParser(
         prog="dinf",
@@ -804,28 +831,5 @@ def main(args_list=None):
         top_parser.print_help()
         exit(1)
 
-    # Set root logger's level to WARNING (the default),
-    # or ERROR if --quiet is specified.
-    level = "WARNING"
-    if args.quiet:
-        level = "ERROR"
-    logging.basicConfig(
-        level=level,
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[rich.logging.RichHandler()],
-        # Yes, really set the root logging configuration!
-        force=True,
-    )
-
-    # If --verbose is specified, we increase the log level for dinf code.
-    # The root logger's level remains at WARNING so that we don't get
-    # additional messages from third-party packages.
-    assert not (args.verbose and args.quiet)
-    if args.verbose == 1:
-        level = "INFO"
-    elif args.verbose >= 2:
-        level = "DEBUG"
-    logging.getLogger(dinf.__name__).setLevel(level)
-
+    set_loglevel(args.quiet, args.verbose)
     args.func(args)

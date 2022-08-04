@@ -4,13 +4,25 @@ import functools
 import io
 import pathlib
 import sqlite3
-from typing import Any, Callable
+from typing import Any, Callable, Tuple
 import zlib
 
 import jax
 import numpy as np
 import numpy.typing as npt
 import tskit
+
+
+def spawn_key(key: str) -> Tuple[int, ...]:
+    """
+    Transform a string for use as a :func:`np.random.SeedSequence` spawn_key.
+
+    :param key:
+        The spawn_key string.
+    :return:
+        A tuple of ints.
+    """
+    return tuple(map(ord, key))
 
 
 def ts_individuals(

@@ -96,6 +96,13 @@
 
 ## Reference
 
+(sec_api_type_aliases)=
+### Type aliases
+
+```{eval-rst}
+.. autodata:: dinf.FeatureCollection
+```
+
 (sec_api_defining_a_dinf_model)=
 ### Defining a Dinf model
 

@@ -4,13 +4,19 @@ import functools
 import importlib
 import pathlib
 import sys
-from typing import Callable
+from typing import Callable, Dict, Union, Tuple, Iterable
 
 from flax import linen as nn
+import numpy  # So stupid sphinx will cross-ref the types.
 import numpy as np
 
 from .parameters import Parameters
 from .misc import pytree_equal, pytree_shape, pytree_dtype
+
+FeatureCollection = Union[np.ndarray, Dict[str, np.ndarray]]
+FeatureCollection.__doc__ = (
+    """A feature array or a labelled collection of feature arrays."""
+)
 
 
 def _sim_shim(args, *, func, keys):
@@ -70,7 +76,8 @@ class DinfModel:
     :param generator_func:
         A function that returns features for concrete parameter values.
 
-        The first (positional) argument to the function is an integer seed,
+        The first (positional) argument to the function is a
+        :class:`seed <numpy.random.SeedSequence>`,
         that may be used to seed a random number generator.
         The subsequent (keyword) arguments correspond to concrete values for
         the :attr:`.parameters`.
@@ -93,6 +100,9 @@ class DinfModel:
 
         .. code::
 
+            import dinf
+            import numpy as np
+
             parameters = dinf.Parameters(
                 p0=dinf.Param(...),
                 p1=dinf.Param(...),
@@ -101,20 +111,20 @@ class DinfModel:
 
             # Signature for returning a single feature matrix.
             def generator_func1(
-                seed: int, /, *, p0: float, p1: float, ...
+                seed: np.random.SeedSequence, /, *, p0: float, p1: float, ...
             ) -> np.ndarray:
                 ...
 
             # Signature for returning multiple feature matrices.
             def generator_func2(
-                seed: int, /, *, p0: float, p1: float, ...
+                seed: np.random.SeedSequence, /, *, p0: float, p1: float, ...
             ) -> dict[str, np.ndarray]:
                 ...
 
             # For generator functions accepting large numbers of parameters,
             # the following pattern using ``**kwargs`` may be preferred.
             def generator_func3(
-                seed: int, /, **kwargs: float
+                seed: np.random.SeedSequence, /, **kwargs: float
             )-> dict[str, np.ndarray]:
                 assert kwargs.keys() == parameters.keys()
                 # do something with p0
@@ -131,7 +141,8 @@ class DinfModel:
         the target dataset using each parameter's :attr:`truth <Param.truth>`
         value.
 
-        The function takes a single (positional) argument, an integer seed,
+        The function takes a single (positional) argument, a
+        :class:`seed <numpy.random.SeedSequence>`,
         that may be used to seed a random number generator.
         The return type must match the return type of :attr:`generator_func`.
 
@@ -145,20 +156,20 @@ class DinfModel:
     The inferrable parameters.
     """
 
-    generator_func: Callable
+    generator_func: Callable[..., FeatureCollection]
     """
     Function that simulates features using concrete parameter values.
     """
 
-    generator_func_v: Callable = dataclasses.field(init=False)
+    generator_func_v: Callable[
+        [Tuple[numpy.random.SeedSequence, Iterable[float]]], FeatureCollection
+    ] = dataclasses.field(init=False)
     """
     Wrapper for ``generator_func`` that accepts a single argument containing
-    the seed and a vector of parameter values (as opposed to keyword arguments).
-    The signature is ``generator_func_v(arg: Tuple[int, np.ndarray])``,
-    where ``arg`` is a 2-tuple of ``(seed, vector)``.
+    the seed and an iterable of parameter values (as opposed to keyword arguments).
     """
 
-    target_func: Callable | None
+    target_func: Callable[[numpy.random.SeedSequence], FeatureCollection] | None
     """
     Function that samples features from the target distribution.
     """

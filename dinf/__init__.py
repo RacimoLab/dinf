@@ -9,7 +9,7 @@ except ImportError:
 from .misc import ts_individuals
 from .store import Store as Store
 from .parameters import Param, Parameters
-from .dinf_model import DinfModel
+from .dinf_model import DinfModel, FeatureCollection
 from .vcf import (
     BagOfVcf,
     get_contig_lengths,
