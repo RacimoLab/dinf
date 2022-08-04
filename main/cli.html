@@ -232,7 +232,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev52
+            dinf 0.2.1.dev54
             </div>
             
         </div>
@@ -730,9 +730,7 @@ The module hooks can be useful for running the commands from a
 cloned git repository without requiring installation (e.g. during development).</p>
 <section id="analysis-commands">
 <span id="sec-cli-dinf"></span><h2>Analysis commands<a class="headerlink" href="#analysis-commands" title="Permalink to this headline">#</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
-  PyTreeDef = type(jax.tree_structure(None))
-usage: dinf [-h] [--version] {check,train,predict,abc-gan,mcmc-gan,pg-gan} ...
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [--version] {check,train,predict,abc-gan,mcmc-gan,pg-gan} ...
 
 Discriminator-based inference of population parameters.
 
@@ -752,9 +750,7 @@ optional arguments:
 </div>
 <section id="dinf-check">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">check</span></code><a class="headerlink" href="#dinf-check" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
-  PyTreeDef = type(jax.tree_structure(None))
-usage: dinf check [-h] [-v | -q] model.py
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf check [-h] [-v | -q] model.py
 
 Basic dinf_model health checks.
 
@@ -778,9 +774,7 @@ optional arguments:
 </section>
 <section id="dinf-train">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">train</span></code><a class="headerlink" href="#dinf-train" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
-  PyTreeDef = type(jax.tree_structure(None))
-usage: dinf train [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf train [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
                   [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
                   model.py discriminator.nn
 
@@ -834,9 +828,7 @@ training arguments:
 </section>
 <section id="dinf-predict">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">predict</span></code><a class="headerlink" href="#dinf-predict" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
-  PyTreeDef = type(jax.tree_structure(None))
-usage: dinf predict [-h] [-v | -q] [-S SEED] [-j PARALLELISM] [-r REPLICATES]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf predict [-h] [-v | -q] [-S SEED] [-j PARALLELISM] [-r REPLICATES]
                     [--target]
                     model.py discriminator.nn output.npz
 
@@ -892,9 +884,7 @@ predict arguments:
 </section>
 <section id="dinf-abc-gan">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">abc-gan</span></code><a class="headerlink" href="#dinf-abc-gan" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
-  PyTreeDef = type(jax.tree_structure(None))
-usage: dinf abc-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf abc-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
                     [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
                     [-n N] [-P PROPOSAL_REPLICATES] [-i ITERATIONS]
                     [-d WORKING_DIRECTORY]
@@ -977,9 +967,7 @@ GAN arguments:
 </section>
 <section id="dinf-mcmc-gan">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mcmc-gan</span></code><a class="headerlink" href="#dinf-mcmc-gan" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
-  PyTreeDef = type(jax.tree_structure(None))
-usage: dinf mcmc-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf mcmc-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
                      [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
                      [-w WALKERS] [-s STEPS] [--Dx-replicates DX_REPLICATES]
                      [-i ITERATIONS] [-d WORKING_DIRECTORY]
@@ -1062,9 +1050,7 @@ GAN arguments:
 </section>
 <section id="dinf-pg-gan">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">pg-gan</span></code><a class="headerlink" href="#dinf-pg-gan" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
-  PyTreeDef = type(jax.tree_structure(None))
-usage: dinf pg-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf pg-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
                    [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
                    [--Dx-replicates DX_REPLICATES]
                    [--num-proposals NUM_PROPOSALS]
@@ -1138,9 +1124,7 @@ GAN arguments:
 </section>
 <section id="plotting-commands">
 <span id="sec-cli-dinf-plot"></span><h2>Plotting commands<a class="headerlink" href="#plotting-commands" title="Permalink to this headline">#</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
-  PyTreeDef = type(jax.tree_structure(None))
-usage: dinf.plot [-h] {demes,features,metrics,hist,hist2d,gan} ...
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot [-h] {demes,features,metrics,hist,hist2d,gan} ...
 
 Dinf plotting tools.
 
@@ -1160,9 +1144,7 @@ optional arguments:
 </div>
 <section id="dinf-plot-metrics">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">metrics</span></code><a class="headerlink" href="#dinf-plot-metrics" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
-  PyTreeDef = type(jax.tree_structure(None))
-usage: dinf.plot metrics [-h] [-v | -q] [-o output.pdf]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot metrics [-h] [-v | -q] [-o output.pdf]
                          discriminator.nn [discriminator.nn ...]
 
 Plot loss and accuracy of discriminator(s).
@@ -1198,9 +1180,7 @@ optional arguments:
 </section>
 <section id="dinf-plot-features">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">features</span></code><a class="headerlink" href="#dinf-plot-features" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
-  PyTreeDef = type(jax.tree_structure(None))
-usage: dinf.plot features [-h] [-v | -q] [-o output.pdf] [-S SEED] [--target]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot features [-h] [-v | -q] [-o output.pdf] [-S SEED] [--target]
                           model.py
 
 Plot feature matrices as heatmaps.
@@ -1236,9 +1216,7 @@ optional arguments:
 </section>
 <section id="dinf-plot-hist">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code><a class="headerlink" href="#dinf-plot-hist" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
-  PyTreeDef = type(jax.tree_structure(None))
-usage: dinf.plot hist [-h] [-v | -q] [-o output.pdf] [-n N | -p P] [-W] [-c]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist [-h] [-v | -q] [-o output.pdf] [-n N | -p P] [-W] [-c]
                       [-x X_PARAM] [--resample] [--kde] [-m model.py]
                       data.npz [data.npz ...]
 
@@ -1307,9 +1285,7 @@ optional arguments:
 </section>
 <section id="dinf-plot-hist2d">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist2d</span></code><a class="headerlink" href="#dinf-plot-hist2d" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
-  PyTreeDef = type(jax.tree_structure(None))
-usage: dinf.plot hist2d [-h] [-v | -q] [-o output.pdf] [-n N | -p P] [-W]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist2d [-h] [-v | -q] [-o output.pdf] [-n N | -p P] [-W]
                         [-x X_PARAM] [-y Y_PARAM] [-m model.py]
                         data.npz
 
@@ -1426,7 +1402,7 @@ optional arguments:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev52+g33e1bd8
+      dinf 0.2.1.dev54+g52b4e36
     </div>
 </p>
         </footer>

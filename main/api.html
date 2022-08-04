@@ -234,7 +234,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev52
+            dinf 0.2.1.dev54
             </div>
             
         </div>
@@ -816,12 +816,6 @@ title="Print to PDF"
 <tr class="row-odd"><td><p><a class="reference internal" href="#dinf.ts_individuals" title="dinf.ts_individuals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ts_individuals</span></code></a>(ts, /[, population])</p></td>
 <td><p>Get the individuals corresponding to the tree sequence's samples.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#dinf.sample_smooth" title="dinf.sample_smooth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_smooth</span></code></a>(*, thetas, probs, size, rng, ...)</p></td>
-<td><p>Sample from a smoothed set of weighted observations.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#dinf.geometric_median" title="dinf.geometric_median"><code class="xref py py-obj docutils literal notranslate"><span class="pre">geometric_median</span></code></a>(*, thetas[, probs])</p></td>
-<td><p>Get the multivariate median of a weighted sample.</p></td>
-</tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#dinf.get_samples_from_1kgp_metadata" title="dinf.get_samples_from_1kgp_metadata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_samples_from_1kgp_metadata</span></code></a>(filename, /, ...)</p></td>
 <td><p>Get sample IDs for 1000 Genomes Project populations.</p></td>
 </tr>
@@ -1100,9 +1094,28 @@ Python’s <a class="reference external" href="https://docs.python.org/3/glossar
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="dinf.Parameters.draw_prior">
-<span class="sig-name descname"><span class="pre">draw_prior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.draw_prior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.draw_prior" title="Permalink to this definition">#</a></dt>
-<dd><p>A random sample of parameter values.</p>
+<dt class="sig sig-object py" id="dinf.Parameters.bounds_contain">
+<span class="sig-name descname"><span class="pre">bounds_contain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.bounds_contain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.bounds_contain" title="Permalink to this definition">#</a></dt>
+<dd><p>Test if values are within in the parameter bounds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>thetas</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – A 2d numpy array, where thetas[j][k] is the j’th sample for the
+k’th parameter.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A 1d numpy array of boolean values, where ret[j] is True if the
+j’th sample is within the parameter space, and False otherwise.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dinf.Parameters.sample_prior">
+<span class="sig-name descname"><span class="pre">sample_prior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.sample_prior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.sample_prior" title="Permalink to this definition">#</a></dt>
+<dd><p>Get a random sample of parameter values from their prior distributions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -1121,17 +1134,27 @@ j’th draw for the k’th parameter.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="dinf.Parameters.bounds_contain">
-<span class="sig-name descname"><span class="pre">bounds_contain</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.bounds_contain"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.bounds_contain" title="Permalink to this definition">#</a></dt>
-<dd><p>Test if values are within in the parameter bounds.</p>
+<dt class="sig sig-object py" id="dinf.Parameters.sample_kde">
+<span class="sig-name descname"><span class="pre">sample_kde</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.sample_kde"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.sample_kde" title="Permalink to this definition">#</a></dt>
+<dd><p>Sample from a smoothed set of weighted observations.</p>
+<p>Samples are drawn from <code class="docutils literal notranslate"><span class="pre">thetas</span></code>, weighted by their probability.
+New points are drawn within a neighbourhood of the sampled thetas
+using a mulivariate normal whose covariance is calculated from the
+thetas. This is equivalent to sampling from a Gaussian KDE, but
+avoids doing an explicit density estimation.
+Values are sampled until they are within the parameter bounds.
+Scott’s rule of thumb is used for bandwidth selection.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>xs</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – A 2d numpy array, where xs[j][k] is the j’th sample for the
-k’th parameter.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>thetas</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – Parameter values to sample from.</p></li>
+<li><p><strong>probs</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – Discriminator predictions corresponding to the <code class="docutils literal notranslate"><span class="pre">thetas</span></code>.</p></li>
+<li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of samples to draw.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random generator.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A 1d numpy array of boolean values, where ret[j] is True if the
-j’th sample is within the parameter space, and False otherwise.</p>
+<dd class="field-even"><p>The sampled values.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
@@ -1140,13 +1163,42 @@ j’th sample is within the parameter space, and False otherwise.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="dinf.Parameters.sample_ball">
+<span class="sig-name descname"><span class="pre">sample_ball</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cov</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cov_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.sample_ball"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.sample_ball" title="Permalink to this definition">#</a></dt>
+<dd><p>Sample a ball around the given <code class="docutils literal notranslate"><span class="pre">theta</span></code> value.</p>
+<p>The size of the ball is controlled by the covariance matrix, <code class="docutils literal notranslate"><span class="pre">cov</span></code>,
+which is multiplied by <code class="docutils literal notranslate"><span class="pre">cov_factor</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Samples are not gauranteed to be within the parameter bounds.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – Parameter value around which the ball is centered.</p></li>
+<li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of samples to draw.</p></li>
+<li><p><strong>cov</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.10)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a><em>]</em>) – The covariance matrix.
+If not specified, a diagonal matrix will be used that has
+entry cov[j][j] set to the squared range of parameter j:
+(high - low)**2.</p></li>
+<li><p><strong>cov_factor</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a>) – Left-multiply the covariance matrix by this value.</p></li>
+<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random generator.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The sampled values.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="dinf.Parameters.transform">
-<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.transform" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.transform" title="Permalink to this definition">#</a></dt>
 <dd><p>Transform values bounded by [param.low, param.high] to [-inf, inf].</p>
 <p>See <a class="reference internal" href="#dinf.Parameters.itransform" title="dinf.Parameters.itransform"><code class="xref py py-meth docutils literal notranslate"><span class="pre">itransform()</span></code></a> for the inverse transformation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>xs</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be transformed.</p>
+<dd class="field-odd"><p><strong>thetas</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be transformed.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Transformed parameter values.</p>
@@ -1159,12 +1211,12 @@ j’th sample is within the parameter space, and False otherwise.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Parameters.itransform">
-<span class="sig-name descname"><span class="pre">itransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.itransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.itransform" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">itransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.itransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.itransform" title="Permalink to this definition">#</a></dt>
 <dd><p>Transform values on [-inf, inf] to be bounded by [param.low, param.high].</p>
 <p>Performs the inverse of <a class="reference internal" href="#dinf.Parameters.transform" title="dinf.Parameters.transform"><code class="xref py py-meth docutils literal notranslate"><span class="pre">transform()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>xs</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be transformed.</p>
+<dd class="field-odd"><p><strong>thetas</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be transformed.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Transformed parameter values.</p>
@@ -1177,11 +1229,11 @@ j’th sample is within the parameter space, and False otherwise.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Parameters.truncate">
-<span class="sig-name descname"><span class="pre">truncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.truncate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.truncate" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">truncate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.truncate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.truncate" title="Permalink to this definition">#</a></dt>
 <dd><p>Truncate values that are out of bounds.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>xs</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be truncated.</p>
+<dd class="field-odd"><p><strong>thetas</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be truncated.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Truncated parameter values.</p>
@@ -1194,7 +1246,7 @@ j’th sample is within the parameter space, and False otherwise.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Parameters.reflect">
-<span class="sig-name descname"><span class="pre">reflect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.reflect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.reflect" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">reflect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.reflect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.reflect" title="Permalink to this definition">#</a></dt>
 <dd><p>Reflect values that are out of bounds by the amount they are out.</p>
 <p>As reflecting does not gaurantee values will be within the bounds,
 values are first truncated to (2*low - high, 2*high - low),
@@ -1203,13 +1255,56 @@ a value of -11 will be truncated to -10, then reflected to attain
 a final value of 10.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>xs</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be reflected.</p>
+<dd class="field-odd"><p><strong>thetas</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – The values to be reflected.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>Reflected parameter values.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dinf.Parameters.geometric_median">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">geometric_median</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.geometric_median"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.geometric_median" title="Permalink to this definition">#</a></dt>
+<dd><p>Get the multivariate median of a weighted sample.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>thetas</strong> (<em>np.ndarray</em>) – Parameter values. thetas[j][k] is the value of the k’th parameter
+for the j’th multivariate sample.</p></li>
+<li><p><strong>probs</strong> (<em>np.ndarray</em><em> | </em><em>None</em>) – Discriminator predictions corresponding to the <code class="docutils literal notranslate"><span class="pre">thetas</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Median position in multivariate space.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="dinf.Parameters.top_n">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">top_n</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Parameters.top_n"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Parameters.top_n" title="Permalink to this definition">#</a></dt>
+<dd><p>Get the top <code class="docutils literal notranslate"><span class="pre">n</span></code> values of <code class="docutils literal notranslate"><span class="pre">thetas</span></code>, ranked by <code class="docutils literal notranslate"><span class="pre">probs</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>thetas</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – Parameter values. thetas[j][k] is the value of the k’th parameter
+for the j’th multivariate sample.</p></li>
+<li><p><strong>probs</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – Discriminator predictions corresponding to the <code class="docutils literal notranslate"><span class="pre">thetas</span></code>.</p></li>
+<li><p><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A 2-tuple of (top_thetas, top_probs).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.10)"><em>Tuple</em></a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a>]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1261,9 +1356,9 @@ truth in a simulation study.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="dinf.Param.draw_prior">
-<span class="sig-name descname"><span class="pre">draw_prior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Param.draw_prior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Param.draw_prior" title="Permalink to this definition">#</a></dt>
-<dd><p>A random sample from the <code class="docutils literal notranslate"><span class="pre">Uniform(low,</span> <span class="pre">high)</span></code> prior distribution.</p>
+<dt class="sig sig-object py" id="dinf.Param.sample_prior">
+<span class="sig-name descname"><span class="pre">sample_prior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/parameters.html#Param.sample_prior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Param.sample_prior" title="Permalink to this definition">#</a></dt>
+<dd><p>Get a random sample from the <code class="docutils literal notranslate"><span class="pre">Uniform(low,</span> <span class="pre">high)</span></code> prior distribution.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -2430,58 +2525,6 @@ If not specified, all sampled individuals will be returned.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="dinf.sample_smooth">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">sample_smooth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#sample_smooth"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.sample_smooth" title="Permalink to this definition">#</a></dt>
-<dd><p>Sample from a smoothed set of weighted observations.</p>
-<p>Samples are drawn from <code class="docutils literal notranslate"><span class="pre">thetas</span></code>, weighted by their probability.
-New points are drawn within a neighbourhood of the sampled thetas
-using a mulivariate normal whose covariance is calculated from the
-thetas. This is equivalent to sampling from a Gaussian KDE, but
-avoids doing an explicit density estimation.
-Values are sampled until they are within the parameter bounds.
-Scott’s rule of thumb is used for bandwidth selection.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>thetas</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – Parameter values to sample from.</p></li>
-<li><p><strong>probs</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – Discriminator predictions corresponding to the <code class="docutils literal notranslate"><span class="pre">thetas</span></code>.</p></li>
-<li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of samples to draw.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random generator.</p></li>
-<li><p><strong>parameters</strong> (<a class="reference internal" href="#dinf.Parameters" title="dinf.parameters.Parameters"><em>dinf.parameters.Parameters</em></a>) – The parameters against which the values’ bounds will be checked.
-See the <code class="docutils literal notranslate"><span class="pre">mode</span></code> argument.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The sampled values.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="dinf.geometric_median">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">geometric_median</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#geometric_median"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.geometric_median" title="Permalink to this definition">#</a></dt>
-<dd><p>Get the multivariate median of a weighted sample.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>thetas</strong> (<em>np.ndarray</em>) – Parameter values. thetas[j][k] is the value of the k’th parameter
-for the j’th multivariate sample.</p></li>
-<li><p><strong>probs</strong> (<em>np.ndarray</em><em> | </em><em>None</em>) – Discriminator predictions corresponding to the <code class="docutils literal notranslate"><span class="pre">thetas</span></code>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>Median position in multivariate space.</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>np.ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="dinf.get_samples_from_1kgp_metadata">
 <span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">get_samples_from_1kgp_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">populations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/vcf.html#get_samples_from_1kgp_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.get_samples_from_1kgp_metadata" title="Permalink to this definition">#</a></dt>
 <dd><p>Get sample IDs for 1000 Genomes Project populations.
@@ -2761,7 +2804,7 @@ If None, an axes will be created with <a class="reference external" href="https:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev52+g33e1bd8
+      dinf 0.2.1.dev54+g52b4e36
     </div>
 </p>
         </footer>

@@ -229,7 +229,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev52
+            dinf 0.2.1.dev54
             </div>
             
         </div>
@@ -370,7 +370,6 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">jax</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">numpy.lib.recfunctions</span> <span class="kn">import</span> <span class="n">structured_to_unstructured</span>
-<span class="kn">import</span> <span class="nn">scipy</span>
 
 <span class="c1"># We&#39;re compatible with the standard lib&#39;s ``multiprocessing`` module,</span>
 <span class="c1"># but ``multiprocess`` uses ``dill`` to pickle functions which provides</span>
@@ -415,7 +414,8 @@ title="Open an issue"
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A context manager to open a process pool with the &quot;spawn&quot; start method.</span>
 
-<span class="sd">    This is a wrapper for multiprocessing.Pool, but we don&#39;t use its</span>
+<span class="sd">    This is a wrapper for multiprocessing.Pool, that gracefully exits</span>
+<span class="sd">    when the user presses control-c to quit. We also don&#39;t use Pool&#39;s</span>
 <span class="sd">    context manager because it exits with pool.terminate() and we&#39;d rather</span>
 <span class="sd">    pool.close() and pool.join(). See</span>
 <span class="sd">    https://pytest-cov.readthedocs.io/en/latest/subprocess-support.html</span>
@@ -921,10 +921,12 @@ title="Open an issue"
     <span class="n">ss_thetas</span><span class="p">,</span> <span class="n">ss_discr</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">rng_train</span><span class="p">,</span> <span class="n">rng_test</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">sj</span><span class="p">)</span> <span class="k">for</span> <span class="n">sj</span> <span class="ow">in</span> <span class="n">ss_thetas</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
 
-    <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-        <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_train</span>
+    <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span>
+        <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_train</span>
     <span class="p">)</span>
-    <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_test</span><span class="p">)</span>
+    <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span>
+        <span class="n">size</span><span class="o">=</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_test</span>
+    <span class="p">)</span>
 
     <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span><span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span><span class="p">)</span>
 
@@ -1006,8 +1008,8 @@ title="Open an issue"
             <span class="p">)</span>
             <span class="n">thetas</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-                <span class="n">replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
+            <span class="n">thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
             <span class="p">)</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">_get_generator_dataset</span><span class="p">(</span>
                 <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">,</span>
@@ -1226,21 +1228,20 @@ title="Open an issue"
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s1">&#39;mcmc.npz&#39;</span><span class="si">}</span><span class="s2"> which used </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="si">}</span><span class="s2"> walkers.&quot;</span>
             <span class="p">)</span>
 
-        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sample_smooth</span><span class="p">(</span>
-            <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_kde</span><span class="p">(</span>
+            <span class="n">thetas</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
             <span class="n">probs</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
             <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span><span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span><span class="p">)</span>
 
         <span class="c1"># Starting point for the mcmc chain.</span>
-        <span class="n">start</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">walkers</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">walkers</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">)</span>
 
-        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-            <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span>
         <span class="p">)</span>
 
     <span class="c1"># If start values are linearly dependent, emcee complains loudly.</span>
@@ -1254,8 +1255,8 @@ title="Open an issue"
         <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">test_replicates</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="n">ss_val</span><span class="p">,</span> <span class="n">ss_test_thetas</span> <span class="o">=</span> <span class="n">ss_test</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-            <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-                <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_test_thetas</span><span class="p">)</span>
+            <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_test_thetas</span><span class="p">)</span>
             <span class="p">)</span>
             <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="n">_get_combined_dataset</span><span class="p">(</span>
                 <span class="n">target</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
@@ -1338,12 +1339,11 @@ title="Open an issue"
             <span class="c1"># The chain for next iteration starts at the end of this chain.</span>
             <span class="n">start</span> <span class="o">=</span> <span class="n">thetas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
-            <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sample_smooth</span><span class="p">(</span>
-                <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_kde</span><span class="p">(</span>
+                <span class="n">thetas</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
                 <span class="n">probs</span><span class="o">=</span><span class="n">probs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
                 <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
                 <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
-                <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="n">n_generator_calls</span> <span class="o">+=</span> <span class="n">walkers</span> <span class="o">*</span> <span class="n">steps</span> <span class="o">*</span> <span class="n">Dx_replicates</span>
@@ -1352,130 +1352,6 @@ title="Open an issue"
 
             <span class="k">if</span> <span class="p">(</span><span class="n">cb_iter</span> <span class="o">:=</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;iteration&quot;</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">cb_iter</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">))</span></div>
-
-
-<div class="viewcode-block" id="sample_smooth"><a class="viewcode-back" href="../../api.html#dinf.sample_smooth">[docs]</a><span class="k">def</span> <span class="nf">sample_smooth</span><span class="p">(</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
-    <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Sample from a smoothed set of weighted observations.</span>
-
-<span class="sd">    Samples are drawn from ``thetas``, weighted by their probability.</span>
-<span class="sd">    New points are drawn within a neighbourhood of the sampled thetas</span>
-<span class="sd">    using a mulivariate normal whose covariance is calculated from the</span>
-<span class="sd">    thetas. This is equivalent to sampling from a Gaussian KDE, but</span>
-<span class="sd">    avoids doing an explicit density estimation.</span>
-<span class="sd">    Values are sampled until they are within the parameter bounds.</span>
-<span class="sd">    Scott&#39;s rule of thumb is used for bandwidth selection.</span>
-
-<span class="sd">    :param thetas:</span>
-<span class="sd">        Parameter values to sample from.</span>
-<span class="sd">    :param probs:</span>
-<span class="sd">        Discriminator predictions corresponding to the ``thetas``.</span>
-<span class="sd">    :param size:</span>
-<span class="sd">        Number of samples to draw.</span>
-<span class="sd">    :param numpy.random.Generator rng:</span>
-<span class="sd">        Numpy random generator.</span>
-<span class="sd">    :param parameters:</span>
-<span class="sd">        The parameters against which the values&#39; bounds will be checked.</span>
-<span class="sd">        See the ``mode`` argument.</span>
-<span class="sd">    :return:</span>
-<span class="sd">        The sampled values.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Calculate bandwidth.</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span>
-    <span class="n">neff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">bw_scott</span> <span class="o">=</span> <span class="n">neff</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">4</span><span class="p">))</span>  <span class="c1"># bandwidth multiplier</span>
-    <span class="n">cov</span> <span class="o">=</span> <span class="n">bw_scott</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">rowvar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">aweights</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cov</span><span class="p">))</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">cov</span><span class="p">))</span>
-
-    <span class="n">sample</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">size</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
-    <span class="n">idx</span><span class="p">:</span> <span class="nb">slice</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
-    <span class="n">size_needed</span> <span class="o">=</span> <span class="n">size</span>
-    <span class="n">draws</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">probs</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
-    <span class="k">while</span> <span class="n">size_needed</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">draws</span> <span class="o">+=</span> <span class="n">size_needed</span>
-        <span class="c1"># Weighted sampling of points from the thetas.</span>
-        <span class="n">mean</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size_needed</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
-        <span class="c1"># Disperse the sample with an MVN.</span>
-        <span class="n">disp</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">d</span><span class="p">),</span> <span class="n">cov</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size_needed</span><span class="p">)</span>
-        <span class="n">sample</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">disp</span>
-
-        <span class="c1"># Find indices of samples that are out of bounds.</span>
-        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="o">~</span><span class="n">parameters</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="n">sample</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
-
-        <span class="n">size_needed</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">draws</span> <span class="o">&gt;</span> <span class="mi">1000</span> <span class="o">*</span> <span class="n">size</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Failed to get </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2"> samples from KDE that are within the &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;parameter bounds after </span><span class="si">{</span><span class="n">draws</span><span class="si">}</span><span class="s2"> draws. &quot;</span>
-            <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">draws</span> <span class="o">&gt;</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">size</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="s2">&quot;Excessive KDE samples out of parameter bounds: </span><span class="si">%d</span><span class="s2"> of </span><span class="si">%d</span><span class="s2"> draws&quot;</span><span class="p">,</span>
-            <span class="n">draws</span> <span class="o">-</span> <span class="n">size</span><span class="p">,</span>
-            <span class="n">draws</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">sample</span></div>
-
-
-<div class="viewcode-block" id="geometric_median"><a class="viewcode-back" href="../../api.html#dinf.geometric_median">[docs]</a><span class="k">def</span> <span class="nf">geometric_median</span><span class="p">(</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Get the multivariate median of a weighted sample.</span>
-
-<span class="sd">    :param thetas:</span>
-<span class="sd">        Parameter values. thetas[j][k] is the value of the k&#39;th parameter</span>
-<span class="sd">        for the j&#39;th multivariate sample.</span>
-<span class="sd">    :param probs:</span>
-<span class="sd">        Discriminator predictions corresponding to the ``thetas``.</span>
-<span class="sd">    :return:</span>
-<span class="sd">        Median position in multivariate space.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="c1"># Normalize by mean/stddev so each parameter is treated equally</span>
-    <span class="c1"># in the objective function.</span>
-    <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">stddev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">thetas</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">stddev</span>
-
-    <span class="k">def</span> <span class="nf">objective</span><span class="p">(</span><span class="n">u</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Minimise the sum of distances from u to x.&quot;&quot;&quot;</span>
-        <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">u</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="c1"># Minimise the mean distance rather than the sum, to avoid extremely</span>
-        <span class="c1"># large values that trigger the notorious scipy error:</span>
-        <span class="c1">#   &quot;Desired error not necessarily achieved due to precision loss.&quot;</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
-
-    <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">opt</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">optimize</span><span class="o">.</span><span class="n">minimize</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">x0</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">opt</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to find geometric median: </span><span class="si">{</span><span class="n">opt</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">stddev</span> <span class="o">*</span> <span class="n">opt</span><span class="o">.</span><span class="n">x</span></div>
-
-
-<span class="k">def</span> <span class="nf">filter_top_n</span><span class="p">(</span>
-    <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-    <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-    <span class="k">assert</span> <span class="n">n</span> <span class="o">&gt;=</span> <span class="mi">1</span>
-    <span class="n">k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span>
-    <span class="k">assert</span> <span class="n">k</span> <span class="o">&gt;=</span> <span class="mi">1</span>
-    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argpartition</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">k</span><span class="p">)[</span><span class="n">k</span><span class="p">:]</span>
-    <span class="k">return</span> <span class="n">thetas</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">probs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
 
 
 <div class="viewcode-block" id="abc_gan"><a class="viewcode-back" href="../../api.html#dinf.abc_gan">[docs]</a><span class="k">def</span> <span class="nf">abc_gan</span><span class="p">(</span>
@@ -1585,27 +1461,27 @@ title="Open an issue"
         <span class="p">)</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
         <span class="k">if</span> <span class="n">top_n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">thetas</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">filter_top_n</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">top_n</span><span class="p">)</span>
-        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sample_smooth</span><span class="p">(</span>
-            <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
+            <span class="n">thetas</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">top_n</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">top_n</span><span class="p">)</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_kde</span><span class="p">(</span>
+            <span class="n">thetas</span><span class="p">,</span>
             <span class="n">probs</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
             <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">sample_smooth</span><span class="p">(</span>
-            <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
+        <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_kde</span><span class="p">(</span>
+            <span class="n">thetas</span><span class="p">,</span>
             <span class="n">probs</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
             <span class="n">size</span><span class="o">=</span><span class="n">proposal_replicates</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span><span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span><span class="p">)</span>
-        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-            <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span>
         <span class="p">)</span>
-        <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">proposal_replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">)</span>
+        <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">proposal_replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span>
+        <span class="p">)</span>
 
     <span class="n">n_target_calls</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="mi">0</span>
@@ -1615,8 +1491,8 @@ title="Open an issue"
         <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">test_replicates</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="n">ss_val</span><span class="p">,</span> <span class="n">ss_test_thetas</span> <span class="o">=</span> <span class="n">ss_test</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-            <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-                <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_test_thetas</span><span class="p">)</span>
+            <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_test_thetas</span><span class="p">)</span>
             <span class="p">)</span>
             <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="n">_get_combined_dataset</span><span class="p">(</span>
                 <span class="n">target</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
@@ -1695,20 +1571,18 @@ title="Open an issue"
             <span class="c1"># Get the posterior sample for the next iteration.</span>
             <span class="n">thetas</span> <span class="o">=</span> <span class="n">proposal_thetas</span>
             <span class="k">if</span> <span class="n">top_n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">thetas</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">filter_top_n</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">top_n</span><span class="p">)</span>
-            <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">sample_smooth</span><span class="p">(</span>
-                <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
+                <span class="n">thetas</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">top_n</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">top_n</span><span class="p">)</span>
+            <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_kde</span><span class="p">(</span>
+                <span class="n">thetas</span><span class="p">,</span>
                 <span class="n">probs</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
                 <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
                 <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
-                <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">sample_smooth</span><span class="p">(</span>
-                <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
+            <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_kde</span><span class="p">(</span>
+                <span class="n">thetas</span><span class="p">,</span>
                 <span class="n">probs</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
                 <span class="n">size</span><span class="o">=</span><span class="n">proposal_replicates</span><span class="p">,</span>
                 <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
-                <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Target called </span><span class="si">%s</span><span class="s2"> times.&quot;</span><span class="p">,</span> <span class="n">n_target_calls</span><span class="p">)</span>
@@ -1746,7 +1620,7 @@ title="Open an issue"
     <span class="n">theta_best</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_pretraining_iterations</span><span class="p">):</span>
-        <span class="n">theta</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">theta</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
         <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 
@@ -1802,8 +1676,10 @@ title="Open an issue"
     <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span><span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_pretraining_iterations</span><span class="p">):</span>
-        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
-        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+        <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
+        <span class="p">)</span>
+        <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
 
         <span class="n">metrics</span> <span class="o">=</span> <span class="n">_train_discriminator</span><span class="p">(</span>
             <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
@@ -1820,7 +1696,7 @@ title="Open an issue"
         <span class="k">if</span> <span class="n">acc</span> <span class="o">&gt;</span> <span class="mf">0.9</span><span class="p">:</span>
             <span class="k">break</span>
 
-    <span class="n">thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">training_replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+    <span class="n">thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
     <span class="n">lp</span> <span class="o">=</span> <span class="n">_log_prob</span><span class="p">(</span>
         <span class="n">thetas</span><span class="p">,</span>
         <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
@@ -2197,7 +2073,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev52+g33e1bd8
+      dinf 0.2.1.dev54+g52b4e36
     </div>
 </p>
         </footer>

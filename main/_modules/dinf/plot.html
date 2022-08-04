@@ -229,7 +229,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev52
+            dinf 0.2.1.dev54
             </div>
             
         </div>
@@ -371,6 +371,7 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">scipy.stats</span>
 
 <span class="kn">from</span> <span class="nn">.cli</span> <span class="kn">import</span> <span class="n">ADRDFormatter</span><span class="p">,</span> <span class="n">_DINF_MODEL_HELP</span><span class="p">,</span> <span class="n">set_loglevel</span>
+<span class="kn">from</span> <span class="nn">.misc</span> <span class="kn">import</span> <span class="n">quantile</span>
 <span class="kn">import</span> <span class="nn">dinf</span>
 
 
@@ -728,29 +729,6 @@ title="Open an issue"
     <span class="k">return</span> <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="p">,</span> <span class="n">ax</span></div>
 
 
-<span class="k">def</span> <span class="nf">_quantile</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Calculate quantiles of an array.</span>
-
-<span class="sd">    :param x:</span>
-<span class="sd">        Array values.</span>
-<span class="sd">    :param q:</span>
-<span class="sd">        Quantiles to calculate.</span>
-<span class="sd">    :param weights:</span>
-<span class="sd">        Weights for the array values in ``x``.</span>
-<span class="sd">    :return:</span>
-<span class="sd">        The ``q``&#39;th quantiles of ``x``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
-    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
-    <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
-    <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
-    <span class="n">wxq</span> <span class="o">=</span> <span class="p">(</span><span class="n">S</span> <span class="o">-</span> <span class="n">weights</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">S</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">wxq</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-
-
 <span class="k">def</span> <span class="nf">_num2str</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Reduce precision for large numbers.&quot;&quot;&quot;</span>
     <span class="c1"># XXX: is this a bad idea?</span>
@@ -805,7 +783,7 @@ title="Open an issue"
     <span class="k">if</span> <span class="n">ci</span><span class="p">:</span>
         <span class="c1"># Get median and 95% credible interval.</span>
         <span class="n">q</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.025</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.975</span><span class="p">]</span>
-        <span class="n">xq</span> <span class="o">=</span> <span class="n">_quantile</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">kw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;weights&quot;</span><span class="p">))</span>
+        <span class="n">xq</span> <span class="o">=</span> <span class="n">quantile</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="n">q</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">kw</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;weights&quot;</span><span class="p">))</span>
 
         <span class="c1"># Show interval as a horizontal line with whiskers.</span>
         <span class="c1"># It would be easier to use hlines() and vlines() here,</span>
@@ -1091,7 +1069,7 @@ title="Open an issue"
             <span class="n">ss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
             <span class="n">ss_generator</span><span class="p">,</span> <span class="n">ss_thetas</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
             <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
-            <span class="n">thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+            <span class="n">thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
             <span class="n">mats</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">((</span><span class="n">ss_generator</span><span class="p">,</span> <span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mats</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
@@ -1415,12 +1393,11 @@ title="Open an issue"
                 <span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
                 <span class="n">probs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]</span>
                 <span class="n">thetas</span> <span class="o">=</span> <span class="n">structured_to_unstructured</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">names</span><span class="p">])</span>
-                <span class="n">X</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">sample_smooth</span><span class="p">(</span>
-                    <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
+                <span class="n">X</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_kde</span><span class="p">(</span>
+                    <span class="n">thetas</span><span class="p">,</span>
                     <span class="n">probs</span><span class="o">=</span><span class="n">probs</span><span class="p">,</span>
                     <span class="n">size</span><span class="o">=</span><span class="mi">1_000_000</span><span class="p">,</span>
                     <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
-                    <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">X_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">X</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">)}</span>
                 <span class="n">datasets_resampled</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X_dict</span><span class="p">)</span>
@@ -1636,7 +1613,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev52+g33e1bd8
+      dinf 0.2.1.dev54+g52b4e36
     </div>
 </p>
         </footer>

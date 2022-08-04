@@ -229,7 +229,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev52
+            dinf 0.2.1.dev54
             </div>
             
         </div>
@@ -359,16 +359,21 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">collections.abc</span>
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">dataclasses</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
-<span class="k">def</span> <span class="nf">logit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+
+<span class="k">def</span> <span class="nf">_logit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
     <span class="c1"># Warning: divide by zero at x=0.</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">))</span>
 
 
-<span class="k">def</span> <span class="nf">expit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_expit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
     <span class="c1"># Warning: overflow when x is negative and very large</span>
     <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="p">))</span>
 
@@ -409,9 +414,9 @@ title="Open an issue"
                 <span class="sa">f</span><span class="s2">&quot;truth=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">truth</span><span class="si">}</span><span class="s2"> not in bounds [</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span><span class="si">}</span><span class="s2">]&quot;</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="Param.draw_prior"><a class="viewcode-back" href="../../api.html#dinf.Param.draw_prior">[docs]</a>    <span class="k">def</span> <span class="nf">draw_prior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<div class="viewcode-block" id="Param.sample_prior"><a class="viewcode-back" href="../../api.html#dinf.Param.sample_prior">[docs]</a>    <span class="k">def</span> <span class="nf">sample_prior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        A random sample from the ``Uniform(low, high)`` prior distribution.</span>
+<span class="sd">        Get a random sample from the ``Uniform(low, high)`` prior distribution.</span>
 
 <span class="sd">        :param size:</span>
 <span class="sd">            The sample size.</span>
@@ -449,7 +454,7 @@ title="Open an issue"
 <span class="sd">            Transformed parameter values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">logit</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">))</span></div>
+        <span class="k">return</span> <span class="n">_logit</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="Param.itransform"><a class="viewcode-back" href="../../api.html#dinf.Param.itransform">[docs]</a>    <span class="nd">@np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">itransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -464,7 +469,7 @@ title="Open an issue"
 <span class="sd">            Transformed parameter values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span> <span class="o">+</span> <span class="n">expit</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span> <span class="o">+</span> <span class="n">_expit</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">low</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Param.truncate"><a class="viewcode-back" href="../../api.html#dinf.Param.truncate">[docs]</a>    <span class="k">def</span> <span class="nf">truncate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -565,9 +570,28 @@ title="Open an issue"
     <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Parameters.draw_prior"><a class="viewcode-back" href="../../api.html#dinf.Parameters.draw_prior">[docs]</a>    <span class="k">def</span> <span class="nf">draw_prior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<div class="viewcode-block" id="Parameters.bounds_contain"><a class="viewcode-back" href="../../api.html#dinf.Parameters.bounds_contain">[docs]</a>    <span class="k">def</span> <span class="nf">bounds_contain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        A random sample of parameter values.</span>
+<span class="sd">        Test if values are within in the parameter bounds.</span>
+
+<span class="sd">        :param thetas:</span>
+<span class="sd">            A 2d numpy array, where thetas[j][k] is the j&#39;th sample for the</span>
+<span class="sd">            k&#39;th parameter.</span>
+<span class="sd">        :return:</span>
+<span class="sd">            A 1d numpy array of boolean values, where ret[j] is True if the</span>
+<span class="sd">            j&#39;th sample is within the parameter space, and False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())],</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="Parameters.sample_prior"><a class="viewcode-back" href="../../api.html#dinf.Parameters.sample_prior">[docs]</a>    <span class="k">def</span> <span class="nf">sample_prior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a random sample of parameter values from their prior distributions.</span>
 
 <span class="sd">        :param size:</span>
 <span class="sd">            The sample size.</span>
@@ -578,86 +602,189 @@ title="Open an issue"
 <span class="sd">            j&#39;th draw for the k&#39;th parameter.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">rng</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">sample_prior</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()]),</span>
             <span class="mi">0</span><span class="p">,</span>
             <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Parameters.bounds_contain"><a class="viewcode-back" href="../../api.html#dinf.Parameters.bounds_contain">[docs]</a>    <span class="k">def</span> <span class="nf">bounds_contain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<div class="viewcode-block" id="Parameters.sample_kde"><a class="viewcode-back" href="../../api.html#dinf.Parameters.sample_kde">[docs]</a>    <span class="k">def</span> <span class="nf">sample_kde</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="o">/</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Test if values are within in the parameter bounds.</span>
+<span class="sd">        Sample from a smoothed set of weighted observations.</span>
 
-<span class="sd">        :param xs:</span>
-<span class="sd">            A 2d numpy array, where xs[j][k] is the j&#39;th sample for the</span>
-<span class="sd">            k&#39;th parameter.</span>
+<span class="sd">        Samples are drawn from ``thetas``, weighted by their probability.</span>
+<span class="sd">        New points are drawn within a neighbourhood of the sampled thetas</span>
+<span class="sd">        using a mulivariate normal whose covariance is calculated from the</span>
+<span class="sd">        thetas. This is equivalent to sampling from a Gaussian KDE, but</span>
+<span class="sd">        avoids doing an explicit density estimation.</span>
+<span class="sd">        Values are sampled until they are within the parameter bounds.</span>
+<span class="sd">        Scott&#39;s rule of thumb is used for bandwidth selection.</span>
+
+<span class="sd">        :param thetas:</span>
+<span class="sd">            Parameter values to sample from.</span>
+<span class="sd">        :param probs:</span>
+<span class="sd">            Discriminator predictions corresponding to the ``thetas``.</span>
+<span class="sd">        :param size:</span>
+<span class="sd">            Number of samples to draw.</span>
+<span class="sd">        :param numpy.random.Generator rng:</span>
+<span class="sd">            Numpy random generator.</span>
 <span class="sd">        :return:</span>
-<span class="sd">            A 1d numpy array of boolean values, where ret[j] is True if the</span>
-<span class="sd">            j&#39;th sample is within the parameter space, and False otherwise.</span>
+<span class="sd">            The sampled values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())],</span>
-            <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="n">ret</span></div>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">probs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">probs</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Parameters.transform"><a class="viewcode-back" href="../../api.html#dinf.Parameters.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="c1"># Calculate bandwidth.</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">neff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">bw_scott</span> <span class="o">=</span> <span class="n">neff</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">4</span><span class="p">))</span>  <span class="c1"># bandwidth multiplier</span>
+        <span class="n">cov</span> <span class="o">=</span> <span class="n">bw_scott</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">thetas</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">aweights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cov</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">cov</span><span class="p">))</span>
+
+        <span class="n">sample</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">size</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+        <span class="n">idx</span><span class="p">:</span> <span class="nb">slice</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">size_remaining</span> <span class="o">=</span> <span class="n">size</span>
+        <span class="n">draws</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">size_remaining</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">draws</span> <span class="o">+=</span> <span class="n">size_remaining</span>
+            <span class="c1"># Weighted sampling of points from the thetas.</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size_remaining</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+            <span class="c1"># Disperse the sample with an MVN.</span>
+            <span class="n">disp</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">d</span><span class="p">),</span> <span class="n">cov</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size_remaining</span><span class="p">)</span>
+            <span class="n">sample</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">disp</span>
+
+            <span class="c1"># Get indices of samples that are out of bounds.</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="n">sample</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">size_remaining</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">draws</span> <span class="o">&gt;</span> <span class="mi">1000</span> <span class="o">*</span> <span class="n">size</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Failed to get </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2"> samples from KDE that are within the &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;parameter bounds after </span><span class="si">{</span><span class="n">draws</span><span class="si">}</span><span class="s2"> draws. &quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">draws</span> <span class="o">&gt;</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">size</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Excessive KDE samples out of parameter bounds: </span><span class="si">%d</span><span class="s2"> of </span><span class="si">%d</span><span class="s2"> draws&quot;</span><span class="p">,</span>
+                <span class="n">draws</span> <span class="o">-</span> <span class="n">size</span><span class="p">,</span>
+                <span class="n">draws</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">sample</span></div>
+
+<div class="viewcode-block" id="Parameters.sample_ball"><a class="viewcode-back" href="../../api.html#dinf.Parameters.sample_ball">[docs]</a>    <span class="k">def</span> <span class="nf">sample_ball</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">theta</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="o">/</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">cov</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">cov_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sample a ball around the given ``theta`` value.</span>
+
+<span class="sd">        The size of the ball is controlled by the covariance matrix, ``cov``,</span>
+<span class="sd">        which is multiplied by ``cov_factor``.</span>
+
+<span class="sd">        .. warning::</span>
+<span class="sd">            Samples are not gauranteed to be within the parameter bounds.</span>
+
+<span class="sd">        :param theta:</span>
+<span class="sd">            Parameter value around which the ball is centered.</span>
+<span class="sd">        :param size:</span>
+<span class="sd">            Number of samples to draw.</span>
+<span class="sd">        :param cov:</span>
+<span class="sd">            The covariance matrix.</span>
+<span class="sd">            If not specified, a diagonal matrix will be used that has</span>
+<span class="sd">            entry cov[j][j] set to the squared range of parameter j:</span>
+<span class="sd">            (high - low)**2.</span>
+<span class="sd">        :param cov_factor:</span>
+<span class="sd">            Left-multiply the covariance matrix by this value.</span>
+<span class="sd">        :param numpy.random.Generator rng:</span>
+<span class="sd">            Numpy random generator.</span>
+<span class="sd">        :return:</span>
+<span class="sd">            The sampled values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cov</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">([(</span><span class="n">p</span><span class="o">.</span><span class="n">high</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">low</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+        <span class="n">cov</span> <span class="o">=</span> <span class="n">cov_factor</span> <span class="o">*</span> <span class="n">cov</span>
+        <span class="k">return</span> <span class="n">rng</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">cov</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parameters.transform"><a class="viewcode-back" href="../../api.html#dinf.Parameters.transform">[docs]</a>    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform values bounded by [param.low, param.high] to [-inf, inf].</span>
 
 <span class="sd">        See :meth:`.itransform` for the inverse transformation.</span>
 
-<span class="sd">        :param xs:</span>
+<span class="sd">        :param thetas:</span>
 <span class="sd">            The values to be transformed.</span>
 <span class="sd">        :return:</span>
 <span class="sd">            Transformed parameter values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())]</span>
+            <span class="p">),</span>
             <span class="mi">0</span><span class="p">,</span>
             <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Parameters.itransform"><a class="viewcode-back" href="../../api.html#dinf.Parameters.itransform">[docs]</a>    <span class="k">def</span> <span class="nf">itransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<div class="viewcode-block" id="Parameters.itransform"><a class="viewcode-back" href="../../api.html#dinf.Parameters.itransform">[docs]</a>    <span class="k">def</span> <span class="nf">itransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Transform values on [-inf, inf] to be bounded by [param.low, param.high].</span>
 
 <span class="sd">        Performs the inverse of :meth:`.transform`.</span>
 
-<span class="sd">        :param xs:</span>
+<span class="sd">        :param thetas:</span>
 <span class="sd">            The values to be transformed.</span>
 <span class="sd">        :return:</span>
 <span class="sd">            Transformed parameter values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">itransform</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">itransform</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())]</span>
+            <span class="p">),</span>
             <span class="mi">0</span><span class="p">,</span>
             <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Parameters.truncate"><a class="viewcode-back" href="../../api.html#dinf.Parameters.truncate">[docs]</a>    <span class="k">def</span> <span class="nf">truncate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<div class="viewcode-block" id="Parameters.truncate"><a class="viewcode-back" href="../../api.html#dinf.Parameters.truncate">[docs]</a>    <span class="k">def</span> <span class="nf">truncate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Truncate values that are out of bounds.</span>
 
-<span class="sd">        :param xs:</span>
+<span class="sd">        :param thetas:</span>
 <span class="sd">            The values to be truncated.</span>
 <span class="sd">        :return:</span>
 <span class="sd">            Truncated parameter values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">truncate</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">truncate</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())]),</span>
             <span class="mi">0</span><span class="p">,</span>
             <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Parameters.reflect"><a class="viewcode-back" href="../../api.html#dinf.Parameters.reflect">[docs]</a>    <span class="k">def</span> <span class="nf">reflect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<div class="viewcode-block" id="Parameters.reflect"><a class="viewcode-back" href="../../api.html#dinf.Parameters.reflect">[docs]</a>    <span class="k">def</span> <span class="nf">reflect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reflect values that are out of bounds by the amount they are out.</span>
 
@@ -667,18 +794,82 @@ title="Open an issue"
 <span class="sd">        a value of -11 will be truncated to -10, then reflected to attain</span>
 <span class="sd">        a final value of 10.</span>
 
-<span class="sd">        :param xs:</span>
+<span class="sd">        :param thetas:</span>
 <span class="sd">            The values to be reflected.</span>
 <span class="sd">        :return:</span>
 <span class="sd">            Reflected parameter values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">reflect</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">reflect</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="p">())]),</span>
             <span class="mi">0</span><span class="p">,</span>
             <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="p">)</span></div></div>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parameters.geometric_median"><a class="viewcode-back" href="../../api.html#dinf.Parameters.geometric_median">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">geometric_median</span><span class="p">(</span>
+        <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="o">/</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the multivariate median of a weighted sample.</span>
+
+<span class="sd">        :param thetas:</span>
+<span class="sd">            Parameter values. thetas[j][k] is the value of the k&#39;th parameter</span>
+<span class="sd">            for the j&#39;th multivariate sample.</span>
+<span class="sd">        :param probs:</span>
+<span class="sd">            Discriminator predictions corresponding to the ``thetas``.</span>
+<span class="sd">        :return:</span>
+<span class="sd">            Median position in multivariate space.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Normalize by mean/stddev so each parameter is treated equally</span>
+        <span class="c1"># in the objective function.</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">stddev</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="p">(</span><span class="n">thetas</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">stddev</span>
+
+        <span class="k">def</span> <span class="nf">objective</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Minimise the sum of distances from v to x.&quot;&quot;&quot;</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">v</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># Minimise the mean distance rather than the sum, to avoid extremely</span>
+            <span class="c1"># large values that trigger the notorious scipy error:</span>
+            <span class="c1">#   &quot;Desired error not necessarily achieved due to precision loss.&quot;</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
+
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">optimize</span><span class="o">.</span><span class="n">minimize</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">x0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">opt</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to find geometric median: </span><span class="si">{</span><span class="n">opt</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">stddev</span> <span class="o">*</span> <span class="n">opt</span><span class="o">.</span><span class="n">x</span></div>
+
+<div class="viewcode-block" id="Parameters.top_n"><a class="viewcode-back" href="../../api.html#dinf.Parameters.top_n">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">top_n</span><span class="p">(</span>
+        <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="o">/</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the top ``n`` values of ``thetas``, ranked by ``probs``.</span>
+
+<span class="sd">        :param thetas:</span>
+<span class="sd">            Parameter values. thetas[j][k] is the value of the k&#39;th parameter</span>
+<span class="sd">            for the j&#39;th multivariate sample.</span>
+<span class="sd">        :param probs:</span>
+<span class="sd">            Discriminator predictions corresponding to the ``thetas``.</span>
+<span class="sd">        :return:</span>
+<span class="sd">            A 2-tuple of (top_thetas, top_probs).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">n</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span>
+        <span class="k">assert</span> <span class="n">k</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argpartition</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">k</span><span class="p">)[</span><span class="n">k</span><span class="p">:]</span>
+        <span class="k">return</span> <span class="n">thetas</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">probs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span></div></div>
 </pre></div>
 
               </div>
@@ -699,7 +890,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev52+g33e1bd8
+      dinf 0.2.1.dev54+g52b4e36
     </div>
 </p>
         </footer>
