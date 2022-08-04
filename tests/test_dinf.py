@@ -41,7 +41,7 @@ def check_npz(
 @pytest.mark.usefixtures("tmp_path")
 def test_abc_gan(tmp_path, top_n):
     dinf_model = get_dinf_model()
-    working_directory = tmp_path / "work_dir"
+    output_folder = tmp_path / "work_dir"
     dinf.dinf.abc_gan(
         dinf_model=dinf_model,
         iterations=2,
@@ -50,22 +50,22 @@ def test_abc_gan(tmp_path, top_n):
         proposal_replicates=3,
         top_n=top_n,
         epochs=1,
-        working_directory=working_directory,
+        output_folder=output_folder,
         parallelism=2,
         seed=1,
     )
-    assert working_directory.exists()
+    assert output_folder.exists()
     for i in range(2):
-        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
+        check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            working_directory / f"{i}" / "abc.npz",
+            output_folder / f"{i}" / "abc.npz",
             chains=1,
             draws=3,
             parameters=dinf_model.parameters,
         )
 
     # resume
-    os.chdir(working_directory)
+    os.chdir(output_folder)
     dinf.dinf.abc_gan(
         dinf_model=dinf_model,
         iterations=1,
@@ -77,9 +77,9 @@ def test_abc_gan(tmp_path, top_n):
         seed=2,
     )
     for i in range(3):
-        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
+        check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            working_directory / f"{i}" / "abc.npz",
+            output_folder / f"{i}" / "abc.npz",
             chains=1,
             draws=3,
             parameters=dinf_model.parameters,
@@ -94,15 +94,15 @@ def test_abc_gan(tmp_path, top_n):
             proposal_replicates=3,
             top_n=4,
             epochs=1,
-            working_directory=working_directory,
+            output_folder=output_folder,
             parallelism=2,
             seed=1,
         )
 
-    backup = working_directory / "bak"
+    backup = output_folder / "bak"
     for file in [
-        working_directory / f"{i}" / "discriminator.nn",
-        working_directory / f"{i}" / "abc.npz",
+        output_folder / f"{i}" / "discriminator.nn",
+        output_folder / f"{i}" / "abc.npz",
     ]:
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
@@ -113,7 +113,7 @@ def test_abc_gan(tmp_path, top_n):
                 test_replicates=4,
                 proposal_replicates=3,
                 epochs=1,
-                working_directory=working_directory,
+                output_folder=output_folder,
                 parallelism=2,
                 seed=1,
             )
@@ -123,7 +123,7 @@ def test_abc_gan(tmp_path, top_n):
 @pytest.mark.usefixtures("tmp_path")
 def test_mcmc_gan(tmp_path):
     dinf_model = get_dinf_model()
-    working_directory = tmp_path / "workdir"
+    output_folder = tmp_path / "workdir"
     dinf.mcmc_gan(
         dinf_model=dinf_model,
         iterations=2,
@@ -133,22 +133,22 @@ def test_mcmc_gan(tmp_path):
         walkers=6,
         steps=1,
         Dx_replicates=2,
-        working_directory=working_directory,
+        output_folder=output_folder,
         parallelism=2,
         seed=1,
     )
-    assert working_directory.exists()
+    assert output_folder.exists()
     for i in range(2):
-        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
+        check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            working_directory / f"{i}" / "mcmc.npz",
+            output_folder / f"{i}" / "mcmc.npz",
             chains=6,
             draws=1,
             parameters=dinf_model.parameters,
         )
 
     # resume
-    os.chdir(working_directory)
+    os.chdir(output_folder)
     dinf.mcmc_gan(
         dinf_model=dinf_model,
         iterations=1,
@@ -161,9 +161,9 @@ def test_mcmc_gan(tmp_path):
         seed=2,
     )
     for i in range(3):
-        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
+        check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            working_directory / f"{i}" / "mcmc.npz",
+            output_folder / f"{i}" / "mcmc.npz",
             chains=6,
             draws=1,
             parameters=dinf_model.parameters,
@@ -179,15 +179,15 @@ def test_mcmc_gan(tmp_path):
             walkers=8,
             steps=1,
             Dx_replicates=2,
-            working_directory=working_directory,
+            output_folder=output_folder,
             parallelism=2,
             seed=1,
         )
 
-    backup = working_directory / "bak"
+    backup = output_folder / "bak"
     for file in [
-        working_directory / f"{i}" / "discriminator.nn",
-        working_directory / f"{i}" / "mcmc.npz",
+        output_folder / f"{i}" / "discriminator.nn",
+        output_folder / f"{i}" / "mcmc.npz",
     ]:
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
@@ -200,7 +200,7 @@ def test_mcmc_gan(tmp_path):
                 walkers=6,
                 steps=1,
                 Dx_replicates=2,
-                working_directory=working_directory,
+                output_folder=output_folder,
                 parallelism=2,
                 seed=1,
             )
@@ -212,7 +212,7 @@ def test_pg_gan(tmp_path):
     dinf_model = get_dinf_model()
     num_params = len(dinf_model.parameters)
     num_proposals = 2
-    working_directory = tmp_path / "workdir"
+    output_folder = tmp_path / "workdir"
     dinf.pg_gan(
         dinf_model=dinf_model,
         iterations=2,
@@ -222,22 +222,22 @@ def test_pg_gan(tmp_path):
         Dx_replicates=2,
         num_proposals=num_proposals,
         max_pretraining_iterations=1,
-        working_directory=working_directory,
+        output_folder=output_folder,
         parallelism=2,
         seed=1,
     )
-    assert working_directory.exists()
+    assert output_folder.exists()
     for i in range(2):
-        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
+        check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            working_directory / f"{i}" / "pg-gan-proposals.npz",
+            output_folder / f"{i}" / "pg-gan-proposals.npz",
             chains=1,
             draws=num_params * num_proposals + 1,
             parameters=dinf_model.parameters,
         )
 
     # resume
-    os.chdir(working_directory)
+    os.chdir(output_folder)
     dinf.pg_gan(
         dinf_model=dinf_model,
         iterations=1,
@@ -249,18 +249,18 @@ def test_pg_gan(tmp_path):
         seed=2,
     )
     for i in range(3):
-        check_discriminator(working_directory / f"{i}" / "discriminator.nn", dinf_model)
+        check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            working_directory / f"{i}" / "pg-gan-proposals.npz",
+            output_folder / f"{i}" / "pg-gan-proposals.npz",
             chains=1,
             draws=num_params * num_proposals + 1,
             parameters=dinf_model.parameters,
         )
 
-    backup = working_directory / "bak"
+    backup = output_folder / "bak"
     for file in [
-        working_directory / f"{i}" / "discriminator.nn",
-        working_directory / f"{i}" / "pg-gan-proposals.npz",
+        output_folder / f"{i}" / "discriminator.nn",
+        output_folder / f"{i}" / "pg-gan-proposals.npz",
     ]:
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
@@ -272,7 +272,7 @@ def test_pg_gan(tmp_path):
                 epochs=1,
                 Dx_replicates=2,
                 num_proposals=num_proposals,
-                working_directory=working_directory,
+                output_folder=output_folder,
                 parallelism=2,
                 seed=3,
             )
@@ -290,7 +290,7 @@ def test_pg_gan(tmp_path):
             num_proposals=num_proposals,
             pretraining_method=pretraining_method,
             max_pretraining_iterations=1,
-            working_directory=tmp_path / pretraining_method,
+            output_folder=tmp_path / pretraining_method,
             parallelism=2,
             seed=4,
         )
@@ -305,7 +305,7 @@ def test_pg_gan(tmp_path):
             num_proposals=num_proposals,
             pretraining_method="not-a-valid-method",
             max_pretraining_iterations=1,
-            working_directory=tmp_path / "somewhere-new",
+            output_folder=tmp_path / "somewhere-new",
             parallelism=2,
             seed=1,
         )
@@ -321,7 +321,7 @@ def test_pg_gan(tmp_path):
             Dx_replicates=2,
             num_proposals=num_proposals,
             proposals_method=proposals_method,
-            working_directory=working_directory,
+            output_folder=output_folder,
             parallelism=2,
             seed=1,
         )
@@ -335,7 +335,7 @@ def test_pg_gan(tmp_path):
             Dx_replicates=2,
             num_proposals=num_proposals,
             proposals_method="not-a-valid-method",
-            working_directory=working_directory,
+            output_folder=output_folder,
             parallelism=2,
             seed=1,
         )

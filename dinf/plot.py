@@ -1,7 +1,7 @@
 from __future__ import annotations
 import argparse
+import logging
 import pathlib
-import textwrap
 from typing import Any, Dict, Tuple
 
 from adjustText import adjust_text
@@ -13,12 +13,14 @@ import numpy as np
 from numpy.lib.recfunctions import structured_to_unstructured
 import scipy.stats
 
-from .cli import ADRDFormatter, _DINF_MODEL_HELP, set_loglevel
+from .cli import _SubCommand, _set_loglevel
 from .misc import quantile
 import dinf
 
+logger = logging.getLogger(__name__)
 
-class MultiPage:
+
+class _MultiPage:
     """
     PdfPages-like context manager that also handles non-pdfs.
 
@@ -52,12 +54,14 @@ class MultiPage:
             return
 
         if self.pdf is not None:
+            logger.debug("%s: saving figure (%s).", self.filename, hint)
             self.pdf.savefig(fig)
         else:
             filename = self.filename
             if self.n_figures > 1:
                 # Insert the hint into the filename.
                 filename = filename.with_stem(f"{self.filename.stem}_{hint}")
+            logger.debug("%s: saving figure (%s).", filename, hint)
             fig.savefig(filename)
 
 
@@ -470,38 +474,10 @@ def hist(
     return ax.figure, ax
 
 
-class _SubCommand:
+class _DinfPlotSubCommand(_SubCommand):
     """
-    Base class for subcommands.
+    Base class for `dinf-plot` subcommands.
     """
-
-    def __init__(self, subparsers, command):
-        docstring = textwrap.dedent(self.__doc__)
-        self.parser = subparsers.add_parser(
-            command,
-            help=docstring.lstrip().splitlines()[0],
-            description=docstring,
-            formatter_class=ADRDFormatter,
-        )
-        self.parser.set_defaults(func=self)
-
-        group = self.parser.add_mutually_exclusive_group()
-        group.add_argument(
-            "-v",
-            "--verbose",
-            action="count",
-            default=0,
-            help=(
-                "Increase verbosity. Specify once for INFO messages and "
-                "twice for DEBUG messages."
-            ),
-        )
-        group.add_argument(
-            "-q",
-            "--quiet",
-            action="store_true",
-            help="Disable output. Only ERROR and CRITICAL messages are printed.",
-        )
 
     def add_argument_output_file(self):
         self.parser.add_argument(
@@ -529,21 +505,10 @@ class _SubCommand:
     def add_argument_abc_thresholds(self):
         group = self.parser.add_mutually_exclusive_group()
         group.add_argument(
-            "-n",
-            "--top-n",
+            "--top",
             metavar="N",
             type=int,
             help="Accept only the N top samples, ranked by probability.",
-        )
-        group.add_argument(
-            "-p",
-            "--probability-threshold",
-            metavar="P",
-            type=float,
-            help=(
-                "Accept only the samples with prediction probabilities "
-                "greater than P."
-            ),
         )
 
     def add_argument_weighted(self):
@@ -571,67 +536,48 @@ class _SubCommand:
             help="The discriminator network(s) to plot.",
         )
 
-    def add_argument_working_directory(self):
+    def add_argument_gan_folder(self):
         self.parser.add_argument(
-            "working_directory",
+            "gan_folder",
             type=pathlib.Path,
             help="Folder containing results from a GAN run.",
         )
 
-    def add_argument_model(self):
-        self.parser.add_argument(
-            "model",
-            metavar="model.py",
-            type=pathlib.Path,
-            help=_DINF_MODEL_HELP,
-        )
-
-    def add_argument_model_optional(self):
-        self.parser.add_argument(
-            "-m",
-            "--model",
-            metavar="model.py",
-            type=pathlib.Path,
-            help="Model file from which the parameter truth values with be taken.",
-        )
-
-    def get_abc_datasets(self, args):
+    def get_abc_datasets(self, data_files, top_n):
         """Load data file and filter by top-n or by probability."""
         datasets = []
-        for filename in args.data_files:
+        for filename in data_files:
             data = dinf.load_results(filename)
             # Flatten MCMC datasets with multiple chains.
             data = data.reshape(-1)
 
-            assert None in (args.top_n, args.probability_threshold)
-            if args.top_n is not None:
-                k = len(data) - args.top_n
+            if top_n is not None:
+                k = len(data) - top_n
                 data = np.partition(data, k, order="_Pr")[k:]
-            elif args.probability_threshold is not None:
-                data = data[np.where(data["_Pr"] > args.probability_threshold)]
 
             datasets.append(data)
 
         return datasets
 
-    def get_gan_datasets(self, args):
-        args.discriminators = []
-        args.data_files = []
-        store = dinf.Store(args.working_directory, create=False)
+    def get_gan_datasets(self, gan_folder):
+        discriminators = []
+        data_files = []
+        store = dinf.Store(gan_folder, create=False)
         dataset_type = None
         for j, path in enumerate(store):
             if (path / "discriminator.nn").exists():
-                args.discriminators.append(path / "discriminator.nn")
+                discriminators.append(path / "discriminator.nn")
             for prefix in ("abc", "mcmc", "pg-gan-proposals"):
                 if (path / f"{prefix}.npz").exists():
                     if dataset_type is None:
                         dataset_type = prefix
                     else:
                         assert dataset_type == prefix, (j, dataset_type, prefix)
-                    args.data_files.append(path / f"{prefix}.npz")
+                    data_files.append(path / f"{prefix}.npz")
+        return discriminators, data_files
 
 
-class _Demes(_SubCommand):
+class _Demes(_DinfPlotSubCommand):
     """
     Plot a demes-as-tubes demographic model using DemesDraw.
     """
@@ -682,7 +628,7 @@ class _Demes(_SubCommand):
             fig.savefig(args.output_file)
 
 
-class _Features(_SubCommand):
+class _Features(_DinfPlotSubCommand):
     """
     Plot feature matrices as heatmaps.
 
@@ -727,7 +673,7 @@ class _Features(_SubCommand):
             fig.savefig(args.output_file)
 
 
-class _Metrics(_SubCommand):
+class _Metrics(_DinfPlotSubCommand):
     """
     Plot loss and accuracy of discriminator(s).
 
@@ -763,7 +709,7 @@ class _Metrics(_SubCommand):
             fig.savefig(args.output_file)
 
 
-class _Hist2d(_SubCommand):
+class _Hist2d(_DinfPlotSubCommand):
     """
     Plot 2d marginal posterior densities.
 
@@ -783,11 +729,10 @@ class _Hist2d(_SubCommand):
     be indicated by red lines. By default, all values in the
     data file contribute equally to the histogram. For parameter
     values drawn from the prior distribution, this will therefore
-    show the prior distribution. A more informative plot can be
-    obtained by weighting parameter values by the discriminator
-    probabilities using the -W option. Alternately, the data file
-    can be filtered to obtain a posterior sample using the -n
-    or -t options.
+    show the prior distribution. A posterior sample can be obtained
+    by weighting parameter values by the discriminator probabilities
+    using the -W option, and/or rejection sampling the prior sample
+    using the --top option.
     """
 
     def __init__(self, subparsers):
@@ -809,7 +754,7 @@ class _Hist2d(_SubCommand):
             action="append",
             help="Name of parameter to plot on vertical axis.",
         )
-        self.add_argument_model_optional()
+        self.add_argument_model(required=False)
         self.add_argument_data_file(nargs=1)
 
     def __call__(self, args: argparse.Namespace):
@@ -817,7 +762,7 @@ class _Hist2d(_SubCommand):
         if args.model is not None:
             parameters = dinf.DinfModel.from_file(args.model).parameters
 
-        datasets = self.get_abc_datasets(args)
+        datasets = self.get_abc_datasets(args.data_files, args.top)
         assert len(datasets) == 1
         data = datasets[0]
         param_names = data.dtype.names[1:]
@@ -850,7 +795,7 @@ class _Hist2d(_SubCommand):
                     n_figures += 1
 
         done = set()
-        with MultiPage(args.output_file, n_figures) as pages:
+        with _MultiPage(args.output_file, n_figures) as pages:
             for x_param in args.x_param:
                 x = data[x_param]
                 x_truth = None
@@ -940,7 +885,7 @@ def _kde1d_reflect(
     return xrange, pdf
 
 
-class _Hist(_SubCommand):
+class _Hist(_DinfPlotSubCommand):
     """
     Plot marginal posterior densities.
 
@@ -962,10 +907,10 @@ class _Hist(_SubCommand):
     the figure. By default, all values in the data file contribute
     equally to the histogram. For parameter values drawn from the
     prior distribution, this will therefore show the prior
-    distribution. A more informative plot can be obtained by
-    weighting parameter values by the discriminator probabilities
-    using the -W option. Alternately, the data file can be filtered
-    to obtain a posterior sample using the -n or -t options.
+    distribution. A posterior sample can be obtained by weighting
+    parameter values by the discriminator probabilities using the
+    -W option, and/or rejection sampling the prior sample using
+    the --top option.
     """
 
     def __init__(self, subparsers):
@@ -1004,14 +949,14 @@ class _Hist(_SubCommand):
             action="store_true",
             help="Also draw a 1-dimensional marginal kernel density estimate.",
         )
-        self.add_argument_model_optional()
+        self.add_argument_model(required=False)
         self.add_argument_data_file(nargs="+")
 
     def __call__(self, args: argparse.Namespace):
         parameters = None
         if args.model is not None:
             parameters = dinf.DinfModel.from_file(args.model).parameters
-        datasets = self.get_abc_datasets(args)
+        datasets = self.get_abc_datasets(args.data_files, args.top)
 
         if args.x_param is None:
             args.x_param = datasets[0].dtype.names
@@ -1045,7 +990,7 @@ class _Hist(_SubCommand):
                 X_dict = {name: X[..., j] for j, name in enumerate(names)}
                 datasets_resampled.append(X_dict)
 
-        with MultiPage(args.output_file, len(args.x_param)) as pages:
+        with _MultiPage(args.output_file, len(args.x_param)) as pages:
             for x_param in args.x_param:
                 fig, ax = plt.subplots(
                     figsize=plt.figaspect(9 / 16), constrained_layout=True
@@ -1107,7 +1052,7 @@ class _Hist(_SubCommand):
                 plt.close(fig)
 
 
-class _Gan(_SubCommand):
+class _Gan(_DinfPlotSubCommand):
     """
     Plot GAN things.
     """
@@ -1131,32 +1076,29 @@ class _Gan(_SubCommand):
             ),
         )
         """
-        self.add_argument_model_optional()
-        self.add_argument_working_directory()
+        self.add_argument_model(required=False)
+        self.add_argument_gan_folder()
 
     def __call__(self, args: argparse.Namespace):
-        self.get_gan_datasets(args)
+        discriminators, data_files = self.get_gan_datasets(args.gan_folder)
 
         parameters = None
         if args.model is not None:
             parameters = dinf.DinfModel.from_file(args.model).parameters
 
-        datasets = self.get_abc_datasets(args)
+        datasets = self.get_abc_datasets(data_files, args.top)
         x_params = datasets[0].dtype.names
         for data in datasets:
             assert data.dtype.names == x_params
 
         metrics_collection = {
             f"Iteration {j}": dinf.Discriminator.from_file(d).metrics
-            for j, d in enumerate(args.discriminators)
+            for j, d in enumerate(discriminators)
         }
 
         cmap = matplotlib.cm.get_cmap("gnuplot")
         cycle = cycler(
-            color=[
-                cmap(i / len(args.discriminators))
-                for i in range(len(args.discriminators))
-            ]
+            color=[cmap(i / len(discriminators)) for i in range(len(discriminators))]
         )
         saved_prop_cycle = matplotlib.rcParams["axes.prop_cycle"]
         matplotlib.rcParams["axes.prop_cycle"] = cycle
@@ -1170,9 +1112,7 @@ class _Gan(_SubCommand):
         axs["test_loss"].get_legend().remove()
         fig.colorbar(
             matplotlib.cm.ScalarMappable(
-                norm=matplotlib.colors.Normalize(
-                    vmin=0, vmax=len(args.discriminators) - 1
-                ),
+                norm=matplotlib.colors.Normalize(vmin=0, vmax=len(discriminators) - 1),
                 cmap=cmap,
             ),
             ax=axs["test_loss"],
@@ -1181,7 +1121,7 @@ class _Gan(_SubCommand):
             label="iteration",
         )
 
-        with MultiPage(args.output_file, 1 + len(x_params)) as pages:
+        with _MultiPage(args.output_file, 1 + len(x_params)) as pages:
             pages.savefig(fig, hint="metrics")
             plt.close(fig)
 
@@ -1210,6 +1150,9 @@ def main(args_list=None):
     top_parser = argparse.ArgumentParser(
         prog="dinf.plot", description="Dinf plotting tools."
     )
+    top_parser.add_argument(
+        "-V", "--version", action="version", version=dinf.__version__
+    )
 
     subparsers = top_parser.add_subparsers(dest="subcommand")
     _Demes(subparsers)
@@ -1230,7 +1173,7 @@ def main(args_list=None):
         # Bumping the dpi to 140 provides greater parity.
         plt.rc("figure", dpi=140)
 
-    set_loglevel(args.quiet, args.verbose)
+    _set_loglevel(args.quiet, args.verbose)
     args.func(args)
 
 

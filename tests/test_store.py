@@ -23,14 +23,14 @@ class TestStore:
 
     @pytest.mark.usefixtures("tmp_path")
     def test_create(self, tmp_path):
-        working_directory = tmp_path / "working_directory"
+        output_folder = tmp_path / "output_folder"
         with pytest.raises(ValueError, match=".*not found"):
-            store = dinf.Store(working_directory, create=False)
-        assert not working_directory.exists()
-        store = dinf.Store(working_directory, create=True)
-        assert working_directory.exists()
+            store = dinf.Store(output_folder, create=False)
+        assert not output_folder.exists()
+        store = dinf.Store(output_folder, create=True)
+        assert output_folder.exists()
         assert len(store) == 0
-        store = dinf.Store(working_directory, create=False)
+        store = dinf.Store(output_folder, create=False)
         assert len(store) == 0
 
     @pytest.mark.usefixtures("tmp_path")
