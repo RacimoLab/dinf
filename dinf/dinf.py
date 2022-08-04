@@ -13,7 +13,6 @@ import emcee
 import jax
 import numpy as np
 from numpy.lib.recfunctions import structured_to_unstructured
-import scipy
 
 # We're compatible with the standard lib's ``multiprocessing`` module,
 # but ``multiprocess`` uses ``dill`` to pickle functions which provides
@@ -58,7 +57,8 @@ def process_pool(parallelism: int | None, dinf_model: DinfModel):
     """
     A context manager to open a process pool with the "spawn" start method.
 
-    This is a wrapper for multiprocessing.Pool, but we don't use its
+    This is a wrapper for multiprocessing.Pool, that gracefully exits
+    when the user presses control-c to quit. We also don't use Pool's
     context manager because it exits with pool.terminate() and we'd rather
     pool.close() and pool.join(). See
     https://pytest-cov.readthedocs.io/en/latest/subprocess-support.html
@@ -564,10 +564,12 @@ def train(
     ss_thetas, ss_discr = ss.spawn(2)
     rng_train, rng_test = (np.random.default_rng(sj) for sj in ss_thetas.spawn(2))
 
-    training_thetas = dinf_model.parameters.draw_prior(
-        training_replicates // 2, rng=rng_train
+    training_thetas = dinf_model.parameters.sample_prior(
+        size=training_replicates // 2, rng=rng_train
     )
-    test_thetas = dinf_model.parameters.draw_prior(test_replicates // 2, rng=rng_test)
+    test_thetas = dinf_model.parameters.sample_prior(
+        size=test_replicates // 2, rng=rng_test
+    )
 
     discriminator = Discriminator(network=dinf_model.discriminator_network)
 
@@ -649,8 +651,8 @@ def predict(
             )
             thetas = None
         else:
-            thetas = dinf_model.parameters.draw_prior(
-                replicates, rng=np.random.default_rng(ss_thetas)
+            thetas = dinf_model.parameters.sample_prior(
+                size=replicates, rng=np.random.default_rng(ss_thetas)
             )
             x = _get_generator_dataset(
                 generator=dinf_model.generator_func_v,
@@ -869,21 +871,20 @@ def mcmc_gan(
                 f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
             )
 
-        training_thetas = sample_smooth(
-            thetas=thetas.reshape(-1, thetas.shape[-1]),
+        training_thetas = parameters.sample_kde(
+            thetas.reshape(-1, thetas.shape[-1]),
             probs=y.reshape(-1),
             size=training_replicates // 2,
             rng=rng_thetas,
-            parameters=parameters,
         )
     else:
         discriminator = Discriminator(network=dinf_model.discriminator_network)
 
         # Starting point for the mcmc chain.
-        start = parameters.draw_prior(walkers, rng=rng_thetas)
+        start = parameters.sample_prior(size=walkers, rng=rng_thetas)
 
-        training_thetas = parameters.draw_prior(
-            training_replicates // 2, rng=rng_thetas
+        training_thetas = parameters.sample_prior(
+            size=training_replicates // 2, rng=rng_thetas
         )
 
     # If start values are linearly dependent, emcee complains loudly.
@@ -897,8 +898,8 @@ def mcmc_gan(
         val_x, val_y = None, None
         if test_replicates >= 2:
             ss_val, ss_test_thetas = ss_test.spawn(2)
-            test_thetas = parameters.draw_prior(
-                test_replicates // 2, rng=np.random.default_rng(ss_test_thetas)
+            test_thetas = parameters.sample_prior(
+                size=test_replicates // 2, rng=np.random.default_rng(ss_test_thetas)
             )
             val_x, val_y = _get_combined_dataset(
                 target=dinf_model.target_func,
@@ -981,12 +982,11 @@ def mcmc_gan(
             # The chain for next iteration starts at the end of this chain.
             start = thetas[-1]
 
-            training_thetas = sample_smooth(
-                thetas=thetas.reshape(-1, thetas.shape[-1]),
+            training_thetas = parameters.sample_kde(
+                thetas.reshape(-1, thetas.shape[-1]),
                 probs=probs.reshape(-1),
                 size=training_replicates // 2,
                 rng=rng_thetas,
-                parameters=parameters,
             )
 
             n_generator_calls += walkers * steps * Dx_replicates
@@ -995,130 +995,6 @@ def mcmc_gan(
 
             if (cb_iter := callbacks.get("iteration")) is not None:
                 cb_iter(len(store))
-
-
-def sample_smooth(
-    *,
-    thetas: np.ndarray,
-    probs: np.ndarray,
-    size: int,
-    rng: np.random.Generator,
-    parameters: Parameters,
-) -> np.ndarray:
-    """
-    Sample from a smoothed set of weighted observations.
-
-    Samples are drawn from ``thetas``, weighted by their probability.
-    New points are drawn within a neighbourhood of the sampled thetas
-    using a mulivariate normal whose covariance is calculated from the
-    thetas. This is equivalent to sampling from a Gaussian KDE, but
-    avoids doing an explicit density estimation.
-    Values are sampled until they are within the parameter bounds.
-    Scott's rule of thumb is used for bandwidth selection.
-
-    :param thetas:
-        Parameter values to sample from.
-    :param probs:
-        Discriminator predictions corresponding to the ``thetas``.
-    :param size:
-        Number of samples to draw.
-    :param numpy.random.Generator rng:
-        Numpy random generator.
-    :param parameters:
-        The parameters against which the values' bounds will be checked.
-        See the ``mode`` argument.
-    :return:
-        The sampled values.
-    """
-    # Calculate bandwidth.
-    _, d = thetas.shape
-    neff = np.sum(probs) ** 2 / np.sum(probs**2)
-    bw_scott = neff ** (-1.0 / (d + 4))  # bandwidth multiplier
-    cov = bw_scott**2 * np.cov(thetas, rowvar=False, aweights=probs)
-    assert not np.any(np.isnan(cov))
-    assert not np.any(np.isinf(cov))
-
-    sample = np.empty((size, d))
-    idx: slice | np.ndarray = slice(size)
-    size_needed = size
-    draws = 0
-    p = probs / np.sum(probs)
-    while size_needed > 0:
-        draws += size_needed
-        # Weighted sampling of points from the thetas.
-        mean = rng.choice(thetas, size=size_needed, replace=True, p=p)
-        # Disperse the sample with an MVN.
-        disp = rng.multivariate_normal(np.zeros(d), cov, size=size_needed)
-        sample[idx] = mean + disp
-
-        # Find indices of samples that are out of bounds.
-        idx = np.nonzero(~parameters.bounds_contain(sample))[0]
-
-        size_needed = len(idx)
-        if draws > 1000 * size:
-            raise RuntimeError(
-                f"Failed to get {size} samples from KDE that are within the "
-                f"parameter bounds after {draws} draws. "
-            )
-
-    if draws > 10 * size:
-        logger.warning(
-            "Excessive KDE samples out of parameter bounds: %d of %d draws",
-            draws - size,
-            draws,
-        )
-
-    return sample
-
-
-def geometric_median(
-    *,
-    thetas: np.ndarray,
-    probs: np.ndarray | None = None,
-) -> np.ndarray:
-    """
-    Get the multivariate median of a weighted sample.
-
-    :param thetas:
-        Parameter values. thetas[j][k] is the value of the k'th parameter
-        for the j'th multivariate sample.
-    :param probs:
-        Discriminator predictions corresponding to the ``thetas``.
-    :return:
-        Median position in multivariate space.
-    """
-
-    # Normalize by mean/stddev so each parameter is treated equally
-    # in the objective function.
-    mean = np.mean(thetas, axis=0)
-    stddev = np.std(thetas, axis=0)
-    x = (thetas - mean) / stddev
-
-    def objective(u):
-        """Minimise the sum of distances from u to x."""
-        d = np.linalg.norm(x - u, axis=1)
-        # Minimise the mean distance rather than the sum, to avoid extremely
-        # large values that trigger the notorious scipy error:
-        #   "Desired error not necessarily achieved due to precision loss."
-        return np.average(d, weights=probs)
-
-    x0 = np.zeros(x.shape[1])
-    opt = scipy.optimize.minimize(objective, x0)
-    if not opt.success:
-        raise RuntimeError(f"Failed to find geometric median: {opt.message}")
-    return mean + stddev * opt.x
-
-
-def filter_top_n(
-    thetas: np.ndarray,
-    probs: np.ndarray,
-    n: int,
-) -> Tuple[np.ndarray, np.ndarray]:
-    assert n >= 1
-    k = len(probs) - n
-    assert k >= 1
-    idx = np.argpartition(probs, k)[k:]
-    return thetas[idx], probs[idx]
 
 
 def abc_gan(
@@ -1228,27 +1104,27 @@ def abc_gan(
         )
         assert len(thetas.shape) == 2
         if top_n is not None:
-            thetas, y = filter_top_n(thetas, y, top_n)
-        training_thetas = sample_smooth(
-            thetas=thetas,
+            thetas, y = parameters.top_n(thetas, probs=y, n=top_n)
+        training_thetas = parameters.sample_kde(
+            thetas,
             probs=y,
             size=training_replicates // 2,
             rng=rng_thetas,
-            parameters=parameters,
         )
-        proposal_thetas = sample_smooth(
-            thetas=thetas,
+        proposal_thetas = parameters.sample_kde(
+            thetas,
             probs=y,
             size=proposal_replicates,
             rng=rng_thetas,
-            parameters=parameters,
         )
     else:
         discriminator = Discriminator(network=dinf_model.discriminator_network)
-        training_thetas = parameters.draw_prior(
-            training_replicates // 2, rng=rng_thetas
+        training_thetas = parameters.sample_prior(
+            size=training_replicates // 2, rng=rng_thetas
         )
-        proposal_thetas = parameters.draw_prior(proposal_replicates, rng=rng_thetas)
+        proposal_thetas = parameters.sample_prior(
+            size=proposal_replicates, rng=rng_thetas
+        )
 
     n_target_calls = 0
     n_generator_calls = 0
@@ -1258,8 +1134,8 @@ def abc_gan(
         val_x, val_y = None, None
         if test_replicates >= 2:
             ss_val, ss_test_thetas = ss_test.spawn(2)
-            test_thetas = parameters.draw_prior(
-                test_replicates // 2, rng=np.random.default_rng(ss_test_thetas)
+            test_thetas = parameters.sample_prior(
+                size=test_replicates // 2, rng=np.random.default_rng(ss_test_thetas)
             )
             val_x, val_y = _get_combined_dataset(
                 target=dinf_model.target_func,
@@ -1338,20 +1214,18 @@ def abc_gan(
             # Get the posterior sample for the next iteration.
             thetas = proposal_thetas
             if top_n is not None:
-                thetas, y = filter_top_n(thetas, y, top_n)
-            training_thetas = sample_smooth(
-                thetas=thetas,
+                thetas, y = parameters.top_n(thetas, probs=y, n=top_n)
+            training_thetas = parameters.sample_kde(
+                thetas,
                 probs=y,
                 size=training_replicates // 2,
                 rng=rng_thetas,
-                parameters=parameters,
             )
-            proposal_thetas = sample_smooth(
-                thetas=thetas,
+            proposal_thetas = parameters.sample_kde(
+                thetas,
                 probs=y,
                 size=proposal_replicates,
                 rng=rng_thetas,
-                parameters=parameters,
             )
 
             logger.info("Target called %s times.", n_target_calls)
@@ -1389,7 +1263,7 @@ def pretraining_pg_gan(
     theta_best = None
 
     for k in range(max_pretraining_iterations):
-        theta = dinf_model.parameters.draw_prior(1, rng=rng_thetas)[0]
+        theta = dinf_model.parameters.sample_prior(size=1, rng=rng_thetas)[0]
         training_thetas = np.tile(theta, (training_replicates // 2, 1))
         test_thetas = np.tile(theta, (test_replicates // 2, 1))
 
@@ -1445,8 +1319,10 @@ def pretraining_dinf(
     discriminator = Discriminator(network=dinf_model.discriminator_network)
 
     for k in range(max_pretraining_iterations):
-        training_thetas = parameters.draw_prior(training_replicates // 2, rng=rng)
-        test_thetas = parameters.draw_prior(test_replicates // 2, rng=rng)
+        training_thetas = parameters.sample_prior(
+            size=training_replicates // 2, rng=rng
+        )
+        test_thetas = parameters.sample_prior(size=test_replicates // 2, rng=rng)
 
         metrics = _train_discriminator(
             discriminator=discriminator,
@@ -1463,7 +1339,7 @@ def pretraining_dinf(
         if acc > 0.9:
             break
 
-    thetas = parameters.draw_prior(training_replicates, rng=rng)
+    thetas = parameters.sample_prior(size=training_replicates, rng=rng)
     lp = _log_prob(
         thetas,
         discriminator=discriminator,

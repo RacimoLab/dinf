@@ -367,7 +367,7 @@ def test_sanneal_proposals_pg_gan():
     num_proposals = 10
 
     for i in range(100):
-        theta = dinf_model.parameters.draw_prior(1, rng=rng)[0]
+        theta = dinf_model.parameters.sample_prior(size=1, rng=rng)[0]
         proposal_thetas = dinf.dinf.sanneal_proposals_pg_gan(
             theta=theta,
             temperature=1,
@@ -389,7 +389,7 @@ def test_sanneal_proposals_rr():
 
     iteration = itertools.count()
     for i in range(100):
-        theta = dinf_model.parameters.draw_prior(1, rng=rng)[0]
+        theta = dinf_model.parameters.sample_prior(size=1, rng=rng)[0]
         proposal_thetas = dinf.dinf.sanneal_proposals_rr(
             theta=theta,
             temperature=1,
@@ -415,7 +415,7 @@ def test_sanneal_proposals_mvn():
     num_proposals = 10
 
     for i in range(100):
-        theta = dinf_model.parameters.draw_prior(1, rng=rng)[0]
+        theta = dinf_model.parameters.sample_prior(size=1, rng=rng)[0]
         proposal_thetas = dinf.dinf.sanneal_proposals_mvn(
             theta=theta,
             temperature=1,
@@ -467,8 +467,8 @@ class TestLogProb:
         cls.dinf_model = get_dinf_model()
         rng = np.random.default_rng(111)
         cls.discriminator = dinf.Discriminator()
-        training_thetas = cls.dinf_model.parameters.draw_prior(100, rng=rng)
-        test_thetas = cls.dinf_model.parameters.draw_prior(0, rng=rng)
+        training_thetas = cls.dinf_model.parameters.sample_prior(size=100, rng=rng)
+        test_thetas = cls.dinf_model.parameters.sample_prior(size=0, rng=rng)
         with dinf.dinf.process_pool(None, cls.dinf_model) as pool:
             dinf.dinf._train_discriminator(
                 discriminator=cls.discriminator,
@@ -531,8 +531,8 @@ class TestLogProb:
             assert np.isclose(log_D_1, log_D[j])
 
         # Random thetas.
-        thetas = self.dinf_model.parameters.draw_prior(
-            20, rng=np.random.default_rng(123)
+        thetas = self.dinf_model.parameters.sample_prior(
+            size=20, rng=np.random.default_rng(123)
         )
         log_D = log_prob_n(thetas)
         assert len(log_D) == len(thetas)
@@ -557,7 +557,7 @@ def test_save_load_results(tmp_path):
     params = dinf.Parameters(
         p0=dinf.Param(low=0, high=10), p1=dinf.Param(low=10, high=20)
     )
-    thetas = params.draw_prior(size, rng=np.random.default_rng(123))
+    thetas = params.sample_prior(size=size, rng=np.random.default_rng(123))
     y = np.zeros(size)
     file = tmp_path / "a.npz"
     dinf.save_results(file, thetas=thetas, probs=y, parameters=params)
@@ -578,7 +578,7 @@ def test_save_load_results_3d(tmp_path):
     params = dinf.Parameters(
         p0=dinf.Param(low=0, high=10), p1=dinf.Param(low=10, high=20)
     )
-    thetas = params.draw_prior(size, rng=np.random.default_rng(123))
+    thetas = params.sample_prior(size=size, rng=np.random.default_rng(123))
     y = np.zeros(size)
 
     # Reshape to 3 dims.
@@ -604,7 +604,7 @@ def test_save_results_bad_shape(tmp_path):
     params = dinf.Parameters(
         p0=dinf.Param(low=0, high=10), p1=dinf.Param(low=10, high=20)
     )
-    thetas = params.draw_prior(size, rng=np.random.default_rng(123))
+    thetas = params.sample_prior(size=size, rng=np.random.default_rng(123))
     y = np.zeros(size)
     file = tmp_path / "a.npz"
     with pytest.raises(ValueError, match="thetas.shape.*parameters"):
@@ -619,7 +619,7 @@ def test_load_results_bad_shape(tmp_path):
     params = dinf.Parameters(
         p0=dinf.Param(low=0, high=10), p1=dinf.Param(low=10, high=20)
     )
-    thetas = params.draw_prior(size, rng=np.random.default_rng(123))
+    thetas = params.sample_prior(size=size, rng=np.random.default_rng(123))
     y = np.zeros(size)
     file = tmp_path / "a.npz"
     dinf.save_results(file, thetas=thetas, probs=y, parameters=params)

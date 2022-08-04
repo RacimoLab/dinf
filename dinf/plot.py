@@ -14,6 +14,7 @@ from numpy.lib.recfunctions import structured_to_unstructured
 import scipy.stats
 
 from .cli import ADRDFormatter, _DINF_MODEL_HELP, set_loglevel
+from .misc import quantile
 import dinf
 
 
@@ -371,29 +372,6 @@ def hist2d(
     return ax.figure, ax
 
 
-def _quantile(x: np.ndarray, /, *, q, weights=None) -> np.ndarray:
-    """
-    Calculate quantiles of an array.
-
-    :param x:
-        Array values.
-    :param q:
-        Quantiles to calculate.
-    :param weights:
-        Weights for the array values in ``x``.
-    :return:
-        The ``q``'th quantiles of ``x``.
-    """
-    if weights is None:
-        return np.quantile(x, q)
-    idx = np.argsort(x)
-    x = x[idx]
-    weights = weights[idx]
-    S = np.cumsum(weights)
-    wxq = (S - weights / 2) / S[-1]
-    return np.interp(q, wxq, x)
-
-
 def _num2str(n):
     """Reduce precision for large numbers."""
     # XXX: is this a bad idea?
@@ -448,7 +426,7 @@ def hist(
     if ci:
         # Get median and 95% credible interval.
         q = [0.025, 0.5, 0.975]
-        xq = _quantile(x, q=q, weights=kw.get("weights"))
+        xq = quantile(x, q=q, weights=kw.get("weights"))
 
         # Show interval as a horizontal line with whiskers.
         # It would be easier to use hlines() and vlines() here,
@@ -734,7 +712,7 @@ class _Features(_SubCommand):
             ss = np.random.SeedSequence(args.seed)
             ss_generator, ss_thetas = ss.spawn(2)
             rng = np.random.default_rng(ss_thetas)
-            thetas = dinf_model.parameters.draw_prior(1, rng=rng)
+            thetas = dinf_model.parameters.sample_prior(size=1, rng=rng)
             mats = dinf_model.generator_func_v((ss_generator, thetas[0]))
 
         if not isinstance(mats, dict):
@@ -1058,12 +1036,11 @@ class _Hist(_SubCommand):
                 names = list(data.dtype.names)[1:]
                 probs = data["_Pr"]
                 thetas = structured_to_unstructured(data[names])
-                X = dinf.sample_smooth(
-                    thetas=thetas,
+                X = parameters.sample_kde(
+                    thetas,
                     probs=probs,
                     size=1_000_000,
                     rng=rng,
-                    parameters=parameters,
                 )
                 X_dict = {name: X[..., j] for j, name in enumerate(names)}
                 datasets_resampled.append(X_dict)
