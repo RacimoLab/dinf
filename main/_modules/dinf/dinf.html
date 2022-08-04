@@ -229,7 +229,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev54
+            dinf 0.2.1.dev57
             </div>
             
         </div>
@@ -1131,7 +1131,7 @@ title="Open an issue"
     <span class="n">walkers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">Dx_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">working_directory</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">output_folder</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">parallelism</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1171,7 +1171,7 @@ title="Open an issue"
 <span class="sd">        The chain length for each MCMC walker.</span>
 <span class="sd">    :param Dx_replicates:</span>
 <span class="sd">        Number of generator replicates for approximating E[D(x)|θ].</span>
-<span class="sd">    :param working_directory:</span>
+<span class="sd">    :param output_folder:</span>
 <span class="sd">        Folder to output results. If not specified, the current</span>
 <span class="sd">        directory will be used.</span>
 <span class="sd">    :param parallelism:</span>
@@ -1200,9 +1200,9 @@ title="Open an issue"
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">callbacks</span>
     <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">working_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">working_directory</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
-    <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_folder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">output_folder</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">store</span><span class="o">.</span><span class="n">assert_complete</span><span class="p">([</span><span class="s2">&quot;discriminator.nn&quot;</span><span class="p">,</span> <span class="s2">&quot;mcmc.npz&quot;</span><span class="p">])</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
@@ -1363,7 +1363,7 @@ title="Open an issue"
     <span class="n">proposal_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">top_n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">working_directory</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">output_folder</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">parallelism</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1407,7 +1407,7 @@ title="Open an issue"
 <span class="sd">        the ``top_n`` best samples, ranked by discriminator prediction.</span>
 <span class="sd">        Samples are taken from the test replicates, so ``top_n`` must be</span>
 <span class="sd">        smaller than ``test_replicates``.</span>
-<span class="sd">    :param working_directory:</span>
+<span class="sd">    :param output_folder:</span>
 <span class="sd">        Folder to output results. If not specified, the current</span>
 <span class="sd">        directory will be used.</span>
 <span class="sd">    :param parallelism:</span>
@@ -1440,9 +1440,9 @@ title="Open an issue"
     <span class="k">if</span> <span class="n">top_n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">top_n</span> <span class="o">&gt;=</span> <span class="n">proposal_replicates</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">top_n</span><span class="si">=}</span><span class="s2">, but </span><span class="si">{</span><span class="n">proposal_replicates</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">working_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">working_directory</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
-    <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_folder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">output_folder</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">store</span><span class="o">.</span><span class="n">assert_complete</span><span class="p">([</span><span class="s2">&quot;discriminator.nn&quot;</span><span class="p">,</span> <span class="s2">&quot;abc.npz&quot;</span><span class="p">])</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
@@ -1805,7 +1805,7 @@ title="Open an issue"
     <span class="n">pretraining_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;dinf&quot;</span><span class="p">,</span>
     <span class="n">proposals_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;rr&quot;</span><span class="p">,</span>
     <span class="n">max_pretraining_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
-    <span class="n">working_directory</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">output_folder</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">parallelism</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
@@ -1895,7 +1895,7 @@ title="Open an issue"
 
 <span class="sd">    :param max_pretraining_iterations:</span>
 <span class="sd">        The maximum number of pretraining iterations.</span>
-<span class="sd">    :param working_directory:</span>
+<span class="sd">    :param output_folder:</span>
 <span class="sd">        Folder to output results. If not specified, the current</span>
 <span class="sd">        directory will be used.</span>
 <span class="sd">    :param parallelism:</span>
@@ -1908,9 +1908,9 @@ title="Open an issue"
     <span class="k">assert</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="n">num_replicates</span> <span class="o">=</span> <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span>
 
-    <span class="k">if</span> <span class="n">working_directory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">working_directory</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
-    <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">working_directory</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">output_folder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">output_folder</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">proposals_method</span> <span class="o">==</span> <span class="s2">&quot;pg-gan&quot;</span><span class="p">:</span>
         <span class="n">proposals_func</span> <span class="o">=</span> <span class="n">sanneal_proposals_pg_gan</span>
@@ -2073,7 +2073,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev54+g52b4e36
+      dinf 0.2.1.dev57+g355ad35
     </div>
 </p>
         </footer>

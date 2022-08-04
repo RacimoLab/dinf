@@ -229,7 +229,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev54
+            dinf 0.2.1.dev57
             </div>
             
         </div>
@@ -357,8 +357,8 @@ title="Open an issue"
   <h1>Source code for dinf.plot</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
-<span class="kn">import</span> <span class="nn">textwrap</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">from</span> <span class="nn">adjustText</span> <span class="kn">import</span> <span class="n">adjust_text</span>
@@ -370,12 +370,14 @@ title="Open an issue"
 <span class="kn">from</span> <span class="nn">numpy.lib.recfunctions</span> <span class="kn">import</span> <span class="n">structured_to_unstructured</span>
 <span class="kn">import</span> <span class="nn">scipy.stats</span>
 
-<span class="kn">from</span> <span class="nn">.cli</span> <span class="kn">import</span> <span class="n">ADRDFormatter</span><span class="p">,</span> <span class="n">_DINF_MODEL_HELP</span><span class="p">,</span> <span class="n">set_loglevel</span>
+<span class="kn">from</span> <span class="nn">.cli</span> <span class="kn">import</span> <span class="n">_SubCommand</span><span class="p">,</span> <span class="n">_set_loglevel</span>
 <span class="kn">from</span> <span class="nn">.misc</span> <span class="kn">import</span> <span class="n">quantile</span>
 <span class="kn">import</span> <span class="nn">dinf</span>
 
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
-<div class="viewcode-block" id="MultiPage"><a class="viewcode-back" href="../../api.html#dinf.plot.MultiPage">[docs]</a><span class="k">class</span> <span class="nc">MultiPage</span><span class="p">:</span>
+
+<span class="k">class</span> <span class="nc">_MultiPage</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    PdfPages-like context manager that also handles non-pdfs.</span>
 
@@ -409,13 +411,15 @@ title="Open an issue"
             <span class="k">return</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pdf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: saving figure (</span><span class="si">%s</span><span class="s2">).&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">hint</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">pdf</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_figures</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="c1"># Insert the hint into the filename.</span>
                 <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">with_stem</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">hint</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">: saving figure (</span><span class="si">%s</span><span class="s2">).&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">hint</span><span class="p">)</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="feature"><a class="viewcode-back" href="../../api.html#dinf.plot.feature">[docs]</a><span class="k">def</span> <span class="nf">feature</span><span class="p">(</span>
@@ -827,38 +831,10 @@ title="Open an issue"
     <span class="k">return</span> <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="p">,</span> <span class="n">ax</span></div>
 
 
-<span class="k">class</span> <span class="nc">_SubCommand</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">_DinfPlotSubCommand</span><span class="p">(</span><span class="n">_SubCommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Base class for subcommands.</span>
+<span class="sd">    Base class for `dinf-plot` subcommands.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subparsers</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
-        <span class="n">docstring</span> <span class="o">=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">dedent</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">subparsers</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span>
-            <span class="n">command</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="n">docstring</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">description</span><span class="o">=</span><span class="n">docstring</span><span class="p">,</span>
-            <span class="n">formatter_class</span><span class="o">=</span><span class="n">ADRDFormatter</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
-
-        <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_mutually_exclusive_group</span><span class="p">()</span>
-        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;-v&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;--verbose&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;count&quot;</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="p">(</span>
-                <span class="s2">&quot;Increase verbosity. Specify once for INFO messages and &quot;</span>
-                <span class="s2">&quot;twice for DEBUG messages.&quot;</span>
-            <span class="p">),</span>
-        <span class="p">)</span>
-        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;-q&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;--quiet&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable output. Only ERROR and CRITICAL messages are printed.&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">add_argument_output_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -886,21 +862,10 @@ title="Open an issue"
     <span class="k">def</span> <span class="nf">add_argument_abc_thresholds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_mutually_exclusive_group</span><span class="p">()</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;-n&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;--top-n&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--top&quot;</span><span class="p">,</span>
             <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;N&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Accept only the N top samples, ranked by probability.&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;-p&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;--probability-threshold&quot;</span><span class="p">,</span>
-            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;P&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="p">(</span>
-                <span class="s2">&quot;Accept only the samples with prediction probabilities &quot;</span>
-                <span class="s2">&quot;greater than P.&quot;</span>
-            <span class="p">),</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">add_argument_weighted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -928,67 +893,48 @@ title="Open an issue"
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The discriminator network(s) to plot.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">add_argument_working_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">add_argument_gan_folder</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;working_directory&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;gan_folder&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Folder containing results from a GAN run.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">add_argument_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;model&quot;</span><span class="p">,</span>
-            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;model.py&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="n">_DINF_MODEL_HELP</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">add_argument_model_optional</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;-m&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;--model&quot;</span><span class="p">,</span>
-            <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;model.py&quot;</span><span class="p">,</span>
-            <span class="nb">type</span><span class="o">=</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Model file from which the parameter truth values with be taken.&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">get_abc_datasets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">get_abc_datasets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_files</span><span class="p">,</span> <span class="n">top_n</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Load data file and filter by top-n or by probability.&quot;&quot;&quot;</span>
         <span class="n">datasets</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">data_files</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">data_files</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">load_results</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
             <span class="c1"># Flatten MCMC datasets with multiple chains.</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
-            <span class="k">assert</span> <span class="kc">None</span> <span class="ow">in</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">top_n</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">probability_threshold</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">top_n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">-</span> <span class="n">args</span><span class="o">.</span><span class="n">top_n</span>
+            <span class="k">if</span> <span class="n">top_n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">-</span> <span class="n">top_n</span>
                 <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;_Pr&quot;</span><span class="p">)[</span><span class="n">k</span><span class="p">:]</span>
-            <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">probability_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">args</span><span class="o">.</span><span class="n">probability_threshold</span><span class="p">)]</span>
 
             <span class="n">datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">datasets</span>
 
-    <span class="k">def</span> <span class="nf">get_gan_datasets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-        <span class="n">args</span><span class="o">.</span><span class="n">discriminators</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">args</span><span class="o">.</span><span class="n">data_files</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">store</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Store</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">working_directory</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_gan_datasets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gan_folder</span><span class="p">):</span>
+        <span class="n">discriminators</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">data_files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">store</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Store</span><span class="p">(</span><span class="n">gan_folder</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="n">dataset_type</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">store</span><span class="p">):</span>
             <span class="k">if</span> <span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;discriminator.nn&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-                <span class="n">args</span><span class="o">.</span><span class="n">discriminators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;discriminator.nn&quot;</span><span class="p">)</span>
+                <span class="n">discriminators</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="s2">&quot;discriminator.nn&quot;</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;abc&quot;</span><span class="p">,</span> <span class="s2">&quot;mcmc&quot;</span><span class="p">,</span> <span class="s2">&quot;pg-gan-proposals&quot;</span><span class="p">):</span>
                 <span class="k">if</span> <span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">.npz&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
                     <span class="k">if</span> <span class="n">dataset_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                         <span class="n">dataset_type</span> <span class="o">=</span> <span class="n">prefix</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="k">assert</span> <span class="n">dataset_type</span> <span class="o">==</span> <span class="n">prefix</span><span class="p">,</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">dataset_type</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
-                    <span class="n">args</span><span class="o">.</span><span class="n">data_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">.npz&quot;</span><span class="p">)</span>
+                    <span class="n">data_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">.npz&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">discriminators</span><span class="p">,</span> <span class="n">data_files</span>
 
 
-<span class="k">class</span> <span class="nc">_Demes</span><span class="p">(</span><span class="n">_SubCommand</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_Demes</span><span class="p">(</span><span class="n">_DinfPlotSubCommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Plot a demes-as-tubes demographic model using DemesDraw.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1039,7 +985,7 @@ title="Open an issue"
             <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output_file</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">_Features</span><span class="p">(</span><span class="n">_SubCommand</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_Features</span><span class="p">(</span><span class="n">_DinfPlotSubCommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Plot feature matrices as heatmaps.</span>
 
@@ -1084,7 +1030,7 @@ title="Open an issue"
             <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output_file</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">_Metrics</span><span class="p">(</span><span class="n">_SubCommand</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_Metrics</span><span class="p">(</span><span class="n">_DinfPlotSubCommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Plot loss and accuracy of discriminator(s).</span>
 
@@ -1120,7 +1066,7 @@ title="Open an issue"
             <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output_file</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">_Hist2d</span><span class="p">(</span><span class="n">_SubCommand</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_Hist2d</span><span class="p">(</span><span class="n">_DinfPlotSubCommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Plot 2d marginal posterior densities.</span>
 
@@ -1140,11 +1086,10 @@ title="Open an issue"
 <span class="sd">    be indicated by red lines. By default, all values in the</span>
 <span class="sd">    data file contribute equally to the histogram. For parameter</span>
 <span class="sd">    values drawn from the prior distribution, this will therefore</span>
-<span class="sd">    show the prior distribution. A more informative plot can be</span>
-<span class="sd">    obtained by weighting parameter values by the discriminator</span>
-<span class="sd">    probabilities using the -W option. Alternately, the data file</span>
-<span class="sd">    can be filtered to obtain a posterior sample using the -n</span>
-<span class="sd">    or -t options.</span>
+<span class="sd">    show the prior distribution. A posterior sample can be obtained</span>
+<span class="sd">    by weighting parameter values by the discriminator probabilities</span>
+<span class="sd">    using the -W option, and/or rejection sampling the prior sample</span>
+<span class="sd">    using the --top option.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subparsers</span><span class="p">):</span>
@@ -1166,7 +1111,7 @@ title="Open an issue"
             <span class="n">action</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of parameter to plot on vertical axis.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_model_optional</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_model</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_data_file</span><span class="p">(</span><span class="n">nargs</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
@@ -1174,7 +1119,7 @@ title="Open an issue"
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
 
-        <span class="n">datasets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_abc_datasets</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">datasets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_abc_datasets</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">data_files</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">top</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">datasets</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">datasets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">param_names</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
@@ -1207,7 +1152,7 @@ title="Open an issue"
                     <span class="n">n_figures</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="n">done</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-        <span class="k">with</span> <span class="n">MultiPage</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output_file</span><span class="p">,</span> <span class="n">n_figures</span><span class="p">)</span> <span class="k">as</span> <span class="n">pages</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_MultiPage</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output_file</span><span class="p">,</span> <span class="n">n_figures</span><span class="p">)</span> <span class="k">as</span> <span class="n">pages</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">x_param</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">x_param</span><span class="p">:</span>
                 <span class="n">x</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">x_param</span><span class="p">]</span>
                 <span class="n">x_truth</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1297,7 +1242,7 @@ title="Open an issue"
     <span class="k">return</span> <span class="n">xrange</span><span class="p">,</span> <span class="n">pdf</span>
 
 
-<span class="k">class</span> <span class="nc">_Hist</span><span class="p">(</span><span class="n">_SubCommand</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_Hist</span><span class="p">(</span><span class="n">_DinfPlotSubCommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Plot marginal posterior densities.</span>
 
@@ -1319,10 +1264,10 @@ title="Open an issue"
 <span class="sd">    the figure. By default, all values in the data file contribute</span>
 <span class="sd">    equally to the histogram. For parameter values drawn from the</span>
 <span class="sd">    prior distribution, this will therefore show the prior</span>
-<span class="sd">    distribution. A more informative plot can be obtained by</span>
-<span class="sd">    weighting parameter values by the discriminator probabilities</span>
-<span class="sd">    using the -W option. Alternately, the data file can be filtered</span>
-<span class="sd">    to obtain a posterior sample using the -n or -t options.</span>
+<span class="sd">    distribution. A posterior sample can be obtained by weighting</span>
+<span class="sd">    parameter values by the discriminator probabilities using the</span>
+<span class="sd">    -W option, and/or rejection sampling the prior sample using</span>
+<span class="sd">    the --top option.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subparsers</span><span class="p">):</span>
@@ -1361,14 +1306,14 @@ title="Open an issue"
             <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Also draw a 1-dimensional marginal kernel density estimate.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_model_optional</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_model</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_data_file</span><span class="p">(</span><span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
         <span class="n">parameters</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
-        <span class="n">datasets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_abc_datasets</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">datasets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_abc_datasets</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">data_files</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">top</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">x_param</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">args</span><span class="o">.</span><span class="n">x_param</span> <span class="o">=</span> <span class="n">datasets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
@@ -1402,7 +1347,7 @@ title="Open an issue"
                 <span class="n">X_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">X</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">)}</span>
                 <span class="n">datasets_resampled</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X_dict</span><span class="p">)</span>
 
-        <span class="k">with</span> <span class="n">MultiPage</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output_file</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">x_param</span><span class="p">))</span> <span class="k">as</span> <span class="n">pages</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_MultiPage</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output_file</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">x_param</span><span class="p">))</span> <span class="k">as</span> <span class="n">pages</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">x_param</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">x_param</span><span class="p">:</span>
                 <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span>
                     <span class="n">figsize</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">figaspect</span><span class="p">(</span><span class="mi">9</span> <span class="o">/</span> <span class="mi">16</span><span class="p">),</span> <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span>
@@ -1464,7 +1409,7 @@ title="Open an issue"
                 <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">_Gan</span><span class="p">(</span><span class="n">_SubCommand</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_Gan</span><span class="p">(</span><span class="n">_DinfPlotSubCommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Plot GAN things.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1488,32 +1433,29 @@ title="Open an issue"
 <span class="sd">            ),</span>
 <span class="sd">        )</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_model_optional</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_working_directory</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_model</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_argument_gan_folder</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">get_gan_datasets</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">discriminators</span><span class="p">,</span> <span class="n">data_files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_gan_datasets</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">gan_folder</span><span class="p">)</span>
 
         <span class="n">parameters</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
 
-        <span class="n">datasets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_abc_datasets</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">datasets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_abc_datasets</span><span class="p">(</span><span class="n">data_files</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">top</span><span class="p">)</span>
         <span class="n">x_params</span> <span class="o">=</span> <span class="n">datasets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
         <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span> <span class="o">==</span> <span class="n">x_params</span>
 
         <span class="n">metrics_collection</span> <span class="o">=</span> <span class="p">{</span>
             <span class="sa">f</span><span class="s2">&quot;Iteration </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">metrics</span>
-            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">discriminators</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">discriminators</span><span class="p">)</span>
         <span class="p">}</span>
 
         <span class="n">cmap</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s2">&quot;gnuplot&quot;</span><span class="p">)</span>
         <span class="n">cycle</span> <span class="o">=</span> <span class="n">cycler</span><span class="p">(</span>
-            <span class="n">color</span><span class="o">=</span><span class="p">[</span>
-                <span class="n">cmap</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">discriminators</span><span class="p">))</span>
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">discriminators</span><span class="p">))</span>
-            <span class="p">]</span>
+            <span class="n">color</span><span class="o">=</span><span class="p">[</span><span class="n">cmap</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">discriminators</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">discriminators</span><span class="p">))]</span>
         <span class="p">)</span>
         <span class="n">saved_prop_cycle</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;axes.prop_cycle&quot;</span><span class="p">]</span>
         <span class="n">matplotlib</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;axes.prop_cycle&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cycle</span>
@@ -1527,9 +1469,7 @@ title="Open an issue"
         <span class="n">axs</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">get_legend</span><span class="p">()</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
         <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span>
             <span class="n">matplotlib</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">ScalarMappable</span><span class="p">(</span>
-                <span class="n">norm</span><span class="o">=</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span>
-                    <span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">discriminators</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
-                <span class="p">),</span>
+                <span class="n">norm</span><span class="o">=</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">colors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">discriminators</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
                 <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span>
             <span class="p">),</span>
             <span class="n">ax</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">],</span>
@@ -1538,7 +1478,7 @@ title="Open an issue"
             <span class="n">label</span><span class="o">=</span><span class="s2">&quot;iteration&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">with</span> <span class="n">MultiPage</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output_file</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_params</span><span class="p">))</span> <span class="k">as</span> <span class="n">pages</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">_MultiPage</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">output_file</span><span class="p">,</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_params</span><span class="p">))</span> <span class="k">as</span> <span class="n">pages</span><span class="p">:</span>
             <span class="n">pages</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">hint</span><span class="o">=</span><span class="s2">&quot;metrics&quot;</span><span class="p">)</span>
             <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
 
@@ -1567,6 +1507,9 @@ title="Open an issue"
     <span class="n">top_parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
         <span class="n">prog</span><span class="o">=</span><span class="s2">&quot;dinf.plot&quot;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Dinf plotting tools.&quot;</span>
     <span class="p">)</span>
+    <span class="n">top_parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;-V&quot;</span><span class="p">,</span> <span class="s2">&quot;--version&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">__version__</span>
+    <span class="p">)</span>
 
     <span class="n">subparsers</span> <span class="o">=</span> <span class="n">top_parser</span><span class="o">.</span><span class="n">add_subparsers</span><span class="p">(</span><span class="n">dest</span><span class="o">=</span><span class="s2">&quot;subcommand&quot;</span><span class="p">)</span>
     <span class="n">_Demes</span><span class="p">(</span><span class="n">subparsers</span><span class="p">)</span>
@@ -1587,7 +1530,7 @@ title="Open an issue"
         <span class="c1"># Bumping the dpi to 140 provides greater parity.</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">rc</span><span class="p">(</span><span class="s2">&quot;figure&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">140</span><span class="p">)</span>
 
-    <span class="n">set_loglevel</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">quiet</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="n">_set_loglevel</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">quiet</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
     <span class="n">args</span><span class="o">.</span><span class="n">func</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
 
@@ -1613,7 +1556,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev54+g52b4e36
+      dinf 0.2.1.dev57+g355ad35
     </div>
 </p>
         </footer>
