@@ -3,10 +3,10 @@ import collections.abc
 import copy
 import dataclasses
 import logging
-import scipy
 from typing import Tuple
 
 import numpy as np
+import scipy
 
 logger = logging.getLogger(__name__)
 

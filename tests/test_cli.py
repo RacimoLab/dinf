@@ -11,25 +11,25 @@ from .test_dinf import check_discriminator, check_npz
 @pytest.mark.usefixtures("tmp_path")
 def test_check_output_file(tmp_path):
     file = tmp_path / "foo"
-    dinf.cli.check_output_file(file)
+    dinf.cli._check_output_file(file)
     # If it succeeds, it should succeed again.
-    dinf.cli.check_output_file(file)
+    dinf.cli._check_output_file(file)
 
     file.touch()
     # The file is not allowed to exist already.
     with pytest.raises(ValueError, match="file already exists"):
-        dinf.cli.check_output_file(file)
+        dinf.cli._check_output_file(file)
 
     # Directory. Should raise an error, but we don't care what type.
     with pytest.raises(Exception):
-        dinf.cli.check_output_file(tmp_path)
+        dinf.cli._check_output_file(tmp_path)
 
     inaccessible_folder = tmp_path / "inaccessible"
     inaccessible_folder.mkdir()
     inaccessible_folder.chmod(0o000)
     # Inacessible. Should raise an error, but we don't care what type.
     with pytest.raises(Exception):
-        dinf.cli.check_output_file(inaccessible_folder / "foo")
+        dinf.cli._check_output_file(inaccessible_folder / "foo")
 
 
 class TestTopLevel:

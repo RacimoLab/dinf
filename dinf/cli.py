@@ -11,7 +11,7 @@ import rich.progress
 import dinf
 
 
-def check_output_file(path):
+def _check_output_file(path):
     """
     Check the file is writable and doesn't already exist.
 
@@ -43,7 +43,7 @@ _DINF_MODEL_HELP = (
 )
 
 
-class ADRDFormatter(
+class _ADRDFormatter(
     argparse.ArgumentDefaultsHelpFormatter,
     argparse.RawDescriptionHelpFormatter,
 ):
@@ -61,7 +61,7 @@ class _SubCommand:
             command,
             help=docstring.splitlines()[0],
             description=docstring,
-            formatter_class=ADRDFormatter,
+            formatter_class=_ADRDFormatter,
         )
         self.parser.set_defaults(func=self)
 
@@ -82,6 +82,24 @@ class _SubCommand:
             action="store_true",
             help="Disable output. Only ERROR and CRITICAL messages are printed.",
         )
+
+    def add_argument_model(self, *, parser=None, required=True):
+        if parser is None:
+            parser = self.parser
+        parser.add_argument(
+            "-m",
+            "--model",
+            metavar="model.py",
+            required=required,
+            type=pathlib.Path,
+            help=_DINF_MODEL_HELP,
+        )
+
+
+class _DinfSubCommand(_SubCommand):
+    """
+    Base class for `dinf` subcommands.
+    """
 
     def add_common_parser_group(self):
         group = self.parser.add_argument_group(title="common arguments")
@@ -159,18 +177,6 @@ class _SubCommand:
         )
         self.add_argument_model(parser=group)
 
-    def add_argument_model(self, *, parser=None, required=True):
-        if parser is None:
-            parser = self.parser
-        parser.add_argument(
-            "-m",
-            "--model",
-            metavar="model.py",
-            required=required,
-            type=pathlib.Path,
-            help=_DINF_MODEL_HELP,
-        )
-
     def add_argument_discriminator(self, *, parser=None, help=None):
         if parser is None:
             parser = self.parser
@@ -186,7 +192,7 @@ class _SubCommand:
         )
 
 
-class _AbcGan(_SubCommand):
+class _AbcGan(_DinfSubCommand):
     """
     Adversarial Abstract Bayesian Computation / Sequential Monte Carlo.
 
@@ -348,7 +354,7 @@ class _AbcGan(_SubCommand):
             )
 
 
-class _McmcGan(_SubCommand):
+class _McmcGan(_DinfSubCommand):
     """
     Run the MCMC GAN.
 
@@ -494,7 +500,7 @@ class _McmcGan(_SubCommand):
             )
 
 
-class _PgGan(_SubCommand):
+class _PgGan(_DinfSubCommand):
     """
     Run PG-GAN style simulated annealing.
     """
@@ -544,7 +550,7 @@ class _PgGan(_SubCommand):
         )
 
 
-class _Train(_SubCommand):
+class _Train(_DinfSubCommand):
     """
     Train a discriminator.
     """
@@ -565,7 +571,7 @@ class _Train(_SubCommand):
     def __call__(self, args: argparse.Namespace):
         dinf_model = dinf.DinfModel.from_file(args.model)
         if args.epochs > 0:
-            check_output_file(args.discriminator)
+            _check_output_file(args.discriminator)
 
         progress = rich.progress.Progress(
             rich.progress.TextColumn("[progress.description]{task.description}"),
@@ -651,7 +657,7 @@ class _Train(_SubCommand):
             discriminator.to_file(args.discriminator)
 
 
-class _Predict(_SubCommand):
+class _Predict(_DinfSubCommand):
     """
     Make predictions using a trained discriminator.
 
@@ -698,7 +704,7 @@ class _Predict(_SubCommand):
         discriminator = dinf.Discriminator.from_file(
             args.discriminator, network=dinf_model.discriminator_network
         )
-        check_output_file(args.output_file)
+        _check_output_file(args.output_file)
 
         progress = rich.progress.Progress(
             rich.progress.TextColumn("[progress.description]{task.description}"),
@@ -766,7 +772,7 @@ class _Predict(_SubCommand):
         )
 
 
-class _Check(_SubCommand):
+class _Check(_DinfSubCommand):
     """
     Basic dinf_model health checks.
 
@@ -783,7 +789,7 @@ class _Check(_SubCommand):
         dinf_model.check()
 
 
-def set_loglevel(quiet, verbose):
+def _set_loglevel(quiet, verbose):
     # Set root logger's level to WARNING (the default),
     # or ERROR if --quiet is specified.
     level = "WARNING"
@@ -831,5 +837,5 @@ def main(args_list=None):
         top_parser.print_help()
         exit(1)
 
-    set_loglevel(args.quiet, args.verbose)
+    _set_loglevel(args.quiet, args.verbose)
     args.func(args)
