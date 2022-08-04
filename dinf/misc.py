@@ -25,6 +25,29 @@ def spawn_key(key: str) -> Tuple[int, ...]:
     return tuple(map(ord, key))
 
 
+def quantile(x: np.ndarray, /, *, q, weights=None) -> np.ndarray:
+    """
+    Calculate quantiles of an array.
+
+    :param x:
+        Array values.
+    :param q:
+        Quantiles to calculate.
+    :param weights:
+        Weights for the array values in ``x``.
+    :return:
+        The ``q``'th quantiles of ``x``.
+    """
+    if weights is None:
+        return np.quantile(x, q)
+    idx = np.argsort(x)
+    x = x[idx]
+    weights = weights[idx]
+    S = np.cumsum(weights)
+    wxq = (S - weights / 2) / S[-1]
+    return np.interp(q, wxq, x)
+
+
 def ts_individuals(
     ts: tskit.TreeSequence,
     /,

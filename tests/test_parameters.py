@@ -64,14 +64,14 @@ class TestParam:
             Param(low=-10, high=10, truth=truth)
 
     @pytest.mark.parametrize("size", (1, 50, (2, 3)))
-    def test_draw_prior(self, size):
+    def test_sample_prior(self, size):
         rng = np.random.default_rng(1234)
         for p in [
             Param(low=0, high=10),
             Param(low=-1e6, high=1e6),
             Param(low=10_000, high=20_000, truth=15_000),
         ]:
-            xs = p.draw_prior(size, rng)
+            xs = p.sample_prior(size=size, rng=rng)
             shape = size if isinstance(size, tuple) else (size,)
             assert xs.shape == shape
             assert np.all(p.bounds_contain(xs))
@@ -164,7 +164,7 @@ class TestParameters:
 
         params = Parameters(a=Param(low=0, high=10))
         xs = np.moveaxis(
-            np.array([[x] for x in params["a"].draw_prior(size, rng)]), 1, -1
+            np.array([[x] for x in params["a"].sample_prior(size=size, rng=rng)]), 1, -1
         )
         in_bounds = params.bounds_contain(xs)
         assert xs.shape[:-1] == in_bounds.shape
@@ -176,7 +176,9 @@ class TestParameters:
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
         xs = np.moveaxis(
-            np.array([p.draw_prior(size, rng) for p in params.values()]), 0, -1
+            np.array([p.sample_prior(size=size, rng=rng) for p in params.values()]),
+            0,
+            -1,
         )
         in_bounds = params.bounds_contain(xs)
         assert xs.shape[:-1] == in_bounds.shape
@@ -233,20 +235,153 @@ class TestParameters:
             assert np.all(in_bounds == expected)
 
     @pytest.mark.parametrize("size", (1, 50, (2, 3)))
-    def test_draw_prior(self, size):
+    def test_sample_prior(self, size):
         rng = np.random.default_rng(1234)
         params = Parameters(
             a=Param(low=0, high=10),
             b=Param(low=-1e6, high=1e6),
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
-        xs = params.draw_prior(size, rng)
+        xs = params.sample_prior(size=size, rng=rng)
         assert xs.shape[-1] == len(params)
         shape = size if isinstance(size, tuple) else (size,)
         assert xs.shape[:-1] == shape
         in_bounds = params.bounds_contain(xs)
         assert in_bounds.shape == shape
         assert np.all(in_bounds)
+
+    @pytest.mark.parametrize("size", (1, 100_000))
+    def test_sample_ball(self, size):
+        cov_factor = 0.001**2
+        rng = np.random.default_rng(1234)
+        params = Parameters(
+            a=Param(low=0, high=10, truth=5),
+            b=Param(low=-1e6, high=1e6, truth=1000),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        truths = np.array([p.truth for p in params.values()])
+        xs = params.sample_ball(truths, cov_factor=cov_factor, size=size, rng=rng)
+        assert xs.shape[-1] == len(params)
+        shape = size if isinstance(size, tuple) else (size,)
+        assert xs.shape[:-1] == shape
+        in_bounds = params.bounds_contain(xs)
+        assert in_bounds.shape == shape
+        assert np.all(in_bounds)
+
+        if size > 1:
+            mean = xs.mean(axis=0)
+            np.testing.assert_allclose(truths, mean, rtol=0.01)
+            var = xs.var(axis=0) / cov_factor
+            var_expected = np.array([(p.high - p.low) ** 2 for p in params.values()])
+            np.testing.assert_allclose(var_expected, var, rtol=0.01)
+
+    @pytest.mark.parametrize("size", (2, 50))
+    def test_sample_kde(self, size):
+        rng = np.random.default_rng(1234)
+        params = Parameters(
+            a=Param(low=0, high=10),
+            b=Param(low=-1e6, high=1e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        xs = params.sample_prior(size=size, rng=rng)
+        assert xs.shape[-1] == len(params)
+        vs = params.sample_kde(xs, size=size, rng=rng, probs=np.ones(size))
+        assert xs.shape == vs.shape
+        assert np.all(params.bounds_contain(vs))
+
+        vs2 = params.sample_kde(xs, size=10 * size, rng=rng, probs=np.ones(size))
+        assert len(vs) * 10 == len(vs2)
+        assert np.all(params.bounds_contain(vs2))
+
+    def test_sample_kde_mean(self):
+        size = 100_000
+        rng = np.random.default_rng(1234)
+        params = Parameters(
+            a=Param(low=0, high=10, truth=5),
+            b=Param(low=-1e6, high=1e6, truth=1000),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+
+        # Sample a small ball around the truth values.
+        truths = np.array([p.truth for p in params.values()])
+        xs = params.sample_ball(truths, cov_factor=0.001**2, size=size, rng=rng)
+        assert xs.shape[-1] == len(params)
+        assert np.all(params.bounds_contain(xs))
+
+        vs = params.sample_kde(xs, size=size, rng=rng, probs=np.ones(size))
+        assert xs.shape == vs.shape
+        assert np.all(params.bounds_contain(vs))
+        np.testing.assert_allclose(xs.mean(axis=0), vs.mean(axis=0), rtol=0.01)
+
+    def test_sample_kde_weighted(self):
+        size = 100_000
+        rng = np.random.default_rng(1234)
+        params = Parameters(
+            # Truth values need to be at the midpoint for this test.
+            a=Param(low=0, high=10, truth=5),
+            b=Param(low=0, high=1e6, truth=0.5e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+
+        xs = params.sample_prior(size=size, rng=rng)
+        assert xs.shape[-1] == len(params)
+        assert np.all(params.bounds_contain(xs))
+
+        # Weight samples by their proximity to the truth values.
+        truths = np.array([p.truth for p in params.values()])
+        widths = np.array([p.high - p.low for p in params.values()])
+        weights = np.linalg.norm((xs - truths) / widths, axis=1)
+
+        vs = params.sample_kde(xs, size=size, rng=rng, probs=weights)
+        assert xs.shape == vs.shape
+        assert np.all(params.bounds_contain(vs))
+        np.testing.assert_allclose(truths, vs.mean(axis=0), rtol=0.01)
+
+    def test_geometric_median(self):
+        size = 100_000
+        rng = np.random.default_rng(1234)
+        params = Parameters(
+            a=Param(low=0, high=10, truth=5),
+            b=Param(low=-1e6, high=1e6, truth=1000),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+
+        # Sample a small ball around the truth values.
+        truths = np.array([p.truth for p in params.values()])
+        xs = params.sample_ball(truths, cov_factor=0.001**2, size=size, rng=rng)
+        assert xs.shape[-1] == len(params)
+        assert np.all(params.bounds_contain(xs))
+
+        m = params.geometric_median(xs)
+        assert len(m.shape) == 1
+        assert m.shape[0] == len(params)
+        assert np.all(params.bounds_contain(m))
+        np.testing.assert_allclose(xs.mean(axis=0), m, rtol=0.01)
+
+    def test_geometric_median_weighted(self):
+        size = 100_000
+        rng = np.random.default_rng(1234)
+        params = Parameters(
+            # Truth values need to be at the midpoint for this test.
+            a=Param(low=0, high=10, truth=5),
+            b=Param(low=0, high=1e6, truth=0.5e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+
+        xs = params.sample_prior(size=size, rng=rng)
+        assert xs.shape[-1] == len(params)
+        assert np.all(params.bounds_contain(xs))
+
+        # Weight samples by their proximity to the truth values.
+        truths = np.array([p.truth for p in params.values()])
+        widths = np.array([p.high - p.low for p in params.values()])
+        weights = np.linalg.norm((xs - truths) / widths, axis=1)
+
+        m = params.geometric_median(xs, probs=weights)
+        assert len(m.shape) == 1
+        assert m.shape[0] == len(params)
+        assert np.all(params.bounds_contain(m))
+        np.testing.assert_allclose(truths, m, rtol=0.01)
 
     def test_custom_param(self):
         class UnboundedParam(Param):
@@ -273,7 +408,7 @@ class TestParameters:
         )
         size = 10_000
         rng = np.random.default_rng(1234)
-        thetas = params.draw_prior(size, rng)
+        thetas = params.sample_prior(size=size, rng=rng)
         thetas_unbounded = params.transform(thetas)
         for j in range(thetas.shape[-1]):
             idx1 = np.argsort(thetas[:, j])
@@ -288,7 +423,7 @@ class TestParameters:
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
         rng = np.random.default_rng(1234)
-        thetas = params.draw_prior(size, rng)
+        thetas = params.sample_prior(size=size, rng=rng)
         thetas_unbounded = params.transform(thetas)
         thetas2 = params.itransform(thetas_unbounded)
         np.testing.assert_allclose(thetas, thetas2)
@@ -340,7 +475,7 @@ class TestParameters:
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
         rng = np.random.default_rng(1234)
-        thetas = params.draw_prior(size, rng)
+        thetas = params.sample_prior(size=size, rng=rng)
         thetas2 = params.truncate(thetas)
         np.testing.assert_array_equal(thetas, thetas2)
 
@@ -399,7 +534,7 @@ class TestParameters:
             c=Param(low=10_000, high=20_000, truth=15_000),
         )
         rng = np.random.default_rng(1234)
-        thetas = params.draw_prior(size, rng)
+        thetas = params.sample_prior(size=size, rng=rng)
         thetas2 = params.reflect(thetas)
         np.testing.assert_array_equal(thetas, thetas2)
 
@@ -428,3 +563,23 @@ class TestParameters:
                 (3, 0, 10_000),
             ],
         )
+
+    @pytest.mark.parametrize("n", (1, 50))
+    def test_top_n(self, n):
+        size = 10_000
+        params = Parameters(
+            a=Param(low=0, high=10),
+            b=Param(low=-1e6, high=1e6),
+            c=Param(low=10_000, high=20_000, truth=15_000),
+        )
+        rng = np.random.default_rng(1234)
+        thetas = params.sample_prior(size=size, rng=rng)
+        p = np.linspace(1, 0, size)
+        top_thetas, top_probs = params.top_n(thetas, probs=p, n=n)
+        assert top_thetas.shape == (n, len(params))
+        assert len(top_probs) == n
+        for th, pj in zip(thetas[:n], p[:n]):
+            assert th in top_thetas
+            assert pj in top_probs
+            (i,) = np.where(top_probs == pj)[0]
+            assert all(th == top_thetas[i])

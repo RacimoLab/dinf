@@ -225,10 +225,10 @@ class DinfModel:
         if seed is None:
             seed = 1234
         rng = np.random.default_rng(seed)
-        thetas = self.parameters.draw_prior(5, rng=rng)
+        thetas = self.parameters.sample_prior(size=5, rng=rng)
         if thetas.shape != (5, len(self.parameters)):
             raise ValueError(
-                "parameters.draw_prior(5) produced output with shape "
+                "parameters.sample_prior(size=5) produced output with shape "
                 f"{thetas.shape}, expected shape {(5, len(self.parameters))}."
             )
 

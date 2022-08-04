@@ -61,7 +61,7 @@ class TestDinfModel:
 
     def test_bad_custom_param(self):
         class TriangleParam(dinf.Param):
-            def draw_prior(self, size, rng):
+            def sample_prior(self, size, rng):
                 mid = (self.low + self.high) / 2
                 # Accidentally forget to use 'size'.
                 return rng.triangular(left=self.low, mode=mid, right=self.high)
@@ -72,7 +72,7 @@ class TestDinfModel:
             generator_func=_generator_func,
             parameters=parameters,
         )
-        with pytest.raises(ValueError, match="parameters.draw.* shape"):
+        with pytest.raises(ValueError, match="parameters.sample_prior.* shape"):
             g.check()
 
     def test_missing_truth_values(self):
