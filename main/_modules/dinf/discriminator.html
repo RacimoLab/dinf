@@ -229,7 +229,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev46
+            dinf 0.2.1.dev52
             </div>
             
         </div>
@@ -701,14 +701,14 @@ title="Open an issue"
                 <span class="n">batch_stats</span><span class="o">=</span><span class="p">{},</span>
             <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialise the neural network with the given input shape.</span>
 
 <span class="sd">        :param input_shape:</span>
 <span class="sd">            The shape of the input to the neural network.</span>
-<span class="sd">        :param numpy.random.Generator rng:</span>
-<span class="sd">            The numpy random number generator.</span>
+<span class="sd">        :param seed:</span>
+<span class="sd">            Seed for the jax random number generator.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -743,7 +743,7 @@ title="Open an issue"
         <span class="n">dummy_input</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
             <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_shape</span><span class="p">,</span> <span class="n">is_leaf</span><span class="o">=</span><span class="n">is_tuple</span>
         <span class="p">)</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">63</span><span class="p">))</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
         <span class="n">variables</span> <span class="o">=</span> <span class="n">init</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">dummy_input</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">TrainState</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
@@ -878,7 +878,7 @@ title="Open an issue"
         <span class="n">val_y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
         <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+        <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
         <span class="n">reset_metrics</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">entropy_regularisation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -886,14 +886,20 @@ title="Open an issue"
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fit discriminator to training data.</span>
 
-<span class="sd">        :param train_x: Training data.</span>
-<span class="sd">        :param train_y: Labels for training data (zeros and ones).</span>
-<span class="sd">        :param val_x: Validation data.</span>
-<span class="sd">        :param val_y: Labels for validation data (zeros and ones).</span>
-<span class="sd">        :param batch_size: Size of minibatch for gradient update step.</span>
-<span class="sd">        :param epochs: The number of full passes over the training data.</span>
-<span class="sd">        :param numpy.random.Generator rng:</span>
-<span class="sd">            The numpy random number generator.</span>
+<span class="sd">        :param train_x:</span>
+<span class="sd">            Training data.</span>
+<span class="sd">        :param train_y:</span>
+<span class="sd">            Labels for training data (zeros and ones).</span>
+<span class="sd">        :param val_x:</span>
+<span class="sd">            Validation data.</span>
+<span class="sd">        :param val_y:</span>
+<span class="sd">            Labels for validation data (zeros and ones).</span>
+<span class="sd">        :param batch_size:</span>
+<span class="sd">            Size of minibatch for gradient update step.</span>
+<span class="sd">        :param epochs:</span>
+<span class="sd">            The number of full passes over the training data.</span>
+<span class="sd">        :param numpy.random.SeedSequence ss:</span>
+<span class="sd">            Numpy random number seed sequence.</span>
 <span class="sd">        :param reset_metrics:</span>
 <span class="sd">            If true, remove loss/accuracy metrics from previous calls to</span>
 <span class="sd">            fit() (if any). If false, loss/accuracy metrics will be appended</span>
@@ -946,7 +952,7 @@ title="Open an issue"
             <span class="p">)</span>
             <span class="k">return</span> <span class="n">n</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">new_metrics</span>
 
-        <span class="k">def</span> <span class="nf">train_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">dropout_rng</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">train_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">dropout_rng</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
             <span class="sd">&quot;&quot;&quot;Train for a single epoch.&quot;&quot;&quot;</span>
 
             <span class="n">metrics_sum</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">accuracy</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -969,7 +975,7 @@ title="Open an issue"
 
             <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">accuracy</span><span class="p">,</span> <span class="n">state</span>
 
-        <span class="k">def</span> <span class="nf">eval_model</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">test_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">eval_model</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">test_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
             <span class="n">metrics_sum</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">accuracy</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batchify</span><span class="p">(</span><span class="n">test_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">random</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">):</span>
@@ -985,8 +991,12 @@ title="Open an issue"
 
             <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">accuracy</span>
 
+        <span class="n">ss_jax</span><span class="p">,</span> <span class="n">ss_train</span><span class="p">,</span> <span class="n">ss_eval</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">seed_init</span><span class="p">,</span> <span class="n">seed_dropout</span> <span class="o">=</span> <span class="n">ss_jax</span><span class="o">.</span><span class="n">generate_state</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">rng_train</span><span class="p">,</span> <span class="n">rng_eval</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">sj</span><span class="p">)</span> <span class="k">for</span> <span class="n">sj</span> <span class="ow">in</span> <span class="p">(</span><span class="n">ss_train</span><span class="p">,</span> <span class="n">ss_eval</span><span class="p">))</span>
+
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inited</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="n">pytree_shape</span><span class="p">(</span><span class="n">train_x</span><span class="p">),</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="n">pytree_shape</span><span class="p">(</span><span class="n">train_x</span><span class="p">),</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed_init</span><span class="p">)</span>
 
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -1000,7 +1010,7 @@ title="Open an issue"
         <span class="k">if</span> <span class="n">reset_metrics</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
 
-        <span class="n">dropout_rng1</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">63</span><span class="p">))</span>
+        <span class="n">dropout_rng1</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">seed_dropout</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="p">(</span><span class="n">cb_epoch</span> <span class="o">:=</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;epoch&quot;</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">cb_epoch</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -1008,13 +1018,15 @@ title="Open an issue"
         <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
             <span class="n">dropout_rng1</span><span class="p">,</span> <span class="n">dropout_rng2</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">dropout_rng1</span><span class="p">)</span>
             <span class="n">train_loss</span><span class="p">,</span> <span class="n">train_accuracy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">train_epoch</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">dropout_rng2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">dropout_rng2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_train</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;train_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_loss</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;train_accuracy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">train_accuracy</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">do_eval</span><span class="p">:</span>
-                <span class="n">test_loss</span><span class="p">,</span> <span class="n">test_accuracy</span> <span class="o">=</span> <span class="n">eval_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">test_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+                <span class="n">test_loss</span><span class="p">,</span> <span class="n">test_accuracy</span> <span class="o">=</span> <span class="n">eval_model</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">test_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_eval</span>
+                <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;test_loss&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">test_loss</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;test_accuracy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">test_accuracy</span><span class="p">)</span>
 
@@ -1168,7 +1180,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev46+g4635c94
+      dinf 0.2.1.dev52+g33e1bd8
     </div>
 </p>
         </footer>

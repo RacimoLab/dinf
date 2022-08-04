@@ -232,7 +232,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev46
+            dinf 0.2.1.dev52
             </div>
             
         </div>
@@ -1148,7 +1148,7 @@ positional arguments:
   {demes,features,metrics,hist,hist2d,gan}
     demes               Plot a demes-as-tubes demographic model using
                         DemesDraw.
-    features            Plot a feature matrices as heatmaps.
+    features            Plot feature matrices as heatmaps.
     metrics             Plot loss and accuracy of discriminator(s).
     hist                Plot marginal posterior densities.
     hist2d              Plot 2d marginal posterior densities.
@@ -1162,7 +1162,7 @@ optional arguments:
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">metrics</span></code><a class="headerlink" href="#dinf-plot-metrics" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
   PyTreeDef = type(jax.tree_structure(None))
-usage: dinf.plot metrics [-h] [-o output.pdf]
+usage: dinf.plot metrics [-h] [-v | -q] [-o output.pdf]
                          discriminator.nn [discriminator.nn ...]
 
 Plot loss and accuracy of discriminator(s).
@@ -1183,6 +1183,10 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
   -o output.pdf, --output-file output.pdf
                         Output file for the figure. The file extension
                         determines the filetype, which can be any format
@@ -1196,9 +1200,10 @@ optional arguments:
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">features</span></code><a class="headerlink" href="#dinf-plot-features" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
   PyTreeDef = type(jax.tree_structure(None))
-usage: dinf.plot features [-h] [-o output.pdf] [-S SEED] [--target] model.py
+usage: dinf.plot features [-h] [-v | -q] [-o output.pdf] [-S SEED] [--target]
+                          model.py
 
-Plot a feature matrices as heatmaps.
+Plot feature matrices as heatmaps.
 
 By default, one simulation will be performed with the generator to obtain
 a set of features for plotting. To instead extract features from the
@@ -1213,6 +1218,10 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
   -o output.pdf, --output-file output.pdf
                         Output file for the figure. The file extension
                         determines the filetype, which can be any format
@@ -1229,7 +1238,7 @@ optional arguments:
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code><a class="headerlink" href="#dinf-plot-hist" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
   PyTreeDef = type(jax.tree_structure(None))
-usage: dinf.plot hist [-h] [-o output.pdf] [-n N | -p P] [-W] [-c]
+usage: dinf.plot hist [-h] [-v | -q] [-o output.pdf] [-n N | -p P] [-W] [-c]
                       [-x X_PARAM] [--resample] [--kde] [-m model.py]
                       data.npz [data.npz ...]
 
@@ -1263,6 +1272,10 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
   -o output.pdf, --output-file output.pdf
                         Output file for the figure. The file extension
                         determines the filetype, which can be any format
@@ -1296,8 +1309,8 @@ optional arguments:
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist2d</span></code><a class="headerlink" href="#dinf-plot-hist2d" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.13/x64/lib/python3.8/site-packages/chex/_src/pytypes.py:37: FutureWarning: jax.tree_structure is deprecated, and will be removed in a future release. Use jax.tree_util.tree_structure instead.
   PyTreeDef = type(jax.tree_structure(None))
-usage: dinf.plot hist2d [-h] [-o output.pdf] [-n N | -p P] [-W] [-x X_PARAM]
-                        [-y Y_PARAM] [-m model.py]
+usage: dinf.plot hist2d [-h] [-v | -q] [-o output.pdf] [-n N | -p P] [-W]
+                        [-x X_PARAM] [-y Y_PARAM] [-m model.py]
                         data.npz
 
 Plot 2d marginal posterior densities.
@@ -1329,6 +1342,10 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
   -o output.pdf, --output-file output.pdf
                         Output file for the figure. The file extension
                         determines the filetype, which can be any format
@@ -1409,7 +1426,7 @@ optional arguments:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev46+g4635c94
+      dinf 0.2.1.dev52+g33e1bd8
     </div>
 </p>
         </footer>

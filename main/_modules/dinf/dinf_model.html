@@ -229,7 +229,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev46
+            dinf 0.2.1.dev52
             </div>
             
         </div>
@@ -361,13 +361,19 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">importlib</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Iterable</span>
 
 <span class="kn">from</span> <span class="nn">flax</span> <span class="kn">import</span> <span class="n">linen</span> <span class="k">as</span> <span class="n">nn</span>
+<span class="kn">import</span> <span class="nn">numpy</span>  <span class="c1"># So stupid sphinx will cross-ref the types.</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">.parameters</span> <span class="kn">import</span> <span class="n">Parameters</span>
 <span class="kn">from</span> <span class="nn">.misc</span> <span class="kn">import</span> <span class="n">pytree_equal</span><span class="p">,</span> <span class="n">pytree_shape</span><span class="p">,</span> <span class="n">pytree_dtype</span>
+
+<span class="n">FeatureCollection</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
+<span class="n">FeatureCollection</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="sd">&quot;&quot;&quot;A feature array or a labelled collection of feature arrays.&quot;&quot;&quot;</span>
+<span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_sim_shim</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">keys</span><span class="p">):</span>
@@ -427,7 +433,8 @@ title="Open an issue"
 <span class="sd">    :param generator_func:</span>
 <span class="sd">        A function that returns features for concrete parameter values.</span>
 
-<span class="sd">        The first (positional) argument to the function is an integer seed,</span>
+<span class="sd">        The first (positional) argument to the function is a</span>
+<span class="sd">        :class:`seed &lt;numpy.random.SeedSequence&gt;`,</span>
 <span class="sd">        that may be used to seed a random number generator.</span>
 <span class="sd">        The subsequent (keyword) arguments correspond to concrete values for</span>
 <span class="sd">        the :attr:`.parameters`.</span>
@@ -450,6 +457,9 @@ title="Open an issue"
 
 <span class="sd">        .. code::</span>
 
+<span class="sd">            import dinf</span>
+<span class="sd">            import numpy as np</span>
+
 <span class="sd">            parameters = dinf.Parameters(</span>
 <span class="sd">                p0=dinf.Param(...),</span>
 <span class="sd">                p1=dinf.Param(...),</span>
@@ -458,20 +468,20 @@ title="Open an issue"
 
 <span class="sd">            # Signature for returning a single feature matrix.</span>
 <span class="sd">            def generator_func1(</span>
-<span class="sd">                seed: int, /, *, p0: float, p1: float, ...</span>
+<span class="sd">                seed: np.random.SeedSequence, /, *, p0: float, p1: float, ...</span>
 <span class="sd">            ) -&gt; np.ndarray:</span>
 <span class="sd">                ...</span>
 
 <span class="sd">            # Signature for returning multiple feature matrices.</span>
 <span class="sd">            def generator_func2(</span>
-<span class="sd">                seed: int, /, *, p0: float, p1: float, ...</span>
+<span class="sd">                seed: np.random.SeedSequence, /, *, p0: float, p1: float, ...</span>
 <span class="sd">            ) -&gt; dict[str, np.ndarray]:</span>
 <span class="sd">                ...</span>
 
 <span class="sd">            # For generator functions accepting large numbers of parameters,</span>
 <span class="sd">            # the following pattern using ``**kwargs`` may be preferred.</span>
 <span class="sd">            def generator_func3(</span>
-<span class="sd">                seed: int, /, **kwargs: float</span>
+<span class="sd">                seed: np.random.SeedSequence, /, **kwargs: float</span>
 <span class="sd">            )-&gt; dict[str, np.ndarray]:</span>
 <span class="sd">                assert kwargs.keys() == parameters.keys()</span>
 <span class="sd">                # do something with p0</span>
@@ -488,7 +498,8 @@ title="Open an issue"
 <span class="sd">        the target dataset using each parameter&#39;s :attr:`truth &lt;Param.truth&gt;`</span>
 <span class="sd">        value.</span>
 
-<span class="sd">        The function takes a single (positional) argument, an integer seed,</span>
+<span class="sd">        The function takes a single (positional) argument, a</span>
+<span class="sd">        :class:`seed &lt;numpy.random.SeedSequence&gt;`,</span>
 <span class="sd">        that may be used to seed a random number generator.</span>
 <span class="sd">        The return type must match the return type of :attr:`generator_func`.</span>
 
@@ -502,20 +513,20 @@ title="Open an issue"
 <span class="sd">    The inferrable parameters.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">generator_func</span><span class="p">:</span> <span class="n">Callable</span>
+    <span class="n">generator_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">FeatureCollection</span><span class="p">]</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Function that simulates features using concrete parameter values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">generator_func_v</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">generator_func_v</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[</span>
+        <span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">float</span><span class="p">]]],</span> <span class="n">FeatureCollection</span>
+    <span class="p">]</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Wrapper for ``generator_func`` that accepts a single argument containing</span>
-<span class="sd">    the seed and a vector of parameter values (as opposed to keyword arguments).</span>
-<span class="sd">    The signature is ``generator_func_v(arg: Tuple[int, np.ndarray])``,</span>
-<span class="sd">    where ``arg`` is a 2-tuple of ``(seed, vector)``.</span>
+<span class="sd">    the seed and an iterable of parameter values (as opposed to keyword arguments).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">target_func</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">target_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">],</span> <span class="n">FeatureCollection</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Function that samples features from the target distribution.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -639,7 +650,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev46+g4635c94
+      dinf 0.2.1.dev52+g33e1bd8
     </div>
 </p>
         </footer>

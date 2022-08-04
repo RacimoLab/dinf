@@ -234,7 +234,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev46
+            dinf 0.2.1.dev52
             </div>
             
         </div>
@@ -478,6 +478,11 @@ title="Print to PDF"
   </a>
   <ul class="nav section-nav flex-column">
    <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#type-aliases">
+     Type aliases
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
     <a class="reference internal nav-link" href="#sec-api-defining-a-dinf-model">
      Defining a Dinf model
     </a>
@@ -600,6 +605,11 @@ title="Print to PDF"
    Reference
   </a>
   <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#type-aliases">
+     Type aliases
+    </a>
+   </li>
    <li class="toc-h3 nav-item toc-entry">
     <a class="reference internal nav-link" href="#sec-api-defining-a-dinf-model">
      Defining a Dinf model
@@ -806,7 +816,7 @@ title="Print to PDF"
 <tr class="row-odd"><td><p><a class="reference internal" href="#dinf.ts_individuals" title="dinf.ts_individuals"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ts_individuals</span></code></a>(ts, /[, population])</p></td>
 <td><p>Get the individuals corresponding to the tree sequence's samples.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#dinf.sample_smooth" title="dinf.sample_smooth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_smooth</span></code></a>(*, thetas, probs, size, rng[, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#dinf.sample_smooth" title="dinf.sample_smooth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample_smooth</span></code></a>(*, thetas, probs, size, rng, ...)</p></td>
 <td><p>Sample from a smoothed set of weighted observations.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#dinf.geometric_median" title="dinf.geometric_median"><code class="xref py py-obj docutils literal notranslate"><span class="pre">geometric_median</span></code></a>(*, thetas[, probs])</p></td>
@@ -853,6 +863,16 @@ title="Print to PDF"
 </section>
 <section id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">#</a></h2>
+<section id="type-aliases">
+<span id="sec-api-type-aliases"></span><h3>Type aliases<a class="headerlink" href="#type-aliases" title="Permalink to this headline">#</a></h3>
+<dl class="py data">
+<dt class="sig sig-object py" id="dinf.FeatureCollection">
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">FeatureCollection</span></span><a class="headerlink" href="#dinf.FeatureCollection" title="Permalink to this definition">#</a></dt>
+<dd><p>A feature array or a labelled collection of feature arrays.</p>
+<p>alias of <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code></a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a>]]</p>
+</dd></dl>
+
+</section>
 <section id="sec-api-defining-a-dinf-model">
 <span id="id1"></span><h3>Defining a Dinf model<a class="headerlink" href="#sec-api-defining-a-dinf-model" title="Permalink to this headline">#</a></h3>
 <dl class="py class">
@@ -900,8 +920,9 @@ and returns a feature matrix (or matrices).</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>parameters</strong> (<a class="reference internal" href="#dinf.Parameters" title="dinf.Parameters"><em>Parameters</em></a>) – A collection of inferrable parameters, one for each keyword argument
 provided to the <a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a>.</p></li>
-<li><p><strong>generator_func</strong> (<em>Callable</em>) – <p>A function that returns features for concrete parameter values.</p>
-<p>The first (positional) argument to the function is an integer seed,
+<li><p><strong>generator_func</strong> (<em>Callable</em><em>[</em><em>...</em><em>, </em><em>FeatureCollection</em><em>]</em>) – <p>A function that returns features for concrete parameter values.</p>
+<p>The first (positional) argument to the function is a
+<a class="reference external" href="https://numpy.org/doc/stable/reference/random/bit_generators/generated/numpy.random.SeedSequence.html#numpy.random.SeedSequence" title="(in NumPy v1.23)"><code class="xref py py-class docutils literal notranslate"><span class="pre">seed</span></code></a>,
 that may be used to seed a random number generator.
 The subsequent (keyword) arguments correspond to concrete values for
 the <a class="reference internal" href="#dinf.DinfModel.parameters" title="dinf.DinfModel.parameters"><code class="xref py py-attr docutils literal notranslate"><span class="pre">parameters</span></code></a>.
@@ -923,7 +944,10 @@ in user-defined functions. In function signatures,
 preceed a <code class="docutils literal notranslate"><span class="pre">/</span></code> and
 <a class="reference external" href="https://peps.python.org/pep-3102/">keyword-only parameters</a>
 follow a <code class="docutils literal notranslate"><span class="pre">*</span></code>.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Parameters</span><span class="p">(</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">dinf</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Parameters</span><span class="p">(</span>
     <span class="n">p0</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>
     <span class="n">p1</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="o">...</span><span class="p">),</span>
     <span class="o">...</span>
@@ -931,20 +955,20 @@ follow a <code class="docutils literal notranslate"><span class="pre">*</span></
 
 <span class="c1"># Signature for returning a single feature matrix.</span>
 <span class="k">def</span> <span class="nf">generator_func1</span><span class="p">(</span>
-    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">p0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">p1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">...</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">p0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">p1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">...</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
     <span class="o">...</span>
 
 <span class="c1"># Signature for returning multiple feature matrices.</span>
 <span class="k">def</span> <span class="nf">generator_func2</span><span class="p">(</span>
-    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">p0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">p1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">...</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">p0</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">p1</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">...</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
     <span class="o">...</span>
 
 <span class="c1"># For generator functions accepting large numbers of parameters,</span>
 <span class="c1"># the following pattern using ``**kwargs`` may be preferred.</span>
 <span class="k">def</span> <span class="nf">generator_func3</span><span class="p">(</span>
-    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">float</span>
 <span class="p">)</span><span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
     <span class="k">assert</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">==</span> <span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
     <span class="c1"># do something with p0</span>
@@ -955,12 +979,13 @@ follow a <code class="docutils literal notranslate"><span class="pre">*</span></
 </pre></div>
 </div>
 </p></li>
-<li><p><strong>target_func</strong> (<em>Callable</em><em> | </em><em>None</em>) – <p>A function that returns features sampled from the target dataset.</p>
+<li><p><strong>target_func</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/random/bit_generators/generated/numpy.random.SeedSequence.html#numpy.random.SeedSequence" title="(in NumPy v1.23)"><em>numpy.random.SeedSequence</em></a><em>]</em><em>, </em><em>FeatureCollection</em><em>] </em><em>| </em><em>None</em>) – <p>A function that returns features sampled from the target dataset.</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">None</span></code> (which must be specified explicitly),
 the <a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a> will be used to simulate
 the target dataset using each parameter’s <a class="reference internal" href="#dinf.Param.truth" title="dinf.Param.truth"><code class="xref py py-attr docutils literal notranslate"><span class="pre">truth</span></code></a>
 value.</p>
-<p>The function takes a single (positional) argument, an integer seed,
+<p>The function takes a single (positional) argument, a
+<a class="reference external" href="https://numpy.org/doc/stable/reference/random/bit_generators/generated/numpy.random.SeedSequence.html#numpy.random.SeedSequence" title="(in NumPy v1.23)"><code class="xref py py-class docutils literal notranslate"><span class="pre">seed</span></code></a>,
 that may be used to seed a random number generator.
 The return type must match the return type of <a class="reference internal" href="#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">generator_func</span></code></a>.</p>
 </p></li>
@@ -980,22 +1005,20 @@ If not specified, <a class="reference internal" href="#dinf.ExchangeableCNN" tit
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="dinf.DinfModel.generator_func">
-<span class="sig-name descname"><span class="pre">generator_func</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span></em><a class="headerlink" href="#dinf.DinfModel.generator_func" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">generator_func</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">FeatureCollection</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.DinfModel.generator_func" title="Permalink to this definition">#</a></dt>
 <dd><p>Function that simulates features using concrete parameter values.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="dinf.DinfModel.generator_func_v">
-<span class="sig-name descname"><span class="pre">generator_func_v</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span></em><a class="headerlink" href="#dinf.DinfModel.generator_func_v" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">generator_func_v</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/random/bit_generators/generated/numpy.random.SeedSequence.html#numpy.random.SeedSequence" title="(in NumPy v1.23)"><span class="pre">numpy.random.SeedSequence</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">FeatureCollection</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#dinf.DinfModel.generator_func_v" title="Permalink to this definition">#</a></dt>
 <dd><p>Wrapper for <code class="docutils literal notranslate"><span class="pre">generator_func</span></code> that accepts a single argument containing
-the seed and a vector of parameter values (as opposed to keyword arguments).
-The signature is <code class="docutils literal notranslate"><span class="pre">generator_func_v(arg:</span> <span class="pre">Tuple[int,</span> <span class="pre">np.ndarray])</span></code>,
-where <code class="docutils literal notranslate"><span class="pre">arg</span></code> is a 2-tuple of <code class="docutils literal notranslate"><span class="pre">(seed,</span> <span class="pre">vector)</span></code>.</p>
+the seed and an iterable of parameter values (as opposed to keyword arguments).</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="dinf.DinfModel.target_func">
-<span class="sig-name descname"><span class="pre">target_func</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></em><a class="headerlink" href="#dinf.DinfModel.target_func" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">target_func</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/random/bit_generators/generated/numpy.random.SeedSequence.html#numpy.random.SeedSequence" title="(in NumPy v1.23)"><span class="pre">numpy.random.SeedSequence</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">FeatureCollection</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></em><a class="headerlink" href="#dinf.DinfModel.target_func" title="Permalink to this definition">#</a></dt>
 <dd><p>Function that samples features from the target distribution.</p>
 </dd></dl>
 
@@ -2170,7 +2193,7 @@ directory will be used.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="dinf.Discriminator.fit">
-<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entropy_regularisation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callbacks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.fit" title="Permalink to this definition">#</a></dt>
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ss</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entropy_regularisation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callbacks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/discriminator.html#Discriminator.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.Discriminator.fit" title="Permalink to this definition">#</a></dt>
 <dd><p>Fit discriminator to training data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2181,7 +2204,7 @@ directory will be used.</p></li>
 <li><p><strong>val_y</strong> – Labels for validation data (zeros and ones).</p></li>
 <li><p><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Size of minibatch for gradient update step.</p></li>
 <li><p><strong>epochs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – The number of full passes over the training data.</p></li>
-<li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – The numpy random number generator.</p></li>
+<li><p><strong>ss</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/bit_generators/generated/numpy.random.SeedSequence.html#numpy.random.SeedSequence" title="(in NumPy v1.23)"><em>numpy.random.SeedSequence</em></a>) – Numpy random number seed sequence.</p></li>
 <li><p><strong>reset_metrics</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – If true, remove loss/accuracy metrics from previous calls to
 fit() (if any). If false, loss/accuracy metrics will be appended
 to the existing metrics.</p></li>
@@ -2408,51 +2431,31 @@ If not specified, all sampled individuals will be returned.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="dinf.sample_smooth">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">sample_smooth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#sample_smooth"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.sample_smooth" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">sample_smooth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thetas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#sample_smooth"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.sample_smooth" title="Permalink to this definition">#</a></dt>
 <dd><p>Sample from a smoothed set of weighted observations.</p>
 <p>Samples are drawn from <code class="docutils literal notranslate"><span class="pre">thetas</span></code>, weighted by their probability.
 New points are drawn within a neighbourhood of the sampled thetas
 using a mulivariate normal whose covariance is calculated from the
 thetas. This is equivalent to sampling from a Gaussian KDE, but
 avoids doing an explicit density estimation.
+Values are sampled until they are within the parameter bounds.
 Scott’s rule of thumb is used for bandwidth selection.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>thetas</strong> (<em>np.ndarray</em>) – Parameter values to sample from.</p></li>
-<li><p><strong>probs</strong> (<em>np.ndarray</em>) – Discriminator predictions corresponding to the <code class="docutils literal notranslate"><span class="pre">thetas</span></code>.</p></li>
+<li><p><strong>thetas</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – Parameter values to sample from.</p></li>
+<li><p><strong>probs</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – Discriminator predictions corresponding to the <code class="docutils literal notranslate"><span class="pre">thetas</span></code>.</p></li>
 <li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – Number of samples to draw.</p></li>
 <li><p><strong>rng</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.23)"><em>numpy.random.Generator</em></a>) – Numpy random generator.</p></li>
-<li><p><strong>parameters</strong> (<a class="reference internal" href="#dinf.Parameters" title="dinf.Parameters"><em>Parameters</em></a><em> | </em><em>None</em>) – The parameters against which the values’ bounds will be checked.
+<li><p><strong>parameters</strong> (<a class="reference internal" href="#dinf.Parameters" title="dinf.parameters.Parameters"><em>dinf.parameters.Parameters</em></a>) – The parameters against which the values’ bounds will be checked.
 See the <code class="docutils literal notranslate"><span class="pre">mode</span></code> argument.</p></li>
-<li><p><strong>mode</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a><em> | </em><em>None</em>) – <p>The mode determines how to deal with values that are out of the
-parameter bounds. If mode is not None, then <code class="docutils literal notranslate"><span class="pre">parameters</span></code> must
-also be specified. The options are:</p>
-<blockquote>
-<div><ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code> (<em>default</em>): the returned values are not modified
-after sampling and may be out of bounds.</p></li>
-<li><p>”transform”: thetas are transformed before sampling, and
-the sampled values are inverse-transformed before being
-returned.
-See <a class="reference internal" href="#dinf.Parameters.transform" title="dinf.Parameters.transform"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Parameters.transform()</span></code></a> and <a class="reference internal" href="#dinf.Parameters.itransform" title="dinf.Parameters.itransform"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Parameters.itransform()</span></code></a>.</p></li>
-<li><p>”truncate”: sampled values are truncated at the parameter limits.
-See <a class="reference internal" href="#dinf.Parameters.truncate" title="dinf.Parameters.truncate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Parameters.truncate()</span></code></a>.</p></li>
-<li><p>”reflect”: sample values that are out of bounds are reflected
-inside the parameter limits by the same magnitude that they were
-out of bounds. Values that are too far out of bounds to be
-reflected are truncated at the parameter limits.
-See <a class="reference internal" href="#dinf.Parameters.reflect" title="dinf.Parameters.reflect"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Parameters.reflect()</span></code></a>.</p></li>
-</ul>
-</div></blockquote>
-</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The sampled values.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>np.ndarray</p>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)">numpy.ndarray</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -2758,7 +2761,7 @@ If None, an axes will be created with <a class="reference external" href="https:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev46+g4635c94
+      dinf 0.2.1.dev52+g33e1bd8
     </div>
 </p>
         </footer>

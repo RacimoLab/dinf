@@ -229,7 +229,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev46
+            dinf 0.2.1.dev52
             </div>
             
         </div>
@@ -370,7 +370,7 @@ title="Open an issue"
 <span class="kn">from</span> <span class="nn">numpy.lib.recfunctions</span> <span class="kn">import</span> <span class="n">structured_to_unstructured</span>
 <span class="kn">import</span> <span class="nn">scipy.stats</span>
 
-<span class="kn">from</span> <span class="nn">.cli</span> <span class="kn">import</span> <span class="n">ADRDFormatter</span><span class="p">,</span> <span class="n">_DINF_MODEL_HELP</span>
+<span class="kn">from</span> <span class="nn">.cli</span> <span class="kn">import</span> <span class="n">ADRDFormatter</span><span class="p">,</span> <span class="n">_DINF_MODEL_HELP</span><span class="p">,</span> <span class="n">set_loglevel</span>
 <span class="kn">import</span> <span class="nn">dinf</span>
 
 
@@ -864,6 +864,24 @@ title="Open an issue"
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
 
+        <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_mutually_exclusive_group</span><span class="p">()</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;-v&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--verbose&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;count&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">&quot;Increase verbosity. Specify once for INFO messages and &quot;</span>
+                <span class="s2">&quot;twice for DEBUG messages.&quot;</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;-q&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--quiet&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Disable output. Only ERROR and CRITICAL messages are printed.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">add_argument_output_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;-o&quot;</span><span class="p">,</span>
@@ -1045,7 +1063,7 @@ title="Open an issue"
 
 <span class="k">class</span> <span class="nc">_Features</span><span class="p">(</span><span class="n">_SubCommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Plot a feature matrices as heatmaps.</span>
+<span class="sd">    Plot feature matrices as heatmaps.</span>
 
 <span class="sd">    By default, one simulation will be performed with the generator to obtain</span>
 <span class="sd">    a set of features for plotting. To instead extract features from the</span>
@@ -1070,11 +1088,11 @@ title="Open an issue"
             <span class="k">assert</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="n">mats</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+            <span class="n">ss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+            <span class="n">ss_generator</span><span class="p">,</span> <span class="n">ss_thetas</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
             <span class="n">thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
-            <span class="n">mats</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">(</span>
-                <span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">),</span> <span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="p">)</span>
+            <span class="n">mats</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">((</span><span class="n">ss_generator</span><span class="p">,</span> <span class="n">thetas</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mats</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="n">mats_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;&quot;</span><span class="p">:</span> <span class="n">mats</span><span class="p">}</span>
@@ -1388,6 +1406,10 @@ title="Open an issue"
 
         <span class="n">datasets_resampled</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">resample</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;When --resample is requested, must also specify --model&quot;</span>
+                <span class="p">)</span>
             <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">123</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">:</span>
                 <span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
@@ -1399,7 +1421,6 @@ title="Open an issue"
                     <span class="n">size</span><span class="o">=</span><span class="mi">1_000_000</span><span class="p">,</span>
                     <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
                     <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
-                    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;reflect&quot;</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">X_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">X</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">)}</span>
                 <span class="n">datasets_resampled</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X_dict</span><span class="p">)</span>
@@ -1439,9 +1460,10 @@ title="Open an issue"
                     <span class="n">hist</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">ci</span><span class="o">=</span><span class="n">ci</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="n">truth</span><span class="p">,</span> <span class="n">hist_kw</span><span class="o">=</span><span class="n">hist_kw</span><span class="p">)</span>
                     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">kde</span><span class="p">:</span>
                         <span class="n">left</span> <span class="o">=</span> <span class="n">right</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="n">xlim</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()</span>
                         <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">x_param</span> <span class="o">!=</span> <span class="s2">&quot;_Pr&quot;</span><span class="p">:</span>
-                            <span class="n">left</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">x_param</span><span class="p">]</span><span class="o">.</span><span class="n">low</span>
-                            <span class="n">right</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">x_param</span><span class="p">]</span><span class="o">.</span><span class="n">high</span>
+                            <span class="n">left</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="n">x_param</span><span class="p">]</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="n">xlim</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                            <span class="n">right</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">parameters</span><span class="p">[</span><span class="n">x_param</span><span class="p">]</span><span class="o">.</span><span class="n">high</span><span class="p">,</span> <span class="n">xlim</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
                         <span class="n">xrange</span><span class="p">,</span> <span class="n">pdf</span> <span class="o">=</span> <span class="n">_kde1d_reflect</span><span class="p">(</span>
                             <span class="n">data</span><span class="p">[</span><span class="n">x_param</span><span class="p">],</span> <span class="n">weights</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">],</span> <span class="n">left</span><span class="o">=</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">right</span>
                         <span class="p">)</span>
@@ -1588,6 +1610,7 @@ title="Open an issue"
         <span class="c1"># Bumping the dpi to 140 provides greater parity.</span>
         <span class="n">plt</span><span class="o">.</span><span class="n">rc</span><span class="p">(</span><span class="s2">&quot;figure&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">140</span><span class="p">)</span>
 
+    <span class="n">set_loglevel</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">quiet</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span><span class="p">)</span>
     <span class="n">args</span><span class="o">.</span><span class="n">func</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
 
 
@@ -1613,7 +1636,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev46+g4635c94
+      dinf 0.2.1.dev52+g33e1bd8
     </div>
 </p>
         </footer>

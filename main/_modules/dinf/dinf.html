@@ -229,7 +229,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev46
+            dinf 0.2.1.dev52
             </div>
             
         </div>
@@ -384,7 +384,7 @@ title="Open an issue"
 <span class="kn">from</span> <span class="nn">.dinf_model</span> <span class="kn">import</span> <span class="n">DinfModel</span>
 <span class="kn">from</span> <span class="nn">.parameters</span> <span class="kn">import</span> <span class="n">Parameters</span>
 <span class="kn">from</span> <span class="nn">.store</span> <span class="kn">import</span> <span class="n">Store</span>
-<span class="kn">from</span> <span class="nn">.misc</span> <span class="kn">import</span> <span class="n">pytree_shape</span><span class="p">,</span> <span class="n">pytree_dtype</span><span class="p">,</span> <span class="n">pytree_cdr</span><span class="p">,</span> <span class="n">is_tuple</span>
+<span class="kn">from</span> <span class="nn">.misc</span> <span class="kn">import</span> <span class="n">pytree_shape</span><span class="p">,</span> <span class="n">pytree_dtype</span><span class="p">,</span> <span class="n">pytree_cdr</span><span class="p">,</span> <span class="n">is_tuple</span><span class="p">,</span> <span class="n">spawn_key</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -457,7 +457,7 @@ title="Open an issue"
 <span class="k">def</span> <span class="nf">_get_dataset_parallel</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
-    <span class="n">args</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Tuple</span><span class="p">],</span>
+    <span class="n">args</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">,</span>
     <span class="n">num_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">pool</span><span class="p">:</span> <span class="n">_SupportsImap</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -514,7 +514,7 @@ title="Open an issue"
     <span class="n">generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
     <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">pool</span><span class="p">:</span> <span class="n">_SupportsImap</span><span class="p">,</span>
-    <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+    <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
@@ -528,13 +528,13 @@ title="Open an issue"
 <span class="sd">    :param pool:</span>
 <span class="sd">        An object with an ``imap()`` method.</span>
 <span class="sd">        E.g. a ``multiprocessing.Pool`` object.</span>
-<span class="sd">    :param numpy.random.Generator rng:</span>
-<span class="sd">        Numpy random number generator.</span>
+<span class="sd">    :param numpy.random.SeedSequence ss:</span>
+<span class="sd">        Numpy random number seed sequence.</span>
 <span class="sd">    :return:</span>
 <span class="sd">        A collection of features.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">num_replicates</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
-    <span class="n">seeds</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">)</span>
+    <span class="n">seeds</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">num_replicates</span><span class="p">)</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">_get_dataset_parallel</span><span class="p">(</span>
         <span class="n">func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
         <span class="n">args</span><span class="o">=</span><span class="nb">zip</span><span class="p">(</span><span class="n">seeds</span><span class="p">,</span> <span class="n">thetas</span><span class="p">),</span>
@@ -551,7 +551,7 @@ title="Open an issue"
     <span class="n">target</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
     <span class="n">num_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">pool</span><span class="p">:</span> <span class="n">_SupportsImap</span><span class="p">,</span>
-    <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+    <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
@@ -565,12 +565,12 @@ title="Open an issue"
 <span class="sd">    :param pool:</span>
 <span class="sd">        An object with an ``imap()`` method.</span>
 <span class="sd">        E.g. a ``multiprocessing.Pool`` object.</span>
-<span class="sd">    :param numpy.random.Generator rng:</span>
-<span class="sd">        Numpy random number generator.</span>
+<span class="sd">    :param numpy.random.SeedSequence ss:</span>
+<span class="sd">        Numpy random number seed sequence.</span>
 <span class="sd">    :return:</span>
 <span class="sd">        A collection of features.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">seeds</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">)</span>
+    <span class="n">seeds</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">num_replicates</span><span class="p">)</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">_get_dataset_parallel</span><span class="p">(</span>
         <span class="n">func</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
         <span class="n">args</span><span class="o">=</span><span class="n">seeds</span><span class="p">,</span>
@@ -608,7 +608,7 @@ title="Open an issue"
     <span class="n">generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
     <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">pool</span><span class="p">:</span> <span class="n">_SupportsImap</span><span class="p">,</span>
-    <span class="n">ss</span><span class="p">,</span>
+    <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -627,17 +627,15 @@ title="Open an issue"
 <span class="sd">    :param pool:</span>
 <span class="sd">        An object with an ``imap()`` method.</span>
 <span class="sd">        E.g. a ``multiprocessing.Pool`` object.</span>
-<span class="sd">    :param ss:</span>
-<span class="sd">        Wrapper for numpy&#39;s random number seed sequence.</span>
+<span class="sd">    :param numpy.random.SeedSequence ss:</span>
+<span class="sd">        Numpy random number seed sequence.</span>
 <span class="sd">    :return:</span>
 <span class="sd">        A collection of features.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">callbacks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">callbacks</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;generator/feature&quot;</span><span class="p">,</span> <span class="s2">&quot;target/feature&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">callbacks</span><span class="p">)</span>
-    <span class="n">rng_generator</span><span class="p">,</span> <span class="n">rng_target</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">sj</span><span class="p">)</span> <span class="k">for</span> <span class="n">sj</span> <span class="ow">in</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">((</span><span class="s2">&quot;generator&quot;</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">))</span>
-    <span class="p">)</span>
+    <span class="n">ss_generator1</span><span class="p">,</span> <span class="n">ss_generator2</span><span class="p">,</span> <span class="n">ss_target</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="n">num_replicates</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
 
@@ -649,7 +647,7 @@ title="Open an issue"
         <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
         <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">[:</span><span class="n">n</span><span class="p">],</span>
         <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-        <span class="n">rng</span><span class="o">=</span><span class="n">rng_generator</span><span class="p">,</span>
+        <span class="n">ss</span><span class="o">=</span><span class="n">ss_generator1</span><span class="p">,</span>
         <span class="n">callbacks</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">feature</span><span class="o">=</span><span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;generator/feature&quot;</span><span class="p">)),</span>
     <span class="p">)</span>
 
@@ -671,7 +669,7 @@ title="Open an issue"
             <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
             <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">[</span><span class="n">n</span><span class="p">:],</span>
             <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-            <span class="n">rng</span><span class="o">=</span><span class="n">rng_generator</span><span class="p">,</span>
+            <span class="n">ss</span><span class="o">=</span><span class="n">ss_generator2</span><span class="p">,</span>
             <span class="n">callbacks</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">feature</span><span class="o">=</span><span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;generator/feature&quot;</span><span class="p">)),</span>
             <span class="n">out</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="n">a</span><span class="p">[</span><span class="n">n</span><span class="p">:</span><span class="n">num_replicates</span><span class="p">],</span> <span class="n">x</span><span class="p">),</span>
         <span class="p">)</span>
@@ -680,7 +678,7 @@ title="Open an issue"
         <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
         <span class="n">num_replicates</span><span class="o">=</span><span class="n">num_replicates</span><span class="p">,</span>
         <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-        <span class="n">rng</span><span class="o">=</span><span class="n">rng_target</span><span class="p">,</span>
+        <span class="n">ss</span><span class="o">=</span><span class="n">ss_target</span><span class="p">,</span>
         <span class="n">callbacks</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">feature</span><span class="o">=</span><span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;target/feature&quot;</span><span class="p">)),</span>
         <span class="n">out</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="n">a</span><span class="p">[</span><span class="n">num_replicates</span><span class="p">:],</span> <span class="n">x</span><span class="p">),</span>
     <span class="p">)</span>
@@ -809,27 +807,6 @@ title="Open an issue"
     <span class="k">return</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span>
 
 
-<span class="k">class</span> <span class="nc">NamedSeedSequence</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Extends numpy SeedSequence to support string-valued spawn_key.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entropy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">spawn_key</span><span class="o">=</span><span class="p">(),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">spawn_key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">spawn_key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">ord</span><span class="p">,</span> <span class="n">spawn_key</span><span class="p">))</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entropy</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">entropy</span><span class="o">.</span><span class="n">spawn_key</span> <span class="o">!=</span> <span class="p">():</span>
-                <span class="n">spawn_key</span> <span class="o">=</span> <span class="n">entropy</span><span class="o">.</span><span class="n">spawn_key</span> <span class="o">+</span> <span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">),)</span> <span class="o">+</span> <span class="n">spawn_key</span>
-            <span class="n">entropy</span> <span class="o">=</span> <span class="n">entropy</span><span class="o">.</span><span class="n">entropy</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">entropy</span><span class="p">,</span> <span class="n">spawn_key</span><span class="o">=</span><span class="n">spawn_key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">spawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]):</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
-            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spawn_key</span><span class="o">=</span><span class="n">nj</span><span class="p">)</span> <span class="k">for</span> <span class="n">nj</span> <span class="ow">in</span> <span class="n">n</span><span class="p">]</span>
-
-
 <span class="k">def</span> <span class="nf">_train_discriminator</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">discriminator</span><span class="p">:</span> <span class="n">Discriminator</span><span class="p">,</span>
@@ -838,7 +815,7 @@ title="Open an issue"
     <span class="n">test_thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">pool</span><span class="p">:</span> <span class="n">_SupportsImap</span><span class="p">,</span>
-    <span class="n">ss</span><span class="p">:</span> <span class="n">NamedSeedSequence</span><span class="p">,</span>
+    <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
     <span class="n">entropy_regularisation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
@@ -858,9 +835,8 @@ title="Open an issue"
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">callbacks</span>
     <span class="p">)</span>
 
-    <span class="n">ss_train</span><span class="p">,</span> <span class="n">ss_val</span><span class="p">,</span> <span class="n">ss_fit</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span>
-        <span class="p">(</span><span class="s2">&quot;features:train&quot;</span><span class="p">,</span> <span class="s2">&quot;features:val&quot;</span><span class="p">,</span> <span class="s2">&quot;discriminator:fit&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">ss_train</span><span class="p">,</span> <span class="n">ss_val</span><span class="p">,</span> <span class="n">ss_fit</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+
     <span class="k">assert</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span> <span class="o">=</span> <span class="n">_get_combined_dataset</span><span class="p">(</span>
         <span class="n">target</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
@@ -894,7 +870,7 @@ title="Open an issue"
         <span class="n">val_x</span><span class="o">=</span><span class="n">val_x</span><span class="p">,</span>
         <span class="n">val_y</span><span class="o">=</span><span class="n">val_y</span><span class="p">,</span>
         <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
-        <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_fit</span><span class="p">),</span>
+        <span class="n">ss</span><span class="o">=</span><span class="n">ss_fit</span><span class="p">,</span>
         <span class="c1"># Clear the training loss/accuracy metrics from last iteration.</span>
         <span class="n">reset_metrics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">entropy_regularisation</span><span class="o">=</span><span class="n">entropy_regularisation</span><span class="p">,</span>
@@ -941,15 +917,14 @@ title="Open an issue"
 <span class="sd">        The trained discriminator.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-    <span class="n">ss</span> <span class="o">=</span> <span class="n">NamedSeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-    <span class="n">ss_train</span><span class="p">,</span> <span class="n">ss_test</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">((</span><span class="s2">&quot;thetas:train&quot;</span><span class="p">,</span> <span class="s2">&quot;thetas:test&quot;</span><span class="p">))</span>
+    <span class="n">ss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">spawn_key</span><span class="o">=</span><span class="n">spawn_key</span><span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">))</span>
+    <span class="n">ss_thetas</span><span class="p">,</span> <span class="n">ss_discr</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">rng_train</span><span class="p">,</span> <span class="n">rng_test</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">sj</span><span class="p">)</span> <span class="k">for</span> <span class="n">sj</span> <span class="ow">in</span> <span class="n">ss_thetas</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
 
     <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-        <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_train</span><span class="p">)</span>
+        <span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_train</span>
     <span class="p">)</span>
-    <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
-        <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_test</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng_test</span><span class="p">)</span>
 
     <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span><span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span><span class="p">)</span>
 
@@ -961,7 +936,7 @@ title="Open an issue"
             <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
             <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
             <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-            <span class="n">ss</span><span class="o">=</span><span class="n">ss</span><span class="p">,</span>
+            <span class="n">ss</span><span class="o">=</span><span class="n">ss_discr</span><span class="p">,</span>
             <span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">discriminator</span></div>
@@ -1005,7 +980,8 @@ title="Open an issue"
 <span class="sd">        probs[j] is the discriminator prediction for the j&#39;th draw.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-    <span class="n">ss</span> <span class="o">=</span> <span class="n">NamedSeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">ss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">spawn_key</span><span class="o">=</span><span class="n">spawn_key</span><span class="p">(</span><span class="s2">&quot;predict&quot;</span><span class="p">))</span>
+    <span class="n">ss_target</span><span class="p">,</span> <span class="n">ss_thetas</span><span class="p">,</span> <span class="n">ss_generator</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">callbacks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">callbacks</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1021,19 +997,15 @@ title="Open an issue"
 
     <span class="k">with</span> <span class="n">process_pool</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">dinf_model</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">sample_target</span><span class="p">:</span>
-            <span class="p">(</span><span class="n">ss_target</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">((</span><span class="s2">&quot;features:predict:target&quot;</span><span class="p">,))</span>
             <span class="n">x</span> <span class="o">=</span> <span class="n">_get_target_dataset</span><span class="p">(</span>
                 <span class="n">target</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
                 <span class="n">num_replicates</span><span class="o">=</span><span class="n">replicates</span><span class="p">,</span>
                 <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-                <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_target</span><span class="p">),</span>
+                <span class="n">ss</span><span class="o">=</span><span class="n">ss_target</span><span class="p">,</span>
                 <span class="n">callbacks</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;feature&quot;</span><span class="p">:</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;predict/target/feature&quot;</span><span class="p">)},</span>
             <span class="p">)</span>
             <span class="n">thetas</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">ss_thetas</span><span class="p">,</span> <span class="n">ss_generator</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span>
-                <span class="p">(</span><span class="s2">&quot;thetas:predict&quot;</span><span class="p">,</span> <span class="s2">&quot;features:predict:generator&quot;</span><span class="p">)</span>
-            <span class="p">)</span>
             <span class="n">thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
                 <span class="n">replicates</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
             <span class="p">)</span>
@@ -1041,7 +1013,7 @@ title="Open an issue"
                 <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">,</span>
                 <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
                 <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-                <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_generator</span><span class="p">),</span>
+                <span class="n">ss</span><span class="o">=</span><span class="n">ss_generator</span><span class="p">,</span>
                 <span class="n">callbacks</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;feature&quot;</span><span class="p">:</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;predict/generator/feature&quot;</span><span class="p">)},</span>
             <span class="p">)</span>
     <span class="n">probs</span> <span class="o">=</span> <span class="n">discriminator</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
@@ -1056,7 +1028,7 @@ title="Open an issue"
     <span class="n">discriminator</span><span class="p">:</span> <span class="n">Discriminator</span><span class="p">,</span>
     <span class="n">generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
     <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span><span class="p">,</span>
-    <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+    <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
     <span class="n">num_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">pool</span><span class="p">:</span> <span class="n">_SupportsImap</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -1073,7 +1045,7 @@ title="Open an issue"
     <span class="k">if</span> <span class="n">num_in_bounds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">log_D</span>
 
-    <span class="n">seeds</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">num_replicates</span> <span class="o">*</span> <span class="n">num_in_bounds</span><span class="p">)</span>
+    <span class="n">seeds</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">num_replicates</span> <span class="o">*</span> <span class="n">num_in_bounds</span><span class="p">)</span>
     <span class="n">thetas_reps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">thetas</span><span class="p">[</span><span class="n">in_bounds</span><span class="p">],</span> <span class="n">num_replicates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">seeds</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas_reps</span><span class="p">)</span>
     <span class="n">M</span> <span class="o">=</span> <span class="n">_get_dataset_parallel</span><span class="p">(</span>
@@ -1093,25 +1065,39 @@ title="Open an issue"
 
 <span class="k">def</span> <span class="nf">_run_mcmc_emcee</span><span class="p">(</span>
     <span class="n">start</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">discriminator</span><span class="p">:</span> <span class="n">Discriminator</span><span class="p">,</span>
+    <span class="n">generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
     <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span><span class="p">,</span>
+    <span class="n">pool</span><span class="p">:</span> <span class="n">_SupportsImap</span><span class="p">,</span>
     <span class="n">walkers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
-    <span class="n">log_prob_func</span><span class="p">,</span>
+    <span class="n">Dx_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="k">if</span> <span class="n">callbacks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">callbacks</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mcmc&quot;</span><span class="p">,)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">callbacks</span><span class="p">)</span>
 
+    <span class="n">ss_log_prob</span><span class="p">,</span> <span class="n">ss_mt</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
     <span class="n">sampler</span> <span class="o">=</span> <span class="n">emcee</span><span class="o">.</span><span class="n">EnsembleSampler</span><span class="p">(</span>
         <span class="n">walkers</span><span class="p">,</span>
         <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">),</span>
-        <span class="n">log_prob_func</span><span class="p">,</span>
+        <span class="n">_log_prob</span><span class="p">,</span>
         <span class="n">vectorize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
+            <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
+            <span class="n">num_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
+            <span class="n">ss</span><span class="o">=</span><span class="n">ss_log_prob</span><span class="p">,</span>
+        <span class="p">),</span>
     <span class="p">)</span>
 
-    <span class="n">mt_initial_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">mtrand</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">))</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
+    <span class="n">mt_seed</span> <span class="o">=</span> <span class="n">ss_mt</span><span class="o">.</span><span class="n">generate_state</span><span class="p">(</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">mt_initial_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">mtrand</span><span class="o">.</span><span class="n">RandomState</span><span class="p">(</span><span class="n">mt_seed</span><span class="p">)</span><span class="o">.</span><span class="n">get_state</span><span class="p">()</span>
     <span class="n">state</span> <span class="o">=</span> <span class="n">emcee</span><span class="o">.</span><span class="n">State</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">mt_initial_state</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="p">(</span><span class="n">cb_mcmc</span> <span class="o">:=</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mcmc&quot;</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1218,16 +1204,11 @@ title="Open an issue"
     <span class="n">store</span><span class="o">.</span><span class="n">assert_complete</span><span class="p">([</span><span class="s2">&quot;discriminator.nn&quot;</span><span class="p">,</span> <span class="s2">&quot;mcmc.npz&quot;</span><span class="p">])</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
-    <span class="n">ss</span> <span class="o">=</span> <span class="n">NamedSeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-    <span class="n">ss_loop</span><span class="p">,</span> <span class="n">ss_mcmc</span><span class="p">,</span> <span class="n">ss_thetas</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span>
-        <span class="p">(</span><span class="s2">&quot;mcmc-gan:loop&quot;</span><span class="p">,</span> <span class="s2">&quot;mcmc-gan:mcmc&quot;</span><span class="p">,</span> <span class="s2">&quot;mcmc-gan:thetas&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">ss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">spawn_key</span><span class="o">=</span><span class="n">spawn_key</span><span class="p">(</span><span class="s2">&quot;mcmc-gan&quot;</span><span class="p">))</span>
+    <span class="n">ss_loop</span><span class="p">,</span> <span class="n">ss_thetas</span><span class="p">,</span> <span class="n">ss_test</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">rng_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
-    <span class="n">rng_mcmc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_mcmc</span><span class="p">)</span>
 
     <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span>
-
-    <span class="n">sampling_mode</span> <span class="o">=</span> <span class="s2">&quot;reflect&quot;</span>
 
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span>
@@ -1251,7 +1232,6 @@ title="Open an issue"
             <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
             <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
-            <span class="n">mode</span><span class="o">=</span><span class="n">sampling_mode</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span><span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span><span class="p">)</span>
@@ -1273,7 +1253,7 @@ title="Open an issue"
 
         <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">test_replicates</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="n">ss_val</span><span class="p">,</span> <span class="n">ss_test_thetas</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">((</span><span class="s2">&quot;features:val&quot;</span><span class="p">,</span> <span class="s2">&quot;mcmc-gan:thetas:val&quot;</span><span class="p">))</span>
+            <span class="n">ss_val</span><span class="p">,</span> <span class="n">ss_test_thetas</span> <span class="o">=</span> <span class="n">ss_test</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
             <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
                 <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_test_thetas</span><span class="p">)</span>
             <span class="p">)</span>
@@ -1292,24 +1272,13 @@ title="Open an issue"
             <span class="n">n_target_calls</span> <span class="o">+=</span> <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span>
             <span class="n">n_generator_calls</span> <span class="o">+=</span> <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span>
 
-        <span class="n">log_prob_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
-            <span class="n">_log_prob</span><span class="p">,</span>
-            <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
-            <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">,</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
-            <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-            <span class="n">num_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
-            <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
-        <span class="p">)</span>
-
         <span class="k">if</span> <span class="p">(</span><span class="n">cb_iter</span> <span class="o">:=</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;iteration&quot;</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">cb_iter</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">))</span>
 
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="n">iterations</span><span class="p">):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;MCMC GAN iteration </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
 
-            <span class="p">(</span><span class="n">ss_loop</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">ss_train</span><span class="p">,</span> <span class="n">ss_fit</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">((</span><span class="s2">&quot;features:train&quot;</span><span class="p">,</span> <span class="s2">&quot;discriminator:fit&quot;</span><span class="p">))</span>
+            <span class="n">ss_train</span><span class="p">,</span> <span class="n">ss_fit</span><span class="p">,</span> <span class="n">ss_mcmc</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
             <span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span> <span class="o">=</span> <span class="n">_get_combined_dataset</span><span class="p">(</span>
                 <span class="n">target</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
@@ -1331,7 +1300,7 @@ title="Open an issue"
                 <span class="n">val_x</span><span class="o">=</span><span class="n">val_x</span><span class="p">,</span>
                 <span class="n">val_y</span><span class="o">=</span><span class="n">val_y</span><span class="p">,</span>
                 <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
-                <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_fit</span><span class="p">),</span>
+                <span class="n">ss</span><span class="o">=</span><span class="n">ss_fit</span><span class="p">,</span>
                 <span class="c1"># Clear the training loss/accuracy metrics from last iteration.</span>
                 <span class="n">reset_metrics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">callbacks</span><span class="o">=</span><span class="p">{</span>
@@ -1348,11 +1317,14 @@ title="Open an issue"
 
             <span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="n">_run_mcmc_emcee</span><span class="p">(</span>
                 <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+                <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
+                <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">,</span>
                 <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+                <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
                 <span class="n">walkers</span><span class="o">=</span><span class="n">walkers</span><span class="p">,</span>
                 <span class="n">steps</span><span class="o">=</span><span class="n">steps</span><span class="p">,</span>
-                <span class="n">rng</span><span class="o">=</span><span class="n">rng_mcmc</span><span class="p">,</span>
-                <span class="n">log_prob_func</span><span class="o">=</span><span class="n">log_prob_func</span><span class="p">,</span>
+                <span class="n">Dx_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
+                <span class="n">ss</span><span class="o">=</span><span class="n">ss_mcmc</span><span class="p">,</span>
                 <span class="n">callbacks</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;mcmc&quot;</span><span class="p">:</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mcmc&quot;</span><span class="p">)},</span>
             <span class="p">)</span>
             <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">walkers</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">))</span>
@@ -1372,7 +1344,6 @@ title="Open an issue"
                 <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
                 <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
                 <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
-                <span class="n">mode</span><span class="o">=</span><span class="n">sampling_mode</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="n">n_generator_calls</span> <span class="o">+=</span> <span class="n">walkers</span> <span class="o">*</span> <span class="n">steps</span> <span class="o">*</span> <span class="n">Dx_replicates</span>
@@ -1383,32 +1354,13 @@ title="Open an issue"
                 <span class="n">cb_iter</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">_sample_smooth</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Sample from a smoothed set of weighted observations.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Weighted sampling of points from the thetas.</span>
-    <span class="n">sample</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">probs</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">))</span>
-    <span class="c1"># Calculate bandwidth.</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span>
-    <span class="n">neff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">bw_scott</span> <span class="o">=</span> <span class="n">neff</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">4</span><span class="p">))</span>  <span class="c1"># bandwidth multiplier</span>
-    <span class="n">cov</span> <span class="o">=</span> <span class="n">bw_scott</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">rowvar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">aweights</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cov</span><span class="p">))</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">cov</span><span class="p">))</span>
-    <span class="c1"># Jitter the sample with an MVN.</span>
-    <span class="n">sample</span> <span class="o">+=</span> <span class="n">rng</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">d</span><span class="p">),</span> <span class="n">cov</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">sample</span>
-
-
 <div class="viewcode-block" id="sample_smooth"><a class="viewcode-back" href="../../api.html#dinf.sample_smooth">[docs]</a><span class="k">def</span> <span class="nf">sample_smooth</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
-    <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Sample from a smoothed set of weighted observations.</span>
@@ -1418,6 +1370,7 @@ title="Open an issue"
 <span class="sd">    using a mulivariate normal whose covariance is calculated from the</span>
 <span class="sd">    thetas. This is equivalent to sampling from a Gaussian KDE, but</span>
 <span class="sd">    avoids doing an explicit density estimation.</span>
+<span class="sd">    Values are sampled until they are within the parameter bounds.</span>
 <span class="sd">    Scott&#39;s rule of thumb is used for bandwidth selection.</span>
 
 <span class="sd">    :param thetas:</span>
@@ -1431,47 +1384,48 @@ title="Open an issue"
 <span class="sd">    :param parameters:</span>
 <span class="sd">        The parameters against which the values&#39; bounds will be checked.</span>
 <span class="sd">        See the ``mode`` argument.</span>
-<span class="sd">    :param mode:</span>
-<span class="sd">        The mode determines how to deal with values that are out of the</span>
-<span class="sd">        parameter bounds. If mode is not None, then ``parameters`` must</span>
-<span class="sd">        also be specified. The options are:</span>
-
-<span class="sd">         * ``None`` (*default*): the returned values are not modified</span>
-<span class="sd">           after sampling and may be out of bounds.</span>
-<span class="sd">         * &quot;transform&quot;: thetas are transformed before sampling, and</span>
-<span class="sd">           the sampled values are inverse-transformed before being</span>
-<span class="sd">           returned.</span>
-<span class="sd">           See :meth:`Parameters.transform` and :meth:`Parameters.itransform`.</span>
-<span class="sd">         * &quot;truncate&quot;: sampled values are truncated at the parameter limits.</span>
-<span class="sd">           See :meth:`Parameters.truncate`.</span>
-<span class="sd">         * &quot;reflect&quot;: sample values that are out of bounds are reflected</span>
-<span class="sd">           inside the parameter limits by the same magnitude that they were</span>
-<span class="sd">           out of bounds. Values that are too far out of bounds to be</span>
-<span class="sd">           reflected are truncated at the parameter limits.</span>
-<span class="sd">           See :meth:`Parameters.reflect`.</span>
-
 <span class="sd">    :return:</span>
 <span class="sd">        The sampled values.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;transform&quot;</span><span class="p">,</span> <span class="s2">&quot;truncate&quot;</span><span class="p">,</span> <span class="s2">&quot;reflect&quot;</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown sampling mode &#39;</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Must pass &#39;parameters&#39; when &#39;mode&#39; is not None&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;transform&quot;</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
-    <span class="n">X</span> <span class="o">=</span> <span class="n">_sample_smooth</span><span class="p">(</span><span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span><span class="o">=</span><span class="n">probs</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;transform&quot;</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">X</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">itransform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;reflect&quot;</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">X</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">reflect</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;truncate&quot;</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">X</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">truncate</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">X</span></div>
+    <span class="c1"># Calculate bandwidth.</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">neff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">bw_scott</span> <span class="o">=</span> <span class="n">neff</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">4</span><span class="p">))</span>  <span class="c1"># bandwidth multiplier</span>
+    <span class="n">cov</span> <span class="o">=</span> <span class="n">bw_scott</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">rowvar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">aweights</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cov</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">cov</span><span class="p">))</span>
+
+    <span class="n">sample</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">size</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+    <span class="n">idx</span><span class="p">:</span> <span class="nb">slice</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+    <span class="n">size_needed</span> <span class="o">=</span> <span class="n">size</span>
+    <span class="n">draws</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">probs</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">size_needed</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">draws</span> <span class="o">+=</span> <span class="n">size_needed</span>
+        <span class="c1"># Weighted sampling of points from the thetas.</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size_needed</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+        <span class="c1"># Disperse the sample with an MVN.</span>
+        <span class="n">disp</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">multivariate_normal</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">d</span><span class="p">),</span> <span class="n">cov</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size_needed</span><span class="p">)</span>
+        <span class="n">sample</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="n">disp</span>
+
+        <span class="c1"># Find indices of samples that are out of bounds.</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="o">~</span><span class="n">parameters</span><span class="o">.</span><span class="n">bounds_contain</span><span class="p">(</span><span class="n">sample</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">size_needed</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">draws</span> <span class="o">&gt;</span> <span class="mi">1000</span> <span class="o">*</span> <span class="n">size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Failed to get </span><span class="si">{</span><span class="n">size</span><span class="si">}</span><span class="s2"> samples from KDE that are within the &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;parameter bounds after </span><span class="si">{</span><span class="n">draws</span><span class="si">}</span><span class="s2"> draws. &quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">draws</span> <span class="o">&gt;</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">size</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">&quot;Excessive KDE samples out of parameter bounds: </span><span class="si">%d</span><span class="s2"> of </span><span class="si">%d</span><span class="s2"> draws&quot;</span><span class="p">,</span>
+            <span class="n">draws</span> <span class="o">-</span> <span class="n">size</span><span class="p">,</span>
+            <span class="n">draws</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">sample</span></div>
 
 
 <div class="viewcode-block" id="geometric_median"><a class="viewcode-back" href="../../api.html#dinf.geometric_median">[docs]</a><span class="k">def</span> <span class="nf">geometric_median</span><span class="p">(</span>
@@ -1616,16 +1570,11 @@ title="Open an issue"
     <span class="n">store</span><span class="o">.</span><span class="n">assert_complete</span><span class="p">([</span><span class="s2">&quot;discriminator.nn&quot;</span><span class="p">,</span> <span class="s2">&quot;abc.npz&quot;</span><span class="p">])</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
-    <span class="n">ss</span> <span class="o">=</span> <span class="n">NamedSeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-    <span class="n">ss_loop</span><span class="p">,</span> <span class="n">ss_thetas</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">((</span><span class="s2">&quot;abc-gan:loop&quot;</span><span class="p">,</span> <span class="s2">&quot;abc-gan:thetas&quot;</span><span class="p">))</span>
+    <span class="n">ss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">spawn_key</span><span class="o">=</span><span class="n">spawn_key</span><span class="p">(</span><span class="s2">&quot;abc-gan&quot;</span><span class="p">))</span>
+    <span class="n">ss_loop</span><span class="p">,</span> <span class="n">ss_thetas</span><span class="p">,</span> <span class="n">ss_test</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">rng_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
 
     <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span>
-
-    <span class="c1"># Use mode=&quot;reflect&quot;, because &quot;transform&quot; seems to produce ABC-GAN</span>
-    <span class="c1"># degenerate states due to density accumulation at the bounds.</span>
-    <span class="c1"># This effect was even more pronouned than for &quot;truncate&quot;.</span>
-    <span class="n">sampling_mode</span> <span class="o">=</span> <span class="s2">&quot;reflect&quot;</span>
 
     <span class="k">if</span> <span class="n">resume</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span>
@@ -1643,7 +1592,6 @@ title="Open an issue"
             <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
             <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
-            <span class="n">mode</span><span class="o">=</span><span class="n">sampling_mode</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">sample_smooth</span><span class="p">(</span>
             <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
@@ -1651,7 +1599,6 @@ title="Open an issue"
             <span class="n">size</span><span class="o">=</span><span class="n">proposal_replicates</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
             <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
-            <span class="n">mode</span><span class="o">=</span><span class="n">sampling_mode</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span><span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span><span class="p">)</span>
@@ -1667,9 +1614,7 @@ title="Open an issue"
 
         <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">test_replicates</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="n">ss_val</span><span class="p">,</span> <span class="n">ss_test_thetas</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span>
-                <span class="p">(</span><span class="s2">&quot;abc-gan:features:val&quot;</span><span class="p">,</span> <span class="s2">&quot;abc-gan:thetas:val&quot;</span><span class="p">)</span>
-            <span class="p">)</span>
+            <span class="n">ss_val</span><span class="p">,</span> <span class="n">ss_test_thetas</span> <span class="o">=</span> <span class="n">ss_test</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
             <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">draw_prior</span><span class="p">(</span>
                 <span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_test_thetas</span><span class="p">)</span>
             <span class="p">)</span>
@@ -1692,10 +1637,7 @@ title="Open an issue"
 
         <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
 
-            <span class="p">(</span><span class="n">ss_loop</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">ss_train</span><span class="p">,</span> <span class="n">ss_proposals</span><span class="p">,</span> <span class="n">ss_fit</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span>
-                <span class="p">(</span><span class="s2">&quot;features:train&quot;</span><span class="p">,</span> <span class="s2">&quot;features:proposals&quot;</span><span class="p">,</span> <span class="s2">&quot;discriminator:fit&quot;</span><span class="p">)</span>
-            <span class="p">)</span>
+            <span class="n">ss_train</span><span class="p">,</span> <span class="n">ss_proposals</span><span class="p">,</span> <span class="n">ss_fit</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
             <span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span> <span class="o">=</span> <span class="n">_get_combined_dataset</span><span class="p">(</span>
                 <span class="n">target</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
                 <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">,</span>
@@ -1716,7 +1658,7 @@ title="Open an issue"
                 <span class="n">val_x</span><span class="o">=</span><span class="n">val_x</span><span class="p">,</span>
                 <span class="n">val_y</span><span class="o">=</span><span class="n">val_y</span><span class="p">,</span>
                 <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
-                <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_fit</span><span class="p">),</span>
+                <span class="n">ss</span><span class="o">=</span><span class="n">ss_fit</span><span class="p">,</span>
                 <span class="c1"># Clear the training loss/accuracy metrics from last iteration.</span>
                 <span class="n">reset_metrics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">callbacks</span><span class="o">=</span><span class="p">{</span>
@@ -1732,7 +1674,7 @@ title="Open an issue"
                 <span class="n">generator</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">generator_func_v</span><span class="p">,</span>
                 <span class="n">thetas</span><span class="o">=</span><span class="n">proposal_thetas</span><span class="p">,</span>
                 <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-                <span class="n">rng</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_proposals</span><span class="p">),</span>
+                <span class="n">ss</span><span class="o">=</span><span class="n">ss_proposals</span><span class="p">,</span>
                 <span class="n">callbacks</span><span class="o">=</span><span class="p">{</span>
                     <span class="s2">&quot;feature&quot;</span><span class="p">:</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;proposal/feature&quot;</span><span class="p">),</span>
                 <span class="p">},</span>
@@ -1760,7 +1702,6 @@ title="Open an issue"
                 <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
                 <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
                 <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
-                <span class="n">mode</span><span class="o">=</span><span class="n">sampling_mode</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">sample_smooth</span><span class="p">(</span>
                 <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
@@ -1768,7 +1709,6 @@ title="Open an issue"
                 <span class="n">size</span><span class="o">=</span><span class="n">proposal_replicates</span><span class="p">,</span>
                 <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
                 <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
-                <span class="n">mode</span><span class="o">=</span><span class="n">sampling_mode</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Target called </span><span class="si">%s</span><span class="s2"> times.&quot;</span><span class="p">,</span> <span class="n">n_target_calls</span><span class="p">)</span>
@@ -1786,7 +1726,7 @@ title="Open an issue"
     <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">pool</span><span class="p">,</span>
     <span class="n">max_pretraining_iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">ss</span><span class="p">:</span> <span class="n">NamedSeedSequence</span><span class="p">,</span>
+    <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Pretraining roughly like PG-GAN.</span>
@@ -1798,7 +1738,7 @@ title="Open an issue"
 <span class="sd">    max_pretraining_iterations times, each with training_replicates reps.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="p">(</span><span class="n">ss_thetas</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">((</span><span class="s2">&quot;thetas&quot;</span><span class="p">,))</span>
+    <span class="n">ss_thetas</span><span class="p">,</span> <span class="n">ss_train</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">rng_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
 
     <span class="n">discriminator</span> <span class="o">=</span> <span class="n">Discriminator</span><span class="p">(</span><span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span><span class="p">)</span>
@@ -1817,7 +1757,7 @@ title="Open an issue"
             <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
             <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
             <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-            <span class="n">ss</span><span class="o">=</span><span class="n">ss</span><span class="p">,</span>
+            <span class="n">ss</span><span class="o">=</span><span class="n">ss_train</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="c1"># Use the test accuracy, unless there&#39;s no test data.</span>
         <span class="n">acc</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;test_accuracy&quot;</span><span class="p">,</span> <span class="n">metrics</span><span class="p">[</span><span class="s2">&quot;train_accuracy&quot;</span><span class="p">])</span>
@@ -1843,7 +1783,7 @@ title="Open an issue"
     <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">pool</span><span class="p">,</span>
     <span class="n">max_pretraining_iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">ss</span><span class="p">:</span> <span class="n">NamedSeedSequence</span><span class="p">,</span>
+    <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Train the discriminator on data sampled from the prior, until it can</span>
@@ -1855,7 +1795,7 @@ title="Open an issue"
 <span class="sd">    with the highest log probability from a fresh set of candidates</span>
 <span class="sd">    drawn from the prior.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="p">(</span><span class="n">ss_thetas</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">((</span><span class="s2">&quot;thetas&quot;</span><span class="p">,))</span>
+    <span class="n">ss_thetas</span><span class="p">,</span> <span class="n">ss_lp</span><span class="p">,</span> <span class="n">ss_train</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
 
     <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span>
@@ -1872,7 +1812,7 @@ title="Open an issue"
             <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
             <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
             <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-            <span class="n">ss</span><span class="o">=</span><span class="n">ss</span><span class="p">,</span>
+            <span class="n">ss</span><span class="o">=</span><span class="n">ss_train</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Use the test accuracy, unless there&#39;s no test data.</span>
@@ -1888,7 +1828,7 @@ title="Open an issue"
         <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
         <span class="n">num_replicates</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-        <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+        <span class="n">ss</span><span class="o">=</span><span class="n">ss_lp</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">lp</span><span class="p">)</span>
     <span class="n">theta</span> <span class="o">=</span> <span class="n">thetas</span><span class="p">[</span><span class="n">best</span><span class="p">]</span>
@@ -2114,10 +2054,8 @@ title="Open an issue"
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unknown pretraining_method </span><span class="si">{</span><span class="n">pretraining_method</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="n">ss</span> <span class="o">=</span> <span class="n">NamedSeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
-    <span class="n">ss_accept</span><span class="p">,</span> <span class="n">ss_pretraining</span><span class="p">,</span> <span class="n">ss_proposals</span><span class="p">,</span> <span class="n">ss_loop</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span>
-        <span class="p">(</span><span class="s2">&quot;pg-gan:acceptance&quot;</span><span class="p">,</span> <span class="s2">&quot;pg-gan:pretraining&quot;</span><span class="p">,</span> <span class="s2">&quot;pg-gan:proposals&quot;</span><span class="p">,</span> <span class="s2">&quot;pg-gan:loop&quot;</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">ss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">spawn_key</span><span class="o">=</span><span class="n">spawn_key</span><span class="p">(</span><span class="s2">&quot;pg-gan&quot;</span><span class="p">))</span>
+    <span class="n">ss_accept</span><span class="p">,</span> <span class="n">ss_pretraining</span><span class="p">,</span> <span class="n">ss_proposals</span><span class="p">,</span> <span class="n">ss_loop</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
     <span class="n">rng_accept</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_accept</span><span class="p">)</span>
     <span class="n">rng_proposals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_proposals</span><span class="p">)</span>
 
@@ -2150,7 +2088,6 @@ title="Open an issue"
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">resume</span><span class="p">:</span>
             <span class="c1"># pre-training</span>
-
             <span class="n">discriminator</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_target_calls</span><span class="p">,</span> <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="n">pretraining_func</span><span class="p">(</span>
                 <span class="n">dinf_model</span><span class="o">=</span><span class="n">dinf_model</span><span class="p">,</span>
                 <span class="n">training_replicates</span><span class="o">=</span><span class="n">training_replicates</span><span class="p">,</span>
@@ -2164,6 +2101,7 @@ title="Open an issue"
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">+</span> <span class="n">iterations</span><span class="p">):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;PG-GAN simulated annealing iteration </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
 
+            <span class="n">ss_lp</span><span class="p">,</span> <span class="n">ss_train</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
             <span class="n">temperature</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">i</span> <span class="o">/</span> <span class="n">iterations</span><span class="p">)</span>
 
             <span class="n">proposal_thetas</span> <span class="o">=</span> <span class="n">proposals_func</span><span class="p">(</span>
@@ -2182,7 +2120,7 @@ title="Open an issue"
                 <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
                 <span class="n">num_replicates</span><span class="o">=</span><span class="n">Dx_replicates</span><span class="p">,</span>
                 <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-                <span class="n">rng</span><span class="o">=</span><span class="n">rng_proposals</span><span class="p">,</span>
+                <span class="n">ss</span><span class="o">=</span><span class="n">ss_lp</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">n_generator_calls</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">proposal_thetas</span><span class="p">)</span> <span class="o">*</span> <span class="n">Dx_replicates</span>
 
@@ -2221,7 +2159,6 @@ title="Open an issue"
                 <span class="c1"># PG-GAN does 5000/5000 (real/fake) reps.</span>
                 <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
                 <span class="n">test_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">(</span><span class="n">test_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
-                <span class="p">(</span><span class="n">ss_loop</span><span class="p">,)</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
                 <span class="n">_train_discriminator</span><span class="p">(</span>
                     <span class="n">discriminator</span><span class="o">=</span><span class="n">discriminator</span><span class="p">,</span>
                     <span class="n">dinf_model</span><span class="o">=</span><span class="n">dinf_model</span><span class="p">,</span>
@@ -2229,7 +2166,7 @@ title="Open an issue"
                     <span class="n">test_thetas</span><span class="o">=</span><span class="n">test_thetas</span><span class="p">,</span>
                     <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
                     <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
-                    <span class="n">ss</span><span class="o">=</span><span class="n">ss_loop</span><span class="p">,</span>
+                    <span class="n">ss</span><span class="o">=</span><span class="n">ss_train</span><span class="p">,</span>
                     <span class="c1"># XXX: Is this helpful?</span>
                     <span class="n">entropy_regularisation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="p">)</span>
@@ -2260,7 +2197,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev46+g4635c94
+      dinf 0.2.1.dev52+g33e1bd8
     </div>
 </p>
         </footer>
