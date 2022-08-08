@@ -99,17 +99,9 @@ const thebe_selector_output = ".output, .cell_output"
     </a>
 </div><form class="bd-search d-flex align-items-center" action="search.html" method="get">
   <i class="icon fas fa-search"></i>
-  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search this book..." aria-label="Search this book..." autocomplete="off" >
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
 </form><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
     <div class="bd-toc-item active">
-        
-        <ul class="nav bd-sidenav bd-sidenav__home-link">
-            <li class="toctree-l1">
-                <a class="reference internal" href="introduction.html">
-                    Introduction
-                </a>
-            </li>
-        </ul>
         <p aria-level="2" class="caption" role="heading">
  <span class="caption-text">
   Getting started
@@ -232,7 +224,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev62
+            dinf 0.2.1.dev65
             </div>
             
         </div>
@@ -327,69 +319,6 @@ title="Open an issue"
   </span>
 <span class="headerbtn__text-container">open issue</span>
 </a>
-
-      </li>
-      
-      <li>
-        <a href="https://github.com/RacimoLab/dinf/edit/main/docs/cli.md"
-   class="headerbtn"
-   data-toggle="tooltip"
-data-placement="left"
-title="Edit this page"
->
-  
-
-<span class="headerbtn__icon-container">
-  <i class="fas fa-pencil-alt"></i>
-  </span>
-<span class="headerbtn__text-container">suggest edit</span>
-</a>
-
-      </li>
-      
-    </ul>
-  </div>
-</div>
-
-<div class="menu-dropdown menu-dropdown-download-buttons">
-  <button class="headerbtn menu-dropdown__trigger"
-      aria-label="Download this page">
-      <i class="fas fa-download"></i>
-  </button>
-  <div class="menu-dropdown__content">
-    <ul>
-      <li>
-        <a href="_sources/cli.md"
-   class="headerbtn"
-   data-toggle="tooltip"
-data-placement="left"
-title="Download source file"
->
-  
-
-<span class="headerbtn__icon-container">
-  <i class="fas fa-file"></i>
-  </span>
-<span class="headerbtn__text-container">.md</span>
-</a>
-
-      </li>
-      
-      <li>
-        
-<button onclick="printPdf(this)"
-  class="headerbtn"
-  data-toggle="tooltip"
-data-placement="left"
-title="Print to PDF"
->
-  
-
-<span class="headerbtn__icon-container">
-  <i class="fas fa-file-pdf"></i>
-  </span>
-<span class="headerbtn__text-container">.pdf</span>
-</button>
 
       </li>
       
@@ -833,8 +762,7 @@ training arguments:
 <section id="dinf-predict">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">predict</span></code><a class="headerlink" href="#dinf-predict" title="Permalink to this headline">#</a></h3>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf predict [-h] [-v | -q] [-S SEED] [-j PARALLELISM] [-r REPLICATES]
-                    [--target] -m model.py -d discriminator.nn
-                    output.npz
+                    [--target] -m model.py -d discriminator.nn [-o output.npz]
 
 Make predictions using a trained discriminator.
 
@@ -884,8 +812,9 @@ predict arguments:
   -d discriminator.nn, --discriminator discriminator.nn
                         File containing discriminator network weights.
                         (default: None)
-  output.npz            Output data, matching thetas to discriminator
-                        predictions.
+  -o output.npz, --output-file output.npz
+                        Output data, matching thetas to discriminator
+                        predictions. (default: None)
 </pre></div>
 </div>
 </section>
@@ -1408,7 +1337,7 @@ optional arguments:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev62+ge7b4da9
+      dinf 0.2.1.dev65+g2c22e5c
     </div>
 </p>
         </footer>

@@ -1,7 +1,10 @@
 # Changelog
 
-## unreleased
+## 0.3.0 - 2022-08-08
 
+* Changed how the CLI is used. Now the model and discriminator
+  are specified with the -m/--model and -d/--discriminator
+  options, even when they are required.
 * Removed DinfModel.feature_shape.
 * Simplified Discriminator API.
 * Add progress bars and do logging with `rich`.
