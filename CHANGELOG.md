@@ -1,6 +1,6 @@
 # Changelog
 
-## unreleased
+## 0.3.0 - 2022-08-08
 
 * Removed DinfModel.feature_shape.
 * Simplified Discriminator API.

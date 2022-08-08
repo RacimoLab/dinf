@@ -292,7 +292,7 @@ class TestPredict:
                 {target}
                 --model {ex}
                 --discriminator {discriminator_file}
-                {output_file}
+                --output-file {output_file}
             """.split(),
             check=True,
             stdout=subprocess.PIPE,
