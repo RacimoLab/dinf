@@ -693,7 +693,8 @@ class _Predict(_DinfSubCommand):
         self.add_argument_model(parser=group)
         self.add_argument_discriminator(parser=group)
         group.add_argument(
-            "output_file",
+            "-o",
+            "--output-file",
             metavar="output.npz",
             type=pathlib.Path,
             help="Output data, matching thetas to discriminator predictions.",
