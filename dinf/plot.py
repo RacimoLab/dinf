@@ -1029,8 +1029,9 @@ class _Hist(_DinfPlotSubCommand):
                         if parameters is not None and x_param != "_Pr":
                             left = max(parameters[x_param].low, xlim[0])
                             right = min(parameters[x_param].high, xlim[1])
+                        weights = data["_Pr"] if x_param != "_Pr" else None
                         xrange, pdf = _kde1d_reflect(
-                            data[x_param], weights=data["_Pr"], left=left, right=right
+                            data[x_param], weights=weights, left=left, right=right
                         )
                         if args.cumulative:
                             cdf = np.cumsum(pdf)
