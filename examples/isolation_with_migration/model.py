@@ -10,8 +10,8 @@ import dinf
 
 populations = ["deme1", "deme2"]
 mutation_rate = 1.25e-8
-num_individuals = 48  # per population
-sequence_length = 50_000
+num_individuals = 32  # per population
+sequence_length = 1_000_000
 parameters = dinf.Parameters(
     # Recombination rate.
     reco=dinf.Param(low=1e-9, high=1e-7, truth=1.25e-8),
@@ -74,7 +74,7 @@ def demography(*, N_anc, N1, N2, T_split, mig):
 
 features = dinf.MultipleBinnedHaplotypeMatrices(
     num_individuals={pop: num_individuals for pop in populations},
-    num_loci={pop: 36 for pop in populations},
+    num_loci={pop: 128 for pop in populations},
     ploidy={pop: 2 for pop in populations},
     global_phased=True,
 )
