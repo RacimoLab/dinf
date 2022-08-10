@@ -64,7 +64,7 @@ class _DinfTabulateSubCommand(_SubCommand):
             "--top",
             metavar="N",
             type=int,
-            help="Filter data to retain top N samples, ranked by probability."
+            help="Filter data to retain top N samples, ranked by probability.",
         )
 
     def add_argument_weighted(self):
@@ -80,7 +80,7 @@ class _DinfTabulateSubCommand(_SubCommand):
             "--quantiles",
             type=str,
             default="0.025,0.5,0.975",
-            help="Comma separated list of quantiles to calculate."
+            help="Comma separated list of quantiles to calculate.",
         )
 
     def add_argument_discriminators(self):
@@ -97,7 +97,7 @@ class _DinfTabulateSubCommand(_SubCommand):
             "data",
             metavar="data.npz",
             type=pathlib.Path,
-            help="Data file in numpy .npz format."
+            help="Data file in numpy .npz format.",
         )
 
 
@@ -205,7 +205,7 @@ class _Quantiles(_DinfTabulateSubCommand):
         with _open_default(args.output_file) as f:
             print("Param", *q, sep=args.separator, file=f)
             for j, name in enumerate(names[1:]):
-                xq = quantile(thetas[..., j], q=q, weights=weights)
+                xq = quantile(thetas[..., j], q=q, weights=weights).tolist()
                 if args.format is not None:
                     xq = [args.format % v for v in xq]
                 print(name, *xq, sep=args.separator, file=f)
