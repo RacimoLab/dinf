@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 @contextlib.contextmanager
-def _open_default(file, default=sys.stdout):
+def _open_default(file, mode="w", default=sys.stdout):
     """
     Context manager for opening a file, defaulting to stdout if file is None.
     """
     if file is None:
         yield default
     else:
-        with open(file) as f:
+        with open(file, mode) as f:
             yield f
 
 
@@ -167,6 +167,9 @@ class _Data(_DinfTabulateSubCommand):
 
     def __call__(self, args: argparse.Namespace):
         data = dinf.load_results(args.data)
+        if args.format is None:
+            # Numpy default.
+            args.format = "%.18e"
 
         with _open_default(args.output_file) as f:
             print(*data.dtype.names, sep=args.separator, file=f)

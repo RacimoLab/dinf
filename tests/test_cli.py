@@ -3,7 +3,7 @@ import subprocess
 import pytest
 
 import dinf
-import dinf.__main__
+import dinf.cli
 
 from .test_dinf import check_discriminator, check_npz
 
