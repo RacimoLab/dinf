@@ -224,7 +224,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.2.1.dev65
+            dinf 0.3.1.dev5
             </div>
             
         </div>
@@ -419,8 +419,8 @@ title="Open an issue"
 
 <span class="n">populations</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;deme1&quot;</span><span class="p">,</span> <span class="s2">&quot;deme2&quot;</span><span class="p">]</span>
 <span class="n">mutation_rate</span> <span class="o">=</span> <span class="mf">1.25e-8</span>
-<span class="n">num_individuals</span> <span class="o">=</span> <span class="mi">48</span>  <span class="c1"># per population</span>
-<span class="n">sequence_length</span> <span class="o">=</span> <span class="mi">50_000</span>
+<span class="n">num_individuals</span> <span class="o">=</span> <span class="mi">32</span>  <span class="c1"># per population</span>
+<span class="n">sequence_length</span> <span class="o">=</span> <span class="mi">1_000_000</span>
 <span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Parameters</span><span class="p">(</span>
     <span class="c1"># Recombination rate.</span>
     <span class="n">reco</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="mf">1.25e-8</span><span class="p">),</span>
@@ -483,7 +483,7 @@ title="Open an issue"
 
 <span class="n">features</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">MultipleBinnedHaplotypeMatrices</span><span class="p">(</span>
     <span class="n">num_individuals</span><span class="o">=</span><span class="p">{</span><span class="n">pop</span><span class="p">:</span> <span class="n">num_individuals</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="n">populations</span><span class="p">},</span>
-    <span class="n">num_loci</span><span class="o">=</span><span class="p">{</span><span class="n">pop</span><span class="p">:</span> <span class="mi">36</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="n">populations</span><span class="p">},</span>
+    <span class="n">num_loci</span><span class="o">=</span><span class="p">{</span><span class="n">pop</span><span class="p">:</span> <span class="mi">128</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="n">populations</span><span class="p">},</span>
     <span class="n">ploidy</span><span class="o">=</span><span class="p">{</span><span class="n">pop</span><span class="p">:</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">pop</span> <span class="ow">in</span> <span class="n">populations</span><span class="p">},</span>
     <span class="n">global_phased</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
@@ -573,7 +573,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.2.1.dev65+g2c22e5c
+      dinf 0.3.1.dev5+gda6ac45
     </div>
 </p>
         </footer>
