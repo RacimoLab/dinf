@@ -508,7 +508,7 @@ class _DinfPlotSubCommand(_SubCommand):
             "--top",
             metavar="N",
             type=int,
-            help="Accept only the N top samples, ranked by probability.",
+            help="Filter data to retain top N samples, ranked by probability.",
         )
 
     def add_argument_weighted(self):
@@ -532,6 +532,7 @@ class _DinfPlotSubCommand(_SubCommand):
         self.parser.add_argument(
             "discriminators",
             metavar="discriminator.nn",
+            type=pathlib.Path,
             nargs="+",
             help="The discriminator network(s) to plot.",
         )
