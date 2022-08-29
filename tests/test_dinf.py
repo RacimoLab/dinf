@@ -65,17 +65,22 @@ def test_abc_gan(tmp_path, top_n):
         )
 
     # resume
+    saved_cwd = pathlib.Path.cwd()
     os.chdir(output_folder)
-    dinf.dinf.abc_gan(
-        dinf_model=dinf_model,
-        iterations=1,
-        training_replicates=4,
-        test_replicates=4,
-        proposal_replicates=3,
-        top_n=top_n,
-        epochs=1,
-        seed=2,
-    )
+    try:
+        dinf.dinf.abc_gan(
+            dinf_model=dinf_model,
+            iterations=1,
+            training_replicates=4,
+            test_replicates=4,
+            proposal_replicates=3,
+            top_n=top_n,
+            epochs=1,
+            seed=2,
+        )
+    finally:
+        os.chdir(saved_cwd)
+
     for i in range(3):
         check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
@@ -148,18 +153,22 @@ def test_mcmc_gan(tmp_path):
         )
 
     # resume
+    saved_cwd = pathlib.Path.cwd()
     os.chdir(output_folder)
-    dinf.mcmc_gan(
-        dinf_model=dinf_model,
-        iterations=1,
-        training_replicates=10,
-        test_replicates=2,
-        epochs=1,
-        walkers=6,
-        steps=1,
-        Dx_replicates=2,
-        seed=2,
-    )
+    try:
+        dinf.mcmc_gan(
+            dinf_model=dinf_model,
+            iterations=1,
+            training_replicates=10,
+            test_replicates=2,
+            epochs=1,
+            walkers=6,
+            steps=1,
+            Dx_replicates=2,
+            seed=2,
+        )
+    finally:
+        os.chdir(saved_cwd)
     for i in range(3):
         check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
@@ -237,17 +246,22 @@ def test_pg_gan(tmp_path):
         )
 
     # resume
+    saved_cwd = pathlib.Path.cwd()
     os.chdir(output_folder)
-    dinf.pg_gan(
-        dinf_model=dinf_model,
-        iterations=1,
-        training_replicates=10,
-        test_replicates=2,
-        epochs=1,
-        Dx_replicates=2,
-        num_proposals=num_proposals,
-        seed=2,
-    )
+    try:
+        dinf.pg_gan(
+            dinf_model=dinf_model,
+            iterations=1,
+            training_replicates=10,
+            test_replicates=2,
+            epochs=1,
+            Dx_replicates=2,
+            num_proposals=num_proposals,
+            seed=2,
+        )
+    finally:
+        os.chdir(saved_cwd)
+
     for i in range(3):
         check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
