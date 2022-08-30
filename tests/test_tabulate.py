@@ -1,55 +1,9 @@
 import collections
-import subprocess
 
 import pytest
 
-
-@pytest.fixture(scope="session")
-@pytest.mark.usefixtures("tmp_path_factory")
-def discriminator_file(tmp_path_factory):
-    discriminator_file = tmp_path_factory.mktemp("discr") / "discriminator.nn"
-    ex = "examples/bottleneck/model.py"
-    subprocess.run(
-        f"""
-        python -m dinf train
-            --seed 1
-            --parallelism 2
-            --training-replicates 10
-            --test-replicates 10
-            --epochs 10
-            --model {ex}
-            --discriminator {discriminator_file}
-        """.split(),
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    assert discriminator_file.exists()
-    return discriminator_file
-
-
-@pytest.fixture(scope="session")
-@pytest.mark.usefixtures("tmp_path_factory")
-@pytest.mark.usefixtures("discriminator_file")
-def data_file(tmp_path_factory, discriminator_file):
-    data_file = tmp_path_factory.mktemp("data") / "data.npz"
-    ex = "examples/bottleneck/model.py"
-    subprocess.run(
-        f"""
-        python -m dinf predict
-            --seed 2
-            --parallelism 2
-            --replicates 10
-            --model {ex}
-            --discriminator {discriminator_file}
-            --output-file {data_file}
-        """.split(),
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    assert data_file.exists()
-    return data_file
+import dinf.tabulate
+from tests import capture
 
 
 @pytest.mark.parametrize("sep", ("\t", " ", ","))
@@ -57,22 +11,18 @@ def data_file(tmp_path_factory, discriminator_file):
 @pytest.mark.usefixtures("discriminator_file")
 def test_tabulate_metrics(tmp_path, discriminator_file, sep):
     output_file = tmp_path / "output.txt"
-    subprocess.run(
-        [
-            "python",
-            "-m",
-            "dinf.tabulate",
-            "metrics",
-            "--output-file",
-            str(output_file),
-            "--separator",
-            sep,
-            discriminator_file,
-        ],
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+    with capture() as cap:
+        dinf.tabulate.main(
+            [
+                "metrics",
+                "--output-file",
+                str(output_file),
+                "--separator",
+                sep,
+                str(discriminator_file),
+            ]
+        )
+    assert cap.ret == 0
     assert output_file.exists()
 
     metrics = collections.defaultdict(list)
@@ -93,22 +43,18 @@ def test_tabulate_metrics(tmp_path, discriminator_file, sep):
 @pytest.mark.usefixtures("data_file")
 def test_tabulate_data(tmp_path, data_file, sep):
     output_file = tmp_path / "output.txt"
-    subprocess.run(
-        [
-            "python",
-            "-m",
-            "dinf.tabulate",
-            "data",
-            "--output-file",
-            str(output_file),
-            "--separator",
-            sep,
-            data_file,
-        ],
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+    with capture() as cap:
+        dinf.tabulate.main(
+            [
+                "data",
+                "--output-file",
+                str(output_file),
+                "--separator",
+                sep,
+                str(data_file),
+            ]
+        )
+    assert cap.ret == 0
     assert output_file.exists()
 
     data = collections.defaultdict(list)
@@ -129,22 +75,18 @@ def test_tabulate_data(tmp_path, data_file, sep):
 @pytest.mark.usefixtures("data_file")
 def test_tabulate_quantiles(tmp_path, data_file, sep):
     output_file = tmp_path / "output.txt"
-    subprocess.run(
-        [
-            "python",
-            "-m",
-            "dinf.tabulate",
-            "quantiles",
-            "--output-file",
-            str(output_file),
-            "--separator",
-            sep,
-            data_file,
-        ],
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+    with capture() as cap:
+        dinf.tabulate.main(
+            [
+                "quantiles",
+                "--output-file",
+                str(output_file),
+                "--separator",
+                sep,
+                str(data_file),
+            ]
+        )
+    assert cap.ret == 0
     assert output_file.exists()
 
     data = collections.defaultdict(list)

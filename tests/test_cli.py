@@ -1,10 +1,8 @@
-import subprocess
-
 import pytest
 
 import dinf
 import dinf.cli
-
+from tests import capture
 from .test_dinf import check_discriminator, check_npz
 
 
@@ -34,85 +32,84 @@ def test_check_output_file(tmp_path):
 
 class TestTopLevel:
     def test_help(self):
-        out1 = subprocess.run(
-            "python -m dinf -h".split(), check=True, stdout=subprocess.PIPE
-        )
-        assert b"mcmc-gan" in out1.stdout
-        assert b"check" in out1.stdout
+        with capture() as cap1:
+            dinf.cli.main(["-h"])
+        assert cap1.ret == 0
+        assert "mcmc-gan" in cap1.out
+        assert "check" in cap1.out
 
-        out2 = subprocess.run(
-            "python -m dinf --help".split(), check=True, stdout=subprocess.PIPE
-        )
-        assert out1.stdout == out2.stdout
+        with capture() as cap2:
+            dinf.cli.main(["--help"])
+        assert cap2.ret == 0
+        assert cap2.out == cap1.out
 
         # No args should also output the help.
-        out3 = subprocess.run("python -m dinf".split(), stdout=subprocess.PIPE)
-        assert out1.stdout == out3.stdout
-        assert out3.returncode != 0
+        with capture() as cap3:
+            dinf.cli.main([])
+        assert cap3.ret != 0
+        assert cap3.out == cap1.out
 
     def test_version(self):
-        out = subprocess.run(
-            "python -m dinf --version".split(),
-            check=True,
-            stdout=subprocess.PIPE,
-            encoding="utf8",
-        )
-        assert out.stdout.strip() == dinf.__version__
+        with capture() as cap:
+            dinf.cli.main(["--version"])
+        assert cap.ret == 0
+        assert cap.out.strip() == dinf.__version__
 
 
 class TestCheck:
     def test_help(self):
-        out1 = subprocess.run(
-            "python -m dinf check -h".split(), check=True, stdout=subprocess.PIPE
-        )
-        out2 = subprocess.run(
-            "python -m dinf check --help".split(), check=True, stdout=subprocess.PIPE
-        )
-        assert out1.stdout == out2.stdout
+        with capture() as cap1:
+            dinf.cli.main("check -h".split())
+        assert cap1.ret == 0
+
+        with capture() as cap2:
+            dinf.cli.main("check --help".split())
+        assert cap2.ret == 0
+
+        assert cap1.out == cap2.out
 
     def test_example(self):
         ex = "examples/bottleneck/model.py"
-        out = subprocess.run(
-            f"python -m dinf check --model {ex}".split(),
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        assert not out.stdout
+        with capture() as cap:
+            dinf.cli.main(f"check --model {ex}".split())
+        assert cap.ret == 0
+        assert not cap.out
 
 
 class TestAbcGan:
     def test_help(self):
-        out1 = subprocess.run(
-            "python -m dinf abc-gan -h".split(), check=True, stdout=subprocess.PIPE
-        )
-        out2 = subprocess.run(
-            "python -m dinf abc-gan --help".split(), check=True, stdout=subprocess.PIPE
-        )
-        assert out1.stdout == out2.stdout
+        with capture() as cap1:
+            dinf.cli.main("abc-gan -h".split())
+        assert cap1.ret == 0
+
+        with capture() as cap2:
+            dinf.cli.main("abc-gan --help".split())
+        assert cap2.ret == 0
+
+        assert cap1.out == cap2.out
 
     @pytest.mark.usefixtures("tmp_path")
     def test_abc_gan_example(self, tmp_path):
         output_folder = tmp_path / "work_dir"
         ex = "examples/bottleneck/model.py"
-        subprocess.run(
-            f"""
-            python -m dinf abc-gan
-                --seed 1
-                --parallelism 2
-                --iterations 2
-                --training-replicates 4
-                --test-replicates 4
-                --proposal-replicates 4
-                --epochs 1
-                --output-folder {output_folder}
-                --model {ex}
-            """.split(),
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        with capture() as cap:
+            dinf.cli.main(
+                f"""
+                abc-gan
+                    --seed 1
+                    --parallelism 2
+                    --iterations 2
+                    --training-replicates 4
+                    --test-replicates 4
+                    --proposal-replicates 4
+                    --epochs 1
+                    --output-folder {output_folder}
+                    --model {ex}
+                """.split()
+            )
+        assert cap.ret == 0
         assert output_folder.exists()
+
         dinf_model = dinf.DinfModel.from_file(ex)
         for i in range(2):
             check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
@@ -126,38 +123,40 @@ class TestAbcGan:
 
 class TestMcmcGan:
     def test_help(self):
-        out1 = subprocess.run(
-            "python -m dinf mcmc-gan -h".split(), check=True, stdout=subprocess.PIPE
-        )
-        out2 = subprocess.run(
-            "python -m dinf mcmc-gan --help".split(), check=True, stdout=subprocess.PIPE
-        )
-        assert out1.stdout == out2.stdout
+        with capture() as cap1:
+            dinf.cli.main("mcmc-gan -h".split())
+        assert cap1.ret == 0
+
+        with capture() as cap2:
+            dinf.cli.main("mcmc-gan --help".split())
+        assert cap2.ret == 0
+
+        assert cap1.out == cap2.out
 
     @pytest.mark.usefixtures("tmp_path")
     def test_mcmc_gan_example(self, tmp_path):
         output_folder = tmp_path / "work_dir"
         ex = "examples/bottleneck/model.py"
-        subprocess.run(
-            f"""
-            python -m dinf mcmc-gan
-                --seed 1
-                --parallelism 2
-                --iterations 2
-                --training-replicates 10
-                --test-replicates 0
-                --epochs 1
-                --walkers 6
-                --steps 1
-                --Dx-replicates 2
-                --output-folder {output_folder}
-                --model {ex}
-            """.split(),
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        with capture() as cap:
+            dinf.cli.main(
+                f"""
+                mcmc-gan
+                    --seed 1
+                    --parallelism 2
+                    --iterations 2
+                    --training-replicates 10
+                    --test-replicates 0
+                    --epochs 1
+                    --walkers 6
+                    --steps 1
+                    --Dx-replicates 2
+                    --output-folder {output_folder}
+                    --model {ex}
+                """.split()
+            )
+        assert cap.ret == 0
         assert output_folder.exists()
+
         dinf_model = dinf.DinfModel.from_file(ex)
         for i in range(2):
             check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
@@ -171,38 +170,40 @@ class TestMcmcGan:
 
 class TestPgGan:
     def test_help(self):
-        out1 = subprocess.run(
-            "python -m dinf pg-gan -h".split(), check=True, stdout=subprocess.PIPE
-        )
-        out2 = subprocess.run(
-            "python -m dinf pg-gan --help".split(), check=True, stdout=subprocess.PIPE
-        )
-        assert out1.stdout == out2.stdout
+        with capture() as cap1:
+            dinf.cli.main("pg-gan -h".split())
+        assert cap1.ret == 0
+
+        with capture() as cap2:
+            dinf.cli.main("pg-gan --help".split())
+        assert cap2.ret == 0
+
+        assert cap1.out == cap2.out
 
     @pytest.mark.usefixtures("tmp_path")
-    def test_mcmc_gan_example(self, tmp_path):
+    def test_pg_gan_example(self, tmp_path):
         num_proposals = 2
         output_folder = tmp_path / "work_dir"
         ex = "examples/bottleneck/model.py"
-        subprocess.run(
-            f"""
-            python -m dinf pg-gan
-                --seed 1
-                --parallelism 2
-                --iterations 2
-                --training-replicates 10
-                --test-replicates 0
-                --epochs 1
-                --Dx-replicates 2
-                --num-proposals {num_proposals}
-                --output-folder {output_folder}
-                --model {ex}
-            """.split(),
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        with capture() as cap:
+            dinf.cli.main(
+                f"""
+                pg-gan
+                    --seed 1
+                    --parallelism 2
+                    --iterations 2
+                    --training-replicates 10
+                    --test-replicates 0
+                    --epochs 1
+                    --Dx-replicates 2
+                    --num-proposals {num_proposals}
+                    --output-folder {output_folder}
+                    --model {ex}
+                """.split()
+            )
+        assert cap.ret == 0
         assert output_folder.exists()
+
         dinf_model = dinf.DinfModel.from_file(ex)
         num_parameters = len(dinf_model.parameters)
         for i in range(2):
@@ -217,87 +218,89 @@ class TestPgGan:
 
 class TestTrain:
     def test_help(self):
-        out1 = subprocess.run(
-            "python -m dinf train -h".split(), check=True, stdout=subprocess.PIPE
-        )
-        out2 = subprocess.run(
-            "python -m dinf train --help".split(), check=True, stdout=subprocess.PIPE
-        )
-        assert out1.stdout == out2.stdout
+        with capture() as cap1:
+            dinf.cli.main("train -h".split())
+        assert cap1.ret == 0
+
+        with capture() as cap2:
+            dinf.cli.main("train --help".split())
+        assert cap2.ret == 0
+
+        assert cap1.out == cap2.out
 
     @pytest.mark.usefixtures("tmp_path")
     def test_train_example(self, tmp_path):
         discriminator_file = tmp_path / "discriminator.nn"
         ex = "examples/bottleneck/model.py"
-        subprocess.run(
-            f"""
-            python -m dinf train
-                --seed 1
-                --parallelism 2
-                --training-replicates 10
-                --test-replicates 0
-                --epochs 1
-                --model {ex}
-                --discriminator {discriminator_file}
-            """.split(),
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        with capture() as cap:
+            dinf.cli.main(
+                f"""
+                train
+                    --seed 1
+                    --parallelism 2
+                    --training-replicates 10
+                    --test-replicates 0
+                    --epochs 1
+                    --model {ex}
+                    --discriminator {discriminator_file}
+                """.split()
+            )
+        assert cap.ret == 0
         dinf_model = dinf.DinfModel.from_file(ex)
         check_discriminator(discriminator_file, dinf_model)
 
 
 class TestPredict:
     def test_help(self):
-        out1 = subprocess.run(
-            "python -m dinf predict -h".split(), check=True, stdout=subprocess.PIPE
-        )
-        out2 = subprocess.run(
-            "python -m dinf predict --help".split(), check=True, stdout=subprocess.PIPE
-        )
-        assert out1.stdout == out2.stdout
+        with capture() as cap1:
+            dinf.cli.main("predict -h".split())
+        assert cap1.ret == 0
+
+        with capture() as cap2:
+            dinf.cli.main("predict --help".split())
+        assert cap2.ret == 0
+
+        assert cap1.out == cap2.out
 
     @pytest.mark.parametrize("sample_target", [True, False])
     @pytest.mark.usefixtures("tmp_path")
     def test_predict_example(self, tmp_path, sample_target):
         discriminator_file = tmp_path / "discriminator.nn"
         ex = "examples/bottleneck/model.py"
-        subprocess.run(
-            f"""
-            python -m dinf train
-                --seed 1
-                --parallelism 2
-                --training-replicates 10
-                --test-replicates 0
-                --epochs 1
-                --model {ex}
-                --discriminator {discriminator_file}
-            """.split(),
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        with capture() as cap:
+            dinf.cli.main(
+                f"""
+                train
+                    --seed 1
+                    --parallelism 2
+                    --training-replicates 10
+                    --test-replicates 0
+                    --epochs 1
+                    --model {ex}
+                    --discriminator {discriminator_file}
+                """.split()
+            )
+        assert cap.ret == 0
         dinf_model = dinf.DinfModel.from_file(ex)
         check_discriminator(discriminator_file, dinf_model)
 
         target = "--target" if sample_target else ""
         output_file = tmp_path / "output.npz"
-        subprocess.run(
-            f"""
-            python -m dinf predict
-                --seed 1
-                --parallelism 2
-                --replicates 10
-                {target}
-                --model {ex}
-                --discriminator {discriminator_file}
-                --output-file {output_file}
-            """.split(),
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+
+        with capture() as cap:
+            dinf.cli.main(
+                f"""
+                predict
+                    --seed 1
+                    --parallelism 2
+                    --replicates 10
+                    {target}
+                    --model {ex}
+                    --discriminator {discriminator_file}
+                    --output-file {output_file}
+                """.split()
+            )
+        assert cap.ret == 0
 
         data = check_npz(
             output_file,
