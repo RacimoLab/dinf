@@ -36,6 +36,10 @@ class TestTopLevel:
             dinf.cli.main(["-h"])
         assert cap1.ret == 0
         assert "mcmc-gan" in cap1.out
+        assert "abc-gan" in cap1.out
+        assert "pg-gan" in cap1.out
+        assert "train" in cap1.out
+        assert "predict" in cap1.out
         assert "check" in cap1.out
 
         with capture() as cap2:
@@ -50,23 +54,35 @@ class TestTopLevel:
         assert cap3.out == cap1.out
 
     def test_version(self):
-        with capture() as cap:
-            dinf.cli.main(["--version"])
-        assert cap.ret == 0
-        assert cap.out.strip() == dinf.__version__
-
-
-class TestCheck:
-    def test_help(self):
         with capture() as cap1:
-            dinf.cli.main("check -h".split())
+            dinf.cli.main(["-V"])
+        assert cap1.ret == 0
+        assert cap1.out.strip() == dinf.__version__
+
+        with capture() as cap2:
+            dinf.cli.main(["--version"])
+        assert cap2.ret == 0
+        assert cap2.out.strip() == dinf.__version__
+
+
+class HelpMixin:
+    def test_help(self):
+        cmd = [self.subcommand] if self.subcommand else []
+        main = self.main.__func__
+
+        with capture() as cap1:
+            main(cmd + ["-h"])
         assert cap1.ret == 0
 
         with capture() as cap2:
-            dinf.cli.main("check --help".split())
+            main(cmd + ["--help"])
         assert cap2.ret == 0
+        assert cap2.out == cap1.out
 
-        assert cap1.out == cap2.out
+
+class TestCheck(HelpMixin):
+    main = dinf.cli.main
+    subcommand = "check"
 
     def test_example(self):
         ex = "examples/bottleneck/model.py"
@@ -76,17 +92,9 @@ class TestCheck:
         assert not cap.out
 
 
-class TestAbcGan:
-    def test_help(self):
-        with capture() as cap1:
-            dinf.cli.main("abc-gan -h".split())
-        assert cap1.ret == 0
-
-        with capture() as cap2:
-            dinf.cli.main("abc-gan --help".split())
-        assert cap2.ret == 0
-
-        assert cap1.out == cap2.out
+class TestAbcGan(HelpMixin):
+    main = dinf.cli.main
+    subcommand = "abc-gan"
 
     @pytest.mark.usefixtures("tmp_path")
     def test_abc_gan_example(self, tmp_path):
@@ -121,17 +129,9 @@ class TestAbcGan:
             )
 
 
-class TestMcmcGan:
-    def test_help(self):
-        with capture() as cap1:
-            dinf.cli.main("mcmc-gan -h".split())
-        assert cap1.ret == 0
-
-        with capture() as cap2:
-            dinf.cli.main("mcmc-gan --help".split())
-        assert cap2.ret == 0
-
-        assert cap1.out == cap2.out
+class TestMcmcGan(HelpMixin):
+    main = dinf.cli.main
+    subcommand = "mcmc-gan"
 
     @pytest.mark.usefixtures("tmp_path")
     def test_mcmc_gan_example(self, tmp_path):
@@ -168,17 +168,9 @@ class TestMcmcGan:
             )
 
 
-class TestPgGan:
-    def test_help(self):
-        with capture() as cap1:
-            dinf.cli.main("pg-gan -h".split())
-        assert cap1.ret == 0
-
-        with capture() as cap2:
-            dinf.cli.main("pg-gan --help".split())
-        assert cap2.ret == 0
-
-        assert cap1.out == cap2.out
+class TestPgGan(HelpMixin):
+    main = dinf.cli.main
+    subcommand = "pg-gan"
 
     @pytest.mark.usefixtures("tmp_path")
     def test_pg_gan_example(self, tmp_path):
@@ -216,17 +208,9 @@ class TestPgGan:
             )
 
 
-class TestTrain:
-    def test_help(self):
-        with capture() as cap1:
-            dinf.cli.main("train -h".split())
-        assert cap1.ret == 0
-
-        with capture() as cap2:
-            dinf.cli.main("train --help".split())
-        assert cap2.ret == 0
-
-        assert cap1.out == cap2.out
+class TestTrain(HelpMixin):
+    main = dinf.cli.main
+    subcommand = "train"
 
     @pytest.mark.usefixtures("tmp_path")
     def test_train_example(self, tmp_path):
@@ -250,17 +234,9 @@ class TestTrain:
         check_discriminator(discriminator_file, dinf_model)
 
 
-class TestPredict:
-    def test_help(self):
-        with capture() as cap1:
-            dinf.cli.main("predict -h".split())
-        assert cap1.ret == 0
-
-        with capture() as cap2:
-            dinf.cli.main("predict --help".split())
-        assert cap2.ret == 0
-
-        assert cap1.out == cap2.out
+class TestPredict(HelpMixin):
+    main = dinf.cli.main
+    subcommand = "predict"
 
     @pytest.mark.parametrize("sample_target", [True, False])
     @pytest.mark.usefixtures("tmp_path")

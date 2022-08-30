@@ -20,6 +20,10 @@ import dinf
 logger = logging.getLogger(__name__)
 
 
+def _with_stem(filename: pathlib.Path, stem: str):
+    return filename.parent / (stem + filename.suffix)
+
+
 class _MultiPage:
     """
     PdfPages-like context manager that also handles non-pdfs.
@@ -60,7 +64,7 @@ class _MultiPage:
             filename = self.filename
             if self.n_figures > 1:
                 # Insert the hint into the filename.
-                filename = filename.with_stem(f"{self.filename.stem}_{hint}")
+                filename = _with_stem(filename, f"{filename.stem}_{hint}")
             logger.debug("%s: saving figure (%s).", filename, hint)
             fig.savefig(filename)
 
@@ -777,9 +781,9 @@ class _Hist2d(_DinfPlotSubCommand):
         if len(set(args.y_param)) != len(args.y_param):
             raise ValueError(f"--y-param values are not unique: {args.y_param}")
 
-        for param in args.x_param + args.y_param:
+        for param in list(args.x_param) + list(args.y_param):
             if param not in param_names:
-                raise ValueError(f"{args.data_files[0]}: parameter {param} not found")
+                raise ValueError(f"{args.data_files[0]}: parameter `{param}' not found")
 
         hist2d_kw = {}
         if args.weighted:
@@ -968,7 +972,7 @@ class _Hist(_DinfPlotSubCommand):
             for param in args.x_param:
                 if param not in data.dtype.names:
                     raise ValueError(
-                        f"{args.data_files[j]}: parameter {param} not found"
+                        f"{args.data_files[j]}: parameter `{param}' not found"
                     )
 
         datasets_resampled = []
@@ -1008,7 +1012,7 @@ class _Hist(_DinfPlotSubCommand):
                     if parameters is not None:
                         px = parameters.get(x_param)
                         if px is None:
-                            raise ValueError(f"{args.model}: couldn't find `{x_param}`")
+                            raise ValueError(f"{args.model}: couldn't find `{x_param}'")
                         truth = px.truth
                     ax.set_xlabel(x_param)
                     if args.weighted:
