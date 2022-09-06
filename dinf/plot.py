@@ -124,6 +124,10 @@ def feature(
         cbar = ax.figure.colorbar(im, ax=ax, pad=0.02, fraction=0.04, label=cb_label)
         # Prefer integer ticks.
         cbar.ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+        # Rasterise the colourbar to avoid edge artifacts in SVG and PDF viewers.
+        # XXX: The solids attribute is undocumented, but there's no other way
+        # to do this, and this hack has worked for more than 10 years.
+        cbar.solids.set_rasterized(True)
 
 
 def features(mats: Dict[str, np.ndarray], /, *, subplots_kw: dict | None = None):
@@ -557,8 +561,11 @@ class _DinfPlotSubCommand(_SubCommand):
             data = data.reshape(-1)
 
             if top_n is not None:
+                assert top_n >= 1
                 k = len(data) - top_n
-                data = np.partition(data, k, order="_Pr")[k:]
+                assert k >= 1
+                idx = np.argpartition(data["_Pr"], k)[k:]
+                data = data[idx]
 
             datasets.append(data)
 
