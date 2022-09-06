@@ -1,4 +1,0 @@
-[run]
-omit =
-    # Not worth writing tests for this.
-    dinf/plot.py
