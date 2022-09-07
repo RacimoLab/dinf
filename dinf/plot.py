@@ -294,13 +294,12 @@ def metrics(
     if len(metrics_collection) > 1:
         handles, labels = axs["train_loss"].get_legend_handles_labels()
         # Put legend to the right of the test loss.
-        axs["test_loss"].legend(
+        fig.legend(
             handles,
             labels,
             title=legend_title,
             loc="upper left",
-            borderaxespad=0.0,
-            bbox_to_anchor=(1.05, 1),
+            bbox_to_anchor=(1, 1),
         )
 
     return fig, axs
