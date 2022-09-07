@@ -45,8 +45,8 @@ dinf check --model examples/bottleneck/model.py
 ```
 
 This will sample parameters from the prior distribution,
-call the `generator_func` and `target_func` functions,
-and confirm that their output matches the specified `feature_shape`.
+then call the `generator_func` and `target_func` functions
+to confirm that their outputs have matching feature shapes.
 If the model is a simulation-only model (i.e. the `target_func` is `None`),
 then the parameters will be checked to ensure they each have a `truth` value.
 
@@ -67,6 +67,21 @@ import dinf.plot
 
 dinf.plot.main(
     "features -S 1 -m ../../examples/bottleneck/model.py".split()
+)
+```
+
+Similarly, features extracted from the target dataset can be inspected
+by using the `--target` option.
+
+```
+dinf-plot features --seed 1 --model examples/bottleneck/model.py --target
+```
+```{code-cell}
+:tags: ["remove-input"]
+import dinf.plot
+
+dinf.plot.main(
+    "features -S 1 -m ../../examples/bottleneck/model.py --target".split()
 )
 ```
 
