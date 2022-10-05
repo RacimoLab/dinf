@@ -166,9 +166,7 @@ class ExchangeablePGGAN(nn.Module):
     sizes2: Tuple[int, ...] = (128, 128)
 
     @nn.compact
-    def __call__(  # type: ignore[override]
-        self, inputs: Pytree, *, train: bool
-    ) -> Pytree:
+    def __call__(self, inputs: Pytree, *, train: bool) -> Pytree:
         kernel_init = nn.initializers.glorot_uniform()
         # Convolution weights are shared across feature matrices.
         # Flax uses channels-last (NHWC) convention.
@@ -255,9 +253,7 @@ class ExchangeableCNN(nn.Module):
     sizes2: Tuple[int, ...] = (64,)
 
     @nn.compact
-    def __call__(  # type: ignore[override]
-        self, inputs: Pytree, *, train: bool
-    ) -> Pytree:
+    def __call__(self, inputs: Pytree, *, train: bool) -> Pytree:
         # Flax uses channels-last (NHWC) convention.
         conv = functools.partial(nn.Conv, kernel_size=(1, 5), use_bias=False)
         # https://flax.readthedocs.io/en/latest/howtos/state_params.html
