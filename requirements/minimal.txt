@@ -9,6 +9,6 @@ msprime==1.2.0
 demes==0.2.2
 demesdraw==0.3.1
 matplotlib==3.6.1
-multiprocess==0.70.13
+multiprocess==0.70.14
 adjustText==0.7.3
 scipy==1.9.2
