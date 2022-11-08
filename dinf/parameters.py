@@ -6,7 +6,6 @@ import logging
 from typing import Tuple
 
 import numpy as np
-import scipy
 
 logger = logging.getLogger(__name__)
 
@@ -468,6 +467,9 @@ class Parameters(collections.abc.Mapping):
         :return:
             Median position in multivariate space.
         """
+
+        # Scipy import takes ages, so import only when needed.
+        import scipy
 
         # Normalize by mean/stddev so each parameter is treated equally
         # in the objective function.

@@ -9,7 +9,6 @@ import signal
 from typing import Callable, Iterable, Protocol, Tuple
 import zipfile
 
-import emcee
 import jax
 import numpy as np
 from numpy.lib.recfunctions import structured_to_unstructured
@@ -722,6 +721,9 @@ def _run_mcmc_emcee(
     ss: np.random.SeedSequence,
     callbacks: dict | None = None,
 ):
+    # Emcee imports scipy, which takes ages, so import only when needed.
+    import emcee
+
     if callbacks is None:
         callbacks = {}
     assert all(k in ("mcmc",) for k in callbacks)

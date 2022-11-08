@@ -4,14 +4,13 @@ import dataclasses
 import functools
 import logging
 import pathlib
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Any
 
+import flax
 from flax import linen as nn
-import flax.training.train_state
 import jax
 import jax.numpy as jnp
 import numpy as np
-import optax
 import rich.text
 
 from .misc import (
@@ -27,10 +26,18 @@ from .misc import (
 logger = logging.getLogger(__name__)
 
 
-# Because we use batch normalisation, the training state needs to also record
-# batch_stats to maintain the running mean and variance.
-class TrainState(flax.training.train_state.TrainState):
-    batch_stats: Pytree
+def get_train_state_class():
+    # flax.training imports optax, which imports scipy, which takes ages.
+    # So we jump through some hoops here to avoid importing scipy until needed.
+
+    import flax.training.train_state
+
+    # Because we use batch normalisation, the training state needs to also record
+    # batch_stats to maintain the running mean and variance.
+    class TrainState(flax.training.train_state.TrainState):
+        batch_stats: Pytree
+
+    return TrainState
 
 
 def batchify(dataset, batch_size, random=False, rng=None):
@@ -311,7 +318,8 @@ class Discriminator:
     network: nn.Module | None = None
     """The flax neural network."""
 
-    state: TrainState | None = None
+    # The state has type "TrainState". See get_train_state_class() above.
+    state: Any | None = None
     """Network training state, e.g. network parameters and batch statistics."""
 
     trained: bool = False
@@ -329,11 +337,14 @@ class Discriminator:
     _inited: bool = False
 
     def __post_init__(self):
+        # Optax imports scipy, which takes ages, so import only when needed.
+        import optax
+
         if self.network is None:
             self.network = ExchangeableCNN()
 
         if self.state is None:
-            self.state = TrainState.create(
+            self.state = get_train_state_class().create(
                 apply_fn=self.network.apply,
                 tx=optax.chain(optax.clip(1.0), optax.adam(learning_rate=0.001)),
                 params={},
@@ -385,7 +396,7 @@ class Discriminator:
         key = jax.random.PRNGKey(seed)
         variables = init(key, dummy_input)
 
-        self.state = TrainState.create(
+        self.state = get_train_state_class().create(
             apply_fn=self.state.apply_fn,
             tx=self.state.tx,
             params=variables["params"],
@@ -472,7 +483,7 @@ class Discriminator:
             data["input_shape"],
             is_leaf=lambda x: isinstance(x, list),
         )
-        discr.state = TrainState.create(
+        discr.state = get_train_state_class().create(
             apply_fn=discr.state.apply_fn,
             tx=discr.state.tx,
             params=data["state"]["params"],
@@ -737,6 +748,9 @@ def _train_step(state, batch, dropout_rng, entropy_regularisation=False):
     dropout_rng = jax.random.fold_in(dropout_rng, state.step)
 
     def loss_fn(params):
+        # Optax imports scipy, which takes ages, so import only when needed.
+        import optax
+
         logits, new_model_state = state.apply_fn(
             dict(params=params, batch_stats=state.batch_stats),
             batch["input"],
@@ -781,6 +795,9 @@ def _train_step(state, batch, dropout_rng, entropy_regularisation=False):
 @jax.jit
 def _eval_step(state, batch):
     """Evaluate for a single step."""
+    # Optax imports scipy, which takes ages, so import only when needed.
+    import optax
+
     logits = state.apply_fn(
         dict(params=state.params, batch_stats=state.batch_stats),
         batch["input"],
