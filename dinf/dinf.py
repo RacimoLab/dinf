@@ -148,6 +148,8 @@ def _get_dataset_parallel(
             cb(j + 1)
 
     if out is None:
+        assert treedef is not None
+        assert result is not None
         out = jax.tree_util.tree_unflatten(treedef, result)
     return out
 
