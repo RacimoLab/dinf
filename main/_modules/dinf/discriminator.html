@@ -221,7 +221,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev97
+            dinf 0.3.1.dev99
             </div>
             
         </div>
@@ -353,14 +353,13 @@ title="Open an issue"
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span>
 
+<span class="kn">import</span> <span class="nn">flax</span>
 <span class="kn">from</span> <span class="nn">flax</span> <span class="kn">import</span> <span class="n">linen</span> <span class="k">as</span> <span class="n">nn</span>
-<span class="kn">import</span> <span class="nn">flax.training.train_state</span>
 <span class="kn">import</span> <span class="nn">jax</span>
 <span class="kn">import</span> <span class="nn">jax.numpy</span> <span class="k">as</span> <span class="nn">jnp</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">optax</span>
 <span class="kn">import</span> <span class="nn">rich.text</span>
 
 <span class="kn">from</span> <span class="nn">.misc</span> <span class="kn">import</span> <span class="p">(</span>
@@ -376,10 +375,18 @@ title="Open an issue"
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
-<span class="c1"># Because we use batch normalisation, the training state needs to also record</span>
-<span class="c1"># batch_stats to maintain the running mean and variance.</span>
-<span class="k">class</span> <span class="nc">TrainState</span><span class="p">(</span><span class="n">flax</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">train_state</span><span class="o">.</span><span class="n">TrainState</span><span class="p">):</span>
-    <span class="n">batch_stats</span><span class="p">:</span> <span class="n">Pytree</span>
+<span class="k">def</span> <span class="nf">get_train_state_class</span><span class="p">():</span>
+    <span class="c1"># flax.training imports optax, which imports scipy, which takes ages.</span>
+    <span class="c1"># So we jump through some hoops here to avoid importing scipy until needed.</span>
+
+    <span class="kn">import</span> <span class="nn">flax.training.train_state</span>
+
+    <span class="c1"># Because we use batch normalisation, the training state needs to also record</span>
+    <span class="c1"># batch_stats to maintain the running mean and variance.</span>
+    <span class="k">class</span> <span class="nc">TrainState</span><span class="p">(</span><span class="n">flax</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">train_state</span><span class="o">.</span><span class="n">TrainState</span><span class="p">):</span>
+        <span class="n">batch_stats</span><span class="p">:</span> <span class="n">Pytree</span>
+
+    <span class="k">return</span> <span class="n">TrainState</span>
 
 
 <span class="k">def</span> <span class="nf">batchify</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">random</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -660,7 +667,8 @@ title="Open an issue"
     <span class="n">network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="sd">&quot;&quot;&quot;The flax neural network.&quot;&quot;&quot;</span>
 
-    <span class="n">state</span><span class="p">:</span> <span class="n">TrainState</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># The state has type &quot;TrainState&quot;. See get_train_state_class() above.</span>
+    <span class="n">state</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="sd">&quot;&quot;&quot;Network training state, e.g. network parameters and batch statistics.&quot;&quot;&quot;</span>
 
     <span class="n">trained</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
@@ -678,11 +686,14 @@ title="Open an issue"
     <span class="n">_inited</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="k">def</span> <span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Optax imports scipy, which takes ages, so import only when needed.</span>
+        <span class="kn">import</span> <span class="nn">optax</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">ExchangeableCNN</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">TrainState</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">get_train_state_class</span><span class="p">()</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
                 <span class="n">apply_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="o">.</span><span class="n">apply</span><span class="p">,</span>
                 <span class="n">tx</span><span class="o">=</span><span class="n">optax</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="n">optax</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span> <span class="n">optax</span><span class="o">.</span><span class="n">adam</span><span class="p">(</span><span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)),</span>
                 <span class="n">params</span><span class="o">=</span><span class="p">{},</span>
@@ -734,7 +745,7 @@ title="Open an issue"
         <span class="n">key</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">PRNGKey</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
         <span class="n">variables</span> <span class="o">=</span> <span class="n">init</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">dummy_input</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">TrainState</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">get_train_state_class</span><span class="p">()</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
             <span class="n">apply_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">apply_fn</span><span class="p">,</span>
             <span class="n">tx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">tx</span><span class="p">,</span>
             <span class="n">params</span><span class="o">=</span><span class="n">variables</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">],</span>
@@ -821,7 +832,7 @@ title="Open an issue"
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;input_shape&quot;</span><span class="p">],</span>
             <span class="n">is_leaf</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">),</span>
         <span class="p">)</span>
-        <span class="n">discr</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">TrainState</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+        <span class="n">discr</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">get_train_state_class</span><span class="p">()</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
             <span class="n">apply_fn</span><span class="o">=</span><span class="n">discr</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">apply_fn</span><span class="p">,</span>
             <span class="n">tx</span><span class="o">=</span><span class="n">discr</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">tx</span><span class="p">,</span>
             <span class="n">params</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;state&quot;</span><span class="p">][</span><span class="s2">&quot;params&quot;</span><span class="p">],</span>
@@ -1086,6 +1097,9 @@ title="Open an issue"
     <span class="n">dropout_rng</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">fold_in</span><span class="p">(</span><span class="n">dropout_rng</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">step</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">loss_fn</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+        <span class="c1"># Optax imports scipy, which takes ages, so import only when needed.</span>
+        <span class="kn">import</span> <span class="nn">optax</span>
+
         <span class="n">logits</span><span class="p">,</span> <span class="n">new_model_state</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">apply_fn</span><span class="p">(</span>
             <span class="nb">dict</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">batch_stats</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">batch_stats</span><span class="p">),</span>
             <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">],</span>
@@ -1130,6 +1144,9 @@ title="Open an issue"
 <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
 <span class="k">def</span> <span class="nf">_eval_step</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Evaluate for a single step.&quot;&quot;&quot;</span>
+    <span class="c1"># Optax imports scipy, which takes ages, so import only when needed.</span>
+    <span class="kn">import</span> <span class="nn">optax</span>
+
     <span class="n">logits</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">apply_fn</span><span class="p">(</span>
         <span class="nb">dict</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">batch_stats</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">batch_stats</span><span class="p">),</span>
         <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">],</span>
@@ -1168,7 +1185,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev97+gae5a3c5
+      dinf 0.3.1.dev99+gd535525
     </div>
 </p>
         </footer>

@@ -221,7 +221,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev97
+            dinf 0.3.1.dev99
             </div>
             
         </div>
@@ -355,7 +355,6 @@ title="Open an issue"
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">scipy</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -818,6 +817,9 @@ title="Open an issue"
 <span class="sd">            Median position in multivariate space.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
+        <span class="c1"># Scipy import takes ages, so import only when needed.</span>
+        <span class="kn">import</span> <span class="nn">scipy</span>
+
         <span class="c1"># Normalize by mean/stddev so each parameter is treated equally</span>
         <span class="c1"># in the objective function.</span>
         <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -882,7 +884,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev97+gae5a3c5
+      dinf 0.3.1.dev99+gd535525
     </div>
 </p>
         </footer>
