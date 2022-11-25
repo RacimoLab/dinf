@@ -226,7 +226,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev109
+            dinf 0.3.1.dev111
             </div>
             
         </div>
@@ -1104,9 +1104,9 @@ which is multiplied by <code class="docutils literal notranslate"><span class="p
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a>) – Parameter value around which the ball is centered.</p></li>
+<li><p><strong>theta</strong> (<em>np.ndarray</em>) – Parameter value around which the ball is centered.</p></li>
 <li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – Number of samples to draw.</p></li>
-<li><p><strong>cov</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.11)"><em>Optional</em></a><em>[</em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v1.23)"><em>numpy.ndarray</em></a><em>]</em>) – The covariance matrix.
+<li><p><strong>cov</strong> (<em>np.ndarray</em><em> | </em><em>None</em>) – The covariance matrix.
 If not specified, a diagonal matrix will be used that has
 entry cov[j][j] set to the squared range of parameter j:
 (high - low)**2.</p></li>
@@ -2723,7 +2723,7 @@ If None, an axes will be created with <a class="reference external" href="https:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev109+geb6c352
+      dinf 0.3.1.dev111+g627fb6a
     </div>
 </p>
         </footer>
