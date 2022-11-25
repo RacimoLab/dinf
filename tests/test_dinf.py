@@ -11,7 +11,7 @@ from numpy.lib.recfunctions import structured_to_unstructured
 import pytest
 
 import dinf
-import examples.bottleneck.model  # type: ignore[import]
+import examples.bottleneck.model
 
 
 def get_dinf_model():
