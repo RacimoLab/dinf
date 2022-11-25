@@ -332,7 +332,7 @@ class Parameters(collections.abc.Mapping):
         /,
         *,
         size: int,
-        cov: np.ndarray = None,
+        cov: np.ndarray | None = None,
         cov_factor: float = 1.0,
         rng: np.random.Generator,
     ):
