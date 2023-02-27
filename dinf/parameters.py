@@ -257,6 +257,7 @@ class Parameters(collections.abc.Mapping):
         probs: np.ndarray,
         size: int,
         rng: np.random.Generator,
+        shrinkage: bool = True,
     ) -> np.ndarray:
         """
         Sample from a smoothed set of weighted observations.
@@ -277,6 +278,11 @@ class Parameters(collections.abc.Mapping):
             Number of samples to draw.
         :param numpy.random.Generator rng:
             Numpy random generator.
+        :param shinkage:
+            If True, shrink the thetas towards their mean.
+            This correction avoids variance inflation of the posterior
+            due to the Guassian sampling.
+            See West 1993, https://doi.org/10.1111/j.2517-6161.1993.tb01911.x
         :return:
             The sampled values.
         """
@@ -290,10 +296,15 @@ class Parameters(collections.abc.Mapping):
         # Calculate bandwidth.
         _, d = thetas.shape
         neff = np.sum(probs) ** 2 / np.sum(probs**2)
-        bw_scott = neff ** (-1.0 / (d + 4))  # bandwidth multiplier
-        cov = bw_scott**2 * np.cov(thetas.T, aweights=weights)
+        h = neff ** (-1.0 / (d + 4))  # bandwidth multiplier
+        cov = h**2 * np.cov(thetas.T, aweights=weights)
         assert not np.any(np.isnan(cov))
         assert not np.any(np.isinf(cov))
+
+        if shrinkage:
+            a = np.sqrt(1 - h**2)
+            thetas_mean = np.average(thetas, axis=0, weights=probs)
+            thetas = a * thetas + (1 - a) * thetas_mean
 
         sample = np.empty((size, d))
         idx: slice | np.ndarray = slice(size)
