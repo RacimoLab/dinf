@@ -577,7 +577,7 @@ class _DinfPlotSubCommand(_SubCommand):
         for j, path in enumerate(store):
             if (path / "discriminator.nn").exists():
                 discriminators.append(path / "discriminator.nn")
-            for prefix in ("abc", "mcmc", "pg-gan-proposals"):
+            for prefix in ("smc", "mcmc", "pg-gan-proposals"):
                 if (path / f"{prefix}.npz").exists():
                     if dataset_type is None:
                         dataset_type = prefix
