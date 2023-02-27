@@ -224,7 +224,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev111
+            dinf 0.3.1.dev116
             </div>
             
         </div>
@@ -441,15 +441,15 @@ For developers, installation is from the git repository directly,
 and a virtual environment is highly recommended. The <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code>
 file in the top-level folder points to the developer dependencies.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Clone the repository.</span>
-git clone https://github.com/RacimoLab/dinf.git
-<span class="nb">cd</span> dinf
+git<span class="w"> </span>clone<span class="w"> </span>https://github.com/RacimoLab/dinf.git
+<span class="nb">cd</span><span class="w"> </span>dinf
 <span class="c1"># Create a virtual environment for development.</span>
-python -m venv venv
+python<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>venv
 <span class="c1"># Activate the environment.</span>
-<span class="nb">source</span> venv/bin/activate
-pip install --upgrade pip
+<span class="nb">source</span><span class="w"> </span>venv/bin/activate
+pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
 <span class="c1"># Install the developer dependencies.</span>
-pip install -r requirements.txt
+pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>requirements.txt
 </pre></div>
 </div>
 <div class="admonition note">
@@ -492,7 +492,7 @@ the behaviour of the CI checks.</p>
 <p>A suite of tests is included in the <code class="docutils literal notranslate"><span class="pre">tests/</span></code> folder.
 The CI process uses the <code class="docutils literal notranslate"><span class="pre">pytest</span></code> tool to run the tests, which can also be run
 manually from the top-level folder of the sources.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python -m pytest -v tests --cov<span class="o">=</span>dinf --cov-report<span class="o">=</span>term-missing
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>-v<span class="w"> </span>tests<span class="w"> </span>--cov<span class="o">=</span>dinf<span class="w"> </span>--cov-report<span class="o">=</span>term-missing
 </pre></div>
 </div>
 </section>
@@ -512,7 +512,7 @@ converted into markdown by jupyter-book. A couple of these notebooks take a
 long time to run, so they are excluded from execution in the
 jupyter-book configuration file and run manually as required.</p>
 <p>To build the documentation locally, run the following from the top-level folder.</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>make -C docs
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>-C<span class="w"> </span>docs
 </pre></div>
 </div>
 </section>
@@ -530,7 +530,7 @@ jupyter-book configuration file and run manually as required.</p>
             mode: "python"
         },
         kernelOptions: {
-            kernelName: "python3",
+            name: "python3",
             path: "./."
         },
         predefinedOutput: true
@@ -570,7 +570,7 @@ jupyter-book configuration file and run manually as required.</p>
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev111+g627fb6a
+      dinf 0.3.1.dev116+gf45ba66
     </div>
 </p>
         </footer>

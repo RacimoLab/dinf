@@ -221,7 +221,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev111
+            dinf 0.3.1.dev116
             </div>
             
         </div>
@@ -353,7 +353,7 @@ title="Open an issue"
 
 
 <div class="viewcode-block" id="Store"><a class="viewcode-back" href="../../api.html#dinf.Store">[docs]</a><span class="k">class</span> <span class="nc">Store</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Sequence</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A sequence of folders with names &quot;0&quot;, &quot;1&quot;, ...</span>
 
 <span class="sd">    This class implements the :class:`collections.abc.Sequence` protocol.</span>
@@ -363,7 +363,7 @@ title="Open an issue"
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">create</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param base:</span>
 <span class="sd">            The base directory containing the sequence.</span>
 <span class="sd">        :param create:</span>
@@ -391,13 +391,13 @@ title="Open an issue"
             <span class="k">pass</span>
 
 <div class="viewcode-block" id="Store.__len__"><a class="viewcode-back" href="../../api.html#dinf.Store.__len__">[docs]</a>    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Length of the sequence.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_length</span></div>
 
 <div class="viewcode-block" id="Store.__getitem__"><a class="viewcode-back" href="../../api.html#dinf.Store.__getitem__">[docs]</a>    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get the path with the given index.</span>
 
 <span class="sd">        :param int index:</span>
@@ -419,11 +419,11 @@ title="Open an issue"
         <span class="k">if</span> <span class="n">length</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">s</span> <span class="o">+=</span> <span class="s2">&quot;/0&quot;</span>
         <span class="k">elif</span> <span class="n">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">s</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;/</span><span class="se">{{</span><span class="s2">0..</span><span class="si">{</span><span class="n">length</span> <span class="o">-</span> <span class="mi">1</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span>
+            <span class="n">s</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;/</span><span class="se">{{</span><span class="s2">0..</span><span class="si">{</span><span class="n">length</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span>
         <span class="k">return</span> <span class="n">s</span>
 
 <div class="viewcode-block" id="Store.increment"><a class="viewcode-back" href="../../api.html#dinf.Store.increment">[docs]</a>    <span class="k">def</span> <span class="nf">increment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Add a new folder to the end of the sequence.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">new</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -431,7 +431,7 @@ title="Open an issue"
         <span class="bp">self</span><span class="o">.</span><span class="n">_length</span> <span class="o">+=</span> <span class="mi">1</span></div>
 
 <div class="viewcode-block" id="Store.assert_complete"><a class="viewcode-back" href="../../api.html#dinf.Store.assert_complete">[docs]</a>    <span class="k">def</span> <span class="nf">assert_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expected_files</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Raise a RuntimeError if any expected files are missing from a subfolder.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
@@ -461,7 +461,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev111+g627fb6a
+      dinf 0.3.1.dev116+gf45ba66
     </div>
 </p>
         </footer>

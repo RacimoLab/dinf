@@ -224,7 +224,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev111
+            dinf 0.3.1.dev116
             </div>
             
         </div>
@@ -465,7 +465,7 @@ E.g. SNP ascertainment.</p></li>
 <span class="p">)</span>
 <span class="n">contig_lengths</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">get_contig_lengths</span><span class="p">(</span>
     <span class="s2">&quot;GRCh38_full_analysis_set_plus_decoy_hla.fa.fai&quot;</span><span class="p">,</span>
-    <span class="n">keep_contigs</span><span class="o">=</span><span class="p">{</span><span class="sa">f</span><span class="s2">&quot;chr</span><span class="si">{</span><span class="n">c</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">21</span><span class="p">)},</span>  <span class="c1"># Exclude chrX, etc.</span>
+    <span class="n">keep_contigs</span><span class="o">=</span><span class="p">{</span><span class="sa">f</span><span class="s2">&quot;chr</span><span class="si">{</span><span class="n">c</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">21</span><span class="p">)},</span>  <span class="c1"># Exclude chrX, etc.</span>
 <span class="p">)</span>
 <span class="n">num_individuals</span> <span class="o">=</span> <span class="mi">64</span>
 <span class="n">recombination_rate</span> <span class="o">=</span> <span class="mf">1.25e-8</span>
@@ -509,7 +509,7 @@ E.g. SNP ascertainment.</p></li>
     <span class="n">theta</span><span class="p">[</span><span class="s2">&quot;T_anc_end&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="s2">&quot;T_AMH_end&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dT_AMH&quot;</span><span class="p">)</span>
 
     <span class="n">model</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">Template</span><span class="p">(</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        description: The Gutenkunst et al. (2009) out-of-Africa model.</span>
 <span class="sd">        doi:</span>
 <span class="sd">          - https://doi.org/10.1371/journal.pgen.1000695</span>
@@ -563,7 +563,7 @@ E.g. SNP ascertainment.</p></li>
 
 
 <span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="o">**</span><span class="n">theta</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Simulate the Gutenkunst out-of-Africa model with msprime.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simulate the Gutenkunst out-of-Africa model with msprime.&quot;&quot;&quot;</span>
     <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">graph</span> <span class="o">=</span> <span class="n">demography</span><span class="p">(</span><span class="o">**</span><span class="n">theta</span><span class="p">)</span>
     <span class="n">demog</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">Demography</span><span class="o">.</span><span class="n">from_demes</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
@@ -624,7 +624,7 @@ E.g. SNP ascertainment.</p></li>
             mode: "python"
         },
         kernelOptions: {
-            kernelName: "python3",
+            name: "python3",
             path: "./guide"
         },
         predefinedOutput: true
@@ -664,7 +664,7 @@ E.g. SNP ascertainment.</p></li>
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev111+g627fb6a
+      dinf 0.3.1.dev116+gf45ba66
     </div>
 </p>
         </footer>

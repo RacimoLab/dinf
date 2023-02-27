@@ -226,7 +226,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev111
+            dinf 0.3.1.dev116
             </div>
             
         </div>
@@ -607,7 +607,7 @@ we defined above.</p>
 
 <span class="k">def</span> <span class="nf">demography</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="p">):</span>
     <span class="n">model</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">Template</span><span class="p">(</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        description: Two-epoch model with recent bottleneck.</span>
 <span class="sd">        time_units: generations</span>
 <span class="sd">        demes:</span>
@@ -623,7 +623,7 @@ we defined above.</p>
 
 
 <span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Simulate a two-epoch model with msprime.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simulate a two-epoch model with msprime.&quot;&quot;&quot;</span>
     <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">graph</span> <span class="o">=</span> <span class="n">demography</span><span class="p">(</span><span class="n">N0</span><span class="o">=</span><span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="o">=</span><span class="n">N1</span><span class="p">)</span>
     <span class="n">demog</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">Demography</span><span class="o">.</span><span class="n">from_demes</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
@@ -693,7 +693,7 @@ that treats haplotypes within populations as exchangeable.</p>
 
 <span class="k">def</span> <span class="nf">demography</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="p">):</span>
     <span class="n">model</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">Template</span><span class="p">(</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        description: Two-epoch model with recent bottleneck.</span>
 <span class="sd">        time_units: generations</span>
 <span class="sd">        demes:</span>
@@ -718,7 +718,7 @@ that treats haplotypes within populations as exchangeable.</p>
 
 
 <span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Simulate a two-epoch model with msprime.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simulate a two-epoch model with msprime.&quot;&quot;&quot;</span>
     <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
     <span class="n">graph</span> <span class="o">=</span> <span class="n">demography</span><span class="p">(</span><span class="n">N0</span><span class="o">=</span><span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="o">=</span><span class="n">N1</span><span class="p">)</span>
     <span class="n">demog</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">Demography</span><span class="o">.</span><span class="n">from_demes</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
@@ -760,7 +760,7 @@ that treats haplotypes within populations as exchangeable.</p>
             mode: "python"
         },
         kernelOptions: {
-            kernelName: "python3",
+            name: "python3",
             path: "./guide"
         },
         predefinedOutput: true
@@ -800,7 +800,7 @@ that treats haplotypes within populations as exchangeable.</p>
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev111+g627fb6a
+      dinf 0.3.1.dev116+gf45ba66
     </div>
 </p>
         </footer>

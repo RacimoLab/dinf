@@ -221,7 +221,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev111
+            dinf 0.3.1.dev116
             </div>
             
         </div>
@@ -390,7 +390,7 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">batchify</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">random</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Generate batch_size chunks of the dataset.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate batch_size chunks of the dataset.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">batch_size</span> <span class="o">&gt;=</span> <span class="mi">1</span>
     <span class="n">size</span> <span class="o">=</span> <span class="n">leading_dim_size</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">size</span> <span class="o">&gt;=</span> <span class="mi">1</span>
@@ -411,7 +411,7 @@ title="Open an issue"
 
 
 <div class="viewcode-block" id="Symmetric"><a class="viewcode-back" href="../../api.html#dinf.Symmetric">[docs]</a><span class="k">class</span> <span class="nc">Symmetric</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Network layer that summarises over a given axis in a way that is invariant</span>
 <span class="sd">    to permutations of the input along that axis.</span>
 
@@ -481,7 +481,7 @@ title="Open an issue"
 
 
 <div class="viewcode-block" id="ExchangeablePGGAN"><a class="viewcode-back" href="../../api.html#dinf.ExchangeablePGGAN">[docs]</a><span class="k">class</span> <span class="nc">ExchangeablePGGAN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    An exchangeable CNN for the discriminator using the PG-GAN architecture.</span>
 
 <span class="sd">    This is a faithful translation of the network implemented in PG-GAN [1],</span>
@@ -576,7 +576,7 @@ title="Open an issue"
 
 
 <div class="viewcode-block" id="ExchangeableCNN"><a class="viewcode-back" href="../../api.html#dinf.ExchangeableCNN">[docs]</a><span class="k">class</span> <span class="nc">ExchangeableCNN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    An exchangeable CNN for the discriminator.</span>
 
 <span class="sd">    Each feature matrix in the input has shape</span>
@@ -657,31 +657,31 @@ title="Open an issue"
 
 <div class="viewcode-block" id="Discriminator"><a class="viewcode-back" href="../../api.html#dinf.Discriminator">[docs]</a><span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span>
 <span class="k">class</span> <span class="nc">Discriminator</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Wrapper for the discriminator neural network that classifies genotype matrices.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">input_shape</span><span class="p">:</span> <span class="n">Pytree</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-    <span class="sd">&quot;&quot;&quot;The shape of the input to the neural network.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The shape of the input to the neural network.&quot;&quot;&quot;</span>
 
     <span class="n">network</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="sd">&quot;&quot;&quot;The flax neural network.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The flax neural network.&quot;&quot;&quot;</span>
 
     <span class="c1"># The state has type &quot;TrainState&quot;. See get_train_state_class() above.</span>
     <span class="n">state</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="sd">&quot;&quot;&quot;Network training state, e.g. network parameters and batch statistics.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Network training state, e.g. network parameters and batch statistics.&quot;&quot;&quot;</span>
 
     <span class="n">trained</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="sd">&quot;&quot;&quot;True if the network has been trained, False otherwise.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;True if the network has been trained, False otherwise.&quot;&quot;&quot;</span>
 
     <span class="n">metrics</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span>
         <span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="sd">&quot;&quot;&quot;Loss and accuracy metrics obtained when training the network.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Loss and accuracy metrics obtained when training the network.&quot;&quot;&quot;</span>
 
     <span class="c1"># Bump this after making internal changes.</span>
     <span class="n">format_version</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
-    <span class="sd">&quot;&quot;&quot;Version number for the serialised network on disk.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Version number for the serialised network on disk.&quot;&quot;&quot;</span>
 
     <span class="n">_inited</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
@@ -701,7 +701,7 @@ title="Open an issue"
             <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initialise the neural network with the given input shape.</span>
 
 <span class="sd">        :param input_shape:</span>
@@ -757,7 +757,7 @@ title="Open an issue"
 
 <div class="viewcode-block" id="Discriminator.from_file"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.from_file">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load neural network weights from the given file.</span>
 
 <span class="sd">        :param filename:</span>
@@ -779,7 +779,7 @@ title="Open an issue"
         <span class="k">return</span> <span class="n">discr</span></div>
 
 <div class="viewcode-block" id="Discriminator.to_file"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.to_file">[docs]</a>    <span class="k">def</span> <span class="nf">to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save neural network to the given file.</span>
 
 <span class="sd">        :param filename: The path where the model will be saved.</span>
@@ -793,7 +793,7 @@ title="Open an issue"
     <span class="k">def</span> <span class="nf">fromdict</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">_err_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load neural network weights from the given dict.</span>
 
 <span class="sd">        :param data:</span>
@@ -856,7 +856,7 @@ title="Open an issue"
         <span class="p">)</span>
 
 <div class="viewcode-block" id="Discriminator.summary"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.summary">[docs]</a>    <span class="k">def</span> <span class="nf">summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Return a summary of the neural network.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a summary of the neural network.&quot;&quot;&quot;</span>
         <span class="c1"># XXX: The order of layers in the CNN are lost because of</span>
         <span class="c1"># https://github.com/google/jax/issues/4085</span>
 
@@ -882,7 +882,7 @@ title="Open an issue"
         <span class="n">entropy_regularisation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Fit discriminator to training data.</span>
 
 <span class="sd">        :param train_x:</span>
@@ -952,7 +952,7 @@ title="Open an issue"
             <span class="k">return</span> <span class="n">n</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">new_metrics</span>
 
         <span class="k">def</span> <span class="nf">train_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">train_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">epoch</span><span class="p">,</span> <span class="n">dropout_rng</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Train for a single epoch.&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Train for a single epoch.&quot;&quot;&quot;</span>
 
             <span class="n">metrics_sum</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">accuracy</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
             <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
@@ -1041,7 +1041,7 @@ title="Open an issue"
 <div class="viewcode-block" id="Discriminator.predict"><a class="viewcode-back" href="../../api.html#dinf.Discriminator.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span> <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Make predictions about data using a pre-fitted neural network.</span>
 
 <span class="sd">        :param x: The data instances about which to make predictions.</span>
@@ -1085,14 +1085,14 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">binary_accuracy</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Accuracy of binary classifier, from logits.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Accuracy of binary classifier, from logits.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">labels</span> <span class="o">==</span> <span class="p">(</span><span class="n">p</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">))</span>
 
 
 <span class="nd">@functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">,</span> <span class="n">static_argnums</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,))</span>
 <span class="k">def</span> <span class="nf">_train_step</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">dropout_rng</span><span class="p">,</span> <span class="n">entropy_regularisation</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Train for a single step.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Train for a single step.&quot;&quot;&quot;</span>
 
     <span class="n">dropout_rng</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">fold_in</span><span class="p">(</span><span class="n">dropout_rng</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">step</span><span class="p">)</span>
 
@@ -1143,7 +1143,7 @@ title="Open an issue"
 
 <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
 <span class="k">def</span> <span class="nf">_eval_step</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Evaluate for a single step.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Evaluate for a single step.&quot;&quot;&quot;</span>
     <span class="c1"># Optax imports scipy, which takes ages, so import only when needed.</span>
     <span class="kn">import</span> <span class="nn">optax</span>
 
@@ -1162,7 +1162,7 @@ title="Open an issue"
 
 <span class="nd">@functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">,</span> <span class="n">static_argnums</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,))</span>
 <span class="k">def</span> <span class="nf">_predict_batch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="n">apply_func</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Make predictions on a batch.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Make predictions on a batch.&quot;&quot;&quot;</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="n">apply_func</span><span class="p">(</span><span class="n">variables</span><span class="p">,</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">],</span> <span class="n">train</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
 </pre></div>
@@ -1185,7 +1185,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev111+g627fb6a
+      dinf 0.3.1.dev116+gf45ba66
     </div>
 </p>
         </footer>

@@ -221,7 +221,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev111
+            dinf 0.3.1.dev116
             </div>
             
         </div>
@@ -388,21 +388,21 @@ title="Open an issue"
 
 
 <span class="k">class</span> <span class="nc">_SupportsImap</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Type of a processing pool---an object with an ``imap()`` method.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Type of a processing pool---an object with an ``imap()`` method.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">imap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">iterable</span><span class="p">):</span>
         <span class="o">...</span>
 
 
 <span class="k">class</span> <span class="nc">_DummyPool</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Uniprocessor processing pool.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Uniprocessor processing pool.&quot;&quot;&quot;</span>
 
     <span class="n">imap</span> <span class="o">=</span> <span class="nb">map</span>
 
 
 <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">process_pool</span><span class="p">(</span><span class="n">parallelism</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dinf_model</span><span class="p">:</span> <span class="n">DinfModel</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A context manager to open a process pool with the &quot;spawn&quot; start method.</span>
 
 <span class="sd">    This is a wrapper for multiprocessing.Pool, that gracefully exits</span>
@@ -454,7 +454,7 @@ title="Open an issue"
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get features from a generator or target function.</span>
 
 <span class="sd">    The function will be called in parallel using the given process pool.</span>
@@ -511,7 +511,7 @@ title="Open an issue"
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get features from the generator function.</span>
 
 <span class="sd">    :param generator:</span>
@@ -548,7 +548,7 @@ title="Open an issue"
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get features from the target function.</span>
 
 <span class="sd">    :param target:</span>
@@ -580,7 +580,7 @@ title="Open an issue"
     <span class="n">feature_dtype</span><span class="p">,</span>
     <span class="n">num_replicates</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Allocate empty numpy array(s) for ``num_replicates`` features.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">leaves</span> <span class="o">=</span> <span class="p">[]</span>
@@ -604,7 +604,7 @@ title="Open an issue"
     <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get a dataset comprised of both generator and target data.</span>
 
 <span class="sd">    The returned data are not shuffled. We rely on Discriminator.fit()</span>
@@ -688,7 +688,7 @@ title="Open an issue"
     <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Save discriminator predictions and parameter values to a .npz file.</span>
 
 <span class="sd">    :param filename:</span>
@@ -721,7 +721,7 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">_npz_array_metadata</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Read array metadata from an npz file without loading the arrays.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read array metadata from an npz file without loading the arrays.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">read_array_header</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
@@ -754,7 +754,7 @@ title="Open an issue"
 <div class="viewcode-block" id="load_results"><a class="viewcode-back" href="../../api.html#dinf.load_results">[docs]</a><span class="k">def</span> <span class="nf">load_results</span><span class="p">(</span>
     <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Load descriminator predictions and parameter values from a .npz file.</span>
 
 <span class="sd">    :param filename:</span>
@@ -792,7 +792,7 @@ title="Open an issue"
 <span class="k">def</span> <span class="nf">_load_results_unstructured</span><span class="p">(</span>
     <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Parameters</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Split results into thetas and probs.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Split results into thetas and probs.&quot;&quot;&quot;</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">load_results</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
     <span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
     <span class="n">probs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]</span>
@@ -887,7 +887,7 @@ title="Open an issue"
     <span class="n">seed</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Discriminator</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Train a discriminator network.</span>
 
 <span class="sd">    :param dinf_model:</span>
@@ -947,7 +947,7 @@ title="Open an issue"
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Sample features and make predictions using the discriminator.</span>
 
 <span class="sd">    Features are sampled from the generator by default.</span>
@@ -1027,7 +1027,7 @@ title="Open an issue"
     <span class="n">num_replicates</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">pool</span><span class="p">:</span> <span class="n">_SupportsImap</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Function to be maximised by mcmc. Vectorised version.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">num_walkers</span><span class="p">,</span> <span class="n">num_params</span> <span class="o">=</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span>
@@ -1132,7 +1132,7 @@ title="Open an issue"
     <span class="n">seed</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Run the MCMC GAN.</span>
 
 <span class="sd">    Conceptually, the GAN takes the following steps for iteration j:</span>
@@ -1221,7 +1221,7 @@ title="Open an issue"
             <span class="c1"># TODO: allow this by sampling start points for the walkers?</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;request for </span><span class="si">{</span><span class="n">walkers</span><span class="si">}</span><span class="s2"> walkers, but resuming from &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s1">&#39;mcmc.npz&#39;</span><span class="si">}</span><span class="s2"> which used </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="si">}</span><span class="s2"> walkers.&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">&#39;mcmc.npz&#39;</span><span class="si">}</span><span class="s2"> which used </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="si">}</span><span class="s2"> walkers.&quot;</span>
             <span class="p">)</span>
 
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_kde</span><span class="p">(</span>
@@ -1247,7 +1247,6 @@ title="Open an issue"
     <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">with</span> <span class="n">process_pool</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">dinf_model</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
-
         <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">test_replicates</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="n">ss_val</span><span class="p">,</span> <span class="n">ss_test_thetas</span> <span class="o">=</span> <span class="n">ss_test</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -1364,7 +1363,7 @@ title="Open an issue"
     <span class="n">seed</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Adversarial Abstract Bayesian Computation.</span>
 
 <span class="sd">    Conceptually, the GAN takes the following steps for iteration j:</span>
@@ -1483,7 +1482,6 @@ title="Open an issue"
     <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">with</span> <span class="n">process_pool</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">dinf_model</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
-
         <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">test_replicates</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="n">ss_val</span><span class="p">,</span> <span class="n">ss_test_thetas</span> <span class="o">=</span> <span class="n">ss_test</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
@@ -1508,7 +1506,6 @@ title="Open an issue"
             <span class="n">cb_iter</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">))</span>
 
         <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">iterations</span><span class="p">):</span>
-
             <span class="n">ss_train</span><span class="p">,</span> <span class="n">ss_proposals</span><span class="p">,</span> <span class="n">ss_fit</span> <span class="o">=</span> <span class="n">ss_loop</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
             <span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span> <span class="o">=</span> <span class="n">_get_combined_dataset</span><span class="p">(</span>
                 <span class="n">target</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">target_func</span><span class="p">,</span>
@@ -1564,6 +1561,12 @@ title="Open an issue"
                 <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
             <span class="p">)</span>
 
+            <span class="c1"># Entropy relative to uniformity.</span>
+            <span class="c1"># See West 1993, https://doi.org/10.1111/j.2517-6161.1993.tb01911.x</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">y</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">entropy</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">w</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Entropy relative to uniformity: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">entropy</span><span class="p">)</span>
+
             <span class="c1"># Get the posterior sample for the next iteration.</span>
             <span class="n">thetas</span> <span class="o">=</span> <span class="n">proposal_thetas</span>
             <span class="k">if</span> <span class="n">top_n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1598,7 +1601,7 @@ title="Open an issue"
     <span class="n">max_pretraining_iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Pretraining roughly like PG-GAN.</span>
 
 <span class="sd">    PG-GAN starts at a point in the parameter space that is favourable</span>
@@ -1655,7 +1658,7 @@ title="Open an issue"
     <span class="n">max_pretraining_iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Train the discriminator on data sampled from the prior, until it can</span>
 <span class="sd">    distinguish randomly chosen points from the target dataset with</span>
 <span class="sd">    accuracy 0.9, or until max_pretraining_iterations is exhausted.</span>
@@ -1715,7 +1718,7 @@ title="Open an issue"
 <span class="k">def</span> <span class="nf">sanneal_proposals_pg_gan</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">num_proposals</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">proposal_stddev</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Proposals like PG-GAN.</span>
 
 <span class="sd">    From Wang et al., pg 8:</span>
@@ -1743,7 +1746,7 @@ title="Open an issue"
 <span class="k">def</span> <span class="nf">sanneal_proposals_rr</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">iteration</span><span class="p">,</span> <span class="n">num_proposals</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">proposal_stddev</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Round-robin proposals. Varies only one param at a time.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">num_params</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
@@ -1765,7 +1768,7 @@ title="Open an issue"
 <span class="k">def</span> <span class="nf">sanneal_proposals_mvn</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">rng</span><span class="p">,</span> <span class="n">num_proposals</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">proposal_stddev</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Multivariate-normal proposals. Varies all params each time.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">num_params</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
@@ -1805,7 +1808,7 @@ title="Open an issue"
     <span class="n">parallelism</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    PG-GAN style simulated annealing.</span>
 
 <span class="sd">    Wang et al. 2021, https://doi.org/10.1111/1755-0998.13386</span>
@@ -1957,7 +1960,6 @@ title="Open an issue"
     <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">with</span> <span class="n">process_pool</span><span class="p">(</span><span class="n">parallelism</span><span class="p">,</span> <span class="n">dinf_model</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
-
         <span class="k">if</span> <span class="ow">not</span> <span class="n">resume</span><span class="p">:</span>
             <span class="c1"># pre-training</span>
             <span class="n">discriminator</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">n_target_calls</span><span class="p">,</span> <span class="n">n_generator_calls</span> <span class="o">=</span> <span class="n">pretraining_func</span><span class="p">(</span>
@@ -2069,7 +2071,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev111+g627fb6a
+      dinf 0.3.1.dev116+gf45ba66
     </div>
 </p>
         </footer>

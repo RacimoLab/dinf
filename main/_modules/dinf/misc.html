@@ -221,7 +221,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev111
+            dinf 0.3.1.dev116
             </div>
             
         </div>
@@ -363,7 +363,7 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">spawn_key</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Transform a string for use as a :func:`np.random.SeedSequence` spawn_key.</span>
 
 <span class="sd">    :param key:</span>
@@ -375,7 +375,7 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">quantile</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate quantiles of an array.</span>
 
 <span class="sd">    :param x:</span>
@@ -402,7 +402,7 @@ title="Open an issue"
     <span class="o">/</span><span class="p">,</span>
     <span class="n">population</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the individuals corresponding to the tree sequence&#39;s samples.</span>
 
 <span class="sd">    :param ts:</span>
@@ -431,7 +431,7 @@ title="Open an issue"
     <span class="o">/</span><span class="p">,</span>
     <span class="n">individuals</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the nodes for the individuals.</span>
 
 <span class="sd">    :param ts:</span>
@@ -449,7 +449,7 @@ title="Open an issue"
     <span class="o">/</span><span class="p">,</span>
     <span class="n">individuals</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get the ploidy of the individuals.</span>
 
 <span class="sd">    :param ts:</span>
@@ -482,7 +482,7 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">pytree_equal</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">,</span> <span class="o">*</span><span class="n">others</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return True if tree is the same as all the others, False otherwise.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">structure</span> <span class="o">=</span> <span class="n">_dtree_structure</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
@@ -494,7 +494,7 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">pytree_shape</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a pytree with the same dictionary structure as the given tree,</span>
 <span class="sd">    but with non-dictionaries replaced by their numpy shape.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -502,7 +502,7 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">pytree_dtype</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a pytree with the same dictionary structure as the given tree,</span>
 <span class="sd">    but with non-dictionaries replaced by their numpy dtype.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -510,7 +510,7 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">pytree_cons</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Prepend ``a`` in all tuples of the given tree.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span>
@@ -519,21 +519,21 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">pytree_car</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a tree of the leading values of all tuples in the given tree.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tree</span><span class="p">,</span> <span class="n">is_leaf</span><span class="o">=</span><span class="n">is_tuple</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">pytree_cdr</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Pytree</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a tree of the trailing values of all tuples in the given tree.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">tree</span><span class="p">,</span> <span class="n">is_leaf</span><span class="o">=</span><span class="n">is_tuple</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">leading_dim_size</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">Pytree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Size of the leading dimension (e.g. batch dimension) of each feature.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Size of the leading dimension (e.g. batch dimension) of each feature.&quot;&quot;&quot;</span>
     <span class="n">sizes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_flatten</span><span class="p">(</span><span class="n">pytree_car</span><span class="p">(</span><span class="n">pytree_shape</span><span class="p">(</span><span class="n">tree</span><span class="p">)))[</span><span class="mi">0</span><span class="p">])</span>
     <span class="c1"># All features should have the same size for the leading dimension.</span>
     <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">sizes</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
@@ -541,7 +541,7 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">cache</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">split</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A decorator to cache the output of generator and/or target functions.</span>
 
 <span class="sd">    This is analogous to :func:`functools.cache`, except each function&#39;s</span>
@@ -594,7 +594,7 @@ title="Open an issue"
 
 
 <span class="k">def</span> <span class="nf">sqlite_cache</span><span class="p">(</span><span class="n">db_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">/</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A decorator for generator or target functions that caches features to disk.</span>
 
 <span class="sd">    This is analogous to :func:`functools.cache`, except the cache is</span>
@@ -707,7 +707,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev111+g627fb6a
+      dinf 0.3.1.dev116+gf45ba66
     </div>
 </p>
         </footer>

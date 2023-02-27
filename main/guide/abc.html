@@ -226,7 +226,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev111
+            dinf 0.3.1.dev116
             </div>
             
         </div>
@@ -436,7 +436,7 @@ to the target dataset.</p>
 <ul class="simple">
 <li><p>We’ll continue to use the two-parameter
 bottleneck model from the <a class="reference internal" href="creating_a_model.html#sec-guide-creating-a-dinf-model"><span class="std std-ref">Creating a Dinf model</span></a> page.</p></li>
-<li><p>Dinf saves the discriminator predictions as a <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.save.html#numpy.save" title="(in NumPy v1.23)"><span class="xref myst">numpy <code class="docutils literal notranslate"><span class="pre">.npz</span></code></span></a>
+<li><p>Dinf saves the discriminator predictions as a <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.save.html#numpy.save" title="(in NumPy v1.24)"><span class="xref myst">numpy <code class="docutils literal notranslate"><span class="pre">.npz</span></code></span></a>
 file, which we’ll load back into Python for exploratory analysis.</p></li>
 <li><p>We’ll also plot the results with the <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> command.</p></li>
 </ul>
@@ -527,7 +527,7 @@ sys	64m1.751s
 </div>
 </div>
 </div>
-<p>The output file is an uncompressed <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.save.html#numpy.save" title="(in NumPy v1.23)"><span class="xref myst">numpy <code class="docutils literal notranslate"><span class="pre">.npz</span></code></span></a> file.
+<p>The output file is an uncompressed <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.save.html#numpy.save" title="(in NumPy v1.24)"><span class="xref myst">numpy <code class="docutils literal notranslate"><span class="pre">.npz</span></code></span></a> file.
 This file contains the parameter values for each replicate, and the predictions
 made by the discriminator. It can be loaded back into Python using the
 <a class="reference internal" href="../api.html#dinf.load_results" title="dinf.load_results"><span class="xref myst py py-func"><code class="docutils literal notranslate"><span class="pre">dinf.load_results()</span></code></span></a> function.</p>
@@ -729,7 +729,7 @@ dinf-plot hist2d \
             mode: "python"
         },
         kernelOptions: {
-            kernelName: "python3",
+            name: "python3",
             path: "./guide"
         },
         predefinedOutput: true
@@ -769,7 +769,7 @@ dinf-plot hist2d \
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev111+g627fb6a
+      dinf 0.3.1.dev116+gf45ba66
     </div>
 </p>
         </footer>

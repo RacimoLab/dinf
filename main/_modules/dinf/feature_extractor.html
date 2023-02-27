@@ -221,7 +221,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev111
+            dinf 0.3.1.dev116
             </div>
             
         </div>
@@ -360,7 +360,7 @@ title="Open an issue"
 
 
 <span class="k">class</span> <span class="nc">_FeatureMatrix</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Common functionality of HaplotypeMatrix and BinnedHaplotypeMatrix</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -373,7 +373,7 @@ title="Open an issue"
         <span class="n">phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
         <span class="n">maf_thresh</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param num_individuals:</span>
 <span class="sd">            The number of individuals to include in the feature matrix.</span>
 <span class="sd">        :param num_loci:</span>
@@ -425,7 +425,7 @@ title="Open an issue"
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
     <span class="k">def</span> <span class="nf">_from_genotype_matrix</span><span class="p">(</span>
@@ -435,7 +435,7 @@ title="Open an issue"
         <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">sequence_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create a feature matrix from a regular genotype matrix.</span>
 
 <span class="sd">        Missing genotypes in the input are assumed to take the value -1,</span>
@@ -454,7 +454,7 @@ title="Open an issue"
         <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
     <span class="k">def</span> <span class="nf">from_ts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ts</span><span class="p">:</span> <span class="n">tskit</span><span class="o">.</span><span class="n">TreeSequence</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create a feature matrix from a :ref:`tskit &lt;tskit:sec_introduction&gt;`</span>
 <span class="sd">        tree sequence.</span>
 
@@ -486,7 +486,7 @@ title="Open an issue"
         <span class="n">min_seg_sites</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create a feature matrix from a region of a VCF/BCF.</span>
 
 <span class="sd">        The genomic window for a feature matrix is drawn uniformly at random</span>
@@ -538,7 +538,7 @@ title="Open an issue"
 
 
 <div class="viewcode-block" id="HaplotypeMatrix"><a class="viewcode-back" href="../../api.html#dinf.HaplotypeMatrix">[docs]</a><span class="k">class</span> <span class="nc">HaplotypeMatrix</span><span class="p">(</span><span class="n">_FeatureMatrix</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A factory for feature matrices consisting of haplotypes and relative positions.</span>
 
 <span class="sd">    The feature is an :math:`n \\times m \\times c` array, where the channel</span>
@@ -577,7 +577,7 @@ title="Open an issue"
         <span class="n">phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
         <span class="n">maf_thresh</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param num_individuals:</span>
 <span class="sd">            The number of individuals to include in the feature matrix.</span>
 <span class="sd">        :param num_loci:</span>
@@ -609,7 +609,7 @@ title="Open an issue"
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_pseudo_haplotypes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_from_genotype_matrix</span><span class="p">(</span>
@@ -619,7 +619,7 @@ title="Open an issue"
         <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">sequence_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create feature matrix from a regular genotype matrix.</span>
 
 <span class="sd">        Missing genotypes in the input are assumed to take the value -1,</span>
@@ -688,7 +688,7 @@ title="Open an issue"
         <span class="k">return</span> <span class="n">M</span>
 
     <span class="k">def</span> <span class="nf">_get_fixed_num_snps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">num_snps</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Trim or pad the genotype matrix and positions to be of fixed size.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">G</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
@@ -717,7 +717,7 @@ title="Open an issue"
 
 
 <div class="viewcode-block" id="BinnedHaplotypeMatrix"><a class="viewcode-back" href="../../api.html#dinf.BinnedHaplotypeMatrix">[docs]</a><span class="k">class</span> <span class="nc">BinnedHaplotypeMatrix</span><span class="p">(</span><span class="n">_FeatureMatrix</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A factory for feature matrices of pseudo-haplotypes.</span>
 
 <span class="sd">    The binned haplotype matrix is an :math:`n \\times m` matrix,</span>
@@ -748,7 +748,7 @@ title="Open an issue"
         <span class="n">phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
         <span class="n">maf_thresh</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param num_individuals:</span>
 <span class="sd">            The number of individuals to include in the feature matrix.</span>
 <span class="sd">        :param num_loci:</span>
@@ -785,7 +785,7 @@ title="Open an issue"
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shape of the feature matrix.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_pseudo_haplotypes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_loci</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_from_genotype_matrix</span><span class="p">(</span>
@@ -795,7 +795,7 @@ title="Open an issue"
         <span class="n">positions</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">sequence_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create a pseudo-genotype matrix from a regular genotype matrix.</span>
 
 <span class="sd">        Missing genotypes in the input are assumed to take the value -1,</span>
@@ -854,7 +854,7 @@ title="Open an issue"
 
 
 <span class="k">class</span> <span class="nc">_MultipleFeatureMatrices</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A factory for labelled collections of :class:`_FeatureMatrix` objects.</span>
 
 <span class="sd">    One feature matrix is produced for each label. Labels correspond to</span>
@@ -877,7 +877,7 @@ title="Open an issue"
         <span class="c1"># phased: Mapping[str, bool] | None = None,</span>
         <span class="n">global_phased</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param num_individuals:</span>
 <span class="sd">            A dict that maps labels to the number of individuals</span>
 <span class="sd">            in the feature matrix.</span>
@@ -936,7 +936,7 @@ title="Open an issue"
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">shape</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;Shape of the feature matrices.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shape of the feature matrices.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="n">bhm</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">bhm</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
     <span class="k">def</span> <span class="nf">from_ts</span><span class="p">(</span>
@@ -945,7 +945,7 @@ title="Open an issue"
         <span class="o">*</span><span class="p">,</span>
         <span class="n">individuals</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">]],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create pseudo-genotype matrices from a tree sequence.</span>
 
 <span class="sd">        :param ts: The tree sequence.</span>
@@ -1020,7 +1020,7 @@ title="Open an issue"
         <span class="n">min_seg_sites</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create pseudo-genotype matrices from a region of a VCF/BCF.</span>
 
 <span class="sd">        The genomic window is drawn uniformly at random from the sequences</span>
@@ -1105,7 +1105,7 @@ title="Open an issue"
 
 
 <div class="viewcode-block" id="MultipleHaplotypeMatrices"><a class="viewcode-back" href="../../api.html#dinf.MultipleHaplotypeMatrices">[docs]</a><span class="k">class</span> <span class="nc">MultipleHaplotypeMatrices</span><span class="p">(</span><span class="n">_MultipleFeatureMatrices</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A factory for labelled collections of :class:`HaplotypeMatrix` objects.</span>
 
 <span class="sd">    One feature matrix is produced for each label. Labels correspond to</span>
@@ -1117,7 +1117,7 @@ title="Open an issue"
 
 
 <div class="viewcode-block" id="MultipleBinnedHaplotypeMatrices"><a class="viewcode-back" href="../../api.html#dinf.MultipleBinnedHaplotypeMatrices">[docs]</a><span class="k">class</span> <span class="nc">MultipleBinnedHaplotypeMatrices</span><span class="p">(</span><span class="n">_MultipleFeatureMatrices</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A factory for labelled collections of :class:`BinnedHaplotypeMatrix` objects.</span>
 
 <span class="sd">    One feature matrix is produced for each label. Labels correspond to</span>
@@ -1146,7 +1146,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev111+g627fb6a
+      dinf 0.3.1.dev116+gf45ba66
     </div>
 </p>
         </footer>
