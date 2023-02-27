@@ -104,6 +104,7 @@ def _get_dataset_parallel(
     pool: _SupportsImap,
     callbacks: dict | None = None,
     out=None,
+    cb_j=0,
 ):
     """
     Get features from a generator or target function.
@@ -131,9 +132,6 @@ def _get_dataset_parallel(
         result = jax.tree_util.tree_leaves(out)
         treedef = jax.tree_util.tree_structure(out)
 
-    if (cb := callbacks.get("feature")) is not None:
-        cb(0)
-
     for j, M in enumerate(pool.imap(func, args)):
         if result is None:
             treedef = jax.tree_util.tree_structure(M)
@@ -144,7 +142,7 @@ def _get_dataset_parallel(
             res[j] = m
 
         if (cb := callbacks.get("feature")) is not None:
-            cb(j + 1)
+            cb(cb_j + j + 1)
 
     if out is None:
         assert treedef is not None
@@ -161,6 +159,7 @@ def _get_generator_dataset(
     ss: np.random.SeedSequence,
     callbacks: dict | None = None,
     out=None,
+    cb_j=0,
 ):
     """
     Get features from the generator function.
@@ -186,6 +185,7 @@ def _get_generator_dataset(
         pool=pool,
         callbacks=callbacks,
         out=out,
+        cb_j=cb_j,
     )
     return data
 
@@ -316,6 +316,7 @@ def _get_combined_dataset(
             ss=ss_generator2,
             callbacks=dict(feature=callbacks.get("generator/feature")),
             out=jax.tree_util.tree_map(lambda a: a[n:num_replicates], x),
+            cb_j=n,
         )
 
     _get_target_dataset(
