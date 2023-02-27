@@ -804,7 +804,6 @@ def _worker_using_vcf(parent_chrom_id):
 
 @pytest.mark.parametrize("start_method", multiprocessing.get_all_start_methods())
 def test_vcf_inside_process_pool(start_method):
-
     # Check VCF in the parent process.
     chrom1 = vb["1"]
     regions = list(chrom1("1:1-100000"))
