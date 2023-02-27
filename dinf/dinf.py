@@ -898,7 +898,6 @@ def mcmc_gan(
     n_generator_calls = 0
 
     with process_pool(parallelism, dinf_model) as pool:
-
         val_x, val_y = None, None
         if test_replicates >= 2:
             ss_val, ss_test_thetas = ss_test.spawn(2)
@@ -1134,7 +1133,6 @@ def abc_gan(
     n_generator_calls = 0
 
     with process_pool(parallelism, dinf_model) as pool:
-
         val_x, val_y = None, None
         if test_replicates >= 2:
             ss_val, ss_test_thetas = ss_test.spawn(2)
@@ -1159,7 +1157,6 @@ def abc_gan(
             cb_iter(len(store))
 
         for _ in range(iterations):
-
             ss_train, ss_proposals, ss_fit = ss_loop.spawn(3)
             train_x, train_y = _get_combined_dataset(
                 target=dinf_model.target_func,
@@ -1214,6 +1211,12 @@ def abc_gan(
                 thetas=proposal_thetas,
                 parameters=parameters,
             )
+
+            # Entropy relative to uniformity.
+            # See West 1993, https://doi.org/10.1111/j.2517-6161.1993.tb01911.x
+            w = y / np.sum(y)
+            entropy = -np.sum(w * np.log(w)) / np.log(len(w))
+            logger.info("Entropy relative to uniformity: %s", entropy)
 
             # Get the posterior sample for the next iteration.
             thetas = proposal_thetas
@@ -1608,7 +1611,6 @@ def pg_gan(
     n_generator_calls = 0
 
     with process_pool(parallelism, dinf_model) as pool:
-
         if not resume:
             # pre-training
             discriminator, theta, n_target_calls, n_generator_calls = pretraining_func(
