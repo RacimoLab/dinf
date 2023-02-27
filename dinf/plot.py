@@ -101,7 +101,7 @@ def feature(
     assert not isinstance(mat, dict)
     if cmap is None:
         if channel == 0:
-            cmap = matplotlib.cm.get_cmap("viridis", int(1 + np.max(mat)))
+            cmap = plt.get_cmap("viridis", int(1 + np.max(mat)))
         else:
             cmap = "plasma"
     im = ax.imshow(
@@ -172,9 +172,9 @@ def features(mats: Dict[str, np.ndarray], /, *, subplots_kw: dict | None = None)
             np.max(mat[..., j]) for mat in mats.values() if j < mat.shape[-1]
         )
         if j == 0:
-            cmaps[j] = matplotlib.cm.get_cmap("viridis", int(1 + vmaxs[j]))
+            cmaps[j] = plt.get_cmap("viridis", int(1 + vmaxs[j]))
         else:
-            cmaps[j] = matplotlib.cm.get_cmap("plasma")
+            cmaps[j] = plt.get_cmap("plasma")
 
     if num_mats == 1:
         mat = list(mats.values())[0]
@@ -275,10 +275,8 @@ def metrics(
         ],
         **kw,
     )
-    axs["train_loss"].get_shared_y_axes().join(axs["train_loss"], axs["test_loss"])
-    axs["train_accuracy"].get_shared_y_axes().join(
-        axs["train_accuracy"], axs["test_accuracy"]
-    )
+    axs["train_loss"].sharey(axs["test_loss"])
+    axs["train_accuracy"].sharey(axs["test_accuracy"])
 
     mkeys = ("train_loss", "test_loss", "train_accuracy", "test_accuracy")
     for label, metrics in metrics_collection.items():
@@ -1109,7 +1107,7 @@ class _Gan(_DinfPlotSubCommand):
             for j, d in enumerate(discriminators)
         }
 
-        cmap = matplotlib.cm.get_cmap("gnuplot")
+        cmap = plt.get_cmap("gnuplot")
         cycle = cycler(
             color=[cmap(i / len(discriminators)) for i in range(len(discriminators))]
         )
