@@ -221,7 +221,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev127
+            dinf 0.3.1.dev130
             </div>
             
         </div>
@@ -453,6 +453,7 @@ title="Open an issue"
     <span class="n">pool</span><span class="p">:</span> <span class="n">_SupportsImap</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">cb_j</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get features from a generator or target function.</span>
@@ -480,9 +481,6 @@ title="Open an issue"
         <span class="n">result</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_leaves</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
         <span class="n">treedef</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_structure</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="n">cb</span> <span class="o">:=</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;feature&quot;</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">cb</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-
     <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">M</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pool</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">)):</span>
         <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">treedef</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_structure</span><span class="p">(</span><span class="n">M</span><span class="p">)</span>
@@ -493,7 +491,7 @@ title="Open an issue"
             <span class="n">res</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span>
 
         <span class="k">if</span> <span class="p">(</span><span class="n">cb</span> <span class="o">:=</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;feature&quot;</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">cb</span><span class="p">(</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">cb</span><span class="p">(</span><span class="n">cb_j</span> <span class="o">+</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">treedef</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -510,6 +508,7 @@ title="Open an issue"
     <span class="n">ss</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">,</span>
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">cb_j</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get features from the generator function.</span>
@@ -535,6 +534,7 @@ title="Open an issue"
         <span class="n">pool</span><span class="o">=</span><span class="n">pool</span><span class="p">,</span>
         <span class="n">callbacks</span><span class="o">=</span><span class="n">callbacks</span><span class="p">,</span>
         <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+        <span class="n">cb_j</span><span class="o">=</span><span class="n">cb_j</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">data</span>
 
@@ -665,6 +665,7 @@ title="Open an issue"
             <span class="n">ss</span><span class="o">=</span><span class="n">ss_generator2</span><span class="p">,</span>
             <span class="n">callbacks</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">feature</span><span class="o">=</span><span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;generator/feature&quot;</span><span class="p">)),</span>
             <span class="n">out</span><span class="o">=</span><span class="n">jax</span><span class="o">.</span><span class="n">tree_util</span><span class="o">.</span><span class="n">tree_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="n">a</span><span class="p">[</span><span class="n">n</span><span class="p">:</span><span class="n">num_replicates</span><span class="p">],</span> <span class="n">x</span><span class="p">),</span>
+            <span class="n">cb_j</span><span class="o">=</span><span class="n">n</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="n">_get_target_dataset</span><span class="p">(</span>
@@ -1349,7 +1350,7 @@ title="Open an issue"
                 <span class="n">cb_iter</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="abc_gan"><a class="viewcode-back" href="../../api.html#dinf.abc_gan">[docs]</a><span class="k">def</span> <span class="nf">abc_gan</span><span class="p">(</span>
+<div class="viewcode-block" id="smc"><a class="viewcode-back" href="../../api.html#dinf.smc">[docs]</a><span class="k">def</span> <span class="nf">smc</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">dinf_model</span><span class="p">:</span> <span class="n">DinfModel</span><span class="p">,</span>
     <span class="n">iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -1364,9 +1365,9 @@ title="Open an issue"
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Adversarial Abstract Bayesian Computation.</span>
+<span class="sd">    Adversarial Sequential Monte Carlo.</span>
 
-<span class="sd">    Conceptually, the GAN takes the following steps for iteration j:</span>
+<span class="sd">    The following steps are taken for iteration j:</span>
 
 <span class="sd">      - sample training and proposal datasets from the prior[j] distribution,</span>
 <span class="sd">      - train the discriminator,</span>
@@ -1377,9 +1378,9 @@ title="Open an issue"
 <span class="sd">    In the first iteration, the parameter values given to the generator</span>
 <span class="sd">    to produce the train/proposal datasets are drawn from the parameters&#39;</span>
 <span class="sd">    prior distribution. In subsequent iterations, the parameter values</span>
-<span class="sd">    are drawn from a posterior ABC sample. The posterior is obtained by</span>
-<span class="sd">    rejection sampling the proposal distribution and weighting the posterior</span>
-<span class="sd">    by the discriminator predictions, followed by gaussian smoothing.</span>
+<span class="sd">    are drawn from a posterior sample. The posterior is obtained as a</span>
+<span class="sd">    weighted KDE of the proposal distribution where the weights are given</span>
+<span class="sd">    by the discriminator predictions.</span>
 
 <span class="sd">    :param dinf_model:</span>
 <span class="sd">        DinfModel object that describes the dinf model.</span>
@@ -1393,7 +1394,7 @@ title="Open an issue"
 <span class="sd">        each training epoch. This dataset is constructed once before the</span>
 <span class="sd">        GAN iterates, and is reused in each iteration.</span>
 <span class="sd">    :param proposal_replicates:</span>
-<span class="sd">        Number of ABC proposals in each iteration.</span>
+<span class="sd">        Number of Monte Carlo proposals in each iteration.</span>
 <span class="sd">    :param epochs:</span>
 <span class="sd">        Number of full passes over the training dataset when training</span>
 <span class="sd">        the discriminator.</span>
@@ -1438,10 +1439,10 @@ title="Open an issue"
     <span class="k">if</span> <span class="n">output_folder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">output_folder</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span>
     <span class="n">store</span> <span class="o">=</span> <span class="n">Store</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">store</span><span class="o">.</span><span class="n">assert_complete</span><span class="p">([</span><span class="s2">&quot;discriminator.nn&quot;</span><span class="p">,</span> <span class="s2">&quot;abc.npz&quot;</span><span class="p">])</span>
+    <span class="n">store</span><span class="o">.</span><span class="n">assert_complete</span><span class="p">([</span><span class="s2">&quot;discriminator.nn&quot;</span><span class="p">,</span> <span class="s2">&quot;smc.npz&quot;</span><span class="p">])</span>
     <span class="n">resume</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">store</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
-    <span class="n">ss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">spawn_key</span><span class="o">=</span><span class="n">spawn_key</span><span class="p">(</span><span class="s2">&quot;abc-gan&quot;</span><span class="p">))</span>
+    <span class="n">ss</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">spawn_key</span><span class="o">=</span><span class="n">spawn_key</span><span class="p">(</span><span class="s2">&quot;smc&quot;</span><span class="p">))</span>
     <span class="n">ss_loop</span><span class="p">,</span> <span class="n">ss_thetas</span><span class="p">,</span> <span class="n">ss_test</span> <span class="o">=</span> <span class="n">ss</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">rng_thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">ss_thetas</span><span class="p">)</span>
 
@@ -1452,7 +1453,7 @@ title="Open an issue"
             <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;discriminator.nn&quot;</span><span class="p">,</span> <span class="n">network</span><span class="o">=</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">discriminator_network</span>
         <span class="p">)</span>
         <span class="n">thetas</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">_load_results_unstructured</span><span class="p">(</span>
-            <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;abc.npz&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
+            <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;smc.npz&quot;</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span>
         <span class="p">)</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
         <span class="k">if</span> <span class="n">top_n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1555,7 +1556,7 @@ title="Open an issue"
                 <span class="n">callbacks</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="n">callbacks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;predict/batch&quot;</span><span class="p">)},</span>
             <span class="p">)</span>
             <span class="n">save_results</span><span class="p">(</span>
-                <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;abc.npz&quot;</span><span class="p">,</span>
+                <span class="n">store</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="s2">&quot;smc.npz&quot;</span><span class="p">,</span>
                 <span class="n">probs</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
                 <span class="n">thetas</span><span class="o">=</span><span class="n">proposal_thetas</span><span class="p">,</span>
                 <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
@@ -2071,7 +2072,7 @@ title="Open an issue"
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev127+g0e84660
+      dinf 0.3.1.dev130+g044ca02
     </div>
 </p>
         </footer>

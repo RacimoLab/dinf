@@ -226,7 +226,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev127
+            dinf 0.3.1.dev130
             </div>
             
         </div>
@@ -682,8 +682,8 @@ title="Open an issue"
 <tr class="row-odd"><td><p><a class="reference internal" href="#dinf.predict" title="dinf.predict"><code class="xref py py-obj docutils literal notranslate"><span class="pre">predict</span></code></a>(*, discriminator, dinf_model, replicates)</p></td>
 <td><p>Sample features and make predictions using the discriminator.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#dinf.abc_gan" title="dinf.abc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">abc_gan</span></code></a>(*, dinf_model, iterations, ...[, ...])</p></td>
-<td><p>Adversarial Abstract Bayesian Computation.</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#dinf.smc" title="dinf.smc"><code class="xref py py-obj docutils literal notranslate"><span class="pre">smc</span></code></a>(*, dinf_model, iterations, ...[, top_n, ...])</p></td>
+<td><p>Adversarial Sequential Monte Carlo.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#dinf.mcmc_gan" title="dinf.mcmc_gan"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mcmc_gan</span></code></a>(*, dinf_model, iterations, ...[, ...])</p></td>
 <td><p>Run the MCMC GAN.</p></td>
@@ -1980,10 +1980,10 @@ probs[j] is the discriminator prediction for the j’th draw.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="dinf.abc_gan">
-<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">abc_gan</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proposal_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callbacks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#abc_gan"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.abc_gan" title="Permalink to this definition">#</a></dt>
-<dd><p>Adversarial Abstract Bayesian Computation.</p>
-<p>Conceptually, the GAN takes the following steps for iteration j:</p>
+<dt class="sig sig-object py" id="dinf.smc">
+<span class="sig-prename descclassname"><span class="pre">dinf.</span></span><span class="sig-name descname"><span class="pre">smc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dinf_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iterations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">training_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proposal_replicates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_folder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parallelism</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callbacks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/dinf.html#smc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.smc" title="Permalink to this definition">#</a></dt>
+<dd><p>Adversarial Sequential Monte Carlo.</p>
+<p>The following steps are taken for iteration j:</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>sample training and proposal datasets from the prior[j] distribution,</p></li>
@@ -1996,9 +1996,9 @@ probs[j] is the discriminator prediction for the j’th draw.</p>
 <p>In the first iteration, the parameter values given to the generator
 to produce the train/proposal datasets are drawn from the parameters’
 prior distribution. In subsequent iterations, the parameter values
-are drawn from a posterior ABC sample. The posterior is obtained by
-rejection sampling the proposal distribution and weighting the posterior
-by the discriminator predictions, followed by gaussian smoothing.</p>
+are drawn from a posterior sample. The posterior is obtained as a
+weighted KDE of the proposal distribution where the weights are given
+by the discriminator predictions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -2009,7 +2009,7 @@ This dataset is constructed once each GAN iteration.</p></li>
 <li><p><strong>test_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – Size of the dataset used to evaluate the discriminator after
 each training epoch. This dataset is constructed once before the
 GAN iterates, and is reused in each iteration.</p></li>
-<li><p><strong>proposal_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – Number of ABC proposals in each iteration.</p></li>
+<li><p><strong>proposal_replicates</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – Number of Monte Carlo proposals in each iteration.</p></li>
 <li><p><strong>epochs</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – Number of full passes over the training dataset when training
 the discriminator.</p></li>
 <li><p><strong>top_n</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em> | </em><em>None</em>) – If not None, do ABC rejection sampling in each iteraction by taking
@@ -2728,7 +2728,7 @@ If None, an axes will be created with <a class="reference external" href="https:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev127+g0e84660
+      dinf 0.3.1.dev130+g044ca02
     </div>
 </p>
         </footer>

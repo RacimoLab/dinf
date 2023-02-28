@@ -224,7 +224,7 @@ const thebe_selector_output = ".output, .cell_output"
              <!-- To handle the deprecated key -->
             
             <div class="navbar_extra_footer">
-            dinf 0.3.1.dev127
+            dinf 0.3.1.dev130
             </div>
             
         </div>
@@ -389,13 +389,13 @@ title="Open an issue"
     </a>
    </li>
    <li class="toc-h3 nav-item toc-entry">
-    <a class="reference internal nav-link" href="#dinf-abc-gan">
+    <a class="reference internal nav-link" href="#dinf-smc">
      <code class="docutils literal notranslate">
       <span class="pre">
        dinf
       </span>
       <span class="pre">
-       abc-gan
+       smc
       </span>
      </code>
     </a>
@@ -542,13 +542,13 @@ title="Open an issue"
     </a>
    </li>
    <li class="toc-h3 nav-item toc-entry">
-    <a class="reference internal nav-link" href="#dinf-abc-gan">
+    <a class="reference internal nav-link" href="#dinf-smc">
      <code class="docutils literal notranslate">
       <span class="pre">
        dinf
       </span>
       <span class="pre">
-       abc-gan
+       smc
       </span>
      </code>
     </a>
@@ -659,17 +659,16 @@ The module hooks can be useful for running the commands from a
 cloned git repository without requiring installation (e.g. during development).</p>
 <section id="analysis-commands">
 <span id="sec-cli-dinf"></span><h2>Analysis commands<a class="headerlink" href="#analysis-commands" title="Permalink to this headline">#</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [-V] {check,train,predict,abc-gan,mcmc-gan,pg-gan} ...
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [-V] {check,train,predict,smc,mcmc-gan,pg-gan} ...
 
 Discriminator-based inference of population parameters.
 
 positional arguments:
-  {check,train,predict,abc-gan,mcmc-gan,pg-gan}
+  {check,train,predict,smc,mcmc-gan,pg-gan}
     check               Basic dinf_model health checks.
     train               Train a discriminator.
     predict             Make predictions using a trained discriminator.
-    abc-gan             Adversarial Abstract Bayesian Computation / Sequential
-                        Monte Carlo.
+    smc                 Adversarial Sequential Monte Carlo.
     mcmc-gan            Run the MCMC GAN.
     pg-gan              Run PG-GAN style simulated annealing.
 
@@ -818,16 +817,16 @@ predict arguments:
 </pre></div>
 </div>
 </section>
-<section id="dinf-abc-gan">
-<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">abc-gan</span></code><a class="headerlink" href="#dinf-abc-gan" title="Permalink to this headline">#</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf abc-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
-                    [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
-                    [--top N] [-P PROPOSAL_REPLICATES] [-i ITERATIONS]
-                    [-o OUTPUT_FOLDER] -m model.py
+<section id="dinf-smc">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">smc</span></code><a class="headerlink" href="#dinf-smc" title="Permalink to this headline">#</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf smc [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+                [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
+                [--top N] [-P PROPOSAL_REPLICATES] [-i ITERATIONS]
+                [-o OUTPUT_FOLDER] -m model.py
 
-Adversarial Abstract Bayesian Computation / Sequential Monte Carlo.
+Adversarial Sequential Monte Carlo.
 
-Conceptually, the GAN takes the following steps for iteration j:
+The following steps are taken for iteration j:
 
   - sample training and proposal datasets from the prior[j] distribution,
   - train the discriminator,
@@ -838,9 +837,9 @@ Conceptually, the GAN takes the following steps for iteration j:
 In the first iteration, the parameter values given to the generator
 to produce the train/proposal datasets are drawn from the parameters&#39;
 prior distribution. In subsequent iterations, the parameter values
-are drawn from a posterior ABC sample. The posterior is obtained by
-rejection sampling the proposal distribution and weighting the posterior
-by the discriminator predictions, followed by gaussian smoothing.
+are drawn from a posterior sample. The posterior is obtained as a
+weighted KDE of the proposal distribution where the weights are given
+by the discriminator predictions.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -879,12 +878,12 @@ training arguments:
                         Number of full passes over the training dataset when
                         training the discriminator. (default: 1)
 
-ABC arguments:
+SMC arguments:
   --top N               In each iteration, accept only the N top proposals,
                         ranked by probability. (default: None)
   -P PROPOSAL_REPLICATES, --proposal-replicates PROPOSAL_REPLICATES
-                        Number of replicates for ABC proposals. (default:
-                        1000)
+                        Number of replicates for Monte Carlo proposals.
+                        (default: 1000)
 
 GAN arguments:
   -i ITERATIONS, --iterations ITERATIONS
@@ -1337,7 +1336,7 @@ optional arguments:
   
       &copy; Copyright 2021-2022.<br/>
     <div class="extra_footer">
-      dinf 0.3.1.dev127+g0e84660
+      dinf 0.3.1.dev130+g044ca02
     </div>
 </p>
         </footer>
