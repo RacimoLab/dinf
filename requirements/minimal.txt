@@ -10,5 +10,5 @@ demes==0.2.2
 demesdraw==0.3.1
 matplotlib==3.6.2
 multiprocess==0.70.14
-adjustText==0.7.3
+adjustText==0.8
 scipy==1.9.3
