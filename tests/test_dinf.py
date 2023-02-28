@@ -39,10 +39,10 @@ def check_npz(
 
 @pytest.mark.parametrize("top_n", [None, 2])
 @pytest.mark.usefixtures("tmp_path")
-def test_abc_gan(tmp_path, top_n):
+def test_smc(tmp_path, top_n):
     dinf_model = get_dinf_model()
     output_folder = tmp_path / "work_dir"
-    dinf.dinf.abc_gan(
+    dinf.dinf.smc(
         dinf_model=dinf_model,
         iterations=2,
         training_replicates=4,
@@ -58,7 +58,7 @@ def test_abc_gan(tmp_path, top_n):
     for i in range(2):
         check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            output_folder / f"{i}" / "abc.npz",
+            output_folder / f"{i}" / "smc.npz",
             chains=1,
             draws=3,
             parameters=dinf_model.parameters,
@@ -68,7 +68,7 @@ def test_abc_gan(tmp_path, top_n):
     saved_cwd = pathlib.Path.cwd()
     os.chdir(output_folder)
     try:
-        dinf.dinf.abc_gan(
+        dinf.dinf.smc(
             dinf_model=dinf_model,
             iterations=1,
             training_replicates=4,
@@ -84,14 +84,14 @@ def test_abc_gan(tmp_path, top_n):
     for i in range(3):
         check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            output_folder / f"{i}" / "abc.npz",
+            output_folder / f"{i}" / "smc.npz",
             chains=1,
             draws=3,
             parameters=dinf_model.parameters,
         )
 
     with pytest.raises(ValueError, match="top_n"):
-        dinf.dinf.abc_gan(
+        dinf.dinf.smc(
             dinf_model=dinf_model,
             iterations=2,
             training_replicates=4,
@@ -107,11 +107,11 @@ def test_abc_gan(tmp_path, top_n):
     backup = output_folder / "bak"
     for file in [
         output_folder / f"{i}" / "discriminator.nn",
-        output_folder / f"{i}" / "abc.npz",
+        output_folder / f"{i}" / "smc.npz",
     ]:
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
-            dinf.dinf.abc_gan(
+            dinf.dinf.smc(
                 dinf_model=dinf_model,
                 iterations=2,
                 training_replicates=4,

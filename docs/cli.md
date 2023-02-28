@@ -35,9 +35,9 @@ cloned git repository without requiring installation (e.g. during development).
 ```{program-output} python -m dinf predict -h
 ```
 
-### `dinf abc-gan`
+### `dinf smc`
 
-```{program-output} python -m dinf abc-gan -h
+```{program-output} python -m dinf smc -h
 ```
 
 ### `dinf mcmc-gan`

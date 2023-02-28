@@ -192,11 +192,11 @@ class _DinfSubCommand(_SubCommand):
         )
 
 
-class _AbcGan(_DinfSubCommand):
+class _Smc(_DinfSubCommand):
     """
-    Adversarial Abstract Bayesian Computation / Sequential Monte Carlo.
+    Adversarial Sequential Monte Carlo.
 
-    Conceptually, the GAN takes the following steps for iteration j:
+    The following steps are taken for iteration j:
 
       - sample training and proposal datasets from the prior[j] distribution,
       - train the discriminator,
@@ -207,17 +207,17 @@ class _AbcGan(_DinfSubCommand):
     In the first iteration, the parameter values given to the generator
     to produce the train/proposal datasets are drawn from the parameters'
     prior distribution. In subsequent iterations, the parameter values
-    are drawn from a posterior ABC sample. The posterior is obtained by
-    rejection sampling the proposal distribution and weighting the posterior
-    by the discriminator predictions, followed by gaussian smoothing.
+    are drawn from a posterior sample. The posterior is obtained as a
+    weighted KDE of the proposal distribution where the weights are given
+    by the discriminator predictions.
     """
 
     def __init__(self, subparsers):
-        super().__init__(subparsers, "abc-gan")
+        super().__init__(subparsers, "smc")
         self.add_common_parser_group()
         self.add_train_parser_group()
 
-        group = self.parser.add_argument_group("ABC arguments")
+        group = self.parser.add_argument_group("SMC arguments")
         group.add_argument(
             "--top",
             metavar="N",
@@ -232,7 +232,7 @@ class _AbcGan(_DinfSubCommand):
             "--proposal-replicates",
             type=int,
             default=1000,
-            help="Number of replicates for ABC proposals.",
+            help="Number of replicates for Monte Carlo proposals.",
         )
 
         self.add_gan_parser_group()
@@ -339,7 +339,7 @@ class _AbcGan(_DinfSubCommand):
             callbacks = {}
 
         with progress:
-            dinf.dinf.abc_gan(
+            dinf.dinf.smc(
                 dinf_model=dinf_model,
                 iterations=args.iterations,
                 training_replicates=args.training_replicates,
@@ -829,7 +829,7 @@ def main(args_list=None):
     _Check(subparsers)
     _Train(subparsers)
     _Predict(subparsers)
-    _AbcGan(subparsers)
+    _Smc(subparsers)
     _McmcGan(subparsers)
     _PgGan(subparsers)
 

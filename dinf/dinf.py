@@ -104,6 +104,7 @@ def _get_dataset_parallel(
     pool: _SupportsImap,
     callbacks: dict | None = None,
     out=None,
+    cb_j=0,
 ):
     """
     Get features from a generator or target function.
@@ -131,9 +132,6 @@ def _get_dataset_parallel(
         result = jax.tree_util.tree_leaves(out)
         treedef = jax.tree_util.tree_structure(out)
 
-    if (cb := callbacks.get("feature")) is not None:
-        cb(0)
-
     for j, M in enumerate(pool.imap(func, args)):
         if result is None:
             treedef = jax.tree_util.tree_structure(M)
@@ -144,7 +142,7 @@ def _get_dataset_parallel(
             res[j] = m
 
         if (cb := callbacks.get("feature")) is not None:
-            cb(j + 1)
+            cb(cb_j + j + 1)
 
     if out is None:
         assert treedef is not None
@@ -161,6 +159,7 @@ def _get_generator_dataset(
     ss: np.random.SeedSequence,
     callbacks: dict | None = None,
     out=None,
+    cb_j=0,
 ):
     """
     Get features from the generator function.
@@ -186,6 +185,7 @@ def _get_generator_dataset(
         pool=pool,
         callbacks=callbacks,
         out=out,
+        cb_j=cb_j,
     )
     return data
 
@@ -316,6 +316,7 @@ def _get_combined_dataset(
             ss=ss_generator2,
             callbacks=dict(feature=callbacks.get("generator/feature")),
             out=jax.tree_util.tree_map(lambda a: a[n:num_replicates], x),
+            cb_j=n,
         )
 
     _get_target_dataset(
@@ -1000,7 +1001,7 @@ def mcmc_gan(
                 cb_iter(len(store))
 
 
-def abc_gan(
+def smc(
     *,
     dinf_model: DinfModel,
     iterations: int,
@@ -1015,9 +1016,9 @@ def abc_gan(
     callbacks: dict | None = None,
 ):
     """
-    Adversarial Abstract Bayesian Computation.
+    Adversarial Sequential Monte Carlo.
 
-    Conceptually, the GAN takes the following steps for iteration j:
+    The following steps are taken for iteration j:
 
       - sample training and proposal datasets from the prior[j] distribution,
       - train the discriminator,
@@ -1028,9 +1029,9 @@ def abc_gan(
     In the first iteration, the parameter values given to the generator
     to produce the train/proposal datasets are drawn from the parameters'
     prior distribution. In subsequent iterations, the parameter values
-    are drawn from a posterior ABC sample. The posterior is obtained by
-    rejection sampling the proposal distribution and weighting the posterior
-    by the discriminator predictions, followed by gaussian smoothing.
+    are drawn from a posterior sample. The posterior is obtained as a
+    weighted KDE of the proposal distribution where the weights are given
+    by the discriminator predictions.
 
     :param dinf_model:
         DinfModel object that describes the dinf model.
@@ -1044,7 +1045,7 @@ def abc_gan(
         each training epoch. This dataset is constructed once before the
         GAN iterates, and is reused in each iteration.
     :param proposal_replicates:
-        Number of ABC proposals in each iteration.
+        Number of Monte Carlo proposals in each iteration.
     :param epochs:
         Number of full passes over the training dataset when training
         the discriminator.
@@ -1089,10 +1090,10 @@ def abc_gan(
     if output_folder is None:
         output_folder = "."
     store = Store(output_folder, create=True)
-    store.assert_complete(["discriminator.nn", "abc.npz"])
+    store.assert_complete(["discriminator.nn", "smc.npz"])
     resume = len(store) > 0
 
-    ss = np.random.SeedSequence(seed, spawn_key=spawn_key("abc-gan"))
+    ss = np.random.SeedSequence(seed, spawn_key=spawn_key("smc"))
     ss_loop, ss_thetas, ss_test = ss.spawn(3)
     rng_thetas = np.random.default_rng(ss_thetas)
 
@@ -1103,7 +1104,7 @@ def abc_gan(
             store[-1] / "discriminator.nn", network=dinf_model.discriminator_network
         )
         thetas, y = _load_results_unstructured(
-            store[-1] / "abc.npz", parameters=parameters
+            store[-1] / "smc.npz", parameters=parameters
         )
         assert len(thetas.shape) == 2
         if top_n is not None:
@@ -1206,7 +1207,7 @@ def abc_gan(
                 callbacks={"batch": callbacks.get("predict/batch")},
             )
             save_results(
-                store[-1] / "abc.npz",
+                store[-1] / "smc.npz",
                 probs=y,
                 thetas=proposal_thetas,
                 parameters=parameters,

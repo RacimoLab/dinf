@@ -36,7 +36,7 @@ class TestTopLevel:
             dinf.cli.main(["-h"])
         assert cap1.ret == 0
         assert "mcmc-gan" in cap1.out
-        assert "abc-gan" in cap1.out
+        assert "smc" in cap1.out
         assert "pg-gan" in cap1.out
         assert "train" in cap1.out
         assert "predict" in cap1.out
@@ -92,18 +92,18 @@ class TestCheck(HelpMixin):
         assert not cap.out
 
 
-class TestAbcGan(HelpMixin):
+class TestSmc(HelpMixin):
     main = dinf.cli.main
-    subcommand = "abc-gan"
+    subcommand = "smc"
 
     @pytest.mark.usefixtures("tmp_path")
-    def test_abc_gan_example(self, tmp_path):
+    def test_smc_example(self, tmp_path):
         output_folder = tmp_path / "work_dir"
         ex = "examples/bottleneck/model.py"
         with capture() as cap:
             dinf.cli.main(
                 f"""
-                abc-gan
+                {self.subcommand}
                     --seed 1
                     --parallelism 2
                     --iterations 2
@@ -122,7 +122,7 @@ class TestAbcGan(HelpMixin):
         for i in range(2):
             check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
             check_npz(
-                output_folder / f"{i}" / "abc.npz",
+                output_folder / f"{i}" / "smc.npz",
                 chains=1,
                 draws=4,
                 parameters=dinf_model.parameters,
@@ -140,7 +140,7 @@ class TestMcmcGan(HelpMixin):
         with capture() as cap:
             dinf.cli.main(
                 f"""
-                mcmc-gan
+                {self.subcommand}
                     --seed 1
                     --parallelism 2
                     --iterations 2
@@ -180,7 +180,7 @@ class TestPgGan(HelpMixin):
         with capture() as cap:
             dinf.cli.main(
                 f"""
-                pg-gan
+                {self.subcommand}
                     --seed 1
                     --parallelism 2
                     --iterations 2
@@ -219,7 +219,7 @@ class TestTrain(HelpMixin):
         with capture() as cap:
             dinf.cli.main(
                 f"""
-                train
+                {self.subcommand}
                     --seed 1
                     --parallelism 2
                     --training-replicates 10
@@ -266,7 +266,7 @@ class TestPredict(HelpMixin):
         with capture() as cap:
             dinf.cli.main(
                 f"""
-                predict
+                {self.subcommand}
                     --seed 1
                     --parallelism 2
                     --replicates 10

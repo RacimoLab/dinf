@@ -52,13 +52,13 @@ def data_file(tmp_path_factory, discriminator_file):
 
 @pytest.fixture(scope="session")
 @pytest.mark.usefixtures("tmp_path_factory")
-def abc_gan_outdir(tmp_path_factory):
+def smc_outdir(tmp_path_factory):
     output_folder = tmp_path_factory.mktemp("out")
     ex = "examples/bottleneck/model.py"
     with capture() as cap:
         dinf.cli.main(
             f"""
-            abc-gan
+            smc
                 --seed 1
                 --parallelism 2
                 --training-replicates 10
