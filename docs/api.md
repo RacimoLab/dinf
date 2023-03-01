@@ -46,7 +46,7 @@
 ```{eval-rst}
 .. autosummary::
     predict
-    abc_gan
+    smc
     mcmc_gan
     pg_gan
 ```
@@ -167,7 +167,7 @@
 
 ```{eval-rst}
 .. autofunction:: dinf.predict
-.. autofunction:: dinf.abc_gan
+.. autofunction:: dinf.smc
 .. autofunction:: dinf.mcmc_gan
 .. autofunction:: dinf.pg_gan
 ```
