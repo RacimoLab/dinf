@@ -186,7 +186,7 @@ class TestHaplotypeMatrix:
         ts = do_sim(
             num_individuals=num_individuals, ploidy=ploidy, sequence_length=100_000
         )
-        thresholds = [0, 0.01, 0.05, 0.1, 1]
+        thresholds = np.linspace(0, 1, 10)
         H_list = []
         P_list = []
         for maf_thresh in thresholds:
@@ -216,7 +216,7 @@ class TestHaplotypeMatrix:
             P = M[..., 1]
             # The first inter-SNP distance should always be 0.
             assert np.all(P[:, 0] == 0)
-            if maf_thresh < 1:
+            if maf_thresh < 0.4:
                 # Pretty unlikely to have all zeros---we can safely assume this
                 # would constitute a bug.
                 assert not np.all(P[0] == 0)
@@ -227,7 +227,7 @@ class TestHaplotypeMatrix:
             H_list.append(H)
             P_list.append(P[0])  # position array for first haplotype
 
-        non_pad = [np.sum(np.nonzero(P)[0]) for P in P_list]
+        non_pad = [np.count_nonzero(P) for P in P_list]
         assert non_pad[0] > 0
         assert non_pad[-1] == 0
         # We should get fewer and fewer non-pad positions for increasing maf_thresh.
