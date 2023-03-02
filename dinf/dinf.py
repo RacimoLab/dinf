@@ -1216,7 +1216,8 @@ def smc(
             # Entropy relative to uniformity.
             # See West 1993, https://doi.org/10.1111/j.2517-6161.1993.tb01911.x
             w = y / np.sum(y)
-            entropy = -np.sum(w * np.log(w)) / np.log(len(w))
+            log_w = np.log(w, out=np.zeros_like(w), where=(w != 0))
+            entropy = -np.sum(w * log_w) / np.log(len(w))
             logger.info("Entropy relative to uniformity: %s", entropy)
 
             # Get the posterior sample for the next iteration.
