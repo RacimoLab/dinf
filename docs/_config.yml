@@ -3,7 +3,7 @@
 
 title: Dinf
 author: Graham Gower
-copyright: "2021-2022"
+copyright: "2021-2023"
 only_build_toc_files: true
 
 execute:
@@ -37,22 +37,42 @@ sphinx:
 
   local_extensions:
     # Add version string to the navbar and footer.
-    inject_version: _ext
+    # Works with sphinx-book-theme
+    #inject_version: _ext
     # Add short aliases for internal namespaces in external packages.
     intersphinx_aliases: _ext
 
   config:
+    html_show_sphinx: false
+    # https://piccolo-theme.readthedocs.io/
+    html_theme: "piccolo_theme"
+    # some custom css to fix piccolo/notebook in dark modes
+    html_static_path: ["_static"]
+    html_css_files: ["custom.css"]
+
+    #html_sidebars:
+    #  "**": ["globaltoc.html", "localtoc.html", "searchbox.html"]
+
     # Jupyter-book also has a "html" top-level config property that can be
     # used to set *some* sphinx config variables, but not all.
     # Some documented variables will have no effect unless used inside
     # sphinx.config.html_theme_options, so we just put everything here.
     html_theme_options:
-        repository_url: https://github.com/RacimoLab/dinf
-        use_fullscreen_button: true
-        use_issues_button: true
-        use_repository_button: true
-        use_edit_page_button: false
-        use_download_button: false
+        globaltoc_collapse: false
+        globaltoc_maxdepth: -1
+        globaltoc_includehidden: true
+
+        ## sphinx-book-theme options
+        #repository_url: https://github.com/RacimoLab/dinf
+        #use_fullscreen_button: true
+        #use_issues_button: true
+        #use_repository_button: true
+        #use_edit_page_button: false
+        #use_download_button: false
+
+        ## piccolo_theme options
+        #dark_mode_code_blocks: false
+        source_url: https://github.com/RacimoLab/dinf
 
     autodoc_typehints: description
     autodoc_type_aliases:
