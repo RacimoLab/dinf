@@ -88,7 +88,7 @@ import matplotlib.pyplot as plt
 def plot_feature(M, ax, channel=0, cb_label="Minor alleles"):
     """Plot a feature matrix."""
     if channel == 0:
-        cmap = matplotlib.cm.get_cmap("viridis", int(1 + np.max(M)))
+        cmap = plt.get_cmap("viridis", int(1 + np.max(M)))
     else:
         cmap = "plasma"
     im = ax.imshow(
