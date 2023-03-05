@@ -9,7 +9,7 @@ parts:
   chapters:
   - file: guide/creating_a_model
   - file: guide/testing_a_model
-  - file: guide/abc
+  - file: guide/smc
 - caption: Topic guides
   chapters:
   - file: guide/accuracy
@@ -17,9 +17,6 @@ parts:
   - file: guide/performance
   - file: guide/multiple_demes
   - file: guide/empirical_data
-  - file: guide/abc-gan
-  - file: guide/mcmc-gan
-  - file: guide/pg-gan
 - caption: Reference
   chapters:
   - file: api
