@@ -431,4 +431,4 @@ class TestPlotGan(HelpMixin):
             with capture() as cap:
                 dinf.plot.main(f"gan {smc_outdir}".split())
         assert cap.ret == 0
-        assert mocked_plt_show.call_count == 4  # metrics, _Pr, N0, N1
+        assert mocked_plt_show.call_count == 5  # metrics, entropy, _Pr, N0, N1

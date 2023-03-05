@@ -479,6 +479,42 @@ def hist(
     return ax.figure, ax
 
 
+def _relative_entropy(w: np.ndarray) -> float:
+    """
+    Entropy relative to uniformity.
+    See West 1993, https://doi.org/10.1111/j.2517-6161.1993.tb01911.x
+    """
+    w = w / np.sum(w)
+    log_w = np.log(w, out=np.zeros_like(w), where=(w != 0))
+    return -np.sum(w * log_w) / np.log(len(w))
+
+
+def entropy(
+    ws: list[np.ndarray],
+    /,
+    *,
+    ax: matplotlib.axes.Axes | None = None,
+):
+    """
+    Line plot of relative entropy over successive iterations.
+
+    :param ws:
+        Sequence of proposal weights from each iteration.
+    :param ax:
+        Axes onto which the plot will be drawn.
+        If None, an axes will be created with :func:`matplotlib.pyplot.subplots`.
+    :rtype: tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+    :return:
+        A (figure, axes) tuple.
+    """
+    if ax is None:
+        fig, ax = plt.subplots()
+    Hs = [_relative_entropy(w) for w in ws]
+    ax.plot(Hs)
+    ax.set_ylim([min(ax.get_ylim()[0], 0.5), 1])
+    return ax.figure, ax
+
+
 class _DinfPlotSubCommand(_SubCommand):
     """
     Base class for `dinf-plot` subcommands.
@@ -1119,7 +1155,6 @@ class _Gan(_DinfPlotSubCommand):
         )
         matplotlib.rcParams["axes.prop_cycle"] = saved_prop_cycle
 
-        axs["test_loss"].get_legend().remove()
         fig.colorbar(
             matplotlib.cm.ScalarMappable(
                 norm=matplotlib.colors.Normalize(vmin=0, vmax=len(discriminators) - 1),
@@ -1133,6 +1168,14 @@ class _Gan(_DinfPlotSubCommand):
 
         with _MultiPage(args.output_file, 1 + len(x_params)) as pages:
             pages.savefig(fig, hint="metrics")
+            plt.close(fig)
+
+            prs = [data["_Pr"] for data in datasets]
+            fig, ax = entropy(prs)
+            ax.set_ylabel("Entropy")
+            ax.set_xlabel("Iteration")
+            ax.set_title("Entropy relative to uniformity")
+            pages.savefig(fig, hint="entropy")
             plt.close(fig)
 
             for x_param in x_params:
