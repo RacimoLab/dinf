@@ -77,5 +77,6 @@ jobs:
       - name: upload coverage report to codecov
         uses: codecov/codecov-action@v3
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
           env_vars: OS,PYTHON
