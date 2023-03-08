@@ -79,3 +79,6 @@ jobs:
         with:
           fail_ci_if_error: true
           env_vars: OS,PYTHON
+          # Use upload token to avoid upload failures.
+          # https://github.com/codecov/codecov-action/issues/837
+          token: d515a3c4-c5cd-4d0f-8bb1-0ebca0450c5a
