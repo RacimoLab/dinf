@@ -291,6 +291,9 @@ def metrics(
     axs["train_accuracy"].set_xlabel("epoch")
     axs["test_accuracy"].set_xlabel("epoch")
 
+    for ax in axs.values():
+        ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+
     if len(metrics_collection) > 1:
         handles, labels = axs["train_loss"].get_legend_handles_labels()
         # Put legend to the right of the test loss.
@@ -343,7 +346,10 @@ def hist2d(
     """
     assert x.shape == y.shape
     if ax is None:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(
+            figsize=plt.figaspect(9 / 16),
+            constrained_layout=True,
+        )
     for sp in ("top", "right", "bottom", "left"):
         ax.spines[sp].set_visible(False)
 
@@ -417,7 +423,10 @@ def hist(
         A (figure, axes) tuple.
     """
     if ax is None:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(
+            figsize=plt.figaspect(9 / 16),
+            constrained_layout=True,
+        )
 
     if hist_kw is None:
         hist_kw = {}
@@ -508,10 +517,14 @@ def entropy(
         A (figure, axes) tuple.
     """
     if ax is None:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(
+            figsize=plt.figaspect(9 / 16),
+            constrained_layout=True,
+        )
     Hs = [_relative_entropy(w) for w in ws]
-    ax.plot(Hs)
+    ax.plot(range(1, len(Hs) + 1), Hs)
     ax.set_ylim([min(ax.get_ylim()[0], 0.5), 1])
+    ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     return ax.figure, ax
 
 
@@ -1189,6 +1202,7 @@ class _Gan(_DinfPlotSubCommand):
                 )
                 ax.set_ylabel(x_param)
                 ax.set_xlabel("Iteration")
+                ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
                 if parameters is not None and x_param != "_Pr":
                     truth = parameters[x_param].truth
