@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-    <title>3. An ABC analysis &#8212; Dinf</title>
+    <title>3. Inferring parameters &#8212; Dinf</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../_static/basic_mod.css?v=0.7.0-1" />
     <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css" />
@@ -37,8 +37,6 @@ const thebe_selector_input = "pre"
 const thebe_selector_output = ".output, .cell_output"
 </script>
     <script async="async" src="../_static/sphinx-thebe.js"></script>
-    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <script src="../_static/js/petite-vue.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -162,7 +160,7 @@ const thebe_selector_output = ".output, .cell_output"
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="creating_a_model.html">1. Creating a Dinf model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="testing_a_model.html">2. Testing a Dinf model</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">3. An ABC analysis</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">3. Inferring parameters</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Topic guides</span></p>
 <ul>
@@ -171,9 +169,6 @@ const thebe_selector_output = ".output, .cell_output"
 <li class="toctree-l1"><a class="reference internal" href="performance.html">Performance characteristics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multiple_demes.html">Models with multiple demes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="empirical_data.html">Empirical data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="abc-gan.html">ABC-GAN</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mcmc-gan.html">MCMC-GAN</a></li>
-<li class="toctree-l1"><a class="reference internal" href="pg-gan.html">PG-GAN (simulated annealing)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Reference</span></p>
 <ul>
@@ -195,291 +190,198 @@ const thebe_selector_output = ".output, .cell_output"
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <section class="tex2jax_ignore mathjax_ignore" id="an-abc-analysis">
-<span id="sec-guide-abc"></span><h1><span class="section-number">3. </span>An ABC analysis<a class="headerlink" href="#an-abc-analysis" title="Permalink to this heading">¶</a></h1>
-<p>This page shows how to do an Abstract Bayesian Computation (ABC) analysis,
-where the discriminator output is used as a measure of similarity
-to the target dataset.</p>
+  <section class="tex2jax_ignore mathjax_ignore" id="inferring-parameters">
+<span id="sec-guide-smc"></span><h1><span class="section-number">3. </span>Inferring parameters<a class="headerlink" href="#inferring-parameters" title="Permalink to this heading">¶</a></h1>
+<p>This page shows how to infer parameters with Sequential Monte Carlo (SMC).</p>
 <ul class="simple">
 <li><p>We’ll continue to use the two-parameter
 bottleneck model from the <a class="reference internal" href="creating_a_model.html#sec-guide-creating-a-dinf-model"><span class="std std-ref">Creating a Dinf model</span></a> page.</p></li>
-<li><p>Dinf saves the discriminator predictions as a <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.save.html#numpy.save" title="(in NumPy v1.24)"><span class="xref myst">numpy <code class="docutils literal notranslate"><span class="pre">.npz</span></code></span></a>
-file, which we’ll load back into Python for exploratory analysis.</p></li>
-<li><p>We’ll also plot the results with the <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> command.</p></li>
+<li><p>We’ll plot the results with the <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> command.</p></li>
 </ul>
-<p>The results below were obtained using 80 Xeon 6248 CPU cores for simulations,
-and a Tesla T4 GPU for training and applying the neural network.</p>
-<section id="training-the-discriminator">
-<h2><span class="section-number">3.1. </span>Training the discriminator<a class="headerlink" href="#training-the-discriminator" title="Permalink to this heading">¶</a></h2>
-<p>Using the <code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">train</span></code> subcommand, we’ll train the
-discriminator on 1 million training replicates, with 20,000 test replicates.
-This will train the discriminator on 500,000
-samples from the generator (with parameter values sampled from the prior
-distribution) and 500,000 samples from the target dataset
-(using the <code class="docutils literal notranslate"><span class="pre">truth</span></code> parameter values, as this is a simulation-only model).</p>
+<p>The results below were obtained in under 10 minutes using an 8 core laptop without a GPU.</p>
+<section id="smc">
+<h2><span class="section-number">3.1. </span>SMC<a class="headerlink" href="#smc" title="Permalink to this heading">¶</a></h2>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">smc</span></code> subcommand, we’ll do 20 iterations of Monte Carlo simulations,
+with 1000 training replicates and 1000 proposal replicates in each iteration.
+In each iteration this will</p>
+<ul class="simple">
+<li><p>train the discriminator on 500 samples from the generator
+(with parameter values sampled from the sampling
+distribution) and 500 samples from the target dataset
+(using the <code class="docutils literal notranslate"><span class="pre">truth</span></code> parameter values, as this is a simulation-only model),</p></li>
+<li><p>sample 1000 proposals from the generator (with parameter values taken from
+the sampling distribution),</p></li>
+<li><p>apply the discriminator on the proposals to obtain likelihood values,</p></li>
+<li><p>construct a posterior distribution from the proposals using a weighted
+kernel density estimate, where the weights are given by the likelihoods,</p></li>
+<li><p>set the sampling distribution for the next iteration to the posterior
+that was just constructed.</p></li>
+</ul>
+<p>We’ll also evaluate the discriminator on 1000 test replicates
+(500 from each of the prior distribution and the target dataset).
+This test dataset is constructed only once, not in each iteration like
+the training or proposal datasets.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
-mkdir -p out/abc
-rm -f out/abc/bottleneck.nn
-time dinf train \
-    --epochs 20 \
-    --training-replicates 1000000 \
-    --test-replicates 20000 \
+mkdir -p out/bottleneck-smc
+rm -fr out/bottleneck-smc
+time dinf smc \
+    --seed 1234 \
+    --epochs 5 \
+    --iterations 20 \
+    --training-replicates 1000 \
+    --test-replicates 1000 \
+    --proposal-replicates 1000 \
     --model ../../examples/bottleneck/model.py \
-    --discriminator out/abc/bottleneck.nn
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Generator/train ━━━━━━━━━━━━ 500000/500000   0:00:00                            
-Target/train    ━━━━━━━━━━━━ 500000/500000   0:00:00                            
-Generator/test  ━━━━━━━━━━━━ 10000/10000     0:00:00                            
-Target/test     ━━━━━━━━━━━━ 10000/10000     0:00:00                            
-Epoch           ━━━━━━━━━━━━ 20/20           0:00:00                            
- Train          ━━━━━━━━━━━━ 1000000/1000000 0:00:00 loss 0.0133 accuracy 0.9961
- Test           ━━━━━━━━━━━━ 20000/20000     0:00:00 loss 0.0214 accuracy 0.9936
-</pre></div>
-</div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>real	28m46.978s
-user	1131m55.561s
-sys	72m34.477s
+    --output-folder out/bottleneck-smc
 </pre></div>
 </div>
 </div>
 </div>
-<p>The output <code class="docutils literal notranslate"><span class="pre">.nn</span></code> file is the trained discriminator, which contains the trained
-network’s weights and some additional metadata such as the loss and accuracy.</p>
+</section>
+<section id="plotting-results">
+<h2><span class="section-number">3.2. </span>Plotting results<a class="headerlink" href="#plotting-results" title="Permalink to this heading">¶</a></h2>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
-dinf-plot metrics \
-    --output-file /tmp/metrics.svg \
-    out/abc/bottleneck.nn
+dinf-plot gan \
+    --model ../../examples/bottleneck/model.py \
+    --output-file /tmp/bottleneck-smc.svg \
+    out/bottleneck-smc
 </pre></div>
 </div>
 </div>
 </div>
 <div class="cell tag_remove-input docutils container">
 <div class="cell_output docutils container">
-<img alt="../_images/3df4fe00e473442d2534f27e778e9ac0b1fd6936194fa066ee83bf9e25692a26.svg" src="../_images/3df4fe00e473442d2534f27e778e9ac0b1fd6936194fa066ee83bf9e25692a26.svg" /></div>
+<img alt="../_images/e7018dbea954ab2333e33718ffe696209e57135085a54fb8d8719e2de9bc00ee.svg" src="../_images/e7018dbea954ab2333e33718ffe696209e57135085a54fb8d8719e2de9bc00ee.svg" /></div>
 </div>
-</section>
-<section id="sampling-from-the-prior-and-measuring-similarity">
-<h2><span class="section-number">3.2. </span>Sampling from the prior and measuring similarity<a class="headerlink" href="#sampling-from-the-prior-and-measuring-similarity" title="Permalink to this heading">¶</a></h2>
-<p>Next, we’ll use the <code class="docutils literal notranslate"><span class="pre">predict</span></code> subcommand to obtain discriminator predictions
-for 1 million replicates from the generator (with parameter values sampled
-from the prior).</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
-rm -f out/abc/bottleneck.npz
-time dinf predict \
-    --replicates 1000000 \
-    --model ../../examples/bottleneck/model.py \
-    --discriminator out/abc/bottleneck.nn \
-    --output-file out/abc/bottleneck.npz
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Generator ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1000000/1000000 0:00:00
-Predict   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1000000/1000000 0:00:00
-</pre></div>
-</div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>real	21m42.130s
-user	1581m24.244s
-sys	64m1.751s
-</pre></div>
-</div>
-</div>
-</div>
-<p>The output file is an uncompressed <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.save.html#numpy.save" title="(in NumPy v1.24)"><span class="xref myst">numpy <code class="docutils literal notranslate"><span class="pre">.npz</span></code></span></a> file.
-This file contains the parameter values for each replicate, and the predictions
-made by the discriminator. It can be loaded back into Python using the
-<a class="reference internal" href="../api.html#dinf.load_results" title="dinf.load_results"><span class="xref myst py py-func"><code class="docutils literal notranslate"><span class="pre">dinf.load_results()</span></code></span></a> function.</p>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">dinf</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">SVG</span><span class="p">,</span> <span class="n">display</span>
 
-<span class="n">data</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">load_results</span><span class="p">(</span><span class="s2">&quot;out/abc/bottleneck.npz&quot;</span><span class="p">)</span>
-<span class="c1"># The returned data is a numpy structured array.</span>
-<span class="n">data</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span>
+<span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-smc_entropy.svg&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>array([(6.4720407e-25, 28068.66004508, 13206.24622337),
-       (1.6651894e-12, 20915.40349848,   936.94013519),
-       (2.4685076e-23, 25215.90569126,  4731.54557225),
-       (1.0584644e-24, 29853.60094112, 15835.29214881),
-       (2.4895346e-08, 13594.90440328,  5200.88017331)],
-      dtype=[(&#39;_Pr&#39;, &#39;&lt;f4&#39;), (&#39;N0&#39;, &#39;&lt;f8&#39;), (&#39;N1&#39;, &#39;&lt;f8&#39;)])
-</pre></div>
-</div>
-</div>
+<img alt="../_images/27c1b26278e2b01bc2258fc182d42398a607035d84c1588ab19c87c392cbc3a3.svg" src="../_images/27c1b26278e2b01bc2258fc182d42398a607035d84c1588ab19c87c392cbc3a3.svg" /></div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Columns correspond to the distinct parameters, and the</span>
-<span class="c1"># special column &quot;_Pr&quot; contains the discriminator predictions.</span>
-<span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">SVG</span><span class="p">,</span> <span class="n">display</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-smc__Pr.svg&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(&#39;_Pr&#39;, &#39;N0&#39;, &#39;N1&#39;)
+<img alt="../_images/55e4ce0411d09899e276623ec13aee925abf4c74114306f77c1d0eb7cf4b8a71.svg" src="../_images/55e4ce0411d09899e276623ec13aee925abf4c74114306f77c1d0eb7cf4b8a71.svg" /></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">SVG</span><span class="p">,</span> <span class="n">display</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-smc_N0.svg&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<img alt="../_images/b2961b12df497fd50263e16e4d8cf36b0c1843de03df0f4ee2f3068ec7983f5c.svg" src="../_images/b2961b12df497fd50263e16e4d8cf36b0c1843de03df0f4ee2f3068ec7983f5c.svg" /></div>
 </div>
-<p>The discriminator outputs the probability that
-a given input feature is from the target distribution, so we would like
-the probabilities to be clustered around 0 for parameters that are
-far from the true values and clustered around 1 for parameters that are
-close to the true values. But note that the discriminator output will
-depend on the extent of the parameter space used in training.
-I.e. if the discriminator is trained on a parameter space that is just
-a small neighbourhood around the true parameter values,
-then the discriminator will have a hard time distinguishing the two
-datasets and thus produce few values near 0 or 1.
-On the other hand, the discriminator might actually be too good
-because of <a class="reference internal" href="empirical_data.html#sec-guide-misspecification"><span class="std std-ref">model misspecification</span></a>,
-in which case there will be many values near 0 and few near 1.</p>
-<p>To see how much of our parameter space is being classified as coming
-from the target dataset, lets plot the distribution of probabilities
-(the <code class="docutils literal notranslate"><span class="pre">_Pr</span></code> column) as a histogram. We’ll use <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> with the <code class="docutils literal notranslate"><span class="pre">hist</span></code>
-subcommand.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">SVG</span><span class="p">,</span> <span class="n">display</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-smc_N1.svg&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/330664f9fa3033e9ae7d7d015b8fa685eb639e503802ac8e937719c28e4756f6.svg" src="../_images/330664f9fa3033e9ae7d7d015b8fa685eb639e503802ac8e937719c28e4756f6.svg" /></div>
+</div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
 dinf-plot hist \
-    --x-param _Pr \
-    --output-file /tmp/hist-Pr.svg \
-    out/abc/bottleneck.npz
+    --weighted \
+    --kde \
+    --model ../../examples/bottleneck/model.py \
+    --output-file /tmp/bottleneck-smc_hist.svg \
+    out/bottleneck-smc/19/smc.npz
 </pre></div>
 </div>
 </div>
 </div>
-<div class="cell tag_remove-input docutils container">
-<div class="cell_output docutils container">
-<img alt="../_images/aad80b0cc5e509b27fd8a34f01d70173b2b6bb3c1e3939901986188c833e32fc.svg" src="../_images/aad80b0cc5e509b27fd8a34f01d70173b2b6bb3c1e3939901986188c833e32fc.svg" /></div>
-</div>
-</section>
-<section id="choosing-the-posterior-distribution">
-<h2><span class="section-number">3.3. </span>Choosing the posterior distribution<a class="headerlink" href="#choosing-the-posterior-distribution" title="Permalink to this heading">¶</a></h2>
-<p>For a rejection ABC, two simple ways of choosing the posterior distribution are</p>
-<ul class="simple">
-<li><p>choose the <span class="math notranslate nohighlight">\(n\)</span> samples with the highest discriminator score, or</p></li>
-<li><p>choose samples with a score <span class="math notranslate nohighlight">\(&gt;x\)</span>.</p></li>
-</ul>
-<p>Below, we’ll take the top 1000 samples and look at the median value
-and a 95% interval for this posterior sample.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">dinf</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">SVG</span><span class="p">,</span> <span class="n">display</span>
 
-<span class="n">data</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">load_results</span><span class="p">(</span><span class="s2">&quot;out/abc/bottleneck.npz&quot;</span><span class="p">)</span>
-
-<span class="c1"># Predictions from discriminator.</span>
-<span class="n">probs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]</span>
-<span class="c1"># Get the indices that sort the probabilities in ascending order.</span>
-<span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">]))</span>
-<span class="c1"># Posterior sample for parameters N0 and N1.</span>
-<span class="n">posterior</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">idx</span><span class="p">[:</span><span class="mi">1_000</span><span class="p">]]</span>
-
-<span class="c1"># Print median values and 95% credible intervals.</span>
-<span class="k">for</span> <span class="n">par</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;N0&quot;</span><span class="p">,</span> <span class="s2">&quot;N1&quot;</span><span class="p">):</span>
-    <span class="n">lo</span><span class="p">,</span> <span class="n">median</span><span class="p">,</span> <span class="n">hi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">posterior</span><span class="p">[</span><span class="n">par</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.025</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.975</span><span class="p">])</span>
-    <span class="nb">print</span><span class="p">(</span><span class="n">par</span><span class="p">,</span> <span class="n">median</span><span class="p">,</span> <span class="p">(</span><span class="n">lo</span><span class="p">,</span> <span class="n">hi</span><span class="p">))</span>
+<span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-smc_hist_N0.svg&quot;</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>N0 10255.658265365973 (7228.2277269071365, 14323.751889852982)
-N1 217.44741361044572 (75.72906853160343, 656.5670985337933)
+<img alt="../_images/fdc1421d21caf43281807d62059bd92e5c14c68fac1682efc5087acd23a33d66.svg" src="../_images/fdc1421d21caf43281807d62059bd92e5c14c68fac1682efc5087acd23a33d66.svg" /></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">SVG</span><span class="p">,</span> <span class="n">display</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-smc_hist_N1.svg&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/843b31762d7bba98a7a4772481e4fad4cf04e1fa051fd32d5d54202fecd80442.svg" src="../_images/843b31762d7bba98a7a4772481e4fad4cf04e1fa051fd32d5d54202fecd80442.svg" /></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+dinf-plot hist2d \
+    --weighted \
+    --model ../../examples/bottleneck/model.py \
+    --output-file /tmp/bottleneck-smc_hist2d.svg \
+    out/bottleneck-smc/19/smc.npz
 </pre></div>
 </div>
 </div>
 </div>
-<p>Recall that the <code class="docutils literal notranslate"><span class="pre">truth</span></code> values used in the model were <code class="docutils literal notranslate"><span class="pre">N0=10000</span></code>
-and <code class="docutils literal notranslate"><span class="pre">N1=200</span></code>. The 95% credible intervals contain these values,
-and the median values are close to the <code class="docutils literal notranslate"><span class="pre">truth</span></code>.
-Note that the accuracy of the discriminator could potentially
-be further improved (see <a class="reference internal" href="accuracy.html#sec-guide-accuracy"><span class="std std-ref">Improving discriminator accuracy</span></a>), which would
-presumably lead to narrower confidence intervals and/or median
-values even closer to the truth.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">SVG</span><span class="p">,</span> <span class="n">display</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-smc_hist2d.svg&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/fc2dde1753070b9bb0749e643dd9c56424cca828d355aa3242f8399de78542f8.svg" src="../_images/fc2dde1753070b9bb0749e643dd9c56424cca828d355aa3242f8399de78542f8.svg" /></div>
+</div>
 </section>
 <section id="tabulating-the-results">
-<h2><span class="section-number">3.4. </span>Tabulating the results<a class="headerlink" href="#tabulating-the-results" title="Permalink to this heading">¶</a></h2>
-<p>Manually loading the results and doing the rejection sampling
-is not actually necessary. The <code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span></code> command has a
+<h2><span class="section-number">3.3. </span>Tabulating the results<a class="headerlink" href="#tabulating-the-results" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span></code> command has a
 <code class="docutils literal notranslate"><span class="pre">quantiles</span></code> subcommand that outputs data quantiles.
 The default behaviour is to calculate the 0.025, 0.5, 0.975 quantiles,
-and print them as tab-separated values.
-The data may be filtered to take the top <span class="math notranslate nohighlight">\(n\)</span> samples,
-as we did previously.</p>
+and print them as tab-separated values.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
 dinf-tabulate quantiles \
-    --top 1000 \
-    out/abc/bottleneck.npz
+    --weighted \
+    out/bottleneck-smc/19/smc.npz
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Param	0.025	0.5	0.975
-N0	7228.2277269071365	10255.658265365973	14323.751889852982
-N1	75.72906853160343	217.44741361044572	656.5670985337933
+N0	8271.517849092927	9939.527731193346	11620.19949172832
+N1	82.2339446503897	222.3362344216462	523.3045728042372
 </pre></div>
 </div>
 </div>
-</div>
-</section>
-<section id="plotting-the-results">
-<h2><span class="section-number">3.5. </span>Plotting the results<a class="headerlink" href="#plotting-the-results" title="Permalink to this heading">¶</a></h2>
-<p>For a visual summary of the posterior, we can use <code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code>
-to plot histograms of the data.
-The dark blue stepped line is the histogram,
-the smooth light blue line is a kernel density estimate,
-the red vertical line indicates the truth value,
-and the black bar shows the median (50% marker)
-and 95% credible intervals (2.5% and 97.5% markers).</p>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
-dinf-plot hist \
-    --top 1000 \
-    --kde \
-    --model ../../examples/bottleneck/model.py \
-    --output-file /tmp/hist-abc-top-1000.svg \
-    out/abc/bottleneck.npz
-</pre></div>
-</div>
-</div>
-</div>
-<div class="cell tag_remove-input docutils container">
-<div class="cell_output docutils container">
-<img alt="../_images/2dfbfbe336d1b1515ffb9c21b6008bf5b10e3bf9996dadff13f633c484503045.svg" src="../_images/2dfbfbe336d1b1515ffb9c21b6008bf5b10e3bf9996dadff13f633c484503045.svg" /><img alt="../_images/91ada7be99b7e30a5332e310de84f11b809221a3be6150295e3c503d8dfeacc2.svg" src="../_images/91ada7be99b7e30a5332e310de84f11b809221a3be6150295e3c503d8dfeacc2.svg" /></div>
-</div>
-<p>Finally, we’ll use the <code class="docutils literal notranslate"><span class="pre">hist2d</span></code> subcommand to show both <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> jointly.</p>
-<div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
-dinf-plot hist2d \
-    --top 1000 \
-    --model ../../examples/bottleneck/model.py \
-    --output-file /tmp/hist2d-abc-top-1000.svg  \
-    out/abc/bottleneck.npz
-</pre></div>
-</div>
-</div>
-</div>
-<div class="cell tag_remove-input docutils container">
-<div class="cell_output docutils container">
-<img alt="../_images/f918d8c6698766f7e467403c342789a433a3902795008122e1a8535730e35ef8.svg" src="../_images/f918d8c6698766f7e467403c342789a433a3902795008122e1a8535730e35ef8.svg" /></div>
 </div>
 </section>
 </section>
@@ -517,12 +419,10 @@ dinf-plot hist2d \
             <p><a class="toggle_right_sidebar" href="#"><span class="icon">></span><span>Page contents:<span></a></p>
             <div class="page_toc">
                 <ul>
-<li><a class="reference internal" href="#">3. An ABC analysis</a><ul>
-<li><a class="reference internal" href="#training-the-discriminator">3.1. Training the discriminator</a></li>
-<li><a class="reference internal" href="#sampling-from-the-prior-and-measuring-similarity">3.2. Sampling from the prior and measuring similarity</a></li>
-<li><a class="reference internal" href="#choosing-the-posterior-distribution">3.3. Choosing the posterior distribution</a></li>
-<li><a class="reference internal" href="#tabulating-the-results">3.4. Tabulating the results</a></li>
-<li><a class="reference internal" href="#plotting-the-results">3.5. Plotting the results</a></li>
+<li><a class="reference internal" href="#">3. Inferring parameters</a><ul>
+<li><a class="reference internal" href="#smc">3.1. SMC</a></li>
+<li><a class="reference internal" href="#plotting-results">3.2. Plotting results</a></li>
+<li><a class="reference internal" href="#tabulating-the-results">3.3. Tabulating the results</a></li>
 </ul>
 </li>
 </ul>

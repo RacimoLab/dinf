@@ -160,7 +160,7 @@ const thebe_selector_output = ".output, .cell_output"
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="creating_a_model.html">1. Creating a Dinf model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="testing_a_model.html">2. Testing a Dinf model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="abc.html">3. An ABC analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smc.html">3. Inferring parameters</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Topic guides</span></p>
 <ul class="current">
@@ -169,9 +169,6 @@ const thebe_selector_output = ".output, .cell_output"
 <li class="toctree-l1"><a class="reference internal" href="performance.html">Performance characteristics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="multiple_demes.html">Models with multiple demes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="empirical_data.html">Empirical data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="abc-gan.html">ABC-GAN</a></li>
-<li class="toctree-l1"><a class="reference internal" href="mcmc-gan.html">MCMC-GAN</a></li>
-<li class="toctree-l1"><a class="reference internal" href="pg-gan.html">PG-GAN (simulated annealing)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Reference</span></p>
 <ul>
@@ -278,7 +275,7 @@ we’ve seen previously, and returns a feature matrix.</p>
 <span class="k">def</span> <span class="nf">plot_feature</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">channel</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">cb_label</span><span class="o">=</span><span class="s2">&quot;Minor alleles&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot a feature matrix.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">channel</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">cmap</span> <span class="o">=</span> <span class="n">matplotlib</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s2">&quot;viridis&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">M</span><span class="p">)))</span>
+        <span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s2">&quot;viridis&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">M</span><span class="p">)))</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">cmap</span> <span class="o">=</span> <span class="s2">&quot;plasma&quot;</span>
     <span class="n">im</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span>
@@ -401,11 +398,7 @@ sites relative to the size of each bin.
 </div>
 </details>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/tmp/ipykernel_1919/3282887605.py:12: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
-  cmap = matplotlib.cm.get_cmap(&quot;viridis&quot;, int(1 + np.max(M)))
-</pre></div>
-</div>
-<img alt="../_images/f7850b9480856b36c4747fa32c17b4ffb9e860841040f3c6d60ef9974a8fd961.svg" src="../_images/f7850b9480856b36c4747fa32c17b4ffb9e860841040f3c6d60ef9974a8fd961.svg" /></div>
+<img alt="../_images/405322a739bac47f2517594384e02eb53ff5ce10aecdf2d7af056c3bccf813fe.svg" src="../_images/405322a739bac47f2517594384e02eb53ff5ce10aecdf2d7af056c3bccf813fe.svg" /></div>
 </div>
 </section>
 <section id="sequence-length">
@@ -477,11 +470,7 @@ matrices), this may lead to information loss rather than information gain.</p>
 </div>
 </details>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/tmp/ipykernel_1919/3282887605.py:12: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
-  cmap = matplotlib.cm.get_cmap(&quot;viridis&quot;, int(1 + np.max(M)))
-</pre></div>
-</div>
-<img alt="../_images/2b91a58b0b8fbe29875cb1c474532924dc889249bc9b88daa0d4dc4d7972ad66.svg" src="../_images/2b91a58b0b8fbe29875cb1c474532924dc889249bc9b88daa0d4dc4d7972ad66.svg" /></div>
+<img alt="../_images/3b35132b97a717ec86b0a77891b46489a20a0307e3589432b1bd0615de221c21.svg" src="../_images/3b35132b97a717ec86b0a77891b46489a20a0307e3589432b1bd0615de221c21.svg" /></div>
 </div>
 </section>
 <section id="number-of-loci">
@@ -536,11 +525,7 @@ for a <a class="reference internal" href="../api.html#dinf.HaplotypeMatrix" titl
 </div>
 </details>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/tmp/ipykernel_1919/3282887605.py:12: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
-  cmap = matplotlib.cm.get_cmap(&quot;viridis&quot;, int(1 + np.max(M)))
-</pre></div>
-</div>
-<img alt="../_images/b416edf7128632081743f1286268ad9f64a782819b45470804c9f2a2298edb89.svg" src="../_images/b416edf7128632081743f1286268ad9f64a782819b45470804c9f2a2298edb89.svg" /></div>
+<img alt="../_images/a11442548507227ee62a6364ec062835a8fa92cca2fff650e6b86ce7532240c5.svg" src="../_images/a11442548507227ee62a6364ec062835a8fa92cca2fff650e6b86ce7532240c5.svg" /></div>
 </div>
 </section>
 <section id="multiple-feature-matrices">
@@ -660,11 +645,7 @@ fixed differences between the labelled groups.</p>
 </div>
 </details>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/tmp/ipykernel_1919/3282887605.py:12: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed two minor releases later. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap(obj)`` instead.
-  cmap = matplotlib.cm.get_cmap(&quot;viridis&quot;, int(1 + np.max(M)))
-</pre></div>
-</div>
-<img alt="../_images/17feb4fb840df9e36f37a2996a4cfeddb681511874a4b37633887bc4a0960bdc.svg" src="../_images/17feb4fb840df9e36f37a2996a4cfeddb681511874a4b37633887bc4a0960bdc.svg" /></div>
+<img alt="../_images/b8c05d813f40cd5c0022861282b9fecae19a85f33ccc18edd3124888d6b90891.svg" src="../_images/b8c05d813f40cd5c0022861282b9fecae19a85f33ccc18edd3124888d6b90891.svg" /></div>
 </div>
 </section>
 </section>

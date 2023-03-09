@@ -44,7 +44,7 @@ const thebe_selector_output = ".output, .cell_output"
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="CLI reference" href="cli.html" />
-    <link rel="prev" title="PG-GAN (simulated annealing)" href="guide/pg-gan.html" /> 
+    <link rel="prev" title="Empirical data" href="guide/empirical_data.html" /> 
   </head><body data-dark_mode_code_blocks="true">
 
 <div id="top_nav">
@@ -162,7 +162,7 @@ const thebe_selector_output = ".output, .cell_output"
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="guide/creating_a_model.html">1. Creating a Dinf model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="guide/testing_a_model.html">2. Testing a Dinf model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guide/abc.html">3. An ABC analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guide/smc.html">3. Inferring parameters</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Topic guides</span></p>
 <ul>
@@ -171,9 +171,6 @@ const thebe_selector_output = ".output, .cell_output"
 <li class="toctree-l1"><a class="reference internal" href="guide/performance.html">Performance characteristics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="guide/multiple_demes.html">Models with multiple demes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="guide/empirical_data.html">Empirical data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guide/abc-gan.html">ABC-GAN</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guide/mcmc-gan.html">MCMC-GAN</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guide/pg-gan.html">PG-GAN (simulated annealing)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Reference</span></p>
 <ul class="current">
@@ -2217,6 +2214,27 @@ If None, an axes will be created with <a class="reference external" href="https:
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="dinf.plot.entropy">
+<span class="sig-prename descclassname"><span class="pre">dinf.plot.</span></span><span class="sig-name descname"><span class="pre">entropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ws</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/dinf/plot.html#entropy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#dinf.plot.entropy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Line plot of relative entropy over successive iterations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ws</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.11)"><em>list</em></a><em>[</em><em>np.ndarray</em><em>]</em>) – Sequence of proposal weights from each iteration.</p></li>
+<li><p><strong>ax</strong> (<a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.html#matplotlib.axes.Axes" title="(in Matplotlib v3.7.1)"><em>matplotlib.axes.Axes</em></a><em> | </em><em>None</em>) – Axes onto which the plot will be drawn.
+If None, an axes will be created with <a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.subplots.html#matplotlib.pyplot.subplots" title="(in Matplotlib v3.7.1)"><code class="xref py py-func docutils literal notranslate"><span class="pre">matplotlib.pyplot.subplots()</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.11)">tuple</a>[<a class="reference external" href="https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure" title="(in Matplotlib v3.7.1)">matplotlib.figure.Figure</a>, <a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.html#matplotlib.axes.Axes" title="(in Matplotlib v3.7.1)">matplotlib.axes.Axes</a>]</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A (figure, axes) tuple.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 </section>
 </section>
@@ -2294,8 +2312,8 @@ If None, an axes will be created with <a class="reference external" href="https:
         <div class="button_nav">
             <div class="left">
                 
-                <a href="guide/pg-gan.html">
-                    <span class="icon"><</span><span>PG-GAN (simulated annealing)</span></a>
+                <a href="guide/empirical_data.html">
+                    <span class="icon"><</span><span>Empirical data</span></a>
                 
             </div>
 
