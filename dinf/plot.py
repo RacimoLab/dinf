@@ -291,16 +291,18 @@ def metrics(
     axs["train_accuracy"].set_xlabel("epoch")
     axs["test_accuracy"].set_xlabel("epoch")
 
+    for ax in axs.values():
+        ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
+
     if len(metrics_collection) > 1:
         handles, labels = axs["train_loss"].get_legend_handles_labels()
         # Put legend to the right of the test loss.
-        axs["test_loss"].legend(
+        fig.legend(
             handles,
             labels,
             title=legend_title,
             loc="upper left",
-            borderaxespad=0.0,
-            bbox_to_anchor=(1.05, 1),
+            bbox_to_anchor=(1, 1),
         )
 
     return fig, axs
@@ -344,7 +346,10 @@ def hist2d(
     """
     assert x.shape == y.shape
     if ax is None:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(
+            figsize=plt.figaspect(9 / 16),
+            constrained_layout=True,
+        )
     for sp in ("top", "right", "bottom", "left"):
         ax.spines[sp].set_visible(False)
 
@@ -418,7 +423,10 @@ def hist(
         A (figure, axes) tuple.
     """
     if ax is None:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(
+            figsize=plt.figaspect(9 / 16),
+            constrained_layout=True,
+        )
 
     if hist_kw is None:
         hist_kw = {}
@@ -477,6 +485,46 @@ def hist(
         adjust()
         ax.figure.canvas.mpl_connect("resize_event", adjust)
 
+    return ax.figure, ax
+
+
+def _relative_entropy(w: np.ndarray) -> float:
+    """
+    Entropy relative to uniformity.
+    See West 1993, https://doi.org/10.1111/j.2517-6161.1993.tb01911.x
+    """
+    w = w / np.sum(w)
+    log_w = np.log(w, out=np.zeros_like(w), where=(w != 0))
+    return -np.sum(w * log_w) / np.log(len(w))
+
+
+def entropy(
+    ws: list[np.ndarray],
+    /,
+    *,
+    ax: matplotlib.axes.Axes | None = None,
+):
+    """
+    Line plot of relative entropy over successive iterations.
+
+    :param ws:
+        Sequence of proposal weights from each iteration.
+    :param ax:
+        Axes onto which the plot will be drawn.
+        If None, an axes will be created with :func:`matplotlib.pyplot.subplots`.
+    :rtype: tuple[matplotlib.figure.Figure, matplotlib.axes.Axes]
+    :return:
+        A (figure, axes) tuple.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(
+            figsize=plt.figaspect(9 / 16),
+            constrained_layout=True,
+        )
+    Hs = [_relative_entropy(w) for w in ws]
+    ax.plot(range(1, len(Hs) + 1), Hs)
+    ax.set_ylim([min(ax.get_ylim()[0], 0.5), 1])
+    ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     return ax.figure, ax
 
 
@@ -1120,7 +1168,6 @@ class _Gan(_DinfPlotSubCommand):
         )
         matplotlib.rcParams["axes.prop_cycle"] = saved_prop_cycle
 
-        axs["test_loss"].get_legend().remove()
         fig.colorbar(
             matplotlib.cm.ScalarMappable(
                 norm=matplotlib.colors.Normalize(vmin=0, vmax=len(discriminators) - 1),
@@ -1136,6 +1183,14 @@ class _Gan(_DinfPlotSubCommand):
             pages.savefig(fig, hint="metrics")
             plt.close(fig)
 
+            prs = [data["_Pr"] for data in datasets]
+            fig, ax = entropy(prs)
+            ax.set_ylabel("Entropy")
+            ax.set_xlabel("Iteration")
+            ax.set_title("Entropy relative to uniformity")
+            pages.savefig(fig, hint="entropy")
+            plt.close(fig)
+
             for x_param in x_params:
                 fig, ax = plt.subplots(
                     figsize=plt.figaspect(9 / 16), constrained_layout=True
@@ -1147,6 +1202,7 @@ class _Gan(_DinfPlotSubCommand):
                 )
                 ax.set_ylabel(x_param)
                 ax.set_xlabel("Iteration")
+                ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
                 if parameters is not None and x_param != "_Pr":
                     truth = parameters[x_param].truth
