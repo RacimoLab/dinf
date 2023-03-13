@@ -34,8 +34,8 @@ def get_train_state_class():
 
     # Because we use batch normalisation, the training state needs to also record
     # batch_stats to maintain the running mean and variance.
-    class TrainState(flax.training.train_state.TrainState):
-        batch_stats: Pytree  # type: ignore[annotation-unchecked]
+    class TrainState(flax.training.train_state.TrainState):  # type: ignore[misc]
+        batch_stats: Pytree  # type: ignore[misc,annotation-unchecked]
 
     return TrainState
 
