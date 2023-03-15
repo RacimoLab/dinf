@@ -521,7 +521,7 @@ done
 very little effect on the accuracy of the discriminator.
 This shouldn’t be a big surprise, as Dinf uses an
 exchangeable neural network that summarises information across
-individuals using (by default) the variance function.</p>
+individuals using (by default) the <code class="docutils literal notranslate"><span class="pre">max</span></code> function.</p>
 <p>The bottleneck model uses feature matrices with <code class="docutils literal notranslate"><span class="pre">maf_thresh=0.05</span></code>,
 which excludes low frequency alleles. In empirical datasets,
 genotyping errors can produce false positive detection of rare

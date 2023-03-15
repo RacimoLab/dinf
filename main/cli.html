@@ -198,13 +198,14 @@ provides subcommands for making plots of various things.
 When invoked with the <code class="docutils literal notranslate"><span class="pre">-h</span></code>/<code class="docutils literal notranslate"><span class="pre">--help</span></code> option, subcomands offer a concise
 description and list the available options.
 This help output is reproduced below.</p>
-<p>Once Dinf is installed, the commands can be run by typing <code class="docutils literal notranslate"><span class="pre">dinf</span></code>
-or <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code>. In addition, the commands can be run using
-Python module hooks by typing <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">dinf</span></code> or <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">dinf.plot</span></code>.
+<p>Once Dinf is installed, the commands can be run by typing <code class="docutils literal notranslate"><span class="pre">dinf</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code>, or <code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span></code>. In addition, the commands can be run using
+Python module hooks by typing <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">dinf</span></code>, <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">dinf.plot</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">dinf.tabulate</span></code>.
 The module hooks can be useful for running the commands from a
 cloned git repository without requiring installation (e.g. during development).</p>
-<section id="analysis-commands">
-<span id="sec-cli-dinf"></span><h2>Analysis commands<a class="headerlink" href="#analysis-commands" title="Permalink to this heading">¶</a></h2>
+<section id="analysis-inference">
+<span id="sec-cli-dinf"></span><h2>Analysis/inference<a class="headerlink" href="#analysis-inference" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
   jax.tree_util.register_keypaths(
 usage: dinf [-h] [-V] {check,train,predict,smc,mcmc-gan,pg-gan} ...
@@ -617,8 +618,8 @@ GAN arguments:
 </div>
 </section>
 </section>
-<section id="plotting-commands">
-<span id="sec-cli-dinf-plot"></span><h2>Plotting commands<a class="headerlink" href="#plotting-commands" title="Permalink to this heading">¶</a></h2>
+<section id="plotting-results">
+<span id="sec-cli-dinf-plot"></span><h2>Plotting results<a class="headerlink" href="#plotting-results" title="Permalink to this heading">¶</a></h2>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
   jax.tree_util.register_keypaths(
 usage: dinf.plot [-h] [-V] {demes,features,metrics,hist,hist2d,gan} ...
@@ -720,7 +721,7 @@ optional arguments:
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
   jax.tree_util.register_keypaths(
 usage: dinf.plot hist [-h] [-v | -q] [-o output.pdf] [--top N] [-W] [-c]
-                      [-x X_PARAM] [--resample] [--kde] [-m model.py]
+                      [-x X_PARAM] [--kde] [-m model.py]
                       data.npz [data.npz ...]
 
 Plot marginal posterior densities.
@@ -772,9 +773,6 @@ optional arguments:
                         Name of parameter to plot. The special name &quot;_Pr&quot; is
                         recognised to plot the probabilities obtained from the
                         discriminator. (default: None)
-  --resample            Resample parameter values to obtain a smoother density
-                        estimate. This matches the n-dimensional KDE sampling
-                        used with the ABC-GAN. (default: False)
   --kde                 Also draw a 1-dimensional marginal kernel density
                         estimate. (default: False)
   -m model.py, --model model.py
@@ -852,6 +850,122 @@ optional arguments:
 </div>
 </section>
 </section>
+<section id="tabulating-results">
+<span id="sec-cli-dinf-tabulate"></span><h2>Tabulating results<a class="headerlink" href="#tabulating-results" title="Permalink to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
+  jax.tree_util.register_keypaths(
+usage: dinf.tabulate [-h] [-V] {metrics,data,quantiles} ...
+
+Tabulate Dinf output.
+
+positional arguments:
+  {metrics,data,quantiles}
+    metrics             Print discriminator metrics.
+    data                Print .npz data---predictions from a discriminator.
+    quantiles           Calculate quantiles of the data.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -V, --version         show program&#39;s version number and exit
+</pre></div>
+</div>
+<section id="dinf-tabulate-metrics">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">metrics</span></code><a class="headerlink" href="#dinf-tabulate-metrics" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
+  jax.tree_util.register_keypaths(
+usage: dinf.tabulate metrics [-h] [-v | -q] [-o output.txt]
+                             [--separator SEPARATOR] [--format FORMAT]
+                             discriminator.nn [discriminator.nn ...]
+
+Print discriminator metrics.
+
+positional arguments:
+  discriminator.nn      The discriminator network(s) from which to tabulate
+                        metrics.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+  -o output.txt, --output-file output.txt
+                        Output file for the tabulated data. If not specified,
+                        output will be printed to stdout. (default: None)
+  --separator SEPARATOR
+                        The string that separates columns. (default: )
+  --format FORMAT       Printf-style format specifier for float values.
+                        (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-tabulate-data">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">data</span></code><a class="headerlink" href="#dinf-tabulate-data" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
+  jax.tree_util.register_keypaths(
+usage: dinf.tabulate data [-h] [-v | -q] [-o output.txt]
+                          [--separator SEPARATOR] [--format FORMAT]
+                          data.npz
+
+Print .npz data---predictions from a discriminator.
+
+positional arguments:
+  data.npz              Data file in numpy .npz format.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+  -o output.txt, --output-file output.txt
+                        Output file for the tabulated data. If not specified,
+                        output will be printed to stdout. (default: None)
+  --separator SEPARATOR
+                        The string that separates columns. (default: )
+  --format FORMAT       Printf-style format specifier for float values.
+                        (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-tabulate-quantiles">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">quantiles</span></code><a class="headerlink" href="#dinf-tabulate-quantiles" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
+  jax.tree_util.register_keypaths(
+usage: dinf.tabulate quantiles [-h] [-v | -q] [-o output.txt]
+                               [--separator SEPARATOR] [--format FORMAT]
+                               [--top N] [-W] [--quantiles QUANTILES]
+                               data.npz
+
+Calculate quantiles of the data.
+
+positional arguments:
+  data.npz              Data file in numpy .npz format.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+  -o output.txt, --output-file output.txt
+                        Output file for the tabulated data. If not specified,
+                        output will be printed to stdout. (default: None)
+  --separator SEPARATOR
+                        The string that separates columns. (default: )
+  --format FORMAT       Printf-style format specifier for float values.
+                        (default: None)
+  --top N               Filter data to retain top N samples, ranked by
+                        probability. (default: None)
+  -W, --weighted        Weight the parameter contributions by their
+                        probability. (default: False)
+  --quantiles QUANTILES
+                        Comma separated list of quantiles to calculate.
+                        (default: 0.025,0.5,0.975)
+</pre></div>
+</div>
+</section>
+</section>
 </section>
 
     <script type="text/x-thebe-config">
@@ -888,7 +1002,7 @@ optional arguments:
             <div class="page_toc">
                 <ul>
 <li><a class="reference internal" href="#">CLI reference</a><ul>
-<li><a class="reference internal" href="#analysis-commands">Analysis commands</a><ul>
+<li><a class="reference internal" href="#analysis-inference">Analysis/inference</a><ul>
 <li><a class="reference internal" href="#dinf-check"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">check</span></code></a></li>
 <li><a class="reference internal" href="#dinf-train"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">train</span></code></a></li>
 <li><a class="reference internal" href="#dinf-predict"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">predict</span></code></a></li>
@@ -897,11 +1011,17 @@ optional arguments:
 <li><a class="reference internal" href="#dinf-pg-gan"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">pg-gan</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#plotting-commands">Plotting commands</a><ul>
+<li><a class="reference internal" href="#plotting-results">Plotting results</a><ul>
 <li><a class="reference internal" href="#dinf-plot-metrics"><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">metrics</span></code></a></li>
 <li><a class="reference internal" href="#dinf-plot-features"><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">features</span></code></a></li>
 <li><a class="reference internal" href="#dinf-plot-hist"><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code></a></li>
 <li><a class="reference internal" href="#dinf-plot-hist2d"><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist2d</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tabulating-results">Tabulating results</a><ul>
+<li><a class="reference internal" href="#dinf-tabulate-metrics"><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">metrics</span></code></a></li>
+<li><a class="reference internal" href="#dinf-tabulate-data"><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">data</span></code></a></li>
+<li><a class="reference internal" href="#dinf-tabulate-quantiles"><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">quantiles</span></code></a></li>
 </ul>
 </li>
 </ul>

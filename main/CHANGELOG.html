@@ -192,7 +192,19 @@ const thebe_selector_output = ".output, .cell_output"
   <section class="tex2jax_ignore mathjax_ignore" id="changelog">
 <h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this heading">¶</a></h1>
 <section id="id1">
-<h2>0.3.0 - 2022-08-08<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h2>
+<h2>0.4.0 - 2023-03-15<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Removed abc-gan CLI subcommand, and added <code class="docutils literal notranslate"><span class="pre">smc</span></code> subcommand.</p></li>
+<li><p>Removed the <code class="docutils literal notranslate"><span class="pre">--resample</span></code> option for <code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code>.</p></li>
+<li><p>Implement KDE variance shrinkage.</p></li>
+<li><p>Added entropy line plot.</p></li>
+<li><p>Bring dependencies up to date, e.g. fix deprecations.</p></li>
+<li><p>Lazily import scipy, to improve the CLI lag.</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">tabulate</span></code> subcommand.</p></li>
+</ul>
+</section>
+<section id="id2">
+<h2>0.3.0 - 2022-08-08<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Changed how the CLI is used. Now the model and discriminator
 are specified with the -m/–model and -d/–discriminator
@@ -206,8 +218,8 @@ options, even when they are required.</p></li>
 <li><p>Remove alfi-mcmc-gan.</p></li>
 </ul>
 </section>
-<section id="id2">
-<h2>0.2.0 - 2022-07-20<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h2>
+<section id="id3">
+<h2>0.2.0 - 2022-07-20<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h2>
 <p>Initial release, featuring:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">dinf</span></code> and <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> CLIs,</p></li>
@@ -219,8 +231,8 @@ and pg-gan-style <code class="docutils literal notranslate"><span class="pre">Ex
 of each.</p></li>
 </ul>
 </section>
-<section id="id3">
-<h2>0.1.0 - 2021-12-08<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h2>
+<section id="id4">
+<h2>0.1.0 - 2021-12-08<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h2>
 <p>Dummy release to reserve name on Pypi.</p>
 </section>
 </section>
@@ -259,9 +271,10 @@ of each.</p></li>
             <div class="page_toc">
                 <ul>
 <li><a class="reference internal" href="#">Changelog</a><ul>
-<li><a class="reference internal" href="#id1">0.3.0 - 2022-08-08</a></li>
-<li><a class="reference internal" href="#id2">0.2.0 - 2022-07-20</a></li>
-<li><a class="reference internal" href="#id3">0.1.0 - 2021-12-08</a></li>
+<li><a class="reference internal" href="#id1">0.4.0 - 2023-03-15</a></li>
+<li><a class="reference internal" href="#id2">0.3.0 - 2022-08-08</a></li>
+<li><a class="reference internal" href="#id3">0.2.0 - 2022-07-20</a></li>
+<li><a class="reference internal" href="#id4">0.1.0 - 2021-12-08</a></li>
 </ul>
 </li>
 </ul>

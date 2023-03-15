@@ -8,14 +8,15 @@ When invoked with the `-h`/`--help` option, subcomands offer a concise
 description and list the available options.
 This help output is reproduced below.
 
-Once Dinf is installed, the commands can be run by typing `dinf`
-or `dinf-plot`. In addition, the commands can be run using
-Python module hooks by typing `python -m dinf` or `python -m dinf.plot`.
+Once Dinf is installed, the commands can be run by typing `dinf`,
+`dinf-plot`, or `dinf-tabulate`. In addition, the commands can be run using
+Python module hooks by typing `python -m dinf`, `python -m dinf.plot`,
+or `python -m dinf.tabulate`.
 The module hooks can be useful for running the commands from a
 cloned git repository without requiring installation (e.g. during development).
 
 (sec_cli_dinf)=
-## Analysis commands
+## Analysis/inference
 
 ```{program-output} python -m dinf -h
 ```
@@ -52,7 +53,7 @@ cloned git repository without requiring installation (e.g. during development).
 
 
 (sec_cli_dinf-plot)=
-## Plotting commands
+## Plotting results
 
 ```{program-output} python -m dinf.plot -h
 ```
@@ -75,4 +76,27 @@ cloned git repository without requiring installation (e.g. during development).
 ### `dinf-plot hist2d`
 
 ```{program-output} python -m dinf.plot hist2d -h
+```
+
+
+
+(sec_cli_dinf-tabulate)=
+## Tabulating results
+
+```{program-output} python -m dinf.tabulate -h
+```
+
+### `dinf-tabulate metrics`
+
+```{program-output} python -m dinf.tabulate metrics -h
+```
+
+### `dinf-tabulate data`
+
+```{program-output} python -m dinf.tabulate data -h
+```
+
+### `dinf-tabulate quantiles`
+
+```{program-output} python -m dinf.tabulate quantiles -h
 ```
