@@ -10,7 +10,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
-from numpy.lib.recfunctions import structured_to_unstructured
 import scipy.stats
 
 from .cli import _SubCommand, _set_loglevel
@@ -995,14 +994,6 @@ class _Hist(_DinfPlotSubCommand):
             ),
         )
         self.parser.add_argument(
-            "--resample",
-            action="store_true",
-            help=(
-                "Resample parameter values to obtain a smoother density estimate. "
-                "This matches the n-dimensional KDE sampling used with the ABC-GAN."
-            ),
-        )
-        self.parser.add_argument(
             "--kde",
             action="store_true",
             help="Also draw a 1-dimensional marginal kernel density estimate.",
@@ -1027,26 +1018,6 @@ class _Hist(_DinfPlotSubCommand):
                     raise ValueError(
                         f"{args.data_files[j]}: parameter `{param}' not found"
                     )
-
-        datasets_resampled = []
-        if args.resample:
-            if parameters is None:
-                raise ValueError(
-                    "When --resample is requested, must also specify --model"
-                )
-            rng = np.random.default_rng(123)
-            for data in datasets:
-                names = list(data.dtype.names)[1:]
-                probs = data["_Pr"]
-                thetas = structured_to_unstructured(data[names])
-                X = parameters.sample_kde(
-                    thetas,
-                    probs=probs,
-                    size=1_000_000,
-                    rng=rng,
-                )
-                X_dict = {name: X[..., j] for j, name in enumerate(names)}
-                datasets_resampled.append(X_dict)
 
         with _MultiPage(args.output_file, len(args.x_param)) as pages:
             for x_param in args.x_param:
@@ -1075,11 +1046,6 @@ class _Hist(_DinfPlotSubCommand):
                 for j, (data, path) in enumerate(zip(datasets, args.data_files)):
                     x = data[x_param]
                     hist_kw["label"] = path.name
-                    if args.resample and x_param != "_Pr":
-                        if "weights" in hist_kw:
-                            del hist_kw["weights"]
-                        x = datasets_resampled[j][x_param]
-                        hist_kw["bins"] = 100
                     hist(x, ax=ax, ci=ci, truth=truth, hist_kw=hist_kw)
                     if args.kde:
                         left = right = None
