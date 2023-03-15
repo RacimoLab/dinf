@@ -1,0 +1,559 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>1. Creating a Dinf model &#8212; Dinf</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic_mod.css?v=0.7.0-1" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/clipboard.min.js"></script>
+    <script src="../_static/copybutton.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="../_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="../_static/sphinx-thebe.js"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <script src="../_static/js/petite-vue.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2. Testing a Dinf model" href="testing_a_model.html" />
+    <link rel="prev" title="Installation" href="../installation.html" /> 
+  </head><body data-dark_mode_code_blocks="true">
+
+<div id="top_nav">
+    
+
+    <nav>
+        
+            
+        
+
+        <p id="toggle_sidebar">
+            <a href="#" title="Toggle sidebar">|||</a>
+        </p>
+        <h1><a href="../introduction.html" title="Go to homepage">Dinf</a></h1>
+            <a id="source_link" href="https://github.com/RacimoLab/dinf">
+    
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512">
+            <path fill="white" d="M 244.8,8 C 106.1,8 0,113.3 0,252 c 0,110.9 69.8,205.8 169.5,239.2 12.8,2.3 17.3,-5.6 17.3,-12.1 0,-6.2 -0.3,-40.4 -0.3,-61.4 0,0 -70,15 -84.7,-29.8 0,0 -11.4,-29.1 -27.8,-36.6 0,0 -22.9,-15.7 1.6,-15.4 0,0 24.9,2 38.6,25.8 21.9,38.6 58.6,27.5 72.9,20.9 2.3,-16 8.8,-27.1 16,-33.7 -55.9,-6.2 -112.3,-14.3 -112.3,-110.5 0,-27.5 7.6,-41.3 23.6,-58.9 -2.6,-6.5 -11.1,-33.3 2.6,-67.9 20.9,-6.5 69,27 69,27 20,-5.6 41.5,-8.5 62.8,-8.5 21.3,0 42.8,2.9 62.8,8.5 0,0 48.1,-33.6 69,-27 13.7,34.7 5.2,61.4 2.6,67.9 16,17.7 25.8,31.5 25.8,58.9 0,96.5 -58.9,104.2 -114.8,110.5 9.2,7.9 17,22.9 17,46.4 0,33.7 -0.3,75.4 -0.3,83.6 0,6.5 4.6,14.4 17.3,12.1 C 428.2,457.8 496,362.9 496,252 496,113.3 383.5,8 244.8,8 Z"/>
+        </svg>
+    
+</a>
+        
+
+        <a id="mode_toggle" href="#" @click.prevent="handleClick" :title="mode">
+    <template v-if="mode == 'light'">
+        <svg width="100%" height="100%" viewBox="0 0 79 80" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g id="mode_light"><rect id="Bounds" x="0" y="-0" width="78.623" height="79.049" style="fill:none;"/><circle cx="39.311" cy="39.524" r="15.734" style="fill:#fff;"/><g id="beams"><g id="beam"><path id="beam1" serif:id="beam" d="M44.212,4.901c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,-0 -4.9,2.196 -4.9,4.901l-0,9.614c-0,2.705 2.196,4.901 4.9,4.901c2.705,0 4.901,-2.196 4.901,-4.901l0,-9.614Z" style="fill:#fff;"/></g><g id="beam2" serif:id="beam"><path id="beam3" serif:id="beam" d="M67.48,18.073c1.913,-1.912 1.913,-5.018 0,-6.931c-1.912,-1.912 -5.018,-1.912 -6.931,0l-6.798,6.799c-1.912,1.912 -1.912,5.018 0,6.931c1.913,1.912 5.018,1.912 6.931,-0l6.798,-6.799Z" style="fill:#fff;"/></g><g id="beam4" serif:id="beam"><path id="beam5" serif:id="beam" d="M25.728,61.108c1.912,-1.913 1.912,-5.018 -0,-6.931c-1.913,-1.913 -5.019,-1.913 -6.931,-0l-6.799,6.798c-1.912,1.913 -1.912,5.019 0,6.931c1.913,1.913 5.019,1.913 6.931,0l6.799,-6.798Z" style="fill:#fff;"/></g><g id="beam6" serif:id="beam"><path id="beam7" serif:id="beam" d="M60.682,54.177c-1.913,-1.913 -5.018,-1.913 -6.931,-0c-1.912,1.913 -1.912,5.018 0,6.931l6.798,6.798c1.913,1.913 5.019,1.913 6.931,0c1.913,-1.912 1.913,-5.018 0,-6.931l-6.798,-6.798Z" style="fill:#fff;"/></g><g id="beam8" serif:id="beam"><path id="beam9" serif:id="beam" d="M4.901,34.623c-2.705,0 -4.901,2.196 -4.901,4.901c0,2.705 2.196,4.901 4.901,4.901l9.614,0c2.705,0 4.901,-2.196 4.901,-4.901c0,-2.705 -2.196,-4.901 -4.901,-4.901l-9.614,0Z" style="fill:#fff;"/></g><g id="beam10" serif:id="beam"><path id="beam11" serif:id="beam" d="M44.212,64.534c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,-0 -4.9,2.196 -4.9,4.901l-0,9.614c-0,2.705 2.196,4.901 4.9,4.901c2.705,-0 4.901,-2.196 4.901,-4.901l0,-9.614Z" style="fill:#fff;"/></g><g id="beam12" serif:id="beam"><path id="beam13" serif:id="beam" d="M18.929,11.142c-1.912,-1.912 -5.018,-1.912 -6.931,0c-1.912,1.913 -1.912,5.019 0,6.931l6.799,6.799c1.912,1.912 5.018,1.912 6.931,-0c1.912,-1.913 1.912,-5.019 -0,-6.931l-6.799,-6.799Z" style="fill:#fff;"/></g><g id="beam14" serif:id="beam"><path id="beam15" serif:id="beam" d="M64.108,34.623c-2.705,0 -4.901,2.196 -4.901,4.901c-0,2.705 2.196,4.901 4.901,4.901l9.614,0c2.705,0 4.901,-2.196 4.901,-4.901c-0,-2.705 -2.196,-4.901 -4.901,-4.901l-9.614,0Z" style="fill:#fff;"/></g></g></g></svg>
+    </template>
+
+    <template v-if="mode == 'dark'">
+        <svg width="100%" height="100%" viewBox="0 0 79 80" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g id="mode_dark"><rect id="Bounds" x="0" y="-0" width="78.623" height="79.049" style="fill:none;"/><circle cx="39.311" cy="39.524" r="15.734" style="fill:#fff;"/><g id="beams"><g id="beam"><path id="beam1" serif:id="beam" d="M44.212,14.515c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,0 -4.901,2.196 -4.901,4.901c0,2.705 2.197,4.901 4.901,4.901c2.705,0 4.901,-2.196 4.901,-4.901Z" style="fill:#fff;"/></g><g id="beam2" serif:id="beam"><path id="beam3" serif:id="beam" d="M60.662,24.892c1.902,-1.902 1.902,-4.99 0,-6.892l-0.04,-0.039c-1.901,-1.902 -4.989,-1.902 -6.891,-0c-1.901,1.901 -1.901,4.989 0,6.891l0.04,0.04c1.902,1.901 4.989,1.901 6.891,-0Z" style="fill:#fff;"/></g><g id="beam4" serif:id="beam"><path id="beam5" serif:id="beam" d="M25.732,61.103c1.91,-1.91 1.91,-5.011 0,-6.921l-0.009,-0.01c-1.91,-1.91 -5.012,-1.91 -6.921,-0c-1.91,1.91 -1.91,5.011 -0,6.921l0.01,0.01c1.909,1.91 5.011,1.91 6.92,-0Z" style="fill:#fff;"/></g><g id="beam6" serif:id="beam"><path id="beam7" serif:id="beam" d="M60.672,54.167c-1.907,-1.907 -5.004,-1.907 -6.911,0l-0.02,0.02c-1.907,1.907 -1.907,5.004 0,6.911c1.907,1.907 5.004,1.907 6.911,-0l0.02,-0.02c1.907,-1.907 1.907,-5.004 0,-6.911Z" style="fill:#fff;"/></g><g id="beam8" serif:id="beam"><path id="beam9" serif:id="beam" d="M14.52,34.623c-2.702,0 -4.896,2.194 -4.896,4.896l0,0.01c0,2.702 2.194,4.896 4.896,4.896c2.702,0 4.896,-2.194 4.896,-4.896l-0,-0.01c-0,-2.702 -2.194,-4.896 -4.896,-4.896Z" style="fill:#fff;"/></g><g id="beam10" serif:id="beam"><path id="beam11" serif:id="beam" d="M44.212,64.534c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,-0 -4.901,2.196 -4.901,4.901c0,2.704 2.197,4.9 4.901,4.9c2.705,0 4.901,-2.196 4.901,-4.9Z" style="fill:#fff;"/></g><g id="beam12" serif:id="beam"><path id="beam13" serif:id="beam" d="M25.73,17.943c-1.911,-1.911 -5.015,-1.911 -6.926,0l-0.005,0.005c-1.911,1.911 -1.911,5.015 0,6.926c1.911,1.911 5.015,1.911 6.926,0l0.005,-0.005c1.911,-1.911 1.911,-5.014 -0,-6.926Z" style="fill:#fff;"/></g><g id="beam14" serif:id="beam"><path id="beam15" serif:id="beam" d="M64.098,34.623c-2.699,0 -4.891,2.192 -4.891,4.892l-0,0.019c-0,2.699 2.192,4.891 4.891,4.891c2.7,0 4.892,-2.192 4.892,-4.891l0,-0.019c0,-2.7 -2.192,-4.892 -4.892,-4.892Z" style="fill:#fff;"/></g></g></g></svg>
+    </template>
+
+    <template v-if="mode == 'darkest'">
+        <svg width="100%" height="100%" viewBox="0 0 79 80" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g id="mode_darkest"><rect id="Bounds" x="0" y="-0" width="78.623" height="79.049" style="fill:none;"/><path d="M39.315,23.791c8.684,-0 15.734,7.05 15.734,15.733c0,8.684 -7.05,15.734 -15.734,15.734c-8.683,0 -15.733,-7.05 -15.733,-15.734c-0,-8.683 7.05,-15.733 15.733,-15.733Zm0,4.737c6.069,0 10.997,4.927 10.997,10.996c-0,6.069 -4.928,10.996 -10.997,10.996c-6.068,0 -10.996,-4.927 -10.996,-10.996c0,-6.069 4.928,-10.996 10.996,-10.996Z" style="fill:#fff;"/><g id="beams"><g id="beam"><path id="beam1" serif:id="beam" d="M44.216,14.515c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,0 -4.9,2.196 -4.9,4.901c-0,2.705 2.196,4.901 4.9,4.901c2.705,0 4.901,-2.196 4.901,-4.901Z" style="fill:#fff;"/></g><g id="beam2" serif:id="beam"><path id="beam3" serif:id="beam" d="M60.666,24.892c1.902,-1.902 1.902,-4.99 0,-6.892l-0.04,-0.039c-1.901,-1.902 -4.989,-1.902 -6.891,-0c-1.901,1.901 -1.901,4.989 0,6.891l0.04,0.04c1.902,1.901 4.99,1.901 6.891,-0Z" style="fill:#fff;"/></g><g id="beam4" serif:id="beam"><path id="beam5" serif:id="beam" d="M25.737,61.103c1.909,-1.91 1.909,-5.011 -0,-6.921l-0.01,-0.01c-1.91,-1.91 -5.011,-1.91 -6.921,-0c-1.91,1.91 -1.91,5.011 -0,6.921l0.01,0.01c1.91,1.91 5.011,1.91 6.921,-0Z" style="fill:#fff;"/></g><g id="beam6" serif:id="beam"><path id="beam7" serif:id="beam" d="M60.676,54.167c-1.907,-1.907 -5.004,-1.907 -6.911,0l-0.02,0.02c-1.907,1.907 -1.907,5.004 0,6.911c1.907,1.907 5.004,1.907 6.911,-0l0.02,-0.02c1.907,-1.907 1.907,-5.004 0,-6.911Z" style="fill:#fff;"/></g><g id="beam8" serif:id="beam"><path id="beam9" serif:id="beam" d="M14.524,34.623c-2.702,0 -4.896,2.194 -4.896,4.896l0,0.01c0,2.702 2.194,4.896 4.896,4.896c2.702,0 4.896,-2.194 4.896,-4.896l0,-0.01c0,-2.702 -2.194,-4.896 -4.896,-4.896Z" style="fill:#fff;"/></g><g id="beam10" serif:id="beam"><path id="beam11" serif:id="beam" d="M44.216,64.534c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,-0 -4.9,2.196 -4.9,4.901c-0,2.704 2.196,4.9 4.9,4.9c2.705,0 4.901,-2.196 4.901,-4.9Z" style="fill:#fff;"/></g><g id="beam12" serif:id="beam"><path id="beam13" serif:id="beam" d="M25.734,17.943c-1.911,-1.911 -5.015,-1.911 -6.926,0l-0.005,0.005c-1.911,1.911 -1.911,5.015 0,6.926c1.911,1.911 5.015,1.911 6.926,0l0.005,-0.005c1.911,-1.911 1.911,-5.014 0,-6.926Z" style="fill:#fff;"/></g><g id="beam14" serif:id="beam"><path id="beam15" serif:id="beam" d="M64.103,34.623c-2.7,0 -4.892,2.192 -4.892,4.892l-0,0.019c-0,2.699 2.192,4.891 4.892,4.891c2.699,0 4.891,-2.192 4.891,-4.891l0,-0.019c0,-2.7 -2.192,-4.892 -4.891,-4.892Z" style="fill:#fff;"/></g></g></g></svg>
+    </template>
+</a>
+
+<script>
+(function() {
+    const LOCAL_STORAGE_KEY = 'piccoloThemeMode'
+
+    var initialMode = localStorage.getItem(LOCAL_STORAGE_KEY)
+
+    if (initialMode) {
+        // Make sure the value in local storage is valid
+        if (['light', 'dark', 'darkest'].indexOf(initialMode) == -1) {
+            initialMode = 'light'
+            localStorage.setItem(LOCAL_STORAGE_KEY, initialMode)
+        }
+    } else {
+        // Check if the client prefers dark mode
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            initialMode = 'dark'
+        } else {
+            initialMode = 'light'
+        }
+        localStorage.setItem(LOCAL_STORAGE_KEY, initialMode)
+    }
+
+    document.documentElement.dataset.mode = initialMode
+
+    PetiteVue.createApp({
+        'mode': initialMode,
+        handleClick() {
+            let currentMode = this.mode
+
+            if (currentMode == 'light') {
+                this.mode = 'dark'
+            } else if (currentMode == 'dark') {
+                this.mode = 'darkest'
+            } else if (currentMode == 'darkest') {
+                this.mode = 'light'
+            }
+
+            document.documentElement.dataset.mode = this.mode
+            localStorage.setItem(LOCAL_STORAGE_KEY, this.mode)
+
+            console.log(this.mode)
+        }
+    }).mount('#mode_toggle')
+})()
+</script>
+            <p class="mobile_search_link">
+                <a href="../search.html" title="Search">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 65 64" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2">
+                        <path d="M14.873 40.009c-2.315-3.943-3.642-8.532-3.642-13.429C11.231 11.91 23.141 0 37.811 0s26.58 11.91 26.58 26.58-11.91 26.58-26.58 26.58a26.44 26.44 0 0 1-14.277-4.161L9.739 62.794a3.12 3.12 0 0 1-4.413 0L.913 58.382c-1.217-1.218-1.217-3.196 0-4.413l13.96-13.96zM37.811 8.054c10.225 0 18.526 8.301 18.526 18.526s-8.301 18.526-18.526 18.526-18.526-8.301-18.526-18.526S27.586 8.054 37.811 8.054z" fill="#fff" />
+                    </svg>
+                </a>
+            </p>
+        
+
+        <div class="searchbox_wrapper">
+            
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorial</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">1. Creating a Dinf model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing_a_model.html">2. Testing a Dinf model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="smc.html">3. Inferring parameters</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Topic guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="accuracy.html">Improving discriminator accuracy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features.html">Feature matrices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Performance characteristics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multiple_demes.html">Models with multiple demes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="empirical_data.html">Empirical data</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">CLI reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Miscellaneous</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section class="tex2jax_ignore mathjax_ignore" id="creating-a-dinf-model">
+<span id="sec-guide-creating-a-dinf-model"></span><h1><span class="section-number">1. </span>Creating a Dinf model<a class="headerlink" href="#creating-a-dinf-model" title="Permalink to this heading">¶</a></h1>
+<p>This page discusses how to construct a minimal simulation-only Dinf model.
+It provides code examples for each component, and the complete
+working model can be found at the bottom of the page,
+or in the <a class="reference external" href="https://github.com/RacimoLab/dinf">git repository</a>
+under <code class="docutils literal notranslate"><span class="pre">examples/bottleneck/model.py</span></code>.
+Writing a Dinf model requires a familiarity with Python,
+and the examples use
+<a class="reference external" href="https://popsim-consortium.github.io/demes-docs/">demes</a>,
+<a class="reference external" href="https://tskit.dev/msprime/docs/stable">msprime</a>,
+and <a class="reference external" href="https://numpy.org/doc/stable/">numpy</a>
+APIs.</p>
+<section id="overview">
+<h2><span class="section-number">1.1. </span>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">¶</a></h2>
+<p>The primary use of Dinf is to infer simulation parameters that
+produce data closely resembling some target empirical dataset.
+In the diagram below, the rectangles represent the major components of
+a Dinf model, and the arrows indicate the flow of data.</p>
+<p><img alt="Dinf model diagram" src="../_images/dinf_model.svg" /></p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\theta\)</span> are the model parameters,
+such as population sizes, split times, or migration rates.</p></li>
+<li><p><span class="math notranslate nohighlight">\(G(\theta)\)</span> is the generator
+(e.g. <a class="reference external" href="https://tskit.dev/msprime/docs/stable">msprime</a>),
+that simulates genetic data for concrete values of the model parameters.</p></li>
+<li><p><span class="math notranslate nohighlight">\(target\)</span> is the target dataset (e.g. a vcf).</p></li>
+<li><p><span class="math notranslate nohighlight">\(x_t\)</span> and <span class="math notranslate nohighlight">\(x_g\)</span> indicate data features from the
+target and the generator respectively.</p></li>
+<li><p><span class="math notranslate nohighlight">\(D(x)\)</span> is the discriminator (e.g. a convolutional neural network),
+which is trained to distinguish between data generated by the
+generator and the target dataset.</p></li>
+<li><p><span class="math notranslate nohighlight">\(Pr(t)\)</span> is the prediction from the discriminator—the probability that
+a given input feature is from the target distribution.</p></li>
+</ul>
+<p>A Dinf model is organised as a Python script (a <code class="docutils literal notranslate"><span class="pre">.py</span></code> file)
+containing a <code class="docutils literal notranslate"><span class="pre">dinf_model</span></code> variable,
+which must be an instance of the <a class="reference internal" href="../api.html#dinf.DinfModel" title="dinf.DinfModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DinfModel</span></code></a> class.
+This object describes various components of the model.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">dinf</span>
+
+<span class="n">dinf_model</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="p">(</span>
+    <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+    <span class="n">generator_func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
+    <span class="n">target_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Defining the model then procedes by describing the <code class="docutils literal notranslate"><span class="pre">parameters</span></code>,
+writing the <code class="docutils literal notranslate"><span class="pre">generator_func</span></code> function,
+and writing the <code class="docutils literal notranslate"><span class="pre">target_func</span></code> function (if any).
+It’s not necessary to specify the architecture of the discriminator.</p>
+</section>
+<section id="parameters">
+<h2><span class="section-number">1.2. </span>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading">¶</a></h2>
+<p>In this example, we’ll have two inferrable parameters,
+<code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code>, which correspond to the population sizes of a
+deme before and after a bottleneck.
+<a class="reference internal" href="../api.html#dinf.DinfModel.parameters" title="dinf.DinfModel.parameters"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DinfModel.parameters</span></code></a> are defined via the <a class="reference internal" href="../api.html#dinf.Parameters" title="dinf.Parameters"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parameters</span></code></a> class,
+whose constructor accepts named <a class="reference internal" href="../api.html#dinf.Param" title="dinf.Param"><code class="xref py py-class docutils literal notranslate"><span class="pre">Param</span></code></a> instances by keyword.
+Each keyword is the name of a parameter (<code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> in the code below)
+and each parameter has a lower bound (<code class="docutils literal notranslate"><span class="pre">low</span></code>) and an upper bound (<code class="docutils literal notranslate"><span class="pre">high</span></code>).
+Parameters defined in this way have a uniform prior, e.g.
+<code class="docutils literal notranslate"><span class="pre">N0</span></code><span class="math notranslate nohighlight">\(\sim\)</span>Uniform(10, 30000).
+When performing a simulation study (as we’ll do here), the <code class="docutils literal notranslate"><span class="pre">truth</span></code> value
+will be used to produce the target dataset instead of using empirical data.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Parameters</span><span class="p">(</span>
+    <span class="n">N0</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">30_000</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="mi">10_000</span><span class="p">),</span>
+    <span class="n">N1</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">30_000</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="mi">200</span><span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="generator">
+<h2><span class="section-number">1.3. </span>Generator<a class="headerlink" href="#generator" title="Permalink to this heading">¶</a></h2>
+<p>The generator is probably the most complicated part of the Dinf model.
+A genetic simulator must take the parameters and turn them into
+genetic data. The genetic data must then be transformed to
+match the expected input of the discriminator. The inputs to the discriminator
+are referred to as the <em>features</em> of the data, and the transformation
+of the genetic data into the desired format is referred to as
+<em>feature extraction</em>.</p>
+<section id="features">
+<h3><span class="section-number">1.3.1. </span>Features<a class="headerlink" href="#features" title="Permalink to this heading">¶</a></h3>
+<p>Dinf features are typically genotype matrices,
+or a collection of matrices (e.g. when modelling multiple populations).
+It’s important that there is agreement between the features extracted from the
+generator and the features extracted from the target dataset.
+Ideally, the only differences will be due to the accuracy of the simulation
+model and the parameter values, not due to data filtering or quality issues.
+To ensure consistency, the Dinf API provides helper classes for
+feature extraction that have methods for extracting features from
+vcf files and from <a class="reference external" href="https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence" title="(in Python)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tskit.TreeSequence</span></code></a> objects.
+The <a class="reference internal" href="features.html#sec-guide-features"><span class="std std-ref">Feature matrices</span></a> page describes the different feature extraction
+classes provided by the Dinf API,
+and shows heatmap plots for matrices from each class.
+In the example model here, we’ll use the <a class="reference internal" href="../api.html#dinf.BinnedHaplotypeMatrix" title="dinf.BinnedHaplotypeMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">BinnedHaplotypeMatrix</span></code></a>
+feature extractor class.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">num_individuals</span> <span class="o">=</span> <span class="mi">16</span>
+
+<span class="n">features</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">BinnedHaplotypeMatrix</span><span class="p">(</span>
+    <span class="n">num_individuals</span><span class="o">=</span><span class="n">num_individuals</span><span class="p">,</span>
+    <span class="n">num_loci</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">ploidy</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">phased</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">maf_thresh</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="genetic-simulator">
+<h3><span class="section-number">1.3.2. </span>Genetic simulator<a class="headerlink" href="#genetic-simulator" title="Permalink to this heading">¶</a></h3>
+<p><a class="reference internal" href="../api.html#dinf.DinfModel.generator_func" title="dinf.DinfModel.generator_func"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DinfModel.generator_func</span></code></a> is a user-defined function that produces data
+features using a genetic simulator.
+The function accepts a single positional argument <code class="docutils literal notranslate"><span class="pre">seed</span></code>,
+followed by one keyword argument for each inferrable parameter.
+So for our example there’s one argument for <code class="docutils literal notranslate"><span class="pre">N0</span></code> and one for <code class="docutils literal notranslate"><span class="pre">N1</span></code>.
+Note that the python syntax <code class="docutils literal notranslate"><span class="pre">def</span> <span class="pre">generator(seed,</span> <span class="pre">*,</span> <span class="pre">N0,</span> <span class="pre">N1):</span></code> means
+that all parameters after the <code class="docutils literal notranslate"><span class="pre">*</span></code> are keyword-only parameters.
+The generator function must return the features that were extracted
+from the simulated data.</p>
+<p>There are a lot of choices to be made when simulating genetic data.
+In the example below, the bottleneck demographic model is described using
+a templated <a class="reference external" href="https://popsim-consortium.github.io/demes-spec-docs/">Demes YAML</a>
+string.
+This demographic model is simulated using the
+<a class="reference external" href="https://tskit.dev/msprime/docs/stable">msprime</a>
+coalescent simulator, whose output is a <a class="reference external" href="https://tskit.dev/tskit/docs/stable/python-api.html#tskit.TreeSequence" title="(in Python)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tskit.TreeSequence</span></code></a>.
+Finally, the features are extracted from the output using the
+<a class="reference internal" href="../api.html#dinf.BinnedHaplotypeMatrix.from_ts" title="dinf.BinnedHaplotypeMatrix.from_ts"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BinnedHaplotypeMatrix.from_ts()</span></code></a> method of the <code class="docutils literal notranslate"><span class="pre">features</span></code> object
+we defined above.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">string</span>
+
+<span class="kn">import</span> <span class="nn">demes</span>
+<span class="kn">import</span> <span class="nn">msprime</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<span class="n">recombination_rate</span> <span class="o">=</span> <span class="mf">1.25e-8</span>
+<span class="n">mutation_rate</span> <span class="o">=</span> <span class="mf">1.25e-8</span>
+<span class="n">sequence_length</span> <span class="o">=</span> <span class="mi">1_000_000</span>
+
+
+<span class="k">def</span> <span class="nf">demography</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="p">):</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">Template</span><span class="p">(</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        description: Two-epoch model with recent bottleneck.</span>
+<span class="sd">        time_units: generations</span>
+<span class="sd">        demes:</span>
+<span class="sd">          - name: A</span>
+<span class="sd">            epochs:</span>
+<span class="sd">              - start_size: $N0</span>
+<span class="sd">                end_time: 100</span>
+<span class="sd">              - start_size: $N1</span>
+<span class="sd">                end_time: 0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">substitute</span><span class="p">(</span><span class="n">N0</span><span class="o">=</span><span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="o">=</span><span class="n">N1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">demes</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simulate a two-epoch model with msprime.&quot;&quot;&quot;</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">demography</span><span class="p">(</span><span class="n">N0</span><span class="o">=</span><span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="o">=</span><span class="n">N1</span><span class="p">)</span>
+    <span class="n">demog</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">Demography</span><span class="o">.</span><span class="n">from_demes</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+    <span class="n">seed1</span><span class="p">,</span> <span class="n">seed2</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">ts</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">sim_ancestry</span><span class="p">(</span>
+        <span class="n">samples</span><span class="o">=</span><span class="n">num_individuals</span><span class="p">,</span>
+        <span class="n">demography</span><span class="o">=</span><span class="n">demog</span><span class="p">,</span>
+        <span class="n">sequence_length</span><span class="o">=</span><span class="n">sequence_length</span><span class="p">,</span>
+        <span class="n">recombination_rate</span><span class="o">=</span><span class="n">recombination_rate</span><span class="p">,</span>
+        <span class="n">random_seed</span><span class="o">=</span><span class="n">seed1</span><span class="p">,</span>
+        <span class="n">record_provenance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ts</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">sim_mutations</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">mutation_rate</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="n">seed2</span><span class="p">)</span>
+
+    <span class="n">feature_matrix</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">from_ts</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">feature_matrix</span>
+</pre></div>
+</div>
+<p>Note that Dinf has no explicit requirement to use <code class="docutils literal notranslate"><span class="pre">demes</span></code>
+for the demographic model, nor to use <code class="docutils literal notranslate"><span class="pre">msprime</span></code> as the simulator.
+It would even be possible to write a generator function with a
+simulator that doesn’t output a <code class="docutils literal notranslate"><span class="pre">tskit.TreeSequence</span></code>.
+Dinf provides <a class="reference internal" href="../api.html#sec-api-discriminator-networks"><span class="std std-ref">discriminator networks</span></a>
+that work well with the provided
+<a class="reference internal" href="../api.html#sec-api-feature-extraction"><span class="std std-ref">feature extraction classes</span></a>,
+so substituting custom features will likely require additional effort
+and testing.</p>
+</section>
+</section>
+<section id="target">
+<h2><span class="section-number">1.4. </span>Target<a class="headerlink" href="#target" title="Permalink to this heading">¶</a></h2>
+<p>When defining the <a class="reference internal" href="../api.html#dinf.DinfModel" title="dinf.DinfModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">DinfModel</span></code></a> object above,
+we set <code class="docutils literal notranslate"><span class="pre">target_func=None</span></code>. This means that Dinf will reuse the
+generator function to create the target dataset. When simulating the
+target dataset, the <code class="docutils literal notranslate"><span class="pre">truth</span></code> values specified for the parameters
+will be passed to the generator function.</p>
+</section>
+<section id="discriminator">
+<h2><span class="section-number">1.5. </span>Discriminator<a class="headerlink" href="#discriminator" title="Permalink to this heading">¶</a></h2>
+<p>We have not specified anything about the discriminator.
+By default Dinf will use <a class="reference internal" href="../api.html#dinf.ExchangeableCNN" title="dinf.ExchangeableCNN"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExchangeableCNN</span></code></a>,
+a small exchangeable convolutional neural network,
+that treats haplotypes within populations as exchangeable.</p>
+</section>
+<section id="complete-example">
+<h2><span class="section-number">1.6. </span>Complete example<a class="headerlink" href="#complete-example" title="Permalink to this heading">¶</a></h2>
+<p>Putting this all together into one file we obtain:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">string</span>
+
+<span class="kn">import</span> <span class="nn">demes</span>
+<span class="kn">import</span> <span class="nn">msprime</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">dinf</span>
+
+
+<span class="n">recombination_rate</span> <span class="o">=</span> <span class="mf">1.25e-8</span>
+<span class="n">mutation_rate</span> <span class="o">=</span> <span class="mf">1.25e-8</span>
+<span class="n">num_individuals</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="n">sequence_length</span> <span class="o">=</span> <span class="mi">1_000_000</span>
+<span class="n">parameters</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">Parameters</span><span class="p">(</span>
+    <span class="n">N0</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">30_000</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="mi">10_000</span><span class="p">),</span>
+    <span class="n">N1</span><span class="o">=</span><span class="n">dinf</span><span class="o">.</span><span class="n">Param</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">30_000</span><span class="p">,</span> <span class="n">truth</span><span class="o">=</span><span class="mi">200</span><span class="p">),</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">demography</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="p">):</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">string</span><span class="o">.</span><span class="n">Template</span><span class="p">(</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        description: Two-epoch model with recent bottleneck.</span>
+<span class="sd">        time_units: generations</span>
+<span class="sd">        demes:</span>
+<span class="sd">          - name: A</span>
+<span class="sd">            epochs:</span>
+<span class="sd">              - start_size: $N0</span>
+<span class="sd">                end_time: 100</span>
+<span class="sd">              - start_size: $N1</span>
+<span class="sd">                end_time: 0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">substitute</span><span class="p">(</span><span class="n">N0</span><span class="o">=</span><span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="o">=</span><span class="n">N1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">demes</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+
+<span class="n">features</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">BinnedHaplotypeMatrix</span><span class="p">(</span>
+    <span class="n">num_individuals</span><span class="o">=</span><span class="n">num_individuals</span><span class="p">,</span>
+    <span class="n">num_loci</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+    <span class="n">ploidy</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">phased</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">maf_thresh</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simulate a two-epoch model with msprime.&quot;&quot;&quot;</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">demography</span><span class="p">(</span><span class="n">N0</span><span class="o">=</span><span class="n">N0</span><span class="p">,</span> <span class="n">N1</span><span class="o">=</span><span class="n">N1</span><span class="p">)</span>
+    <span class="n">demog</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">Demography</span><span class="o">.</span><span class="n">from_demes</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+    <span class="n">seed1</span><span class="p">,</span> <span class="n">seed2</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">2</span><span class="o">**</span><span class="mi">31</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">ts</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">sim_ancestry</span><span class="p">(</span>
+        <span class="n">samples</span><span class="o">=</span><span class="n">num_individuals</span><span class="p">,</span>
+        <span class="n">demography</span><span class="o">=</span><span class="n">demog</span><span class="p">,</span>
+        <span class="n">sequence_length</span><span class="o">=</span><span class="n">sequence_length</span><span class="p">,</span>
+        <span class="n">recombination_rate</span><span class="o">=</span><span class="n">recombination_rate</span><span class="p">,</span>
+        <span class="n">random_seed</span><span class="o">=</span><span class="n">seed1</span><span class="p">,</span>
+        <span class="n">record_provenance</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ts</span> <span class="o">=</span> <span class="n">msprime</span><span class="o">.</span><span class="n">sim_mutations</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">mutation_rate</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="n">seed2</span><span class="p">)</span>
+
+    <span class="n">feature_matrix</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">from_ts</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">feature_matrix</span>
+
+
+<span class="n">dinf_model</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="p">(</span>
+    <span class="n">target_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">generator_func</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
+    <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./guide"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+    
+        <div id="show_right_sidebar">
+            <p><a class="toggle_right_sidebar" href="#"><span class="icon"><</span><span>Page contents<span></a></p>
+        </div>
+
+        <div id="right_sidebar">
+            <p><a class="toggle_right_sidebar" href="#"><span class="icon">></span><span>Page contents:<span></a></p>
+            <div class="page_toc">
+                <ul>
+<li><a class="reference internal" href="#">1. Creating a Dinf model</a><ul>
+<li><a class="reference internal" href="#overview">1.1. Overview</a></li>
+<li><a class="reference internal" href="#parameters">1.2. Parameters</a></li>
+<li><a class="reference internal" href="#generator">1.3. Generator</a><ul>
+<li><a class="reference internal" href="#features">1.3.1. Features</a></li>
+<li><a class="reference internal" href="#genetic-simulator">1.3.2. Genetic simulator</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#target">1.4. Target</a></li>
+<li><a class="reference internal" href="#discriminator">1.5. Discriminator</a></li>
+<li><a class="reference internal" href="#complete-example">1.6. Complete example</a></li>
+</ul>
+</li>
+</ul>
+
+            </div>
+        </div>
+    
+
+      <div class="clearer"></div>
+    </div>
+    <div class="button_nav_wrapper">
+        <div class="button_nav">
+            <div class="left">
+                
+                <a href="../installation.html">
+                    <span class="icon"><</span><span>Installation</span></a>
+                
+            </div>
+
+            <div class="right">
+                
+                    <a href="testing_a_model.html"><span><span class="section-number">2. </span>Testing a Dinf model</span><span class="icon">></span></a>
+                
+            </div>
+        </div>
+    </div>
+
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2021-2023.
+    </div>
+
+<p id="theme_credit">Styled using the <a href="https://github.com/piccolo-orm/piccolo_theme">Piccolo Theme</a></p>
+  </body>
+</html>
