@@ -175,24 +175,6 @@ class TestPlotHist(HelpMixin):
         assert cap.ret == 0
         assert output_file.exists()
 
-    @pytest.mark.usefixtures("tmp_path")
-    @pytest.mark.usefixtures("data_file")
-    def test_resample(self, tmp_path, data_file):
-        ex = "examples/bottleneck/model.py"
-        output_file = tmp_path / "output.pdf"
-        with capture() as cap:
-            dinf.plot.main(
-                f"""
-                hist
-                    --output-file {output_file}
-                    --resample
-                    --model {ex}
-                    {data_file}
-                """.split()
-            )
-        assert cap.ret == 0
-        assert output_file.exists()
-
     @pytest.mark.usefixtures("data_file")
     def test_interactive(self, data_file):
         with mock.patch("matplotlib.pyplot.show", autospec=True) as mocked_plt_show:
@@ -232,20 +214,6 @@ class TestPlotHist(HelpMixin):
                 hist
                     --output-file {output_file}
                     --x-param nonexistent
-                    {data_file}
-                """.split()
-            )
-
-    @pytest.mark.usefixtures("tmp_path")
-    @pytest.mark.usefixtures("data_file")
-    def test_resample_without_model(self, tmp_path, data_file):
-        output_file = tmp_path / "output.pdf"
-        with pytest.raises(ValueError, match="--resample.* must also specify --model"):
-            dinf.plot.main(
-                f"""
-                hist
-                    --output-file {output_file}
-                    --resample
                     {data_file}
                 """.split()
             )
