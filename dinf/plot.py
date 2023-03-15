@@ -162,7 +162,11 @@ def features(mats: Dict[str, np.ndarray], /, *, subplots_kw: dict | None = None)
             **subplots_kw,
         )
     axv = np.atleast_2d(axs)
-    fig.set_constrained_layout(True)
+    if hasattr(fig, "set_layout_engine"):
+        fig.set_layout_engine("constrained")
+    else:
+        # matplotlib < 3.6 compat
+        fig.set_constrained_layout(True)
 
     vmaxs = {}
     cmaps = {}
