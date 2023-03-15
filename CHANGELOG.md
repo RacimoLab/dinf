@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 - 2023-03-15
+
+* Removed abc-gan CLI subcommand, and added `smc` subcommand.
+* Removed the `--resample` option for `dinf-plot hist`.
+* Implement KDE variance shrinkage.
+* Added entropy line plot.
+* Bring dependencies up to date, e.g. fix deprecations.
+* Lazily import scipy, to improve the CLI lag.
+* Added `dinf tabulate` subcommand.
+
+
 ## 0.3.0 - 2022-08-08
 
 * Changed how the CLI is used. Now the model and discriminator
