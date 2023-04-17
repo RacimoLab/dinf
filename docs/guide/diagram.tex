@@ -1,0 +1,64 @@
+\documentclass[tikz,border=5mm]{standalone}
+\usetikzlibrary{positioning, arrows.meta}
+\usepackage{xcolor}
+\usepackage{amsmath,amssymb,amsthm}
+
+% Expectation operator.
+\DeclareMathOperator*{\E}{\mathbb{E}}
+
+\begin{document}
+
+\colorlet{mycolour1}{purple}
+\begin{tikzpicture}[
+    inner sep=0mm,
+    outer sep=2mm,
+    myfont/.style={
+        font=\Large,
+    },
+    square/.style={
+        myfont,
+        draw=none,
+        circle,
+        append after command={
+            \pgfextra
+                \draw[#1]
+                (\tikzlastnode.north-|\tikzlastnode.west) rectangle 
+                (\tikzlastnode.south-|\tikzlastnode.east);
+            \endpgfextra
+        }
+    },
+    square/.default=black,
+    box/.style={
+        square={
+            draw=black,
+            fill=black!5,
+            ultra thick,
+        },
+        minimum size=4cm,
+        align=center,
+    },
+    arrow/.style={
+        arrows=-Triangle[],
+        ultra thick,
+    },
+]
+
+% Reference node, relative to which others will be placed.
+\node [inner sep=0mm] (origin) {};
+
+\node [box] at (0,0) (generator) [above=of origin] {\textbf{Generator}\\\textcolor{mycolour1}{$G(\theta)$}};
+\node at (generator.south) [anchor=south] {\small e.g. msprime};
+\node [box] (target) [below=of origin] {\textbf{Target}\\observed data};
+\node at (target.south) [anchor=south] {\small e.g. a VCF file};
+\node [box] (discriminator) [right=of origin, xshift=2cm] {\textbf{Discriminator}\\\textcolor{mycolour1}{$D(x)$}};
+\node at (discriminator.south) [anchor=south] {\small e.g. a CNN};
+\node [myfont] (input) [left=of generator] {\textcolor{mycolour1}{$\theta$}};
+\node [myfont] (output) [right=of discriminator] {\textcolor{mycolour1}{$Pr(x \in \text{Target})$}};
+
+\draw [arrow,myfont] (input) -- (generator);
+\draw [arrow,myfont] (generator) -| node[above left] {\textcolor{mycolour1}{$x$} $\sim p_g(x; \theta)$} (discriminator);
+\draw [arrow,myfont] (target) -| node[below left] {\textcolor{mycolour1}{$x$} $\sim p_t(x)$} (discriminator);
+\draw [arrow] (discriminator) -- (output);
+
+\end{tikzpicture}
+\end{document}

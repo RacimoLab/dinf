@@ -25,7 +25,8 @@ import matplotlib.pyplot as plt
 (sec_guide_testing_a_dinf_model)=
 # Testing a Dinf model
 
-This page explains how to test a Dinf model.
+This page explains how to test a Dinf model
+using the `dinf` and `dinf-plot` command line interfaces.
 See the [](sec_guide_creating_a_dinf_model) page
 for how to write a model file.
 

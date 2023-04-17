@@ -785,20 +785,15 @@ def mcmc_gan(
     callbacks: dict | None = None,
 ):
     """
-        Run the MCMC GAN.
+    Run the MCMC GAN.
 
-    Conceptually, the GAN takes the following steps for iteration j:
+    In the first iteration, p[0] is the prior distribution.
+    The following steps are taken for iteration j:
 
-      - sample training dataset from the prior[j] distribution,
+      - sample training dataset from the distribution p[j],
       - train the discriminator,
       - run the MCMC,
-      - obtain posterior[j] as weighted KDE of MCMC sample,
-      - set prior[j+1] = posterior[j].
-
-    In the first iteration, the parameter values given to the generator
-    to produce the training dataset are drawn from the parameters' prior
-    distribution. In subsequent iterations, the parameter values are drawn
-    from a weighted gaussian KDE of the previous iteration's MCMC chains.
+      - obtain distribution p[j+1] as a KDE of the MCMC sample.
 
     :param dinf_model:
         DinfModel object that describes the model components.
@@ -818,7 +813,7 @@ def mcmc_gan(
     :param steps:
         The chain length for each MCMC walker.
     :param Dx_replicates:
-        Number of generator replicates for approximating E[D(x)|θ].
+        Number of generator replicates for approximating E[D(G(θ))].
     :param output_folder:
         Folder to output results. If not specified, the current
         directory will be used.
@@ -878,7 +873,7 @@ def mcmc_gan(
 
         training_thetas = parameters.sample_kde(
             thetas.reshape(-1, thetas.shape[-1]),
-            probs=y.reshape(-1),
+            probs=None,
             size=training_replicates // 2,
             rng=rng_thetas,
         )
@@ -988,7 +983,7 @@ def mcmc_gan(
 
             training_thetas = parameters.sample_kde(
                 thetas.reshape(-1, thetas.shape[-1]),
-                probs=probs.reshape(-1),
+                probs=None,
                 size=training_replicates // 2,
                 rng=rng_thetas,
             )
@@ -1018,20 +1013,14 @@ def smc(
     """
     Adversarial Sequential Monte Carlo.
 
+    In the first iteration, p[0] is the prior distribution.
     The following steps are taken for iteration j:
 
-      - sample training and proposal datasets from the prior[j] distribution,
+      - sample training and proposal datasets from distribution p[j],
       - train the discriminator,
       - make predictions with the discriminator on the proposal dataset,
-      - construct a posterior[j] sample from the proposal dataset,
-      - set prior[j+1] = posterior[j].
-
-    In the first iteration, the parameter values given to the generator
-    to produce the train/proposal datasets are drawn from the parameters'
-    prior distribution. In subsequent iterations, the parameter values
-    are drawn from a posterior sample. The posterior is obtained as a
-    weighted KDE of the proposal distribution where the weights are given
-    by the discriminator predictions.
+      - construct distribution p[j+1] as a weighted KDE of the proposals,
+        where the weights are given by the discriminator predictions.
 
     :param dinf_model:
         DinfModel object that describes the dinf model.
@@ -1052,8 +1041,7 @@ def smc(
     :param top_n:
         If not None, do ABC rejection sampling in each iteraction by taking
         the ``top_n`` best samples, ranked by discriminator prediction.
-        Samples are taken from the test replicates, so ``top_n`` must be
-        smaller than ``test_replicates``.
+        ``top_n`` must be smaller than ``proposal_replicates``.
     :param output_folder:
         Folder to output results. If not specified, the current
         directory will be used.
@@ -1220,7 +1208,7 @@ def smc(
             entropy = -np.sum(w * log_w) / np.log(len(w))
             logger.info("Entropy relative to uniformity: %s", entropy)
 
-            # Get the posterior sample for the next iteration.
+            # Get the samples for the next iteration.
             thetas = proposal_thetas
             if top_n is not None:
                 thetas, y = parameters.top_n(thetas, probs=y, n=top_n)
@@ -1480,7 +1468,7 @@ def pg_gan(
         Number of full passes over the training dataset when training
         the discriminator.
     :param Dx_replicates:
-        Number of generator replicates for approximating E[D(x)|θ].
+        Number of generator replicates for approximating E[D(G(θ))].
     :param num_proposals:
         Number proposals per parameter in each iteration.
     :param proposal_stddev:
@@ -1498,7 +1486,7 @@ def pg_gan(
            In practice, 10,000--20,000 training instances are sufficient.
 
            After pretraining, we choose the starting point to be the point
-           with the highest log probability from a fresh set of candidates
+           with the highest log loss from a fresh set of candidates
            drawn from the prior.
 
          * "pg-gan":
@@ -1506,9 +1494,9 @@ def pg_gan(
            to the discriminator, and it only trains the discriminator enough
            to identify such a point.
 
-           In each iteration we train the discriminator on a single point
+           In each pretraining iteration we train the discriminator on a single point
            sampled from the prior. If the discriminator can distinguish between
-           that point and the target dataset with accuracy 0.9, this point is
+           that point and the target dataset with accuracy>=0.9, this point is
            used as the starting point.
            Otherwise, a new point is chosen by sampling from the prior.
            If ``max_pretraining_iterations`` is exhausted without reaching an

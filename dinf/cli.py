@@ -196,20 +196,14 @@ class _Smc(_DinfSubCommand):
     """
     Adversarial Sequential Monte Carlo.
 
+    In the first iteration, p[0] is the prior distribution.
     The following steps are taken for iteration j:
 
-      - sample training and proposal datasets from the prior[j] distribution,
+      - sample training and proposal datasets from distribution p[j],
       - train the discriminator,
       - make predictions with the discriminator on the proposal dataset,
-      - construct a posterior[j] sample from the proposal dataset,
-      - set prior[j+1] = posterior[j].
-
-    In the first iteration, the parameter values given to the generator
-    to produce the train/proposal datasets are drawn from the parameters'
-    prior distribution. In subsequent iterations, the parameter values
-    are drawn from a posterior sample. The posterior is obtained as a
-    weighted KDE of the proposal distribution where the weights are given
-    by the discriminator predictions.
+      - construct distribution p[j+1] as a weighted KDE of the proposals,
+        where the weights are given by the discriminator predictions.
     """
 
     def __init__(self, subparsers):
@@ -224,7 +218,7 @@ class _Smc(_DinfSubCommand):
             type=int,
             help=(
                 "In each iteration, accept only the N top proposals, "
-                "ranked by probability."
+                "ranked by discriminator prediction."
             ),
         )
         group.add_argument(
@@ -358,18 +352,13 @@ class _McmcGan(_DinfSubCommand):
     """
     Run the MCMC GAN.
 
-    Conceptually, the GAN takes the following steps for iteration j:
+    In the first iteration, p[0] is the prior distribution.
+    The following steps are taken for iteration j:
 
-      - sample training dataset from the prior[j] distribution,
+      - sample training dataset from the distribution p[j],
       - train the discriminator,
       - run the MCMC,
-      - obtain posterior[j] as weighted KDE of MCMC sample,
-      - set prior[j+1] = posterior[j].
-
-    In the first iteration, the parameter values given to the generator
-    to produce the training dataset are drawn from the parameters' prior
-    distribution. In subsequent iterations, the parameter values are drawn
-    from a weighted gaussian KDE of the previous iteration's MCMC chains.
+      - obtain distribution p[j+1] as a KDE of the MCMC sample.
     """
 
     def __init__(self, subparsers):
@@ -397,7 +386,7 @@ class _McmcGan(_DinfSubCommand):
             "--Dx-replicates",
             type=int,
             default=32,
-            help="Number of generator replicates for approximating E[D(x)|θ].",
+            help="Number of generator replicates for approximating E[D(G(θ))].",
         )
 
         self.add_gan_parser_group()
@@ -516,7 +505,7 @@ class _PgGan(_DinfSubCommand):
             "--Dx-replicates",
             type=int,
             default=32,
-            help="Number of generator replicates for approximating E[D(x)|θ].",
+            help="Number of generator replicates for approximating E[D(G(θ))].",
         )
         group.add_argument(
             "--num-proposals",

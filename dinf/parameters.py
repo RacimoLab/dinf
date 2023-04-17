@@ -254,7 +254,7 @@ class Parameters(collections.abc.Mapping):
         thetas: np.ndarray,
         /,
         *,
-        probs: np.ndarray,
+        probs: np.ndarray | None,
         size: int,
         rng: np.random.Generator,
         shrinkage: bool = True,
@@ -280,8 +280,8 @@ class Parameters(collections.abc.Mapping):
             Numpy random generator.
         :param shinkage:
             If True, shrink the thetas towards their mean.
-            This correction avoids variance inflation of the posterior
-            due to the Guassian sampling.
+            This corrects for variance inflation of the distribution
+            due to the Gaussian sampling.
             See West 1993, https://doi.org/10.1111/j.2517-6161.1993.tb01911.x
         :return:
             The sampled values.
@@ -289,6 +289,8 @@ class Parameters(collections.abc.Mapping):
         thetas = np.atleast_2d(thetas)
         assert len(thetas) > 1
         assert thetas.shape[-1] == len(self)
+        if probs is None:
+            probs = np.ones(len(thetas))
         probs = np.atleast_1d(probs)
         assert thetas.shape[0] == probs.shape[0]
         weights = probs / np.sum(probs)
