@@ -20,7 +20,7 @@ Dinf uses and takes inspiration from the following projects.
   for training neural networks.
 - [msprime](https://tskit.dev/msprime/docs/)
   and the [tskit ecosystem](https://tskit.dev/) for simulations.
-- [cyvcf2](https://github.com/brentp/cyvcf2) for reading vcf and bcf files
+- [cyvcf2](https://github.com/brentp/cyvcf2) for reading VCF and BCF files
   (which itself uses [htslib](https://github.com/samtools/htslib)).
 - [matplotlib](https://matplotlib.org/) for creating plots.
 - [pg-gan](https://github.com/mathiesonlab/pg-gan)

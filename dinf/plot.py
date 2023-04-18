@@ -525,7 +525,7 @@ def entropy(
             constrained_layout=True,
         )
     Hs = [_relative_entropy(w) for w in ws]
-    ax.plot(range(1, len(Hs) + 1), Hs)
+    ax.plot(range(len(Hs)), Hs)
     ax.set_ylim([min(ax.get_ylim()[0], 0.5), 1])
     ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     return ax.figure, ax
@@ -565,7 +565,10 @@ class _DinfPlotSubCommand(_SubCommand):
             "--top",
             metavar="N",
             type=int,
-            help="Filter data to retain top N samples, ranked by probability.",
+            help=(
+                "Filter data to retain top N samples, ranked by "
+                "discriminator prediction."
+            ),
         )
 
     def add_argument_weighted(self):
@@ -573,7 +576,10 @@ class _DinfPlotSubCommand(_SubCommand):
             "-W",
             "--weighted",
             action="store_true",
-            help="Weight the parameter contributions by their probability.",
+            help=(
+                "Weight the parameter contributions by their "
+                "discriminator prediction."
+            ),
         )
 
     def add_argument_data_file(self, nargs):
@@ -602,7 +608,7 @@ class _DinfPlotSubCommand(_SubCommand):
         )
 
     def get_abc_datasets(self, data_files, top_n):
-        """Load data file and filter by top-n or by probability."""
+        """Load data file and filter by top-n or by discriminator prediction."""
         datasets = []
         for filename in data_files:
             data = dinf.load_results(filename)
@@ -772,7 +778,7 @@ class _Metrics(_DinfPlotSubCommand):
 
 class _Hist2d(_DinfPlotSubCommand):
     """
-    Plot 2d marginal posterior densities.
+    Plot 2d marginal histograms.
 
     One plot is produced for each unique pair of parameters.
     As this may lead to a large number of plots (particularly
@@ -789,11 +795,12 @@ class _Hist2d(_DinfPlotSubCommand):
     simulation-only model, then the parameters' truth values will
     be indicated by red lines. By default, all values in the
     data file contribute equally to the histogram. For parameter
-    values drawn from the prior distribution, this will therefore
-    show the prior distribution. A posterior sample can be obtained
-    by weighting parameter values by the discriminator probabilities
-    using the -W option, and/or rejection sampling the prior sample
-    using the --top option.
+    values drawn from the sampling distribution, this will therefore
+    show the sampling distribution. The subsequent distribution can
+    be obtained by weighting parameter values by the discriminator
+    predictions using the -W option, and/or rejection sampling
+    using the --top option to accept only the top N samples as ranked
+    by the discriminator preditions.
     """
 
     def __init__(self, subparsers):
@@ -948,13 +955,13 @@ def _kde1d_reflect(
 
 class _Hist(_DinfPlotSubCommand):
     """
-    Plot marginal posterior densities.
+    Plot marginal histograms.
 
-    One plot is produced for the discriminator probabilities,
+    One plot is produced for the discriminator predictions,
     plus one plot for each model parameter. The choice of which
     parameter to plot can be specified using the -x option,
     with the special value "_Pr" indicating the discriminator
-    probabilities.
+    predictions.
 
     If a pdf requested with the -o option, a multipage pdf is
     created. If another format is requested, then one file is
@@ -967,11 +974,12 @@ class _Hist(_DinfPlotSubCommand):
     red line. A 95% credible interval is shown at the bottom of
     the figure. By default, all values in the data file contribute
     equally to the histogram. For parameter values drawn from the
-    prior distribution, this will therefore show the prior
-    distribution. A posterior sample can be obtained by weighting
-    parameter values by the discriminator probabilities using the
-    -W option, and/or rejection sampling the prior sample using
-    the --top option.
+    sampling distribution, this will therefore show the sampling
+    distribution. The subsequent distribution can be obtained by
+    weighting parameter values by the discriminator predictions
+    using the -W option, and/or rejection sampling using the --top
+    option to accept only the top N samples as ranked by the
+    discriminator preditions.
     """
 
     def __init__(self, subparsers):
@@ -993,7 +1001,7 @@ class _Hist(_DinfPlotSubCommand):
             action="append",
             help=(
                 "Name of parameter to plot. "
-                'The special name "_Pr" is recognised to plot the probabilities '
+                'The special name "_Pr" is recognised to plot the predictions'
                 "obtained from the discriminator."
             ),
         )
@@ -1031,7 +1039,7 @@ class _Hist(_DinfPlotSubCommand):
                 truth = None
                 hist_kw = dict(cumulative=args.cumulative)
                 if x_param == "_Pr":
-                    # Plot discriminator probabilities.
+                    # Plot discriminator predictions.
                     ax.set_xlabel("Pr")
                     hist_kw["log"] = True
                     ci = False
@@ -1100,7 +1108,7 @@ class _Gan(_DinfPlotSubCommand):
             action="append",
             help=(
                 "Name of parameter to plot. "
-                'The special name "_Pr" is recognised to plot the probabilities '
+                'The special name "_Pr" is recognised to plot the predictions'
                 "obtained from the discriminator."
             ),
         )
@@ -1168,6 +1176,7 @@ class _Gan(_DinfPlotSubCommand):
                 ax.violinplot(
                     [data[x_param] for data in datasets],
                     quantiles=[[0.025, 0.5, 0.975]] * len(datasets),
+                    positions=np.arange(len(datasets)),
                     showextrema=False,
                 )
                 ax.set_ylabel(x_param)
