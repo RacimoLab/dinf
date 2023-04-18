@@ -418,7 +418,7 @@ def load_results(
         If None, the parameter names are not checked.
     :return:
         A numpy structured array, where the first column is the probabilities
-        (named ``_Pr``), and the subsequence columns are the
+        (named ``_Pr``), and the subsequent columns are the
         parameter values (if any).
     """
     names, formats, shapes = _npz_array_metadata(filename)

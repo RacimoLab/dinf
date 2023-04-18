@@ -565,7 +565,10 @@ class _DinfPlotSubCommand(_SubCommand):
             "--top",
             metavar="N",
             type=int,
-            help="Filter data to retain top N samples, ranked by discriminator prediction.",
+            help=(
+                "Filter data to retain top N samples, ranked by "
+                "discriminator prediction."
+            ),
         )
 
     def add_argument_weighted(self):
@@ -573,7 +576,10 @@ class _DinfPlotSubCommand(_SubCommand):
             "-W",
             "--weighted",
             action="store_true",
-            help="Weight the parameter contributions by their discriminator prediction.",
+            help=(
+                "Weight the parameter contributions by their "
+                "discriminator prediction."
+            ),
         )
 
     def add_argument_data_file(self, nargs):
