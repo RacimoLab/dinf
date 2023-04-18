@@ -444,7 +444,7 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">thetas</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="o">/</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
         <span class="n">shrinkage</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -470,8 +470,8 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">            Numpy random generator.</span>
 <span class="sd">        :param shinkage:</span>
 <span class="sd">            If True, shrink the thetas towards their mean.</span>
-<span class="sd">            This correction avoids variance inflation of the posterior</span>
-<span class="sd">            due to the Guassian sampling.</span>
+<span class="sd">            This corrects for variance inflation of the distribution</span>
+<span class="sd">            due to the Gaussian sampling.</span>
 <span class="sd">            See West 1993, https://doi.org/10.1111/j.2517-6161.1993.tb01911.x</span>
 <span class="sd">        :return:</span>
 <span class="sd">            The sampled values.</span>
@@ -479,6 +479,8 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="n">thetas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">thetas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
         <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">probs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">probs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">thetas</span><span class="p">))</span>
         <span class="n">probs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_1d</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">probs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="n">probs</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>

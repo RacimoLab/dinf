@@ -206,9 +206,7 @@ The module hooks can be useful for running the commands from a
 cloned git repository without requiring installation (e.g. during development).</p>
 <section id="analysis-inference">
 <span id="sec-cli-dinf"></span><h2>Analysis/inference<a class="headerlink" href="#analysis-inference" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf [-h] [-V] {check,train,predict,smc,mcmc-gan,pg-gan} ...
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [-V] {check,train,predict,smc,mcmc-gan,pg-gan} ...
 
 Discriminator-based inference of population parameters.
 
@@ -228,9 +226,7 @@ optional arguments:
 </div>
 <section id="dinf-check">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">check</span></code><a class="headerlink" href="#dinf-check" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf check [-h] [-v | -q] -m model.py
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf check [-h] [-v | -q] -m model.py
 
 Basic dinf_model health checks.
 
@@ -254,9 +250,7 @@ optional arguments:
 </section>
 <section id="dinf-train">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">train</span></code><a class="headerlink" href="#dinf-train" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf train [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf train [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
                   [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS] -m
                   model.py -d discriminator.nn
 
@@ -313,9 +307,7 @@ training arguments:
 </section>
 <section id="dinf-predict">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">predict</span></code><a class="headerlink" href="#dinf-predict" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf predict [-h] [-v | -q] [-S SEED] [-j PARALLELISM] [-r REPLICATES]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf predict [-h] [-v | -q] [-S SEED] [-j PARALLELISM] [-r REPLICATES]
                     [--target] -m model.py -d discriminator.nn [-o output.npz]
 
 Make predictions using a trained discriminator.
@@ -374,29 +366,21 @@ predict arguments:
 </section>
 <section id="dinf-smc">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">smc</span></code><a class="headerlink" href="#dinf-smc" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf smc [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf smc [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
                 [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
                 [--top N] [-P PROPOSAL_REPLICATES] [-i ITERATIONS]
                 [-o OUTPUT_FOLDER] -m model.py
 
 Adversarial Sequential Monte Carlo.
 
+In the first iteration, p[0] is the prior distribution.
 The following steps are taken for iteration j:
 
-  - sample training and proposal datasets from the prior[j] distribution,
+  - sample training and proposal datasets from distribution p[j],
   - train the discriminator,
   - make predictions with the discriminator on the proposal dataset,
-  - construct a posterior[j] sample from the proposal dataset,
-  - set prior[j+1] = posterior[j].
-
-In the first iteration, the parameter values given to the generator
-to produce the train/proposal datasets are drawn from the parameters&#39;
-prior distribution. In subsequent iterations, the parameter values
-are drawn from a posterior sample. The posterior is obtained as a
-weighted KDE of the proposal distribution where the weights are given
-by the discriminator predictions.
+  - construct distribution p[j+1] as a weighted KDE of the proposals,
+    where the weights are given by the discriminator predictions.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -437,7 +421,7 @@ training arguments:
 
 SMC arguments:
   --top N               In each iteration, accept only the N top proposals,
-                        ranked by probability. (default: None)
+                        ranked by discriminator prediction. (default: None)
   -P PROPOSAL_REPLICATES, --proposal-replicates PROPOSAL_REPLICATES
                         Number of replicates for Monte Carlo proposals.
                         (default: 1000)
@@ -459,27 +443,20 @@ GAN arguments:
 </section>
 <section id="dinf-mcmc-gan">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mcmc-gan</span></code><a class="headerlink" href="#dinf-mcmc-gan" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf mcmc-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf mcmc-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
                      [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
                      [-w WALKERS] [-s STEPS] [--Dx-replicates DX_REPLICATES]
                      [-i ITERATIONS] [-o OUTPUT_FOLDER] -m model.py
 
 Run the MCMC GAN.
 
-Conceptually, the GAN takes the following steps for iteration j:
+In the first iteration, p[0] is the prior distribution.
+The following steps are taken for iteration j:
 
-  - sample training dataset from the prior[j] distribution,
+  - sample training dataset from the distribution p[j],
   - train the discriminator,
   - run the MCMC,
-  - obtain posterior[j] as weighted KDE of MCMC sample,
-  - set prior[j+1] = posterior[j].
-
-In the first iteration, the parameter values given to the generator
-to produce the training dataset are drawn from the parameters&#39; prior
-distribution. In subsequent iterations, the parameter values are drawn
-from a weighted gaussian KDE of the previous iteration&#39;s MCMC chains.
+  - obtain distribution p[j+1] as a KDE of the MCMC sample.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -525,7 +502,7 @@ MCMC arguments:
                         The chain length for each MCMC walker. (default: 1000)
   --Dx-replicates DX_REPLICATES
                         Number of generator replicates for approximating
-                        E[D(x)|θ]. (default: 32)
+                        E[D(G(θ))]. (default: 32)
 
 GAN arguments:
   -i ITERATIONS, --iterations ITERATIONS
@@ -544,9 +521,7 @@ GAN arguments:
 </section>
 <section id="dinf-pg-gan">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">pg-gan</span></code><a class="headerlink" href="#dinf-pg-gan" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf pg-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf pg-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
                    [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
                    [--Dx-replicates DX_REPLICATES]
                    [--num-proposals NUM_PROPOSALS]
@@ -595,7 +570,7 @@ training arguments:
 PG-GAN arguments:
   --Dx-replicates DX_REPLICATES
                         Number of generator replicates for approximating
-                        E[D(x)|θ]. (default: 32)
+                        E[D(G(θ))]. (default: 32)
   --num-proposals NUM_PROPOSALS
                         Number of proposals for each parameter in a given
                         iteration. (default: 10)
@@ -620,9 +595,7 @@ GAN arguments:
 </section>
 <section id="plotting-results">
 <span id="sec-cli-dinf-plot"></span><h2>Plotting results<a class="headerlink" href="#plotting-results" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf.plot [-h] [-V] {demes,features,metrics,hist,hist2d,gan} ...
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot [-h] [-V] {demes,features,metrics,hist,hist2d,gan} ...
 
 Dinf plotting tools.
 
@@ -632,8 +605,8 @@ positional arguments:
                         DemesDraw.
     features            Plot feature matrices as heatmaps.
     metrics             Plot loss and accuracy of discriminator(s).
-    hist                Plot marginal posterior densities.
-    hist2d              Plot 2d marginal posterior densities.
+    hist                Plot marginal histograms.
+    hist2d              Plot 2d marginal histograms.
     gan                 Plot GAN things.
 
 optional arguments:
@@ -643,9 +616,7 @@ optional arguments:
 </div>
 <section id="dinf-plot-metrics">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">metrics</span></code><a class="headerlink" href="#dinf-plot-metrics" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf.plot metrics [-h] [-v | -q] [-o output.pdf]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot metrics [-h] [-v | -q] [-o output.pdf]
                          discriminator.nn [discriminator.nn ...]
 
 Plot loss and accuracy of discriminator(s).
@@ -681,9 +652,7 @@ optional arguments:
 </section>
 <section id="dinf-plot-features">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">features</span></code><a class="headerlink" href="#dinf-plot-features" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf.plot features [-h] [-v | -q] [-o output.pdf] [-S SEED] [--target]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot features [-h] [-v | -q] [-o output.pdf] [-S SEED] [--target]
                           -m model.py
 
 Plot feature matrices as heatmaps.
@@ -718,19 +687,17 @@ optional arguments:
 </section>
 <section id="dinf-plot-hist">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code><a class="headerlink" href="#dinf-plot-hist" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf.plot hist [-h] [-v | -q] [-o output.pdf] [--top N] [-W] [-c]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist [-h] [-v | -q] [-o output.pdf] [--top N] [-W] [-c]
                       [-x X_PARAM] [--kde] [-m model.py]
                       data.npz [data.npz ...]
 
-Plot marginal posterior densities.
+Plot marginal histograms.
 
-One plot is produced for the discriminator probabilities,
+One plot is produced for the discriminator predictions,
 plus one plot for each model parameter. The choice of which
 parameter to plot can be specified using the -x option,
 with the special value &quot;_Pr&quot; indicating the discriminator
-probabilities.
+predictions.
 
 If a pdf requested with the -o option, a multipage pdf is
 created. If another format is requested, then one file is
@@ -743,11 +710,12 @@ then the parameter&#39;s truth value will be shown as a vertical
 red line. A 95% credible interval is shown at the bottom of
 the figure. By default, all values in the data file contribute
 equally to the histogram. For parameter values drawn from the
-prior distribution, this will therefore show the prior
-distribution. A posterior sample can be obtained by weighting
-parameter values by the discriminator probabilities using the
--W option, and/or rejection sampling the prior sample using
-the --top option.
+sampling distribution, this will therefore show the sampling
+distribution. The subsequent distribution can be obtained by
+weighting parameter values by the discriminator predictions
+using the -W option, and/or rejection sampling using the --top
+option to accept only the top N samples as ranked by the
+discriminator preditions.
 
 positional arguments:
   data.npz              Data file containing discriminator predictions.
@@ -765,13 +733,13 @@ optional arguments:
                         output file is specified, an interactive plot window
                         will be opened. (default: None)
   --top N               Filter data to retain top N samples, ranked by
-                        probability. (default: None)
+                        discriminator prediction. (default: None)
   -W, --weighted        Weight the parameter contributions by their
-                        probability. (default: False)
+                        discriminator prediction. (default: False)
   -c, --cumulative      Plot cumulative distribution. (default: False)
   -x X_PARAM, --x-param X_PARAM
                         Name of parameter to plot. The special name &quot;_Pr&quot; is
-                        recognised to plot the probabilities obtained from the
+                        recognised to plot the predictionsobtained from the
                         discriminator. (default: None)
   --kde                 Also draw a 1-dimensional marginal kernel density
                         estimate. (default: False)
@@ -786,13 +754,11 @@ optional arguments:
 </section>
 <section id="dinf-plot-hist2d">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist2d</span></code><a class="headerlink" href="#dinf-plot-hist2d" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf.plot hist2d [-h] [-v | -q] [-o output.pdf] [--top N] [-W]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist2d [-h] [-v | -q] [-o output.pdf] [--top N] [-W]
                         [-x X_PARAM] [-y Y_PARAM] [-m model.py]
                         data.npz
 
-Plot 2d marginal posterior densities.
+Plot 2d marginal histograms.
 
 One plot is produced for each unique pair of parameters.
 As this may lead to a large number of plots (particularly
@@ -809,11 +775,12 @@ indicating higher densities. If the data correspond to a
 simulation-only model, then the parameters&#39; truth values will
 be indicated by red lines. By default, all values in the
 data file contribute equally to the histogram. For parameter
-values drawn from the prior distribution, this will therefore
-show the prior distribution. A posterior sample can be obtained
-by weighting parameter values by the discriminator probabilities
-using the -W option, and/or rejection sampling the prior sample
-using the --top option.
+values drawn from the sampling distribution, this will therefore
+show the sampling distribution. The subsequent distribution can
+be obtained by weighting parameter values by the discriminator
+predictions using the -W option, and/or rejection sampling
+using the --top option to accept only the top N samples as ranked
+by the discriminator preditions.
 
 positional arguments:
   data.npz              Data file containing discriminator predictions.
@@ -831,9 +798,9 @@ optional arguments:
                         output file is specified, an interactive plot window
                         will be opened. (default: None)
   --top N               Filter data to retain top N samples, ranked by
-                        probability. (default: None)
+                        discriminator prediction. (default: None)
   -W, --weighted        Weight the parameter contributions by their
-                        probability. (default: False)
+                        discriminator prediction. (default: False)
   -x X_PARAM, --x-param X_PARAM
                         Name of parameter to plot on horizontal axis.
                         (default: None)
@@ -852,9 +819,7 @@ optional arguments:
 </section>
 <section id="tabulating-results">
 <span id="sec-cli-dinf-tabulate"></span><h2>Tabulating results<a class="headerlink" href="#tabulating-results" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf.tabulate [-h] [-V] {metrics,data,quantiles} ...
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.tabulate [-h] [-V] {metrics,data,quantiles} ...
 
 Tabulate Dinf output.
 
@@ -871,9 +836,7 @@ optional arguments:
 </div>
 <section id="dinf-tabulate-metrics">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">metrics</span></code><a class="headerlink" href="#dinf-tabulate-metrics" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf.tabulate metrics [-h] [-v | -q] [-o output.txt]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.tabulate metrics [-h] [-v | -q] [-o output.txt]
                              [--separator SEPARATOR] [--format FORMAT]
                              discriminator.nn [discriminator.nn ...]
 
@@ -901,9 +864,7 @@ optional arguments:
 </section>
 <section id="dinf-tabulate-data">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">data</span></code><a class="headerlink" href="#dinf-tabulate-data" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf.tabulate data [-h] [-v | -q] [-o output.txt]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.tabulate data [-h] [-v | -q] [-o output.txt]
                           [--separator SEPARATOR] [--format FORMAT]
                           data.npz
 
@@ -930,9 +891,7 @@ optional arguments:
 </section>
 <section id="dinf-tabulate-quantiles">
 <h3><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">quantiles</span></code><a class="headerlink" href="#dinf-tabulate-quantiles" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/opt/hostedtoolcache/Python/3.8.16/x64/lib/python3.8/site-packages/flax/core/frozen_dict.py:169: FutureWarning: jax.tree_util.register_keypaths is deprecated, and will be removed in a future release. Please use `register_pytree_with_keys()` instead.
-  jax.tree_util.register_keypaths(
-usage: dinf.tabulate quantiles [-h] [-v | -q] [-o output.txt]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.tabulate quantiles [-h] [-v | -q] [-o output.txt]
                                [--separator SEPARATOR] [--format FORMAT]
                                [--top N] [-W] [--quantiles QUANTILES]
                                data.npz

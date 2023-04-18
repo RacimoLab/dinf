@@ -224,7 +224,7 @@ const thebe_selector_output = ".output, .cell_output"
 
     <span class="c1"># Because we use batch normalisation, the training state needs to also record</span>
     <span class="c1"># batch_stats to maintain the running mean and variance.</span>
-    <span class="k">class</span> <span class="nc">TrainState</span><span class="p">(</span><span class="n">flax</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">train_state</span><span class="o">.</span><span class="n">TrainState</span><span class="p">):</span>  <span class="c1"># type: ignore[misc]</span>
+    <span class="k">class</span> <span class="nc">TrainState</span><span class="p">(</span><span class="n">flax</span><span class="o">.</span><span class="n">training</span><span class="o">.</span><span class="n">train_state</span><span class="o">.</span><span class="n">TrainState</span><span class="p">):</span>
         <span class="n">batch_stats</span><span class="p">:</span> <span class="n">Pytree</span>  <span class="c1"># type: ignore[misc,annotation-unchecked]</span>
 
     <span class="k">return</span> <span class="n">TrainState</span>

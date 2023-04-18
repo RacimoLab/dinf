@@ -715,7 +715,7 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="n">Hs</span> <span class="o">=</span> <span class="p">[</span><span class="n">_relative_entropy</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">ws</span><span class="p">]</span>
-    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">Hs</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">Hs</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">Hs</span><span class="p">)),</span> <span class="n">Hs</span><span class="p">)</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="nb">min</span><span class="p">(</span><span class="n">ax</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="mf">0.5</span><span class="p">),</span> <span class="mi">1</span><span class="p">])</span>
     <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">ticker</span><span class="o">.</span><span class="n">MaxNLocator</span><span class="p">(</span><span class="n">integer</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">ax</span><span class="o">.</span><span class="n">figure</span><span class="p">,</span> <span class="n">ax</span></div>
@@ -755,7 +755,10 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="s2">&quot;--top&quot;</span><span class="p">,</span>
             <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;N&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Filter data to retain top N samples, ranked by probability.&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">&quot;Filter data to retain top N samples, ranked by &quot;</span>
+                <span class="s2">&quot;discriminator prediction.&quot;</span>
+            <span class="p">),</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">add_argument_weighted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -763,7 +766,10 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="s2">&quot;-W&quot;</span><span class="p">,</span>
             <span class="s2">&quot;--weighted&quot;</span><span class="p">,</span>
             <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Weight the parameter contributions by their probability.&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">&quot;Weight the parameter contributions by their &quot;</span>
+                <span class="s2">&quot;discriminator prediction.&quot;</span>
+            <span class="p">),</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">add_argument_data_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nargs</span><span class="p">):</span>
@@ -792,7 +798,7 @@ const thebe_selector_output = ".output, .cell_output"
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get_abc_datasets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_files</span><span class="p">,</span> <span class="n">top_n</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load data file and filter by top-n or by probability.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load data file and filter by top-n or by discriminator prediction.&quot;&quot;&quot;</span>
         <span class="n">datasets</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">data_files</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">load_results</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
@@ -962,7 +968,7 @@ const thebe_selector_output = ".output, .cell_output"
 
 <span class="k">class</span> <span class="nc">_Hist2d</span><span class="p">(</span><span class="n">_DinfPlotSubCommand</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Plot 2d marginal posterior densities.</span>
+<span class="sd">    Plot 2d marginal histograms.</span>
 
 <span class="sd">    One plot is produced for each unique pair of parameters.</span>
 <span class="sd">    As this may lead to a large number of plots (particularly</span>
@@ -979,11 +985,12 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">    simulation-only model, then the parameters&#39; truth values will</span>
 <span class="sd">    be indicated by red lines. By default, all values in the</span>
 <span class="sd">    data file contribute equally to the histogram. For parameter</span>
-<span class="sd">    values drawn from the prior distribution, this will therefore</span>
-<span class="sd">    show the prior distribution. A posterior sample can be obtained</span>
-<span class="sd">    by weighting parameter values by the discriminator probabilities</span>
-<span class="sd">    using the -W option, and/or rejection sampling the prior sample</span>
-<span class="sd">    using the --top option.</span>
+<span class="sd">    values drawn from the sampling distribution, this will therefore</span>
+<span class="sd">    show the sampling distribution. The subsequent distribution can</span>
+<span class="sd">    be obtained by weighting parameter values by the discriminator</span>
+<span class="sd">    predictions using the -W option, and/or rejection sampling</span>
+<span class="sd">    using the --top option to accept only the top N samples as ranked</span>
+<span class="sd">    by the discriminator preditions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subparsers</span><span class="p">):</span>
@@ -1138,13 +1145,13 @@ const thebe_selector_output = ".output, .cell_output"
 
 <span class="k">class</span> <span class="nc">_Hist</span><span class="p">(</span><span class="n">_DinfPlotSubCommand</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Plot marginal posterior densities.</span>
+<span class="sd">    Plot marginal histograms.</span>
 
-<span class="sd">    One plot is produced for the discriminator probabilities,</span>
+<span class="sd">    One plot is produced for the discriminator predictions,</span>
 <span class="sd">    plus one plot for each model parameter. The choice of which</span>
 <span class="sd">    parameter to plot can be specified using the -x option,</span>
 <span class="sd">    with the special value &quot;_Pr&quot; indicating the discriminator</span>
-<span class="sd">    probabilities.</span>
+<span class="sd">    predictions.</span>
 
 <span class="sd">    If a pdf requested with the -o option, a multipage pdf is</span>
 <span class="sd">    created. If another format is requested, then one file is</span>
@@ -1157,11 +1164,12 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">    red line. A 95% credible interval is shown at the bottom of</span>
 <span class="sd">    the figure. By default, all values in the data file contribute</span>
 <span class="sd">    equally to the histogram. For parameter values drawn from the</span>
-<span class="sd">    prior distribution, this will therefore show the prior</span>
-<span class="sd">    distribution. A posterior sample can be obtained by weighting</span>
-<span class="sd">    parameter values by the discriminator probabilities using the</span>
-<span class="sd">    -W option, and/or rejection sampling the prior sample using</span>
-<span class="sd">    the --top option.</span>
+<span class="sd">    sampling distribution, this will therefore show the sampling</span>
+<span class="sd">    distribution. The subsequent distribution can be obtained by</span>
+<span class="sd">    weighting parameter values by the discriminator predictions</span>
+<span class="sd">    using the -W option, and/or rejection sampling using the --top</span>
+<span class="sd">    option to accept only the top N samples as ranked by the</span>
+<span class="sd">    discriminator preditions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subparsers</span><span class="p">):</span>
@@ -1183,7 +1191,7 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="n">action</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="p">(</span>
                 <span class="s2">&quot;Name of parameter to plot. &quot;</span>
-                <span class="s1">&#39;The special name &quot;_Pr&quot; is recognised to plot the probabilities &#39;</span>
+                <span class="s1">&#39;The special name &quot;_Pr&quot; is recognised to plot the predictions&#39;</span>
                 <span class="s2">&quot;obtained from the discriminator.&quot;</span>
             <span class="p">),</span>
         <span class="p">)</span>
@@ -1221,7 +1229,7 @@ const thebe_selector_output = ".output, .cell_output"
                 <span class="n">truth</span> <span class="o">=</span> <span class="kc">None</span>
                 <span class="n">hist_kw</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">cumulative</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cumulative</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">x_param</span> <span class="o">==</span> <span class="s2">&quot;_Pr&quot;</span><span class="p">:</span>
-                    <span class="c1"># Plot discriminator probabilities.</span>
+                    <span class="c1"># Plot discriminator predictions.</span>
                     <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Pr&quot;</span><span class="p">)</span>
                     <span class="n">hist_kw</span><span class="p">[</span><span class="s2">&quot;log&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
                     <span class="n">ci</span> <span class="o">=</span> <span class="kc">False</span>
@@ -1290,7 +1298,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">            action=&quot;append&quot;,</span>
 <span class="sd">            help=(</span>
 <span class="sd">                &quot;Name of parameter to plot. &quot;</span>
-<span class="sd">                &#39;The special name &quot;_Pr&quot; is recognised to plot the probabilities &#39;</span>
+<span class="sd">                &#39;The special name &quot;_Pr&quot; is recognised to plot the predictions&#39;</span>
 <span class="sd">                &quot;obtained from the discriminator.&quot;</span>
 <span class="sd">            ),</span>
 <span class="sd">        )</span>
@@ -1358,6 +1366,7 @@ const thebe_selector_output = ".output, .cell_output"
                 <span class="n">ax</span><span class="o">.</span><span class="n">violinplot</span><span class="p">(</span>
                     <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">x_param</span><span class="p">]</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">],</span>
                     <span class="n">quantiles</span><span class="o">=</span><span class="p">[[</span><span class="mf">0.025</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.975</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">datasets</span><span class="p">),</span>
+                    <span class="n">positions</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">datasets</span><span class="p">)),</span>
                     <span class="n">showextrema</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="p">)</span>
                 <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">x_param</span><span class="p">)</span>

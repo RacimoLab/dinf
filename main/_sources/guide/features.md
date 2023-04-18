@@ -208,7 +208,7 @@ ax.set_title("BinnedHaplotypeMatrix");
 ## Sequence length
 
 The sequence length for a feature matrix is the size of the genomic
-window that was simulated or sampled from a vcf.
+window that was simulated or sampled from a VCF.
 
 For {class}`.HaplotypeMatrix`, the sequence length should be sufficiently
 long to obtain `num_loci` SNPs *most of the time*. If the feature matrices are

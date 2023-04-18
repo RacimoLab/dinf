@@ -608,7 +608,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">        If None, the parameter names are not checked.</span>
 <span class="sd">    :return:</span>
 <span class="sd">        A numpy structured array, where the first column is the probabilities</span>
-<span class="sd">        (named ``_Pr``), and the subsequence columns are the</span>
+<span class="sd">        (named ``_Pr``), and the subsequent columns are the</span>
 <span class="sd">        parameter values (if any).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">names</span><span class="p">,</span> <span class="n">formats</span><span class="p">,</span> <span class="n">shapes</span> <span class="o">=</span> <span class="n">_npz_array_metadata</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
@@ -975,20 +975,15 @@ const thebe_selector_output = ".output, .cell_output"
     <span class="n">callbacks</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Run the MCMC GAN.</span>
+<span class="sd">    Run the MCMC GAN.</span>
 
-<span class="sd">    Conceptually, the GAN takes the following steps for iteration j:</span>
+<span class="sd">    In the first iteration, p[0] is the prior distribution.</span>
+<span class="sd">    The following steps are taken for iteration j:</span>
 
-<span class="sd">      - sample training dataset from the prior[j] distribution,</span>
+<span class="sd">      - sample training dataset from the distribution p[j],</span>
 <span class="sd">      - train the discriminator,</span>
 <span class="sd">      - run the MCMC,</span>
-<span class="sd">      - obtain posterior[j] as weighted KDE of MCMC sample,</span>
-<span class="sd">      - set prior[j+1] = posterior[j].</span>
-
-<span class="sd">    In the first iteration, the parameter values given to the generator</span>
-<span class="sd">    to produce the training dataset are drawn from the parameters&#39; prior</span>
-<span class="sd">    distribution. In subsequent iterations, the parameter values are drawn</span>
-<span class="sd">    from a weighted gaussian KDE of the previous iteration&#39;s MCMC chains.</span>
+<span class="sd">      - obtain distribution p[j+1] as a KDE of the MCMC sample.</span>
 
 <span class="sd">    :param dinf_model:</span>
 <span class="sd">        DinfModel object that describes the model components.</span>
@@ -1008,7 +1003,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">    :param steps:</span>
 <span class="sd">        The chain length for each MCMC walker.</span>
 <span class="sd">    :param Dx_replicates:</span>
-<span class="sd">        Number of generator replicates for approximating E[D(x)|θ].</span>
+<span class="sd">        Number of generator replicates for approximating E[D(G(θ))].</span>
 <span class="sd">    :param output_folder:</span>
 <span class="sd">        Folder to output results. If not specified, the current</span>
 <span class="sd">        directory will be used.</span>
@@ -1068,7 +1063,7 @@ const thebe_selector_output = ".output, .cell_output"
 
         <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_kde</span><span class="p">(</span>
             <span class="n">thetas</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
-            <span class="n">probs</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">probs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
             <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1178,7 +1173,7 @@ const thebe_selector_output = ".output, .cell_output"
 
             <span class="n">training_thetas</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">sample_kde</span><span class="p">(</span>
                 <span class="n">thetas</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">thetas</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
-                <span class="n">probs</span><span class="o">=</span><span class="n">probs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+                <span class="n">probs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">size</span><span class="o">=</span><span class="n">training_replicates</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span>
                 <span class="n">rng</span><span class="o">=</span><span class="n">rng_thetas</span><span class="p">,</span>
             <span class="p">)</span>
@@ -1208,20 +1203,14 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Adversarial Sequential Monte Carlo.</span>
 
+<span class="sd">    In the first iteration, p[0] is the prior distribution.</span>
 <span class="sd">    The following steps are taken for iteration j:</span>
 
-<span class="sd">      - sample training and proposal datasets from the prior[j] distribution,</span>
+<span class="sd">      - sample training and proposal datasets from distribution p[j],</span>
 <span class="sd">      - train the discriminator,</span>
 <span class="sd">      - make predictions with the discriminator on the proposal dataset,</span>
-<span class="sd">      - construct a posterior[j] sample from the proposal dataset,</span>
-<span class="sd">      - set prior[j+1] = posterior[j].</span>
-
-<span class="sd">    In the first iteration, the parameter values given to the generator</span>
-<span class="sd">    to produce the train/proposal datasets are drawn from the parameters&#39;</span>
-<span class="sd">    prior distribution. In subsequent iterations, the parameter values</span>
-<span class="sd">    are drawn from a posterior sample. The posterior is obtained as a</span>
-<span class="sd">    weighted KDE of the proposal distribution where the weights are given</span>
-<span class="sd">    by the discriminator predictions.</span>
+<span class="sd">      - construct distribution p[j+1] as a weighted KDE of the proposals,</span>
+<span class="sd">        where the weights are given by the discriminator predictions.</span>
 
 <span class="sd">    :param dinf_model:</span>
 <span class="sd">        DinfModel object that describes the dinf model.</span>
@@ -1242,8 +1231,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">    :param top_n:</span>
 <span class="sd">        If not None, do ABC rejection sampling in each iteraction by taking</span>
 <span class="sd">        the ``top_n`` best samples, ranked by discriminator prediction.</span>
-<span class="sd">        Samples are taken from the test replicates, so ``top_n`` must be</span>
-<span class="sd">        smaller than ``test_replicates``.</span>
+<span class="sd">        ``top_n`` must be smaller than ``proposal_replicates``.</span>
 <span class="sd">    :param output_folder:</span>
 <span class="sd">        Folder to output results. If not specified, the current</span>
 <span class="sd">        directory will be used.</span>
@@ -1410,7 +1398,7 @@ const thebe_selector_output = ".output, .cell_output"
             <span class="n">entropy</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">log_w</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">))</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Entropy relative to uniformity: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">entropy</span><span class="p">)</span>
 
-            <span class="c1"># Get the posterior sample for the next iteration.</span>
+            <span class="c1"># Get the samples for the next iteration.</span>
             <span class="n">thetas</span> <span class="o">=</span> <span class="n">proposal_thetas</span>
             <span class="k">if</span> <span class="n">top_n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">thetas</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">top_n</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">top_n</span><span class="p">)</span>
@@ -1670,7 +1658,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">        Number of full passes over the training dataset when training</span>
 <span class="sd">        the discriminator.</span>
 <span class="sd">    :param Dx_replicates:</span>
-<span class="sd">        Number of generator replicates for approximating E[D(x)|θ].</span>
+<span class="sd">        Number of generator replicates for approximating E[D(G(θ))].</span>
 <span class="sd">    :param num_proposals:</span>
 <span class="sd">        Number proposals per parameter in each iteration.</span>
 <span class="sd">    :param proposal_stddev:</span>
@@ -1688,7 +1676,7 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">           In practice, 10,000--20,000 training instances are sufficient.</span>
 
 <span class="sd">           After pretraining, we choose the starting point to be the point</span>
-<span class="sd">           with the highest log probability from a fresh set of candidates</span>
+<span class="sd">           with the highest log loss from a fresh set of candidates</span>
 <span class="sd">           drawn from the prior.</span>
 
 <span class="sd">         * &quot;pg-gan&quot;:</span>
@@ -1696,9 +1684,9 @@ const thebe_selector_output = ".output, .cell_output"
 <span class="sd">           to the discriminator, and it only trains the discriminator enough</span>
 <span class="sd">           to identify such a point.</span>
 
-<span class="sd">           In each iteration we train the discriminator on a single point</span>
+<span class="sd">           In each pretraining iteration we train the discriminator on a single point</span>
 <span class="sd">           sampled from the prior. If the discriminator can distinguish between</span>
-<span class="sd">           that point and the target dataset with accuracy 0.9, this point is</span>
+<span class="sd">           that point and the target dataset with accuracy&gt;=0.9, this point is</span>
 <span class="sd">           used as the starting point.</span>
 <span class="sd">           Otherwise, a new point is chosen by sampling from the prior.</span>
 <span class="sd">           If ``max_pretraining_iterations`` is exhausted without reaching an</span>
