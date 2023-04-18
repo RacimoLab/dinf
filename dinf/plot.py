@@ -525,7 +525,7 @@ def entropy(
             constrained_layout=True,
         )
     Hs = [_relative_entropy(w) for w in ws]
-    ax.plot(range(1, len(Hs) + 1), Hs)
+    ax.plot(range(len(Hs)), Hs)
     ax.set_ylim([min(ax.get_ylim()[0], 0.5), 1])
     ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
     return ax.figure, ax
@@ -1170,6 +1170,7 @@ class _Gan(_DinfPlotSubCommand):
                 ax.violinplot(
                     [data[x_param] for data in datasets],
                     quantiles=[[0.025, 0.5, 0.975]] * len(datasets),
+                    positions=np.arange(len(datasets)),
                     showextrema=False,
                 )
                 ax.set_ylabel(x_param)
