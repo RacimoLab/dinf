@@ -630,17 +630,11 @@ class _DinfPlotSubCommand(_SubCommand):
         discriminators = []
         data_files = []
         store = dinf.Store(gan_folder, create=False)
-        dataset_type = None
         for j, path in enumerate(store):
             if (path / "discriminator.nn").exists():
                 discriminators.append(path / "discriminator.nn")
-            for prefix in ("smc", "mcmc", "pg-gan-proposals"):
-                if (path / f"{prefix}.npz").exists():
-                    if dataset_type is None:
-                        dataset_type = prefix
-                    else:
-                        assert dataset_type == prefix, (j, dataset_type, prefix)
-                    data_files.append(path / f"{prefix}.npz")
+            if (path / "data.npz").exists():
+                data_files.append(path / "data.npz")
         return discriminators, data_files
 
 
