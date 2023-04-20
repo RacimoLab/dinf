@@ -28,8 +28,8 @@ from .discriminator import (
     Symmetric,
 )
 from .dinf import (
-    smc,
-    mcmc_gan,
+    mc,
+    mcmc,
     pg_gan,
     predict,
     train,

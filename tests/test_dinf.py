@@ -39,10 +39,10 @@ def check_npz(
 
 @pytest.mark.parametrize("top_n", [None, 2])
 @pytest.mark.usefixtures("tmp_path")
-def test_smc(tmp_path, top_n):
+def test_mc(tmp_path, top_n):
     dinf_model = get_dinf_model()
     output_folder = tmp_path / "work_dir"
-    dinf.dinf.smc(
+    dinf.dinf.mc(
         dinf_model=dinf_model,
         iterations=2,
         training_replicates=4,
@@ -58,7 +58,7 @@ def test_smc(tmp_path, top_n):
     for i in range(2):
         check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            output_folder / f"{i}" / "smc.npz",
+            output_folder / f"{i}" / "data.npz",
             chains=1,
             draws=3,
             parameters=dinf_model.parameters,
@@ -68,7 +68,7 @@ def test_smc(tmp_path, top_n):
     saved_cwd = pathlib.Path.cwd()
     os.chdir(output_folder)
     try:
-        dinf.dinf.smc(
+        dinf.dinf.mc(
             dinf_model=dinf_model,
             iterations=1,
             training_replicates=4,
@@ -84,14 +84,14 @@ def test_smc(tmp_path, top_n):
     for i in range(3):
         check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            output_folder / f"{i}" / "smc.npz",
+            output_folder / f"{i}" / "data.npz",
             chains=1,
             draws=3,
             parameters=dinf_model.parameters,
         )
 
     with pytest.raises(ValueError, match="top_n"):
-        dinf.dinf.smc(
+        dinf.dinf.mc(
             dinf_model=dinf_model,
             iterations=2,
             training_replicates=4,
@@ -107,11 +107,11 @@ def test_smc(tmp_path, top_n):
     backup = output_folder / "bak"
     for file in [
         output_folder / f"{i}" / "discriminator.nn",
-        output_folder / f"{i}" / "smc.npz",
+        output_folder / f"{i}" / "data.npz",
     ]:
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
-            dinf.dinf.smc(
+            dinf.dinf.mc(
                 dinf_model=dinf_model,
                 iterations=2,
                 training_replicates=4,
@@ -126,10 +126,10 @@ def test_smc(tmp_path, top_n):
 
 
 @pytest.mark.usefixtures("tmp_path")
-def test_mcmc_gan(tmp_path):
+def test_mcmc(tmp_path):
     dinf_model = get_dinf_model()
     output_folder = tmp_path / "workdir"
-    dinf.mcmc_gan(
+    dinf.mcmc(
         dinf_model=dinf_model,
         iterations=2,
         training_replicates=10,
@@ -146,7 +146,7 @@ def test_mcmc_gan(tmp_path):
     for i in range(2):
         check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            output_folder / f"{i}" / "mcmc.npz",
+            output_folder / f"{i}" / "data.npz",
             chains=6,
             draws=1,
             parameters=dinf_model.parameters,
@@ -156,7 +156,7 @@ def test_mcmc_gan(tmp_path):
     saved_cwd = pathlib.Path.cwd()
     os.chdir(output_folder)
     try:
-        dinf.mcmc_gan(
+        dinf.mcmc(
             dinf_model=dinf_model,
             iterations=1,
             training_replicates=10,
@@ -172,14 +172,14 @@ def test_mcmc_gan(tmp_path):
     for i in range(3):
         check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            output_folder / f"{i}" / "mcmc.npz",
+            output_folder / f"{i}" / "data.npz",
             chains=6,
             draws=1,
             parameters=dinf_model.parameters,
         )
 
     with pytest.raises(ValueError, match="resuming from .* which used .* walkers"):
-        dinf.mcmc_gan(
+        dinf.mcmc(
             dinf_model=dinf_model,
             iterations=2,
             training_replicates=10,
@@ -196,11 +196,11 @@ def test_mcmc_gan(tmp_path):
     backup = output_folder / "bak"
     for file in [
         output_folder / f"{i}" / "discriminator.nn",
-        output_folder / f"{i}" / "mcmc.npz",
+        output_folder / f"{i}" / "data.npz",
     ]:
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):
-            dinf.mcmc_gan(
+            dinf.mcmc(
                 dinf_model=dinf_model,
                 iterations=2,
                 training_replicates=10,
@@ -239,7 +239,7 @@ def test_pg_gan(tmp_path):
     for i in range(2):
         check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            output_folder / f"{i}" / "pg-gan-proposals.npz",
+            output_folder / f"{i}" / "data.npz",
             chains=1,
             draws=num_params * num_proposals + 1,
             parameters=dinf_model.parameters,
@@ -265,7 +265,7 @@ def test_pg_gan(tmp_path):
     for i in range(3):
         check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
         check_npz(
-            output_folder / f"{i}" / "pg-gan-proposals.npz",
+            output_folder / f"{i}" / "data.npz",
             chains=1,
             draws=num_params * num_proposals + 1,
             parameters=dinf_model.parameters,
@@ -274,7 +274,7 @@ def test_pg_gan(tmp_path):
     backup = output_folder / "bak"
     for file in [
         output_folder / f"{i}" / "discriminator.nn",
-        output_folder / f"{i}" / "pg-gan-proposals.npz",
+        output_folder / f"{i}" / "data.npz",
     ]:
         file.rename(backup)
         with pytest.raises(RuntimeError, match="incomplete"):

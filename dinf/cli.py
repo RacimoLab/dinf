@@ -164,7 +164,7 @@ class _DinfSubCommand(_SubCommand):
     def add_gan_parser_group(self):
         group = self.parser.add_argument_group(title="GAN arguments")
         group.add_argument(
-            "-i", "--iterations", type=int, default=1, help="Number of GAN iterations."
+            "-i", "--iterations", type=int, default=1, help="Number of iterations."
         )
         group.add_argument(
             "-o",
@@ -192,9 +192,9 @@ class _DinfSubCommand(_SubCommand):
         )
 
 
-class _Smc(_DinfSubCommand):
+class _Mc(_DinfSubCommand):
     """
-    Adversarial Sequential Monte Carlo.
+    Adversarial Monte Carlo.
 
     In the first iteration, p[0] is the prior distribution.
     The following steps are taken for iteration j:
@@ -207,7 +207,7 @@ class _Smc(_DinfSubCommand):
     """
 
     def __init__(self, subparsers):
-        super().__init__(subparsers, "smc")
+        super().__init__(subparsers, "mc")
         self.add_common_parser_group()
         self.add_train_parser_group()
 
@@ -333,7 +333,7 @@ class _Smc(_DinfSubCommand):
             callbacks = {}
 
         with progress:
-            dinf.dinf.smc(
+            dinf.dinf.mc(
                 dinf_model=dinf_model,
                 iterations=args.iterations,
                 training_replicates=args.training_replicates,
@@ -348,9 +348,9 @@ class _Smc(_DinfSubCommand):
             )
 
 
-class _McmcGan(_DinfSubCommand):
+class _Mcmc(_DinfSubCommand):
     """
-    Run the MCMC GAN.
+    Adversarial MCMC.
 
     In the first iteration, p[0] is the prior distribution.
     The following steps are taken for iteration j:
@@ -362,7 +362,7 @@ class _McmcGan(_DinfSubCommand):
     """
 
     def __init__(self, subparsers):
-        super().__init__(subparsers, "mcmc-gan")
+        super().__init__(subparsers, "mcmc")
 
         self.add_common_parser_group()
         self.add_train_parser_group()
@@ -473,7 +473,7 @@ class _McmcGan(_DinfSubCommand):
             callbacks = {}
 
         with progress:
-            dinf.mcmc_gan(
+            dinf.mcmc(
                 dinf_model=dinf_model,
                 iterations=args.iterations,
                 training_replicates=args.training_replicates,
@@ -491,7 +491,7 @@ class _McmcGan(_DinfSubCommand):
 
 class _PgGan(_DinfSubCommand):
     """
-    Run PG-GAN style simulated annealing.
+    PG-GAN style simulated annealing.
     """
 
     def __init__(self, subparsers):
@@ -818,8 +818,8 @@ def main(args_list=None):
     _Check(subparsers)
     _Train(subparsers)
     _Predict(subparsers)
-    _Smc(subparsers)
-    _McmcGan(subparsers)
+    _Mc(subparsers)
+    _Mcmc(subparsers)
     _PgGan(subparsers)
 
     args = top_parser.parse_args(args_list)

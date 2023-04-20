@@ -35,8 +35,8 @@ class TestTopLevel:
         with capture() as cap1:
             dinf.cli.main(["-h"])
         assert cap1.ret == 0
-        assert "mcmc-gan" in cap1.out
-        assert "smc" in cap1.out
+        assert "mcmc" in cap1.out
+        assert "mc" in cap1.out
         assert "pg-gan" in cap1.out
         assert "train" in cap1.out
         assert "predict" in cap1.out
@@ -94,10 +94,10 @@ class TestCheck(HelpMixin):
 
 class TestSmc(HelpMixin):
     main = dinf.cli.main
-    subcommand = "smc"
+    subcommand = "mc"
 
     @pytest.mark.usefixtures("tmp_path")
-    def test_smc_example(self, tmp_path):
+    def test_mc_example(self, tmp_path):
         output_folder = tmp_path / "work_dir"
         ex = "examples/bottleneck/model.py"
         with capture() as cap:
@@ -122,7 +122,7 @@ class TestSmc(HelpMixin):
         for i in range(2):
             check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
             check_npz(
-                output_folder / f"{i}" / "smc.npz",
+                output_folder / f"{i}" / "data.npz",
                 chains=1,
                 draws=4,
                 parameters=dinf_model.parameters,
@@ -131,10 +131,10 @@ class TestSmc(HelpMixin):
 
 class TestMcmcGan(HelpMixin):
     main = dinf.cli.main
-    subcommand = "mcmc-gan"
+    subcommand = "mcmc"
 
     @pytest.mark.usefixtures("tmp_path")
-    def test_mcmc_gan_example(self, tmp_path):
+    def test_mcmc_example(self, tmp_path):
         output_folder = tmp_path / "work_dir"
         ex = "examples/bottleneck/model.py"
         with capture() as cap:
@@ -161,7 +161,7 @@ class TestMcmcGan(HelpMixin):
         for i in range(2):
             check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
             check_npz(
-                output_folder / f"{i}" / "mcmc.npz",
+                output_folder / f"{i}" / "data.npz",
                 chains=6,
                 draws=1,
                 parameters=dinf_model.parameters,
@@ -201,7 +201,7 @@ class TestPgGan(HelpMixin):
         for i in range(2):
             check_discriminator(output_folder / f"{i}" / "discriminator.nn", dinf_model)
             check_npz(
-                output_folder / f"{i}" / "pg-gan-proposals.npz",
+                output_folder / f"{i}" / "data.npz",
                 chains=1,
                 draws=num_parameters * num_proposals + 1,
                 parameters=dinf_model.parameters,

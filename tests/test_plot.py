@@ -375,8 +375,8 @@ class TestPlotGan(HelpMixin):
         ],
     )
     @pytest.mark.usefixtures("tmp_path")
-    @pytest.mark.usefixtures("smc_outdir")
-    def test_plot_gan(self, tmp_path, smc_outdir, model_option, extra_options):
+    @pytest.mark.usefixtures("mc_outdir")
+    def test_plot_gan(self, tmp_path, mc_outdir, model_option, extra_options):
         output_file = tmp_path / "output.png"
         with capture() as cap:
             dinf.plot.main(
@@ -385,7 +385,7 @@ class TestPlotGan(HelpMixin):
                     --output-file {output_file}
                     {model_option}
                     {extra_options}
-                    {smc_outdir}
+                    {mc_outdir}
                 """.split()
             )
         assert cap.ret == 0
@@ -393,10 +393,10 @@ class TestPlotGan(HelpMixin):
         assert (tmp_path / "output_N0.png").exists()
         assert (tmp_path / "output_N1.png").exists()
 
-    @pytest.mark.usefixtures("smc_outdir")
-    def test_interactive(self, smc_outdir):
+    @pytest.mark.usefixtures("mc_outdir")
+    def test_interactive(self, mc_outdir):
         with mock.patch("matplotlib.pyplot.show", autospec=True) as mocked_plt_show:
             with capture() as cap:
-                dinf.plot.main(f"gan {smc_outdir}".split())
+                dinf.plot.main(f"gan {mc_outdir}".split())
         assert cap.ret == 0
         assert mocked_plt_show.call_count == 5  # metrics, entropy, _Pr, N0, N1

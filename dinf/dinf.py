@@ -769,7 +769,7 @@ def _run_mcmc_emcee(
     return thetas, probs
 
 
-def mcmc_gan(
+def mcmc(
     *,
     dinf_model: DinfModel,
     iterations: int,
@@ -846,10 +846,10 @@ def mcmc_gan(
     if output_folder is None:
         output_folder = "."
     store = Store(output_folder, create=True)
-    store.assert_complete(["discriminator.nn", "mcmc.npz"])
+    store.assert_complete(["discriminator.nn", "data.npz"])
     resume = len(store) > 0
 
-    ss = np.random.SeedSequence(seed, spawn_key=spawn_key("mcmc-gan"))
+    ss = np.random.SeedSequence(seed, spawn_key=spawn_key("mcmc"))
     ss_loop, ss_thetas, ss_test = ss.spawn(3)
     rng_thetas = np.random.default_rng(ss_thetas)
 
@@ -860,7 +860,7 @@ def mcmc_gan(
             store[-1] / "discriminator.nn", network=dinf_model.discriminator_network
         )
         thetas, y = _load_results_unstructured(
-            store[-1] / "mcmc.npz", parameters=parameters
+            store[-1] / "data.npz", parameters=parameters
         )
         assert len(thetas.shape) == 3
         start = thetas[-1]
@@ -868,7 +868,7 @@ def mcmc_gan(
             # TODO: allow this by sampling start points for the walkers?
             raise ValueError(
                 f"request for {walkers} walkers, but resuming from "
-                f"{store[-1] / 'mcmc.npz'} which used {len(start)} walkers."
+                f"{store[-1] / 'data.npz'} which used {len(start)} walkers."
             )
 
         training_thetas = parameters.sample_kde(
@@ -972,7 +972,7 @@ def mcmc_gan(
             )
             assert thetas.shape == (steps, walkers, len(parameters))
             save_results(
-                store[-1] / "mcmc.npz",
+                store[-1] / "data.npz",
                 thetas=thetas,
                 probs=probs,
                 parameters=parameters,
@@ -996,7 +996,7 @@ def mcmc_gan(
                 cb_iter(len(store))
 
 
-def smc(
+def mc(
     *,
     dinf_model: DinfModel,
     iterations: int,
@@ -1011,7 +1011,7 @@ def smc(
     callbacks: dict | None = None,
 ):
     """
-    Adversarial Sequential Monte Carlo.
+    Adversarial Monte Carlo.
 
     In the first iteration, p[0] is the prior distribution.
     The following steps are taken for iteration j:
@@ -1025,14 +1025,14 @@ def smc(
     :param dinf_model:
         DinfModel object that describes the dinf model.
     :param iterations:
-        Number of GAN iterations.
+        Number of iterations.
     :param training_replicates:
         Size of the dataset used to train the discriminator.
-        This dataset is constructed once each GAN iteration.
+        This dataset is constructed once each iteration.
     :param test_replicates:
         Size of the dataset used to evaluate the discriminator after
         each training epoch. This dataset is constructed once before the
-        GAN iterates, and is reused in each iteration.
+        iteration begins, and is reused in each iteration.
     :param proposal_replicates:
         Number of Monte Carlo proposals in each iteration.
     :param epochs:
@@ -1078,10 +1078,10 @@ def smc(
     if output_folder is None:
         output_folder = "."
     store = Store(output_folder, create=True)
-    store.assert_complete(["discriminator.nn", "smc.npz"])
+    store.assert_complete(["discriminator.nn", "data.npz"])
     resume = len(store) > 0
 
-    ss = np.random.SeedSequence(seed, spawn_key=spawn_key("smc"))
+    ss = np.random.SeedSequence(seed, spawn_key=spawn_key("mc"))
     ss_loop, ss_thetas, ss_test = ss.spawn(3)
     rng_thetas = np.random.default_rng(ss_thetas)
 
@@ -1092,7 +1092,7 @@ def smc(
             store[-1] / "discriminator.nn", network=dinf_model.discriminator_network
         )
         thetas, y = _load_results_unstructured(
-            store[-1] / "smc.npz", parameters=parameters
+            store[-1] / "data.npz", parameters=parameters
         )
         assert len(thetas.shape) == 2
         if top_n is not None:
@@ -1195,7 +1195,7 @@ def smc(
                 callbacks={"batch": callbacks.get("predict/batch")},
             )
             save_results(
-                store[-1] / "smc.npz",
+                store[-1] / "data.npz",
                 probs=y,
                 thetas=proposal_thetas,
                 parameters=parameters,
@@ -1577,14 +1577,14 @@ def pg_gan(
 
     parameters = dinf_model.parameters
     resume = len(store) > 0
-    store.assert_complete(["discriminator.nn", "pg-gan-proposals.npz"])
+    store.assert_complete(["discriminator.nn", "data.npz"])
 
     if resume:
         discriminator = Discriminator.from_file(
             store[-1] / "discriminator.nn", network=dinf_model.discriminator_network
         )
         proposal_thetas, probs = _load_results_unstructured(
-            store[-1] / "pg-gan-proposals.npz", parameters=parameters
+            store[-1] / "data.npz", parameters=parameters
         )
         assert len(proposal_thetas.shape) == 2
         lp = np.log(probs)
@@ -1641,7 +1641,7 @@ def pg_gan(
 
             store.increment()
             save_results(
-                store[-1] / "pg-gan-proposals.npz",
+                store[-1] / "data.npz",
                 thetas=proposal_thetas,
                 probs=np.exp(lp),
                 parameters=parameters,
