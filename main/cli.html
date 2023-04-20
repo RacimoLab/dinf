@@ -160,7 +160,7 @@ const thebe_selector_output = ".output, .cell_output"
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="guide/creating_a_model.html">1. Creating a Dinf model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="guide/testing_a_model.html">2. Testing a Dinf model</a></li>
-<li class="toctree-l1"><a class="reference internal" href="guide/smc.html">3. Inferring parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guide/mc.html">3. Inferring parameters</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Topic guides</span></p>
 <ul>
@@ -206,18 +206,18 @@ The module hooks can be useful for running the commands from a
 cloned git repository without requiring installation (e.g. during development).</p>
 <section id="analysis-inference">
 <span id="sec-cli-dinf"></span><h2>Analysis/inference<a class="headerlink" href="#analysis-inference" title="Permalink to this heading">¶</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [-V] {check,train,predict,smc,mcmc-gan,pg-gan} ...
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [-V] {check,train,predict,mc,mcmc,pg-gan} ...
 
 Discriminator-based inference of population parameters.
 
 positional arguments:
-  {check,train,predict,smc,mcmc-gan,pg-gan}
+  {check,train,predict,mc,mcmc,pg-gan}
     check               Basic dinf_model health checks.
     train               Train a discriminator.
     predict             Make predictions using a trained discriminator.
-    smc                 Adversarial Sequential Monte Carlo.
-    mcmc-gan            Run the MCMC GAN.
-    pg-gan              Run PG-GAN style simulated annealing.
+    mc                  Adversarial Monte Carlo.
+    mcmc                Adversarial MCMC.
+    pg-gan              PG-GAN style simulated annealing.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -364,14 +364,14 @@ predict arguments:
 </pre></div>
 </div>
 </section>
-<section id="dinf-smc">
-<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">smc</span></code><a class="headerlink" href="#dinf-smc" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf smc [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
-                [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
-                [--top N] [-P PROPOSAL_REPLICATES] [-i ITERATIONS]
-                [-o OUTPUT_FOLDER] -m model.py
+<section id="dinf-mc">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mc</span></code><a class="headerlink" href="#dinf-mc" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf mc [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+               [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
+               [--top N] [-P PROPOSAL_REPLICATES] [-i ITERATIONS]
+               [-o OUTPUT_FOLDER] -m model.py
 
-Adversarial Sequential Monte Carlo.
+Adversarial Monte Carlo.
 
 In the first iteration, p[0] is the prior distribution.
 The following steps are taken for iteration j:
@@ -428,7 +428,7 @@ SMC arguments:
 
 GAN arguments:
   -i ITERATIONS, --iterations ITERATIONS
-                        Number of GAN iterations. (default: 1)
+                        Number of iterations. (default: 1)
   -o OUTPUT_FOLDER, --output-folder OUTPUT_FOLDER
                         Folder to output results. If not specified, the
                         current directory will be used. (default: None)
@@ -441,14 +441,14 @@ GAN arguments:
 </pre></div>
 </div>
 </section>
-<section id="dinf-mcmc-gan">
-<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mcmc-gan</span></code><a class="headerlink" href="#dinf-mcmc-gan" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf mcmc-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
-                     [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
-                     [-w WALKERS] [-s STEPS] [--Dx-replicates DX_REPLICATES]
-                     [-i ITERATIONS] [-o OUTPUT_FOLDER] -m model.py
+<section id="dinf-mcmc">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mcmc</span></code><a class="headerlink" href="#dinf-mcmc" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf mcmc [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+                 [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
+                 [-w WALKERS] [-s STEPS] [--Dx-replicates DX_REPLICATES]
+                 [-i ITERATIONS] [-o OUTPUT_FOLDER] -m model.py
 
-Run the MCMC GAN.
+Adversarial MCMC.
 
 In the first iteration, p[0] is the prior distribution.
 The following steps are taken for iteration j:
@@ -506,7 +506,7 @@ MCMC arguments:
 
 GAN arguments:
   -i ITERATIONS, --iterations ITERATIONS
-                        Number of GAN iterations. (default: 1)
+                        Number of iterations. (default: 1)
   -o OUTPUT_FOLDER, --output-folder OUTPUT_FOLDER
                         Folder to output results. If not specified, the
                         current directory will be used. (default: None)
@@ -528,7 +528,7 @@ GAN arguments:
                    [--max-pretraining-iterations MAX_PRETRAINING_ITERATIONS]
                    [-i ITERATIONS] [-o OUTPUT_FOLDER] -m model.py
 
-Run PG-GAN style simulated annealing.
+PG-GAN style simulated annealing.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -579,7 +579,7 @@ PG-GAN arguments:
 
 GAN arguments:
   -i ITERATIONS, --iterations ITERATIONS
-                        Number of GAN iterations. (default: 1)
+                        Number of iterations. (default: 1)
   -o OUTPUT_FOLDER, --output-folder OUTPUT_FOLDER
                         Folder to output results. If not specified, the
                         current directory will be used. (default: None)
@@ -965,8 +965,8 @@ optional arguments:
 <li><a class="reference internal" href="#dinf-check"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">check</span></code></a></li>
 <li><a class="reference internal" href="#dinf-train"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">train</span></code></a></li>
 <li><a class="reference internal" href="#dinf-predict"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">predict</span></code></a></li>
-<li><a class="reference internal" href="#dinf-smc"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">smc</span></code></a></li>
-<li><a class="reference internal" href="#dinf-mcmc-gan"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mcmc-gan</span></code></a></li>
+<li><a class="reference internal" href="#dinf-mc"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mc</span></code></a></li>
+<li><a class="reference internal" href="#dinf-mcmc"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mcmc</span></code></a></li>
 <li><a class="reference internal" href="#dinf-pg-gan"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">pg-gan</span></code></a></li>
 </ul>
 </li>

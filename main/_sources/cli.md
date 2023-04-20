@@ -36,14 +36,14 @@ cloned git repository without requiring installation (e.g. during development).
 ```{program-output} python -m dinf predict -h
 ```
 
-### `dinf smc`
+### `dinf mc`
 
-```{program-output} python -m dinf smc -h
+```{program-output} python -m dinf mc -h
 ```
 
-### `dinf mcmc-gan`
+### `dinf mcmc`
 
-```{program-output} python -m dinf mcmc-gan -h
+```{program-output} python -m dinf mcmc -h
 ```
 
 ### `dinf pg-gan`
