@@ -416,7 +416,7 @@ def hist(
         Axes onto which the histogram will be drawn.
         If None, an axes will be created with :func:`matplotlib.pyplot.subplots`.
     :param ci:
-        If True, draw a 95% credible interval at the bottom.
+        If True, draw a 95% interval at the bottom.
     :param truth:
         If not None, draw a red vertical line at this location.
     :param hist_kw:
@@ -445,7 +445,7 @@ def hist(
         ax.axvline(truth, c="red", ls="-", zorder=3, alpha=0.7)
 
     if ci:
-        # Get median and 95% credible interval.
+        # Get median and 95% interval.
         q = [0.025, 0.5, 0.975]
         xq = quantile(x, q=q, weights=kw.get("weights"))
 
@@ -466,7 +466,7 @@ def hist(
             ha="center",
             va="center",
             zorder=3,
-            bbox=dict(boxstyle="round", fc="white", ec="none", alpha=0.6, pad=0),
+            bbox=dict(boxstyle="round", fc="white", ec="none", alpha=0.7, pad=0),
             transform=ax.get_xaxis_transform(),
         )
         texts = []
@@ -635,6 +635,8 @@ class _DinfPlotSubCommand(_SubCommand):
                 discriminators.append(path / "discriminator.nn")
             if (path / "data.npz").exists():
                 data_files.append(path / "data.npz")
+        if len(discriminators) != len(data_files) or len(data_files) == 0:
+            raise ValueError(f"{gan_folder}: dataset incomplete")
         return discriminators, data_files
 
 
@@ -898,14 +900,44 @@ class _Hist2d(_DinfPlotSubCommand):
                     plt.close(fig)
 
 
+def _kde1d_reflect_coords(
+    x: np.ndarray,
+    coords: np.ndarray,
+    /,
+    *,
+    weights: np.ndarray | None = None,
+) -> np.ndarray:
+    """
+    Kernel density estimate, with reflection to mitigate edge effects.
+
+    Note that the reflection is only implemented in 1d.
+
+    :param x:
+        The data values.
+    :param coords:
+        The points at which to evaluate the KDE.
+    :return:
+        The values of the KDE at the given coords.
+    """
+    left = x.min()
+    right = x.max()
+    kde = scipy.stats.gaussian_kde(x, bw_method="scott", weights=weights)
+    # KDEs for left-relected and right-reflected x's that are beyond the
+    # bounds of the data/parameters. Adding these avoids the usual drop in
+    # density at the edges of the domain (but may introduce other artifacts).
+    bw = kde.factor
+    kde_left = scipy.stats.gaussian_kde(2 * left - x, bw_method=bw, weights=weights)
+    kde_right = scipy.stats.gaussian_kde(2 * right - x, bw_method=bw, weights=weights)
+
+    return kde_left(coords) + kde(coords) + kde_right(coords)
+
+
 def _kde1d_reflect(
     x: np.ndarray,
     /,
     *,
     weights: np.ndarray | None = None,
-    left: float | None = None,
-    right: float | None = None,
-    n_points: int = 1_000,
+    n_points: int = 200,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Kernel density estimate, with reflection to mitigate edge effects.
@@ -916,35 +948,18 @@ def _kde1d_reflect(
         The data values.
     :param weights:
         Weights for each data value.
-    :param left:
-        The left bound for the data.
-        If None, the minimum value will be used.
-    :param right:
-        The right bound for the data.
-        If None, the maximum value will be used.
     :param n_points:
         Number of points at which to evaluate the KDE.
         The points will be evenly spaced between the left and right edges.
     :return:
-        A 2-tuple of (xrange, pdf), where ``xrange`` are the points at which
+        A 2-tuple of (coords, pdf), where ``coords`` are the points at which
         the KDE is evaluated, and ``pdf`` are the KDE for those points.
     """
-    if left is None:
-        left = x.min()
-    if right is None:
-        right = x.max()
-    kde = scipy.stats.gaussian_kde(x, bw_method="scott", weights=weights)
-    # KDEs for left-relected and right-reflected x's that are beyond the
-    # bounds of the data/parameters. Adding these avoids the usual drop in
-    # density at the edges of the domain (but may introduce other artifacts).
-    bw = kde.factor
-    kde_left = scipy.stats.gaussian_kde(2 * left - x, bw_method=bw, weights=weights)
-    kde_right = scipy.stats.gaussian_kde(2 * right - x, bw_method=bw, weights=weights)
-
-    xrange = np.linspace(left, right, n_points)
-    pdf = kde_left(xrange) + kde(xrange) + kde_right(xrange)
-
-    return xrange, pdf
+    left = x.min()
+    right = x.max()
+    coords = np.linspace(left, right, n_points)
+    pdf = _kde1d_reflect_coords(x, coords, weights=weights)
+    return coords, pdf
 
 
 class _Hist(_DinfPlotSubCommand):
@@ -965,7 +980,7 @@ class _Hist(_DinfPlotSubCommand):
     The resulting figure is a histogram. If the data correspond
     to a simulation-only model (provided via the -m option),
     then the parameter's truth value will be shown as a vertical
-    red line. A 95% credible interval is shown at the bottom of
+    red line. A 95% interval is shown at the bottom of
     the figure. By default, all values in the data file contribute
     equally to the histogram. For parameter values drawn from the
     sampling distribution, this will therefore show the sampling
@@ -1054,15 +1069,8 @@ class _Hist(_DinfPlotSubCommand):
                     hist_kw["label"] = path.name
                     hist(x, ax=ax, ci=ci, truth=truth, hist_kw=hist_kw)
                     if args.kde:
-                        left = right = None
-                        xlim = ax.get_xlim()
-                        if parameters is not None and x_param != "_Pr":
-                            left = max(parameters[x_param].low, xlim[0])
-                            right = min(parameters[x_param].high, xlim[1])
                         weights = data["_Pr"] if x_param != "_Pr" else None
-                        xrange, pdf = _kde1d_reflect(
-                            data[x_param], weights=weights, left=left, right=right
-                        )
+                        xrange, pdf = _kde1d_reflect(data[x_param], weights=weights)
                         if args.cumulative:
                             cdf = np.cumsum(pdf)
                             cdf /= cdf[-1]
@@ -1167,9 +1175,13 @@ class _Gan(_DinfPlotSubCommand):
                 fig, ax = plt.subplots(
                     figsize=plt.figaspect(9 / 16), constrained_layout=True
                 )
-                ax.violinplot(
+                vpstats = matplotlib.cbook.violin_stats(
                     [data[x_param] for data in datasets],
+                    method=_kde1d_reflect_coords,
                     quantiles=[[0.025, 0.5, 0.975]] * len(datasets),
+                )
+                ax.violin(
+                    vpstats,
                     positions=np.arange(len(datasets)),
                     showextrema=False,
                 )
