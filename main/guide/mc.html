@@ -319,7 +319,7 @@ dinf-plot gan \
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="../_images/5489f4e3cca7ca58db1660ebfe322921e6919165ed5c4d5b3c34fe629be134f7.svg" src="../_images/5489f4e3cca7ca58db1660ebfe322921e6919165ed5c4d5b3c34fe629be134f7.svg" /></div>
+<img alt="../_images/d60556dd3f96b17a17d4d6ecada24bca0f49620012d58f3ccf777ba7145dd13f.svg" src="../_images/d60556dd3f96b17a17d4d6ecada24bca0f49620012d58f3ccf777ba7145dd13f.svg" /></div>
 </div>
 <p>In any given iteration, we see that the training accuracy has increased throughout the 5 training epochs. We also see that the training accuracy declined as the iterations progressed, suggesting that our proposed model parameters have produced data that is increasingly difficult for the discriminator to distinguish from the target dataset. Interestingly, the accuracy on the test dataset increased for the first 10 or so iterations, then began to decrease.</p>
 <p>Next, we’ll look at the entropy of the discriminator predictions for the proposals, relative to uniformity. This measures how much the sampling distributions are changing from one iteration to the next, where a value of 1.0 indicates no change.</p>
@@ -330,7 +330,7 @@ dinf-plot gan \
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="../_images/8d0c7832ce0b5450a8436960009971ec91ca3b78b392775d8b7f943f4e6a41ac.svg" src="../_images/8d0c7832ce0b5450a8436960009971ec91ca3b78b392775d8b7f943f4e6a41ac.svg" /></div>
+<img alt="../_images/cccc4a809aa2ecccfbfa5e9ad5dfe4d4ac6d6ee0f0b02c07c35e77642a66aa6e.svg" src="../_images/cccc4a809aa2ecccfbfa5e9ad5dfe4d4ac6d6ee0f0b02c07c35e77642a66aa6e.svg" /></div>
 </div>
 <p>From this, we see that after iteration 12, the distributions are not changing much. The changes we observe after this point may just be noise due to resampling.</p>
 <p>Another thing we can look at to see how well the adversarial training has performed is the distribution of discriminator predictions themselves. Recall that the discriminator outputs a value between 0 and 1, with values near 0 meaning the discriminator predicts that the sample came from the generator, and values near 1 being predictions that the sample came from the target dataset. If the discriminator cannot distinguish generated data from the target dataset at all, then it should always guess 0.5. Below are violin plots of the discriminator outputs in each iteration—each blue blob is a kernel density estimate of the discriminator output for that iteration, with dark blue marks indicating the 2.5%, 50%, and 97.5% quantiles.</p>
@@ -341,7 +341,7 @@ dinf-plot gan \
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="../_images/80a5139810bc22fe982fdfb668497364a085ecc416172259e48659571b7d90ae.svg" src="../_images/80a5139810bc22fe982fdfb668497364a085ecc416172259e48659571b7d90ae.svg" /></div>
+<img alt="../_images/3ae680b2c829764c3e765ed4b1b0fdc5daba885a6dca88989f5442b55f56acb7.svg" src="../_images/3ae680b2c829764c3e765ed4b1b0fdc5daba885a6dca88989f5442b55f56acb7.svg" /></div>
 </div>
 <p>In early iterations, we see that most of the discriminator predictions are near 0, but from around iteration 12 onward, the discriminator is making many more non-zero predictions. The discriminator doesn’t end up predicting 0.5 for every sample, but this is likely due to bias from training it on a finite (and small) training dataset.</p>
 <p>Let’s now look at some results. Below are violin plots of the proposals, with one figure produced for each of the parameters (<code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> for this model). Recall that the proposals are drawn from the sampling distribution, so these figures show the <em>marginal</em> sampling distributions for each iteration.</p>
@@ -352,7 +352,7 @@ dinf-plot gan \
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="../_images/fd9de8b6fdc564be4636e27b3662eda0ccb86f0930f8a77e704a4ef4bf78e78a.svg" src="../_images/fd9de8b6fdc564be4636e27b3662eda0ccb86f0930f8a77e704a4ef4bf78e78a.svg" /></div>
+<img alt="../_images/4062a5d69508919fafddd413964e3493c3eb82e23785920c6dd5b7629a1aaac4.svg" src="../_images/4062a5d69508919fafddd413964e3493c3eb82e23785920c6dd5b7629a1aaac4.svg" /></div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -361,9 +361,9 @@ dinf-plot gan \
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="../_images/e0d3fb7cec4f0b0287a33cb4b12ea6898eff4da26c1267f607b097f536397b96.svg" src="../_images/e0d3fb7cec4f0b0287a33cb4b12ea6898eff4da26c1267f607b097f536397b96.svg" /></div>
+<img alt="../_images/ac5b74e925adcdf4a7b80107b053dd158197cedae69d3005db4297fa6d4c42a0.svg" src="../_images/ac5b74e925adcdf4a7b80107b053dd158197cedae69d3005db4297fa6d4c42a0.svg" /></div>
 </div>
-<p>The sampling distributions for the first iteration reflect the prior distribution, which is uniformly distributed between the upper and lower bounds. Note the reduced density near the parameter bounds, which is an artifact of kernel density estimation. By around iteration 12, the sampling distributions are close to convergence, and they are concentrated around the <code class="docutils literal notranslate"><span class="pre">truth</span></code> values (indicated by the red horizontal lines).</p>
+<p>The sampling distributions for the first iteration reflect the prior distribution, which is uniformly distributed between the upper and lower bounds. By around iteration 12, the sampling distributions are close to convergence, and they are concentrated around the <code class="docutils literal notranslate"><span class="pre">truth</span></code> values (indicated by the red horizontal lines).</p>
 <p>To look more closely at the final marginal sampling distributions, we’ll use <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> with the <code class="docutils literal notranslate"><span class="pre">hist</span></code> subcommand. We’ve specified the <code class="docutils literal notranslate"><span class="pre">--weighted</span></code> option here, which will weight the histogram and KDE by the discriminator predictions. Thus, we’re plotting the sampling distributions for what will become the hypothetical <em>next</em> iteration. These figures show marginal histograms (the dark blue lines), a marginal KDE (the light blue lines), the 2.5%, 50%, and 97.5% quantiles (horizontal black line with whiskers), and the truth value (the vertical red line).</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -385,7 +385,7 @@ dinf-plot hist \
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="../_images/d1503ae0a70ed4ffca4f16750cb327575a1c23399a1ca53fb921baee14566aa7.svg" src="../_images/d1503ae0a70ed4ffca4f16750cb327575a1c23399a1ca53fb921baee14566aa7.svg" /></div>
+<img alt="../_images/253e30066dd46c48d5df19f94069e1122dc99057cefcbfe039fc55bf37e9da17.svg" src="../_images/253e30066dd46c48d5df19f94069e1122dc99057cefcbfe039fc55bf37e9da17.svg" /></div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -394,7 +394,7 @@ dinf-plot hist \
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="../_images/533edc48b66e9c568a008e6ebfc1a992c47a0de9416a4742c7be45ef7f19f9f7.svg" src="../_images/533edc48b66e9c568a008e6ebfc1a992c47a0de9416a4742c7be45ef7f19f9f7.svg" /></div>
+<img alt="../_images/b1bf111d27809e645df60401fae3a0d5c8674744df5a85edff7262dfd2f18492.svg" src="../_images/b1bf111d27809e645df60401fae3a0d5c8674744df5a85edff7262dfd2f18492.svg" /></div>
 </div>
 <p>It looks like the marginal sampling distributions are roughly centered on the truth values, and the 50% quantile (the median) provides a reasonable point estimate for the parameter values.</p>
 <p>So far, we’ve only looked at the marginal distributions—i.e. we’ve looked at <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> separately. But what about the <em>joint</em> sampling distribution of <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code>? Do <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> covary? We can visualise two parameters jointly using <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> with the <code class="docutils literal notranslate"><span class="pre">hist2d</span></code> subcommand, which produces a 2d histogram. Note that if the model contains more than two parameters, 2d histograms will be plotted for all unique pairs of parameters.</p>
@@ -418,7 +418,7 @@ dinf-plot hist2d \
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="../_images/891a6a72817d39c07f89439f7449706c1972f0465f1834eab422f304ceeae009.svg" src="../_images/891a6a72817d39c07f89439f7449706c1972f0465f1834eab422f304ceeae009.svg" /></div>
+<img alt="../_images/f430eca5a5fc766db6cab4d16bf95ff04ce964c2fefc568709a2bf498e293cfd.svg" src="../_images/f430eca5a5fc766db6cab4d16bf95ff04ce964c2fefc568709a2bf498e293cfd.svg" /></div>
 </div>
 <p>From the 2d histogram, it looks like there might be a small negative correlation between <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> in our sampling distribution. However, we would need to do a proper statistical test to confirm if this is indeed the case.</p>
 </section>
