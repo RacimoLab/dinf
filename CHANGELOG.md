@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.5.0 - 2023-04-26
+
+* Renamed smc to `mc` and mcmc-gan to `mcmc`, in both the API and CLI.
+  We're not really doing SMC, and the MCMC isn't really a GAN.
+* Used KDE reflection in the violin plots, to ameliorate the reduction
+  in density near the edges of the support. This was already implemented
+  for the `hist` plots.
+* Fixed iteration numbering in plots to start at zero.
+* Fixed broken pipe when piping `dinf-tabulate` output to, e.g., head.
+* Updated the tutorial in the docs.
+
 ## 0.4.0 - 2023-03-15
 
 * Removed abc-gan CLI subcommand, and added `smc` subcommand.
