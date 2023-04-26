@@ -1,0 +1,1020 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>CLI reference &#8212; Dinf</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/basic_mod.css?v=0.7.0-1" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/clipboard.min.js"></script>
+    <script src="_static/copybutton.js"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="_static/sphinx-thebe.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <script src="_static/js/petite-vue.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Development" href="development.html" />
+    <link rel="prev" title="API reference" href="api.html" /> 
+  </head><body data-dark_mode_code_blocks="true">
+
+<div id="top_nav">
+    
+
+    <nav>
+        
+            
+        
+
+        <p id="toggle_sidebar">
+            <a href="#" title="Toggle sidebar">|||</a>
+        </p>
+        <h1><a href="introduction.html" title="Go to homepage">Dinf</a></h1>
+            <a id="source_link" href="https://github.com/RacimoLab/dinf">
+    
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512">
+            <path fill="white" d="M 244.8,8 C 106.1,8 0,113.3 0,252 c 0,110.9 69.8,205.8 169.5,239.2 12.8,2.3 17.3,-5.6 17.3,-12.1 0,-6.2 -0.3,-40.4 -0.3,-61.4 0,0 -70,15 -84.7,-29.8 0,0 -11.4,-29.1 -27.8,-36.6 0,0 -22.9,-15.7 1.6,-15.4 0,0 24.9,2 38.6,25.8 21.9,38.6 58.6,27.5 72.9,20.9 2.3,-16 8.8,-27.1 16,-33.7 -55.9,-6.2 -112.3,-14.3 -112.3,-110.5 0,-27.5 7.6,-41.3 23.6,-58.9 -2.6,-6.5 -11.1,-33.3 2.6,-67.9 20.9,-6.5 69,27 69,27 20,-5.6 41.5,-8.5 62.8,-8.5 21.3,0 42.8,2.9 62.8,8.5 0,0 48.1,-33.6 69,-27 13.7,34.7 5.2,61.4 2.6,67.9 16,17.7 25.8,31.5 25.8,58.9 0,96.5 -58.9,104.2 -114.8,110.5 9.2,7.9 17,22.9 17,46.4 0,33.7 -0.3,75.4 -0.3,83.6 0,6.5 4.6,14.4 17.3,12.1 C 428.2,457.8 496,362.9 496,252 496,113.3 383.5,8 244.8,8 Z"/>
+        </svg>
+    
+</a>
+        
+
+        <a id="mode_toggle" href="#" @click.prevent="handleClick" :title="mode">
+    <template v-if="mode == 'light'">
+        <svg width="100%" height="100%" viewBox="0 0 79 80" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g id="mode_light"><rect id="Bounds" x="0" y="-0" width="78.623" height="79.049" style="fill:none;"/><circle cx="39.311" cy="39.524" r="15.734" style="fill:#fff;"/><g id="beams"><g id="beam"><path id="beam1" serif:id="beam" d="M44.212,4.901c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,-0 -4.9,2.196 -4.9,4.901l-0,9.614c-0,2.705 2.196,4.901 4.9,4.901c2.705,0 4.901,-2.196 4.901,-4.901l0,-9.614Z" style="fill:#fff;"/></g><g id="beam2" serif:id="beam"><path id="beam3" serif:id="beam" d="M67.48,18.073c1.913,-1.912 1.913,-5.018 0,-6.931c-1.912,-1.912 -5.018,-1.912 -6.931,0l-6.798,6.799c-1.912,1.912 -1.912,5.018 0,6.931c1.913,1.912 5.018,1.912 6.931,-0l6.798,-6.799Z" style="fill:#fff;"/></g><g id="beam4" serif:id="beam"><path id="beam5" serif:id="beam" d="M25.728,61.108c1.912,-1.913 1.912,-5.018 -0,-6.931c-1.913,-1.913 -5.019,-1.913 -6.931,-0l-6.799,6.798c-1.912,1.913 -1.912,5.019 0,6.931c1.913,1.913 5.019,1.913 6.931,0l6.799,-6.798Z" style="fill:#fff;"/></g><g id="beam6" serif:id="beam"><path id="beam7" serif:id="beam" d="M60.682,54.177c-1.913,-1.913 -5.018,-1.913 -6.931,-0c-1.912,1.913 -1.912,5.018 0,6.931l6.798,6.798c1.913,1.913 5.019,1.913 6.931,0c1.913,-1.912 1.913,-5.018 0,-6.931l-6.798,-6.798Z" style="fill:#fff;"/></g><g id="beam8" serif:id="beam"><path id="beam9" serif:id="beam" d="M4.901,34.623c-2.705,0 -4.901,2.196 -4.901,4.901c0,2.705 2.196,4.901 4.901,4.901l9.614,0c2.705,0 4.901,-2.196 4.901,-4.901c0,-2.705 -2.196,-4.901 -4.901,-4.901l-9.614,0Z" style="fill:#fff;"/></g><g id="beam10" serif:id="beam"><path id="beam11" serif:id="beam" d="M44.212,64.534c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,-0 -4.9,2.196 -4.9,4.901l-0,9.614c-0,2.705 2.196,4.901 4.9,4.901c2.705,-0 4.901,-2.196 4.901,-4.901l0,-9.614Z" style="fill:#fff;"/></g><g id="beam12" serif:id="beam"><path id="beam13" serif:id="beam" d="M18.929,11.142c-1.912,-1.912 -5.018,-1.912 -6.931,0c-1.912,1.913 -1.912,5.019 0,6.931l6.799,6.799c1.912,1.912 5.018,1.912 6.931,-0c1.912,-1.913 1.912,-5.019 -0,-6.931l-6.799,-6.799Z" style="fill:#fff;"/></g><g id="beam14" serif:id="beam"><path id="beam15" serif:id="beam" d="M64.108,34.623c-2.705,0 -4.901,2.196 -4.901,4.901c-0,2.705 2.196,4.901 4.901,4.901l9.614,0c2.705,0 4.901,-2.196 4.901,-4.901c-0,-2.705 -2.196,-4.901 -4.901,-4.901l-9.614,0Z" style="fill:#fff;"/></g></g></g></svg>
+    </template>
+
+    <template v-if="mode == 'dark'">
+        <svg width="100%" height="100%" viewBox="0 0 79 80" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g id="mode_dark"><rect id="Bounds" x="0" y="-0" width="78.623" height="79.049" style="fill:none;"/><circle cx="39.311" cy="39.524" r="15.734" style="fill:#fff;"/><g id="beams"><g id="beam"><path id="beam1" serif:id="beam" d="M44.212,14.515c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,0 -4.901,2.196 -4.901,4.901c0,2.705 2.197,4.901 4.901,4.901c2.705,0 4.901,-2.196 4.901,-4.901Z" style="fill:#fff;"/></g><g id="beam2" serif:id="beam"><path id="beam3" serif:id="beam" d="M60.662,24.892c1.902,-1.902 1.902,-4.99 0,-6.892l-0.04,-0.039c-1.901,-1.902 -4.989,-1.902 -6.891,-0c-1.901,1.901 -1.901,4.989 0,6.891l0.04,0.04c1.902,1.901 4.989,1.901 6.891,-0Z" style="fill:#fff;"/></g><g id="beam4" serif:id="beam"><path id="beam5" serif:id="beam" d="M25.732,61.103c1.91,-1.91 1.91,-5.011 0,-6.921l-0.009,-0.01c-1.91,-1.91 -5.012,-1.91 -6.921,-0c-1.91,1.91 -1.91,5.011 -0,6.921l0.01,0.01c1.909,1.91 5.011,1.91 6.92,-0Z" style="fill:#fff;"/></g><g id="beam6" serif:id="beam"><path id="beam7" serif:id="beam" d="M60.672,54.167c-1.907,-1.907 -5.004,-1.907 -6.911,0l-0.02,0.02c-1.907,1.907 -1.907,5.004 0,6.911c1.907,1.907 5.004,1.907 6.911,-0l0.02,-0.02c1.907,-1.907 1.907,-5.004 0,-6.911Z" style="fill:#fff;"/></g><g id="beam8" serif:id="beam"><path id="beam9" serif:id="beam" d="M14.52,34.623c-2.702,0 -4.896,2.194 -4.896,4.896l0,0.01c0,2.702 2.194,4.896 4.896,4.896c2.702,0 4.896,-2.194 4.896,-4.896l-0,-0.01c-0,-2.702 -2.194,-4.896 -4.896,-4.896Z" style="fill:#fff;"/></g><g id="beam10" serif:id="beam"><path id="beam11" serif:id="beam" d="M44.212,64.534c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,-0 -4.901,2.196 -4.901,4.901c0,2.704 2.197,4.9 4.901,4.9c2.705,0 4.901,-2.196 4.901,-4.9Z" style="fill:#fff;"/></g><g id="beam12" serif:id="beam"><path id="beam13" serif:id="beam" d="M25.73,17.943c-1.911,-1.911 -5.015,-1.911 -6.926,0l-0.005,0.005c-1.911,1.911 -1.911,5.015 0,6.926c1.911,1.911 5.015,1.911 6.926,0l0.005,-0.005c1.911,-1.911 1.911,-5.014 -0,-6.926Z" style="fill:#fff;"/></g><g id="beam14" serif:id="beam"><path id="beam15" serif:id="beam" d="M64.098,34.623c-2.699,0 -4.891,2.192 -4.891,4.892l-0,0.019c-0,2.699 2.192,4.891 4.891,4.891c2.7,0 4.892,-2.192 4.892,-4.891l0,-0.019c0,-2.7 -2.192,-4.892 -4.892,-4.892Z" style="fill:#fff;"/></g></g></g></svg>
+    </template>
+
+    <template v-if="mode == 'darkest'">
+        <svg width="100%" height="100%" viewBox="0 0 79 80" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g id="mode_darkest"><rect id="Bounds" x="0" y="-0" width="78.623" height="79.049" style="fill:none;"/><path d="M39.315,23.791c8.684,-0 15.734,7.05 15.734,15.733c0,8.684 -7.05,15.734 -15.734,15.734c-8.683,0 -15.733,-7.05 -15.733,-15.734c-0,-8.683 7.05,-15.733 15.733,-15.733Zm0,4.737c6.069,0 10.997,4.927 10.997,10.996c-0,6.069 -4.928,10.996 -10.997,10.996c-6.068,0 -10.996,-4.927 -10.996,-10.996c0,-6.069 4.928,-10.996 10.996,-10.996Z" style="fill:#fff;"/><g id="beams"><g id="beam"><path id="beam1" serif:id="beam" d="M44.216,14.515c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,0 -4.9,2.196 -4.9,4.901c-0,2.705 2.196,4.901 4.9,4.901c2.705,0 4.901,-2.196 4.901,-4.901Z" style="fill:#fff;"/></g><g id="beam2" serif:id="beam"><path id="beam3" serif:id="beam" d="M60.666,24.892c1.902,-1.902 1.902,-4.99 0,-6.892l-0.04,-0.039c-1.901,-1.902 -4.989,-1.902 -6.891,-0c-1.901,1.901 -1.901,4.989 0,6.891l0.04,0.04c1.902,1.901 4.99,1.901 6.891,-0Z" style="fill:#fff;"/></g><g id="beam4" serif:id="beam"><path id="beam5" serif:id="beam" d="M25.737,61.103c1.909,-1.91 1.909,-5.011 -0,-6.921l-0.01,-0.01c-1.91,-1.91 -5.011,-1.91 -6.921,-0c-1.91,1.91 -1.91,5.011 -0,6.921l0.01,0.01c1.91,1.91 5.011,1.91 6.921,-0Z" style="fill:#fff;"/></g><g id="beam6" serif:id="beam"><path id="beam7" serif:id="beam" d="M60.676,54.167c-1.907,-1.907 -5.004,-1.907 -6.911,0l-0.02,0.02c-1.907,1.907 -1.907,5.004 0,6.911c1.907,1.907 5.004,1.907 6.911,-0l0.02,-0.02c1.907,-1.907 1.907,-5.004 0,-6.911Z" style="fill:#fff;"/></g><g id="beam8" serif:id="beam"><path id="beam9" serif:id="beam" d="M14.524,34.623c-2.702,0 -4.896,2.194 -4.896,4.896l0,0.01c0,2.702 2.194,4.896 4.896,4.896c2.702,0 4.896,-2.194 4.896,-4.896l0,-0.01c0,-2.702 -2.194,-4.896 -4.896,-4.896Z" style="fill:#fff;"/></g><g id="beam10" serif:id="beam"><path id="beam11" serif:id="beam" d="M44.216,64.534c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,-0 -4.9,2.196 -4.9,4.901c-0,2.704 2.196,4.9 4.9,4.9c2.705,0 4.901,-2.196 4.901,-4.9Z" style="fill:#fff;"/></g><g id="beam12" serif:id="beam"><path id="beam13" serif:id="beam" d="M25.734,17.943c-1.911,-1.911 -5.015,-1.911 -6.926,0l-0.005,0.005c-1.911,1.911 -1.911,5.015 0,6.926c1.911,1.911 5.015,1.911 6.926,0l0.005,-0.005c1.911,-1.911 1.911,-5.014 0,-6.926Z" style="fill:#fff;"/></g><g id="beam14" serif:id="beam"><path id="beam15" serif:id="beam" d="M64.103,34.623c-2.7,0 -4.892,2.192 -4.892,4.892l-0,0.019c-0,2.699 2.192,4.891 4.892,4.891c2.699,0 4.891,-2.192 4.891,-4.891l0,-0.019c0,-2.7 -2.192,-4.892 -4.891,-4.892Z" style="fill:#fff;"/></g></g></g></svg>
+    </template>
+</a>
+
+<script>
+(function() {
+    const LOCAL_STORAGE_KEY = 'piccoloThemeMode'
+
+    var initialMode = localStorage.getItem(LOCAL_STORAGE_KEY)
+
+    if (initialMode) {
+        // Make sure the value in local storage is valid
+        if (['light', 'dark', 'darkest'].indexOf(initialMode) == -1) {
+            initialMode = 'light'
+            localStorage.setItem(LOCAL_STORAGE_KEY, initialMode)
+        }
+    } else {
+        // Check if the client prefers dark mode
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            initialMode = 'dark'
+        } else {
+            initialMode = 'light'
+        }
+        localStorage.setItem(LOCAL_STORAGE_KEY, initialMode)
+    }
+
+    document.documentElement.dataset.mode = initialMode
+
+    PetiteVue.createApp({
+        'mode': initialMode,
+        handleClick() {
+            let currentMode = this.mode
+
+            if (currentMode == 'light') {
+                this.mode = 'dark'
+            } else if (currentMode == 'dark') {
+                this.mode = 'darkest'
+            } else if (currentMode == 'darkest') {
+                this.mode = 'light'
+            }
+
+            document.documentElement.dataset.mode = this.mode
+            localStorage.setItem(LOCAL_STORAGE_KEY, this.mode)
+
+            console.log(this.mode)
+        }
+    }).mount('#mode_toggle')
+})()
+</script>
+            <p class="mobile_search_link">
+                <a href="search.html" title="Search">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 65 64" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2">
+                        <path d="M14.873 40.009c-2.315-3.943-3.642-8.532-3.642-13.429C11.231 11.91 23.141 0 37.811 0s26.58 11.91 26.58 26.58-11.91 26.58-26.58 26.58a26.44 26.44 0 0 1-14.277-4.161L9.739 62.794a3.12 3.12 0 0 1-4.413 0L.913 58.382c-1.217-1.218-1.217-3.196 0-4.413l13.96-13.96zM37.811 8.054c10.225 0 18.526 8.301 18.526 18.526s-8.301 18.526-18.526 18.526-18.526-8.301-18.526-18.526S27.586 8.054 37.811 8.054z" fill="#fff" />
+                    </svg>
+                </a>
+            </p>
+        
+
+        <div class="searchbox_wrapper">
+            
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorial</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="guide/creating_a_model.html">1. Creating a Dinf model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guide/testing_a_model.html">2. Testing a Dinf model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guide/mc.html">3. Inferring parameters</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Topic guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="guide/accuracy.html">Improving discriminator accuracy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guide/features.html">Feature matrices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guide/performance.html">Performance characteristics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guide/multiple_demes.html">Models with multiple demes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guide/empirical_data.html">Empirical data</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api.html">API reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CLI reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Miscellaneous</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section class="tex2jax_ignore mathjax_ignore" id="cli-reference">
+<span id="sec-cli"></span><h1>CLI reference<a class="headerlink" href="#cli-reference" title="Permalink to this heading">¶</a></h1>
+<p>Dinf provides two command line programs, <code class="docutils literal notranslate"><span class="pre">dinf</span></code> and <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code>.
+The former provides subcommands for running analyses, while the latter
+provides subcommands for making plots of various things.
+When invoked with the <code class="docutils literal notranslate"><span class="pre">-h</span></code>/<code class="docutils literal notranslate"><span class="pre">--help</span></code> option, subcomands offer a concise
+description and list the available options.
+This help output is reproduced below.</p>
+<p>Once Dinf is installed, the commands can be run by typing <code class="docutils literal notranslate"><span class="pre">dinf</span></code>,
+<code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code>, or <code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span></code>. In addition, the commands can be run using
+Python module hooks by typing <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">dinf</span></code>, <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">dinf.plot</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">dinf.tabulate</span></code>.
+The module hooks can be useful for running the commands from a
+cloned git repository without requiring installation (e.g. during development).</p>
+<section id="analysis-inference">
+<span id="sec-cli-dinf"></span><h2>Analysis/inference<a class="headerlink" href="#analysis-inference" title="Permalink to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf [-h] [-V] {check,train,predict,mc,mcmc,pg-gan} ...
+
+Discriminator-based inference of population parameters.
+
+positional arguments:
+  {check,train,predict,mc,mcmc,pg-gan}
+    check               Basic dinf_model health checks.
+    train               Train a discriminator.
+    predict             Make predictions using a trained discriminator.
+    mc                  Adversarial Monte Carlo.
+    mcmc                Adversarial MCMC.
+    pg-gan              PG-GAN style simulated annealing.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -V, --version         show program&#39;s version number and exit
+</pre></div>
+</div>
+<section id="dinf-check">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">check</span></code><a class="headerlink" href="#dinf-check" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf check [-h] [-v | -q] -m model.py
+
+Basic dinf_model health checks.
+
+Checks that the target and generator functions work and return the
+same feature shapes and dtypes.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+  -m model.py, --model model.py
+                        Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-train">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">train</span></code><a class="headerlink" href="#dinf-train" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf train [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+                  [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS] -m
+                  model.py -d discriminator.nn
+
+Train a discriminator.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        (default: 1000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+  -m model.py, --model model.py
+                        Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf (default: None)
+  -d discriminator.nn, --discriminator discriminator.nn
+                        Output file where the discriminator will be saved.
+                        (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-predict">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">predict</span></code><a class="headerlink" href="#dinf-predict" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf predict [-h] [-v | -q] [-S SEED] [-j PARALLELISM] [-r REPLICATES]
+                    [--target] -m model.py -d discriminator.nn [-o output.npz]
+
+Make predictions using a trained discriminator.
+
+By default, features will be obtained by sampling replicates from
+the generator (using parameters from the prior distribution).
+To instead sample features from the target dataset, use the
+--target option.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+  --target              Sample features from the target dataset. (default:
+                        False)
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
+                        (default: None)
+
+predict arguments:
+  -r REPLICATES, --replicates REPLICATES
+                        Number of theta replicates to generate and predict
+                        with the discriminator. (default: 1000)
+
+  -m model.py, --model model.py
+                        Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf (default: None)
+  -d discriminator.nn, --discriminator discriminator.nn
+                        File containing discriminator network weights.
+                        (default: None)
+  -o output.npz, --output-file output.npz
+                        Output data, matching thetas to discriminator
+                        predictions. (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-mc">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mc</span></code><a class="headerlink" href="#dinf-mc" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf mc [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+               [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
+               [--top N] [-P PROPOSAL_REPLICATES] [-i ITERATIONS]
+               [-o OUTPUT_FOLDER] -m model.py
+
+Adversarial Monte Carlo.
+
+In the first iteration, p[0] is the prior distribution.
+The following steps are taken for iteration j:
+
+  - sample training and proposal datasets from distribution p[j],
+  - train the discriminator,
+  - make predictions with the discriminator on the proposal dataset,
+  - construct distribution p[j+1] as a weighted KDE of the proposals,
+    where the weights are given by the discriminator predictions.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        (default: 1000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+SMC arguments:
+  --top N               In each iteration, accept only the N top proposals,
+                        ranked by discriminator prediction. (default: None)
+  -P PROPOSAL_REPLICATES, --proposal-replicates PROPOSAL_REPLICATES
+                        Number of replicates for Monte Carlo proposals.
+                        (default: 1000)
+
+GAN arguments:
+  -i ITERATIONS, --iterations ITERATIONS
+                        Number of iterations. (default: 1)
+  -o OUTPUT_FOLDER, --output-folder OUTPUT_FOLDER
+                        Folder to output results. If not specified, the
+                        current directory will be used. (default: None)
+  -m model.py, --model model.py
+                        Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-mcmc">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mcmc</span></code><a class="headerlink" href="#dinf-mcmc" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf mcmc [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+                 [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
+                 [-w WALKERS] [-s STEPS] [--Dx-replicates DX_REPLICATES]
+                 [-i ITERATIONS] [-o OUTPUT_FOLDER] -m model.py
+
+Adversarial MCMC.
+
+In the first iteration, p[0] is the prior distribution.
+The following steps are taken for iteration j:
+
+  - sample training dataset from the distribution p[j],
+  - train the discriminator,
+  - run the MCMC,
+  - obtain distribution p[j+1] as a KDE of the MCMC sample.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        (default: 1000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+MCMC arguments:
+  -w WALKERS, --walkers WALKERS
+                        Number of independent MCMC chains. (default: 64)
+  -s STEPS, --steps STEPS
+                        The chain length for each MCMC walker. (default: 1000)
+  --Dx-replicates DX_REPLICATES
+                        Number of generator replicates for approximating
+                        E[D(G(θ))]. (default: 32)
+
+GAN arguments:
+  -i ITERATIONS, --iterations ITERATIONS
+                        Number of iterations. (default: 1)
+  -o OUTPUT_FOLDER, --output-folder OUTPUT_FOLDER
+                        Folder to output results. If not specified, the
+                        current directory will be used. (default: None)
+  -m model.py, --model model.py
+                        Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-pg-gan">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">pg-gan</span></code><a class="headerlink" href="#dinf-pg-gan" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf pg-gan [-h] [-v | -q] [-S SEED] [-j PARALLELISM]
+                   [-r TRAINING_REPLICATES] [-R TEST_REPLICATES] [-e EPOCHS]
+                   [--Dx-replicates DX_REPLICATES]
+                   [--num-proposals NUM_PROPOSALS]
+                   [--max-pretraining-iterations MAX_PRETRAINING_ITERATIONS]
+                   [-i ITERATIONS] [-o OUTPUT_FOLDER] -m model.py
+
+PG-GAN style simulated annealing.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+
+common arguments:
+  -S SEED, --seed SEED  Seed for the random number generator. CPU-based
+                        training is expected to produce deterministic results.
+                        Results may differ between CPU and GPU trained
+                        networks for the same seed value. Also note that
+                        operations on a GPU are not fully determinstic, so
+                        training or applying a neural network twice with the
+                        same seed value will not produce identical results.
+                        (default: None)
+  -j PARALLELISM, --parallelism PARALLELISM
+                        Number of processes to use for parallelising calls to
+                        the DinfModel&#39;s generator_func and target_func. If not
+                        specified, all CPU cores will be used. The number of
+                        cores used for CPU-based neural networks is not set
+                        with this parameter---instead use the`taskset`
+                        command. See https://github.com/google/jax/issues/1539
+                        (default: None)
+
+training arguments:
+  -r TRAINING_REPLICATES, --training-replicates TRAINING_REPLICATES
+                        Size of the dataset used to train the discriminator.
+                        (default: 1000)
+  -R TEST_REPLICATES, --test-replicates TEST_REPLICATES
+                        Size of the test dataset used to evaluate the
+                        discriminator after each training epoch. (default:
+                        1000)
+  -e EPOCHS, --epochs EPOCHS
+                        Number of full passes over the training dataset when
+                        training the discriminator. (default: 1)
+
+PG-GAN arguments:
+  --Dx-replicates DX_REPLICATES
+                        Number of generator replicates for approximating
+                        E[D(G(θ))]. (default: 32)
+  --num-proposals NUM_PROPOSALS
+                        Number of proposals for each parameter in a given
+                        iteration. (default: 10)
+  --max-pretraining-iterations MAX_PRETRAINING_ITERATIONS
+                        Maximum number of pretraining rounds. (default: 100)
+
+GAN arguments:
+  -i ITERATIONS, --iterations ITERATIONS
+                        Number of iterations. (default: 1)
+  -o OUTPUT_FOLDER, --output-folder OUTPUT_FOLDER
+                        Folder to output results. If not specified, the
+                        current directory will be used. (default: None)
+  -m model.py, --model model.py
+                        Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf (default: None)
+</pre></div>
+</div>
+</section>
+</section>
+<section id="plotting-results">
+<span id="sec-cli-dinf-plot"></span><h2>Plotting results<a class="headerlink" href="#plotting-results" title="Permalink to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot [-h] [-V] {demes,features,metrics,hist,hist2d,gan} ...
+
+Dinf plotting tools.
+
+positional arguments:
+  {demes,features,metrics,hist,hist2d,gan}
+    demes               Plot a demes-as-tubes demographic model using
+                        DemesDraw.
+    features            Plot feature matrices as heatmaps.
+    metrics             Plot loss and accuracy of discriminator(s).
+    hist                Plot marginal histograms.
+    hist2d              Plot 2d marginal histograms.
+    gan                 Plot GAN things.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -V, --version         show program&#39;s version number and exit
+</pre></div>
+</div>
+<section id="dinf-plot-metrics">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">metrics</span></code><a class="headerlink" href="#dinf-plot-metrics" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot metrics [-h] [-v | -q] [-o output.pdf]
+                         discriminator.nn [discriminator.nn ...]
+
+Plot loss and accuracy of discriminator(s).
+
+Each metric is plotted as a function of the training epoch,
+and the resulting multipanel plot shows:
+  - training loss,
+  - training accuracy,
+  - test loss, and
+  - test accuracy.
+
+If multiple discriminator files are provided, the training metrics for
+each file are indicated by a different colour. The legend shows the
+corresponding filename.
+
+positional arguments:
+  discriminator.nn      The discriminator network(s) to plot.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+  -o output.pdf, --output-file output.pdf
+                        Output file for the figure. The file extension
+                        determines the filetype, which can be any format
+                        supported by Matplotlib (e.g. pdf, svg, png).If no
+                        output file is specified, an interactive plot window
+                        will be opened. (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-plot-features">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">features</span></code><a class="headerlink" href="#dinf-plot-features" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot features [-h] [-v | -q] [-o output.pdf] [-S SEED] [--target]
+                          -m model.py
+
+Plot feature matrices as heatmaps.
+
+By default, one simulation will be performed with the generator to obtain
+a set of features for plotting. To instead extract features from the
+target dataset, use the --target option.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+  -o output.pdf, --output-file output.pdf
+                        Output file for the figure. The file extension
+                        determines the filetype, which can be any format
+                        supported by Matplotlib (e.g. pdf, svg, png).If no
+                        output file is specified, an interactive plot window
+                        will be opened. (default: None)
+  -S SEED, --seed SEED  Seed for the random number generator (default: None)
+  --target              Extract feature(s) from the target dataset. (default:
+                        False)
+  -m model.py, --model model.py
+                        Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-plot-hist">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code><a class="headerlink" href="#dinf-plot-hist" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist [-h] [-v | -q] [-o output.pdf] [--top N] [-W] [-c]
+                      [-x X_PARAM] [--kde] [-m model.py]
+                      data.npz [data.npz ...]
+
+Plot marginal histograms.
+
+One plot is produced for the discriminator predictions,
+plus one plot for each model parameter. The choice of which
+parameter to plot can be specified using the -x option,
+with the special value &quot;_Pr&quot; indicating the discriminator
+predictions.
+
+If a pdf requested with the -o option, a multipage pdf is
+created. If another format is requested, then one file is
+created for each figure (the requested filename will be
+modified to include the parameter name).
+
+The resulting figure is a histogram. If the data correspond
+to a simulation-only model (provided via the -m option),
+then the parameter&#39;s truth value will be shown as a vertical
+red line. A 95% interval is shown at the bottom of
+the figure. By default, all values in the data file contribute
+equally to the histogram. For parameter values drawn from the
+sampling distribution, this will therefore show the sampling
+distribution. The subsequent distribution can be obtained by
+weighting parameter values by the discriminator predictions
+using the -W option, and/or rejection sampling using the --top
+option to accept only the top N samples as ranked by the
+discriminator preditions.
+
+positional arguments:
+  data.npz              Data file containing discriminator predictions.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+  -o output.pdf, --output-file output.pdf
+                        Output file for the figure. The file extension
+                        determines the filetype, which can be any format
+                        supported by Matplotlib (e.g. pdf, svg, png).If no
+                        output file is specified, an interactive plot window
+                        will be opened. (default: None)
+  --top N               Filter data to retain top N samples, ranked by
+                        discriminator prediction. (default: None)
+  -W, --weighted        Weight the parameter contributions by their
+                        discriminator prediction. (default: False)
+  -c, --cumulative      Plot cumulative distribution. (default: False)
+  -x X_PARAM, --x-param X_PARAM
+                        Name of parameter to plot. The special name &quot;_Pr&quot; is
+                        recognised to plot the predictionsobtained from the
+                        discriminator. (default: None)
+  --kde                 Also draw a 1-dimensional marginal kernel density
+                        estimate. (default: False)
+  -m model.py, --model model.py
+                        Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-plot-hist2d">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist2d</span></code><a class="headerlink" href="#dinf-plot-hist2d" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.plot hist2d [-h] [-v | -q] [-o output.pdf] [--top N] [-W]
+                        [-x X_PARAM] [-y Y_PARAM] [-m model.py]
+                        data.npz
+
+Plot 2d marginal histograms.
+
+One plot is produced for each unique pair of parameters.
+As this may lead to a large number of plots (particularly
+for interactive use!), the choice of which parameters to
+plot can be specified using the -x and -y options.
+
+If a pdf requested with the -o option, a multipage pdf is
+created. If another format is requested, then one file is
+created for each figure (the requested filename will be
+modified to include the parameter names).
+
+The resulting figure is a 2d histogram, with darker squares
+indicating higher densities. If the data correspond to a
+simulation-only model, then the parameters&#39; truth values will
+be indicated by red lines. By default, all values in the
+data file contribute equally to the histogram. For parameter
+values drawn from the sampling distribution, this will therefore
+show the sampling distribution. The subsequent distribution can
+be obtained by weighting parameter values by the discriminator
+predictions using the -W option, and/or rejection sampling
+using the --top option to accept only the top N samples as ranked
+by the discriminator preditions.
+
+positional arguments:
+  data.npz              Data file containing discriminator predictions.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+  -o output.pdf, --output-file output.pdf
+                        Output file for the figure. The file extension
+                        determines the filetype, which can be any format
+                        supported by Matplotlib (e.g. pdf, svg, png).If no
+                        output file is specified, an interactive plot window
+                        will be opened. (default: None)
+  --top N               Filter data to retain top N samples, ranked by
+                        discriminator prediction. (default: None)
+  -W, --weighted        Weight the parameter contributions by their
+                        discriminator prediction. (default: False)
+  -x X_PARAM, --x-param X_PARAM
+                        Name of parameter to plot on horizontal axis.
+                        (default: None)
+  -y Y_PARAM, --y-param Y_PARAM
+                        Name of parameter to plot on vertical axis. (default:
+                        None)
+  -m model.py, --model model.py
+                        Python script from which to import the variable
+                        &quot;dinf_model&quot;. This is a dinf.DinfModel object that
+                        describes the model components. See the examples/
+                        folder of the git repository for example models.
+                        https://github.com/RacimoLab/dinf (default: None)
+</pre></div>
+</div>
+</section>
+</section>
+<section id="tabulating-results">
+<span id="sec-cli-dinf-tabulate"></span><h2>Tabulating results<a class="headerlink" href="#tabulating-results" title="Permalink to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.tabulate [-h] [-V] {metrics,data,quantiles} ...
+
+Tabulate Dinf output.
+
+positional arguments:
+  {metrics,data,quantiles}
+    metrics             Print discriminator metrics.
+    data                Print .npz data---predictions from a discriminator.
+    quantiles           Calculate quantiles of the data.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -V, --version         show program&#39;s version number and exit
+</pre></div>
+</div>
+<section id="dinf-tabulate-metrics">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">metrics</span></code><a class="headerlink" href="#dinf-tabulate-metrics" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.tabulate metrics [-h] [-v | -q] [-o output.txt]
+                             [--separator SEPARATOR] [--format FORMAT]
+                             discriminator.nn [discriminator.nn ...]
+
+Print discriminator metrics.
+
+positional arguments:
+  discriminator.nn      The discriminator network(s) from which to tabulate
+                        metrics.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+  -o output.txt, --output-file output.txt
+                        Output file for the tabulated data. If not specified,
+                        output will be printed to stdout. (default: None)
+  --separator SEPARATOR
+                        The string that separates columns. (default: )
+  --format FORMAT       Printf-style format specifier for float values.
+                        (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-tabulate-data">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">data</span></code><a class="headerlink" href="#dinf-tabulate-data" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.tabulate data [-h] [-v | -q] [-o output.txt]
+                          [--separator SEPARATOR] [--format FORMAT]
+                          data.npz
+
+Print .npz data---predictions from a discriminator.
+
+positional arguments:
+  data.npz              Data file in numpy .npz format.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+  -o output.txt, --output-file output.txt
+                        Output file for the tabulated data. If not specified,
+                        output will be printed to stdout. (default: None)
+  --separator SEPARATOR
+                        The string that separates columns. (default: )
+  --format FORMAT       Printf-style format specifier for float values.
+                        (default: None)
+</pre></div>
+</div>
+</section>
+<section id="dinf-tabulate-quantiles">
+<h3><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">quantiles</span></code><a class="headerlink" href="#dinf-tabulate-quantiles" title="Permalink to this heading">¶</a></h3>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: dinf.tabulate quantiles [-h] [-v | -q] [-o output.txt]
+                               [--separator SEPARATOR] [--format FORMAT]
+                               [--top N] [-W] [--quantiles QUANTILES]
+                               data.npz
+
+Calculate quantiles of the data.
+
+positional arguments:
+  data.npz              Data file in numpy .npz format.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --verbose         Increase verbosity. Specify once for INFO messages and
+                        twice for DEBUG messages. (default: 0)
+  -q, --quiet           Disable output. Only ERROR and CRITICAL messages are
+                        printed. (default: False)
+  -o output.txt, --output-file output.txt
+                        Output file for the tabulated data. If not specified,
+                        output will be printed to stdout. (default: None)
+  --separator SEPARATOR
+                        The string that separates columns. (default: )
+  --format FORMAT       Printf-style format specifier for float values.
+                        (default: None)
+  --top N               Filter data to retain top N samples, ranked by
+                        probability. (default: None)
+  -W, --weighted        Weight the parameter contributions by their
+                        probability. (default: False)
+  --quantiles QUANTILES
+                        Comma separated list of quantiles to calculate.
+                        (default: 0.025,0.5,0.975)
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./."
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+    
+        <div id="show_right_sidebar">
+            <p><a class="toggle_right_sidebar" href="#"><span class="icon">&lt;</span><span>Page contents<span></a></p>
+        </div>
+
+        <div id="right_sidebar">
+            <p><a class="toggle_right_sidebar" href="#"><span class="icon">&gt;</span><span>Page contents:<span></a></p>
+            <div class="page_toc">
+                <ul>
+<li><a class="reference internal" href="#">CLI reference</a><ul>
+<li><a class="reference internal" href="#analysis-inference">Analysis/inference</a><ul>
+<li><a class="reference internal" href="#dinf-check"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">check</span></code></a></li>
+<li><a class="reference internal" href="#dinf-train"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">train</span></code></a></li>
+<li><a class="reference internal" href="#dinf-predict"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">predict</span></code></a></li>
+<li><a class="reference internal" href="#dinf-mc"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mc</span></code></a></li>
+<li><a class="reference internal" href="#dinf-mcmc"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mcmc</span></code></a></li>
+<li><a class="reference internal" href="#dinf-pg-gan"><code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">pg-gan</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#plotting-results">Plotting results</a><ul>
+<li><a class="reference internal" href="#dinf-plot-metrics"><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">metrics</span></code></a></li>
+<li><a class="reference internal" href="#dinf-plot-features"><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">features</span></code></a></li>
+<li><a class="reference internal" href="#dinf-plot-hist"><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist</span></code></a></li>
+<li><a class="reference internal" href="#dinf-plot-hist2d"><code class="docutils literal notranslate"><span class="pre">dinf-plot</span> <span class="pre">hist2d</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tabulating-results">Tabulating results</a><ul>
+<li><a class="reference internal" href="#dinf-tabulate-metrics"><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">metrics</span></code></a></li>
+<li><a class="reference internal" href="#dinf-tabulate-data"><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">data</span></code></a></li>
+<li><a class="reference internal" href="#dinf-tabulate-quantiles"><code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">quantiles</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            </div>
+        </div>
+    
+
+      <div class="clearer"></div>
+    </div>
+    <div class="button_nav_wrapper">
+        <div class="button_nav">
+            <div class="left">
+                
+                <a href="api.html">
+                    <span class="icon">&lt;</span><span>API reference</span></a>
+                
+            </div>
+
+            <div class="right">
+                
+                    <a href="development.html"><span>Development</span><span class="icon">&gt;</span></a>
+                
+            </div>
+        </div>
+    </div>
+
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2021-2023.
+    </div>
+
+<p id="theme_credit">Styled using the <a href="https://github.com/piccolo-orm/piccolo_theme">Piccolo Theme</a></p>
+  </body>
+</html>

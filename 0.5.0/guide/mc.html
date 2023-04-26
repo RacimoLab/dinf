@@ -1,0 +1,709 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>3. Inferring parameters &#8212; Dinf</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic_mod.css?v=0.7.0-1" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/clipboard.min.js"></script>
+    <script src="../_static/copybutton.js"></script>
+    <script src="../_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="../_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="../_static/sphinx-thebe.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <script src="../_static/js/petite-vue.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Improving discriminator accuracy" href="accuracy.html" />
+    <link rel="prev" title="2. Testing a Dinf model" href="testing_a_model.html" /> 
+  </head><body data-dark_mode_code_blocks="true">
+
+<div id="top_nav">
+    
+
+    <nav>
+        
+            
+        
+
+        <p id="toggle_sidebar">
+            <a href="#" title="Toggle sidebar">|||</a>
+        </p>
+        <h1><a href="../introduction.html" title="Go to homepage">Dinf</a></h1>
+            <a id="source_link" href="https://github.com/RacimoLab/dinf">
+    
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512">
+            <path fill="white" d="M 244.8,8 C 106.1,8 0,113.3 0,252 c 0,110.9 69.8,205.8 169.5,239.2 12.8,2.3 17.3,-5.6 17.3,-12.1 0,-6.2 -0.3,-40.4 -0.3,-61.4 0,0 -70,15 -84.7,-29.8 0,0 -11.4,-29.1 -27.8,-36.6 0,0 -22.9,-15.7 1.6,-15.4 0,0 24.9,2 38.6,25.8 21.9,38.6 58.6,27.5 72.9,20.9 2.3,-16 8.8,-27.1 16,-33.7 -55.9,-6.2 -112.3,-14.3 -112.3,-110.5 0,-27.5 7.6,-41.3 23.6,-58.9 -2.6,-6.5 -11.1,-33.3 2.6,-67.9 20.9,-6.5 69,27 69,27 20,-5.6 41.5,-8.5 62.8,-8.5 21.3,0 42.8,2.9 62.8,8.5 0,0 48.1,-33.6 69,-27 13.7,34.7 5.2,61.4 2.6,67.9 16,17.7 25.8,31.5 25.8,58.9 0,96.5 -58.9,104.2 -114.8,110.5 9.2,7.9 17,22.9 17,46.4 0,33.7 -0.3,75.4 -0.3,83.6 0,6.5 4.6,14.4 17.3,12.1 C 428.2,457.8 496,362.9 496,252 496,113.3 383.5,8 244.8,8 Z"/>
+        </svg>
+    
+</a>
+        
+
+        <a id="mode_toggle" href="#" @click.prevent="handleClick" :title="mode">
+    <template v-if="mode == 'light'">
+        <svg width="100%" height="100%" viewBox="0 0 79 80" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g id="mode_light"><rect id="Bounds" x="0" y="-0" width="78.623" height="79.049" style="fill:none;"/><circle cx="39.311" cy="39.524" r="15.734" style="fill:#fff;"/><g id="beams"><g id="beam"><path id="beam1" serif:id="beam" d="M44.212,4.901c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,-0 -4.9,2.196 -4.9,4.901l-0,9.614c-0,2.705 2.196,4.901 4.9,4.901c2.705,0 4.901,-2.196 4.901,-4.901l0,-9.614Z" style="fill:#fff;"/></g><g id="beam2" serif:id="beam"><path id="beam3" serif:id="beam" d="M67.48,18.073c1.913,-1.912 1.913,-5.018 0,-6.931c-1.912,-1.912 -5.018,-1.912 -6.931,0l-6.798,6.799c-1.912,1.912 -1.912,5.018 0,6.931c1.913,1.912 5.018,1.912 6.931,-0l6.798,-6.799Z" style="fill:#fff;"/></g><g id="beam4" serif:id="beam"><path id="beam5" serif:id="beam" d="M25.728,61.108c1.912,-1.913 1.912,-5.018 -0,-6.931c-1.913,-1.913 -5.019,-1.913 -6.931,-0l-6.799,6.798c-1.912,1.913 -1.912,5.019 0,6.931c1.913,1.913 5.019,1.913 6.931,0l6.799,-6.798Z" style="fill:#fff;"/></g><g id="beam6" serif:id="beam"><path id="beam7" serif:id="beam" d="M60.682,54.177c-1.913,-1.913 -5.018,-1.913 -6.931,-0c-1.912,1.913 -1.912,5.018 0,6.931l6.798,6.798c1.913,1.913 5.019,1.913 6.931,0c1.913,-1.912 1.913,-5.018 0,-6.931l-6.798,-6.798Z" style="fill:#fff;"/></g><g id="beam8" serif:id="beam"><path id="beam9" serif:id="beam" d="M4.901,34.623c-2.705,0 -4.901,2.196 -4.901,4.901c0,2.705 2.196,4.901 4.901,4.901l9.614,0c2.705,0 4.901,-2.196 4.901,-4.901c0,-2.705 -2.196,-4.901 -4.901,-4.901l-9.614,0Z" style="fill:#fff;"/></g><g id="beam10" serif:id="beam"><path id="beam11" serif:id="beam" d="M44.212,64.534c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,-0 -4.9,2.196 -4.9,4.901l-0,9.614c-0,2.705 2.196,4.901 4.9,4.901c2.705,-0 4.901,-2.196 4.901,-4.901l0,-9.614Z" style="fill:#fff;"/></g><g id="beam12" serif:id="beam"><path id="beam13" serif:id="beam" d="M18.929,11.142c-1.912,-1.912 -5.018,-1.912 -6.931,0c-1.912,1.913 -1.912,5.019 0,6.931l6.799,6.799c1.912,1.912 5.018,1.912 6.931,-0c1.912,-1.913 1.912,-5.019 -0,-6.931l-6.799,-6.799Z" style="fill:#fff;"/></g><g id="beam14" serif:id="beam"><path id="beam15" serif:id="beam" d="M64.108,34.623c-2.705,0 -4.901,2.196 -4.901,4.901c-0,2.705 2.196,4.901 4.901,4.901l9.614,0c2.705,0 4.901,-2.196 4.901,-4.901c-0,-2.705 -2.196,-4.901 -4.901,-4.901l-9.614,0Z" style="fill:#fff;"/></g></g></g></svg>
+    </template>
+
+    <template v-if="mode == 'dark'">
+        <svg width="100%" height="100%" viewBox="0 0 79 80" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g id="mode_dark"><rect id="Bounds" x="0" y="-0" width="78.623" height="79.049" style="fill:none;"/><circle cx="39.311" cy="39.524" r="15.734" style="fill:#fff;"/><g id="beams"><g id="beam"><path id="beam1" serif:id="beam" d="M44.212,14.515c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,0 -4.901,2.196 -4.901,4.901c0,2.705 2.197,4.901 4.901,4.901c2.705,0 4.901,-2.196 4.901,-4.901Z" style="fill:#fff;"/></g><g id="beam2" serif:id="beam"><path id="beam3" serif:id="beam" d="M60.662,24.892c1.902,-1.902 1.902,-4.99 0,-6.892l-0.04,-0.039c-1.901,-1.902 -4.989,-1.902 -6.891,-0c-1.901,1.901 -1.901,4.989 0,6.891l0.04,0.04c1.902,1.901 4.989,1.901 6.891,-0Z" style="fill:#fff;"/></g><g id="beam4" serif:id="beam"><path id="beam5" serif:id="beam" d="M25.732,61.103c1.91,-1.91 1.91,-5.011 0,-6.921l-0.009,-0.01c-1.91,-1.91 -5.012,-1.91 -6.921,-0c-1.91,1.91 -1.91,5.011 -0,6.921l0.01,0.01c1.909,1.91 5.011,1.91 6.92,-0Z" style="fill:#fff;"/></g><g id="beam6" serif:id="beam"><path id="beam7" serif:id="beam" d="M60.672,54.167c-1.907,-1.907 -5.004,-1.907 -6.911,0l-0.02,0.02c-1.907,1.907 -1.907,5.004 0,6.911c1.907,1.907 5.004,1.907 6.911,-0l0.02,-0.02c1.907,-1.907 1.907,-5.004 0,-6.911Z" style="fill:#fff;"/></g><g id="beam8" serif:id="beam"><path id="beam9" serif:id="beam" d="M14.52,34.623c-2.702,0 -4.896,2.194 -4.896,4.896l0,0.01c0,2.702 2.194,4.896 4.896,4.896c2.702,0 4.896,-2.194 4.896,-4.896l-0,-0.01c-0,-2.702 -2.194,-4.896 -4.896,-4.896Z" style="fill:#fff;"/></g><g id="beam10" serif:id="beam"><path id="beam11" serif:id="beam" d="M44.212,64.534c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,-0 -4.901,2.196 -4.901,4.901c0,2.704 2.197,4.9 4.901,4.9c2.705,0 4.901,-2.196 4.901,-4.9Z" style="fill:#fff;"/></g><g id="beam12" serif:id="beam"><path id="beam13" serif:id="beam" d="M25.73,17.943c-1.911,-1.911 -5.015,-1.911 -6.926,0l-0.005,0.005c-1.911,1.911 -1.911,5.015 0,6.926c1.911,1.911 5.015,1.911 6.926,0l0.005,-0.005c1.911,-1.911 1.911,-5.014 -0,-6.926Z" style="fill:#fff;"/></g><g id="beam14" serif:id="beam"><path id="beam15" serif:id="beam" d="M64.098,34.623c-2.699,0 -4.891,2.192 -4.891,4.892l-0,0.019c-0,2.699 2.192,4.891 4.891,4.891c2.7,0 4.892,-2.192 4.892,-4.891l0,-0.019c0,-2.7 -2.192,-4.892 -4.892,-4.892Z" style="fill:#fff;"/></g></g></g></svg>
+    </template>
+
+    <template v-if="mode == 'darkest'">
+        <svg width="100%" height="100%" viewBox="0 0 79 80" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g id="mode_darkest"><rect id="Bounds" x="0" y="-0" width="78.623" height="79.049" style="fill:none;"/><path d="M39.315,23.791c8.684,-0 15.734,7.05 15.734,15.733c0,8.684 -7.05,15.734 -15.734,15.734c-8.683,0 -15.733,-7.05 -15.733,-15.734c-0,-8.683 7.05,-15.733 15.733,-15.733Zm0,4.737c6.069,0 10.997,4.927 10.997,10.996c-0,6.069 -4.928,10.996 -10.997,10.996c-6.068,0 -10.996,-4.927 -10.996,-10.996c0,-6.069 4.928,-10.996 10.996,-10.996Z" style="fill:#fff;"/><g id="beams"><g id="beam"><path id="beam1" serif:id="beam" d="M44.216,14.515c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,0 -4.9,2.196 -4.9,4.901c-0,2.705 2.196,4.901 4.9,4.901c2.705,0 4.901,-2.196 4.901,-4.901Z" style="fill:#fff;"/></g><g id="beam2" serif:id="beam"><path id="beam3" serif:id="beam" d="M60.666,24.892c1.902,-1.902 1.902,-4.99 0,-6.892l-0.04,-0.039c-1.901,-1.902 -4.989,-1.902 -6.891,-0c-1.901,1.901 -1.901,4.989 0,6.891l0.04,0.04c1.902,1.901 4.99,1.901 6.891,-0Z" style="fill:#fff;"/></g><g id="beam4" serif:id="beam"><path id="beam5" serif:id="beam" d="M25.737,61.103c1.909,-1.91 1.909,-5.011 -0,-6.921l-0.01,-0.01c-1.91,-1.91 -5.011,-1.91 -6.921,-0c-1.91,1.91 -1.91,5.011 -0,6.921l0.01,0.01c1.91,1.91 5.011,1.91 6.921,-0Z" style="fill:#fff;"/></g><g id="beam6" serif:id="beam"><path id="beam7" serif:id="beam" d="M60.676,54.167c-1.907,-1.907 -5.004,-1.907 -6.911,0l-0.02,0.02c-1.907,1.907 -1.907,5.004 0,6.911c1.907,1.907 5.004,1.907 6.911,-0l0.02,-0.02c1.907,-1.907 1.907,-5.004 0,-6.911Z" style="fill:#fff;"/></g><g id="beam8" serif:id="beam"><path id="beam9" serif:id="beam" d="M14.524,34.623c-2.702,0 -4.896,2.194 -4.896,4.896l0,0.01c0,2.702 2.194,4.896 4.896,4.896c2.702,0 4.896,-2.194 4.896,-4.896l0,-0.01c0,-2.702 -2.194,-4.896 -4.896,-4.896Z" style="fill:#fff;"/></g><g id="beam10" serif:id="beam"><path id="beam11" serif:id="beam" d="M44.216,64.534c0,-2.705 -2.196,-4.901 -4.901,-4.901c-2.704,-0 -4.9,2.196 -4.9,4.901c-0,2.704 2.196,4.9 4.9,4.9c2.705,0 4.901,-2.196 4.901,-4.9Z" style="fill:#fff;"/></g><g id="beam12" serif:id="beam"><path id="beam13" serif:id="beam" d="M25.734,17.943c-1.911,-1.911 -5.015,-1.911 -6.926,0l-0.005,0.005c-1.911,1.911 -1.911,5.015 0,6.926c1.911,1.911 5.015,1.911 6.926,0l0.005,-0.005c1.911,-1.911 1.911,-5.014 0,-6.926Z" style="fill:#fff;"/></g><g id="beam14" serif:id="beam"><path id="beam15" serif:id="beam" d="M64.103,34.623c-2.7,0 -4.892,2.192 -4.892,4.892l-0,0.019c-0,2.699 2.192,4.891 4.892,4.891c2.699,0 4.891,-2.192 4.891,-4.891l0,-0.019c0,-2.7 -2.192,-4.892 -4.891,-4.892Z" style="fill:#fff;"/></g></g></g></svg>
+    </template>
+</a>
+
+<script>
+(function() {
+    const LOCAL_STORAGE_KEY = 'piccoloThemeMode'
+
+    var initialMode = localStorage.getItem(LOCAL_STORAGE_KEY)
+
+    if (initialMode) {
+        // Make sure the value in local storage is valid
+        if (['light', 'dark', 'darkest'].indexOf(initialMode) == -1) {
+            initialMode = 'light'
+            localStorage.setItem(LOCAL_STORAGE_KEY, initialMode)
+        }
+    } else {
+        // Check if the client prefers dark mode
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            initialMode = 'dark'
+        } else {
+            initialMode = 'light'
+        }
+        localStorage.setItem(LOCAL_STORAGE_KEY, initialMode)
+    }
+
+    document.documentElement.dataset.mode = initialMode
+
+    PetiteVue.createApp({
+        'mode': initialMode,
+        handleClick() {
+            let currentMode = this.mode
+
+            if (currentMode == 'light') {
+                this.mode = 'dark'
+            } else if (currentMode == 'dark') {
+                this.mode = 'darkest'
+            } else if (currentMode == 'darkest') {
+                this.mode = 'light'
+            }
+
+            document.documentElement.dataset.mode = this.mode
+            localStorage.setItem(LOCAL_STORAGE_KEY, this.mode)
+
+            console.log(this.mode)
+        }
+    }).mount('#mode_toggle')
+})()
+</script>
+            <p class="mobile_search_link">
+                <a href="../search.html" title="Search">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 65 64" fill-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2">
+                        <path d="M14.873 40.009c-2.315-3.943-3.642-8.532-3.642-13.429C11.231 11.91 23.141 0 37.811 0s26.58 11.91 26.58 26.58-11.91 26.58-26.58 26.58a26.44 26.44 0 0 1-14.277-4.161L9.739 62.794a3.12 3.12 0 0 1-4.413 0L.913 58.382c-1.217-1.218-1.217-3.196 0-4.413l13.96-13.96zM37.811 8.054c10.225 0 18.526 8.301 18.526 18.526s-8.301 18.526-18.526 18.526-18.526-8.301-18.526-18.526S27.586 8.054 37.811 8.054z" fill="#fff" />
+                    </svg>
+                </a>
+            </p>
+        
+
+        <div class="searchbox_wrapper">
+            
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+    </nav>
+</div>
+
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorial</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="creating_a_model.html">1. Creating a Dinf model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing_a_model.html">2. Testing a Dinf model</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">3. Inferring parameters</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Topic guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="accuracy.html">Improving discriminator accuracy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features.html">Feature matrices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="performance.html">Performance characteristics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="multiple_demes.html">Models with multiple demes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="empirical_data.html">Empirical data</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">CLI reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Miscellaneous</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../CHANGELOG.html">Changelog</a></li>
+</ul>
+
+        </div>
+      </div>
+
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section class="tex2jax_ignore mathjax_ignore" id="inferring-parameters">
+<span id="sec-guide-mc"></span><h1><span class="section-number">3. </span>Inferring parameters<a class="headerlink" href="#inferring-parameters" title="Permalink to this heading">¶</a></h1>
+<p>This page shows how to infer parameters using adversarial Monte Carlo.</p>
+<ul class="simple">
+<li><p>We’ll continue to use the two-parameter
+bottleneck model from the <a class="reference internal" href="creating_a_model.html#sec-guide-creating-a-dinf-model"><span class="std std-ref">Creating a Dinf model</span></a> page.</p></li>
+<li><p>Results will be plotted with the <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> command.</p></li>
+<li><p>Results will be exported as tab-separated values with the <code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span></code> command.</p></li>
+<li><p>Results will be loaded back into Python with the <a class="reference internal" href="../api.html#dinf.load_results" title="dinf.load_results"><code class="xref py py-func docutils literal notranslate"><span class="pre">dinf.load_results()</span></code></a> function.</p></li>
+</ul>
+<p>The results below were obtained in under 10 minutes using an 8 core laptop with CPU-only training for the neural network. Note that models with more parameters may need substantially more resources.</p>
+<section id="adversarial-monte-carlo">
+<h2><span class="section-number">3.1. </span>Adversarial Monte Carlo<a class="headerlink" href="#adversarial-monte-carlo" title="Permalink to this heading">¶</a></h2>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">dinf</span> <span class="pre">mc</span></code> subcommand, we’ll do 20 iterations of Monte Carlo simulations,
+with 1000 training replicates and 1000 proposal replicates in each iteration.
+In each iteration this will</p>
+<ul class="simple">
+<li><p>train the discriminator on 500 samples from the generator
+(with parameter values sampled from the sampling
+distribution) and 500 samples from the target dataset
+(using the <code class="docutils literal notranslate"><span class="pre">truth</span></code> parameter values, as this is a simulation-only model),</p></li>
+<li><p>sample 1000 proposals from the generator (with parameter values taken from
+the sampling distribution),</p></li>
+<li><p>apply the discriminator on the proposals to obtain predictions about how well they
+match the target dataset,</p></li>
+<li><p>approximate the discriminator output as a function of the model parameters,
+using a weighted kernel density estimate of the proposals,
+where the weights are given by the discriminator predictions,</p></li>
+<li><p>set the sampling distribution for the next iteration to the approximate distribution
+that was just constructed.</p></li>
+</ul>
+<p>We’ll also evaluate the discriminator on 1000 test replicates
+(500 from each of the prior distribution and the target dataset).
+This test dataset is constructed only once, not in each iteration like
+the training or proposal datasets.</p>
+<div class="cell tag_remove-output docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+mkdir -p out/bottleneck-mc
+rm -fr out/bottleneck-mc
+dinf mc \
+    --seed 1234 \
+    --epochs 5 \
+    --iterations 20 \
+    --training-replicates 1000 \
+    --test-replicates 1000 \
+    --proposal-replicates 1000 \
+    --model ../../examples/bottleneck/model.py \
+    --output-folder out/bottleneck-mc
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="the-output-folder">
+<h2><span class="section-number">3.2. </span>The output folder<a class="headerlink" href="#the-output-folder" title="Permalink to this heading">¶</a></h2>
+<p>Once complete, the output folder will contain a sequence of numbered subfolders, one for each iteration.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+ls out/bottleneck-mc
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>0
+1
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+2
+3
+4
+5
+6
+7
+8
+9
+</pre></div>
+</div>
+</div>
+</div>
+<p>Inside each of these subfolders is two files: (1) a trained neural network (the <code class="docutils literal notranslate"><span class="pre">.nn</span></code> file), and (2) a data file (the <code class="docutils literal notranslate"><span class="pre">.npz</span></code> file) containing the parameter proposals and their corresponding discriminator predictions.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+ls out/bottleneck-mc/19
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>data.npz
+discriminator.nn
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="plotting-results">
+<h2><span class="section-number">3.3. </span>Plotting results<a class="headerlink" href="#plotting-results" title="Permalink to this heading">¶</a></h2>
+<p>Let’s plot the results using <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> with the <code class="docutils literal notranslate"><span class="pre">gan</span></code> subcommand. This subcommand produces many figures, including diagnostics and results. Below, we specify an .svg file as the <code class="docutils literal notranslate"><span class="pre">--output-file</span></code>, as this is optimal for viewing in a web browser—note that we only specified one file but many .svg files are produced based on the given filename. When working from the command line, it may be more convenient to specify a .pdf as the output file, which will produce a single multipage pdf file. Alternately, ommitting the <code class="docutils literal notranslate"><span class="pre">--output-file</span></code> option will open each figure in turn in an interactive window.</p>
+<div class="cell tag_remove-output docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+dinf-plot gan \
+    --model ../../examples/bottleneck/model.py \
+    --output-file /tmp/bottleneck-mc.svg \
+    out/bottleneck-mc
+</pre></div>
+</div>
+</div>
+</div>
+<p>First, we’ll look at the discriminator training metrics in each iteration.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">SVG</span><span class="p">,</span> <span class="n">display</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-mc_metrics.svg&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/d60556dd3f96b17a17d4d6ecada24bca0f49620012d58f3ccf777ba7145dd13f.svg" src="../_images/d60556dd3f96b17a17d4d6ecada24bca0f49620012d58f3ccf777ba7145dd13f.svg" /></div>
+</div>
+<p>In any given iteration, we see that the training accuracy has increased throughout the 5 training epochs. We also see that the training accuracy declined as the iterations progressed, suggesting that our proposed model parameters have produced data that is increasingly difficult for the discriminator to distinguish from the target dataset. Interestingly, the accuracy on the test dataset increased for the first 10 or so iterations, then began to decrease.</p>
+<p>Next, we’ll look at the entropy of the discriminator predictions for the proposals, relative to uniformity. This measures how much the sampling distributions are changing from one iteration to the next, where a value of 1.0 indicates no change.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-mc_entropy.svg&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/cccc4a809aa2ecccfbfa5e9ad5dfe4d4ac6d6ee0f0b02c07c35e77642a66aa6e.svg" src="../_images/cccc4a809aa2ecccfbfa5e9ad5dfe4d4ac6d6ee0f0b02c07c35e77642a66aa6e.svg" /></div>
+</div>
+<p>From this, we see that after iteration 12, the distributions are not changing much. The changes we observe after this point may just be noise due to resampling.</p>
+<p>Another thing we can look at to see how well the adversarial training has performed is the distribution of discriminator predictions themselves. Recall that the discriminator outputs a value between 0 and 1, with values near 0 meaning the discriminator predicts that the sample came from the generator, and values near 1 being predictions that the sample came from the target dataset. If the discriminator cannot distinguish generated data from the target dataset at all, then it should always guess 0.5. Below are violin plots of the discriminator outputs in each iteration—each blue blob is a kernel density estimate of the discriminator output for that iteration, with dark blue marks indicating the 2.5%, 50%, and 97.5% quantiles.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-mc__Pr.svg&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/3ae680b2c829764c3e765ed4b1b0fdc5daba885a6dca88989f5442b55f56acb7.svg" src="../_images/3ae680b2c829764c3e765ed4b1b0fdc5daba885a6dca88989f5442b55f56acb7.svg" /></div>
+</div>
+<p>In early iterations, we see that most of the discriminator predictions are near 0, but from around iteration 12 onward, the discriminator is making many more non-zero predictions. The discriminator doesn’t end up predicting 0.5 for every sample, but this is likely due to bias from training it on a finite (and small) training dataset.</p>
+<p>Let’s now look at some results. Below are violin plots of the proposals, with one figure produced for each of the parameters (<code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> for this model). Recall that the proposals are drawn from the sampling distribution, so these figures show the <em>marginal</em> sampling distributions for each iteration.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-mc_N0.svg&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/4062a5d69508919fafddd413964e3493c3eb82e23785920c6dd5b7629a1aaac4.svg" src="../_images/4062a5d69508919fafddd413964e3493c3eb82e23785920c6dd5b7629a1aaac4.svg" /></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-mc_N1.svg&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/ac5b74e925adcdf4a7b80107b053dd158197cedae69d3005db4297fa6d4c42a0.svg" src="../_images/ac5b74e925adcdf4a7b80107b053dd158197cedae69d3005db4297fa6d4c42a0.svg" /></div>
+</div>
+<p>The sampling distributions for the first iteration reflect the prior distribution, which is uniformly distributed between the upper and lower bounds. By around iteration 12, the sampling distributions are close to convergence, and they are concentrated around the <code class="docutils literal notranslate"><span class="pre">truth</span></code> values (indicated by the red horizontal lines).</p>
+<p>To look more closely at the final marginal sampling distributions, we’ll use <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> with the <code class="docutils literal notranslate"><span class="pre">hist</span></code> subcommand. We’ve specified the <code class="docutils literal notranslate"><span class="pre">--weighted</span></code> option here, which will weight the histogram and KDE by the discriminator predictions. Thus, we’re plotting the sampling distributions for what will become the hypothetical <em>next</em> iteration. These figures show marginal histograms (the dark blue lines), a marginal KDE (the light blue lines), the 2.5%, 50%, and 97.5% quantiles (horizontal black line with whiskers), and the truth value (the vertical red line).</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+dinf-plot hist \
+    --weighted \
+    --kde \
+    --model ../../examples/bottleneck/model.py \
+    --output-file /tmp/bottleneck-mc_hist.svg \
+    out/bottleneck-mc/19/data.npz
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-mc_hist_N0.svg&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/253e30066dd46c48d5df19f94069e1122dc99057cefcbfe039fc55bf37e9da17.svg" src="../_images/253e30066dd46c48d5df19f94069e1122dc99057cefcbfe039fc55bf37e9da17.svg" /></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-mc_hist_N1.svg&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/b1bf111d27809e645df60401fae3a0d5c8674744df5a85edff7262dfd2f18492.svg" src="../_images/b1bf111d27809e645df60401fae3a0d5c8674744df5a85edff7262dfd2f18492.svg" /></div>
+</div>
+<p>It looks like the marginal sampling distributions are roughly centered on the truth values, and the 50% quantile (the median) provides a reasonable point estimate for the parameter values.</p>
+<p>So far, we’ve only looked at the marginal distributions—i.e. we’ve looked at <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> separately. But what about the <em>joint</em> sampling distribution of <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code>? Do <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> covary? We can visualise two parameters jointly using <code class="docutils literal notranslate"><span class="pre">dinf-plot</span></code> with the <code class="docutils literal notranslate"><span class="pre">hist2d</span></code> subcommand, which produces a 2d histogram. Note that if the model contains more than two parameters, 2d histograms will be plotted for all unique pairs of parameters.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+dinf-plot hist2d \
+    --weighted \
+    --model ../../examples/bottleneck/model.py \
+    --output-file /tmp/bottleneck-mc_hist2d.svg \
+    out/bottleneck-mc/19/data.npz
+</pre></div>
+</div>
+</div>
+</div>
+<p>In the 2d histogram below, darker squares indicate a larger density of samples in any given histogram bin. Red lines indicated the truth values for each axis. Note that in two dimensions the data are more sparse than in one dimension, so sampling noise can appear more pronounced.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">display</span><span class="p">(</span><span class="n">SVG</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/tmp/bottleneck-mc_hist2d.svg&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="../_images/f430eca5a5fc766db6cab4d16bf95ff04ce964c2fefc568709a2bf498e293cfd.svg" src="../_images/f430eca5a5fc766db6cab4d16bf95ff04ce964c2fefc568709a2bf498e293cfd.svg" /></div>
+</div>
+<p>From the 2d histogram, it looks like there might be a small negative correlation between <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> in our sampling distribution. However, we would need to do a proper statistical test to confirm if this is indeed the case.</p>
+</section>
+<section id="exporting-results">
+<h2><span class="section-number">3.4. </span>Exporting results<a class="headerlink" href="#exporting-results" title="Permalink to this heading">¶</a></h2>
+<p>The plots above have all been produced from the files contained in the output folder. But what if we want to do some further analysis using another programming language such as R? Or simply copy and paste the numbers that are shown in the plots? For these reasons, there is a <code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span></code> command which can be used to export information as tab-separated values. We highlight two useful <code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span></code> subcommands below.</p>
+<p>To export the data, we can use the <code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">data</span></code> subcommand. This outputs tab-separated columns of the proposals and predictions from a given iteration, which can be easily loaded into R using its builtin <code class="docutils literal notranslate"><span class="pre">read.delim()</span></code> function. Below, we’ll pipe the output to <code class="docutils literal notranslate"><span class="pre">head</span></code> to look at the first 10 rows of the data (ie., the first 10 proposals). The special column <code class="docutils literal notranslate"><span class="pre">_Pr</span></code> indicates the descriminator prediction, while the other columns (<code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> for the current model) correspond to the parameter values that were sampled for a given proposal.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+dinf-tabulate data out/bottleneck-mc/19/data.npz | head
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>_Pr	N0	N1
+5.023707151412963867e-01	9.532425493668109993e+03	2.012924025355642925e+02
+4.258708059787750244e-01	1.033074900540984709e+04	2.911974441341429838e+02
+3.749374449253082275e-01	1.021407472189349755e+04	4.541637375653106687e+02
+3.892780244350433350e-01	1.065375948935513043e+04	2.672710234594799203e+02
+5.223942399024963379e-01	1.106780616309789366e+04	1.606729152186022702e+02
+1.232456415891647339e-01	1.065732058832546136e+04	1.739923551630824647e+02
+2.221430391073226929e-01	1.017977344376559631e+04	1.254285065270190103e+02
+8.898271918296813965e-01	1.063855603698634877e+04	2.234555748498159460e+02
+9.749054163694381714e-02	9.424131493141929241e+03	4.804094953561136094e+02
+</pre></div>
+</div>
+</div>
+</div>
+<p>While we could use this exported data to calculate the quantiles shown in the marginal histograms, the <code class="docutils literal notranslate"><span class="pre">dinf-tabulate</span> <span class="pre">quantiles</span></code> subcommand already provides this functionality.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="k">bash</span>
+dinf-tabulate quantiles \
+    --weighted \
+    out/bottleneck-mc/19/data.npz
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Param	0.025	0.5	0.975
+N0	8555.312310257525	10107.844498815852	11599.36477673148
+N1	80.33750036679618	202.55073615722165	418.6929774611843
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="loading-results-into-python">
+<h2><span class="section-number">3.5. </span>Loading results into Python<a class="headerlink" href="#loading-results-into-python" title="Permalink to this heading">¶</a></h2>
+<p>Instead of exporting the results, we can directly load an <code class="docutils literal notranslate"><span class="pre">.npz</span></code> file (the proposals and predictions) back into Python for further analysis using the <a class="reference internal" href="../api.html#dinf.load_results" title="dinf.load_results"><code class="xref py py-func docutils literal notranslate"><span class="pre">dinf.load_results()</span></code></a> function. Below, we’ll load the results for the final iteration.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">dinf</span>
+
+<span class="c1"># Load data as a numpy structured array.</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">load_results</span><span class="p">(</span><span class="s2">&quot;out/bottleneck-mc/19/data.npz&quot;</span><span class="p">)</span>
+<span class="c1"># Show the column names.</span>
+<span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">names</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(&#39;_Pr&#39;, &#39;N0&#39;, &#39;N1&#39;)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Select the first 5 proposals.</span>
+<span class="n">data</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>array([(0.5023707 ,  9532.42549367, 201.29240254),
+       (0.4258708 , 10330.74900541, 291.19744413),
+       (0.37493744, 10214.07472189, 454.16373757),
+       (0.38927802, 10653.75948936, 267.27102346),
+       (0.52239424, 11067.8061631 , 160.67291522)],
+      dtype=[(&#39;_Pr&#39;, &#39;&lt;f4&#39;), (&#39;N0&#39;, &#39;&lt;f8&#39;), (&#39;N1&#39;, &#39;&lt;f8&#39;)])
+</pre></div>
+</div>
+</div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">data</span></code> variable is a <a class="reference external" href="https://numpy.org/doc/stable/user/basics.rec.html">numpy structured array</a> where each row corresponds to one proposal. Rows are accessed using integer indexes (including slice notation like <code class="docutils literal notranslate"><span class="pre">:5</span></code>), while columns are accessed using string indexes that match the desired column name. The columns are <code class="docutils literal notranslate"><span class="pre">_Pr</span></code>, which are the discriminator predictions, plus one column for each model parameter (<code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> for the current model).</p>
+<p>Recall that in the 2d histogram we observed what seemed to be a correlation between <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code>. Lets quantify that correlation.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># Calculate the covariance matrix between variables N0 and N1,</span>
+<span class="c1"># weighted by the discriminator predictions. The predictions</span>
+<span class="c1"># are in the special data column named &#39;_Pr&#39;.</span>
+<span class="n">cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;N0&quot;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;N1&quot;</span><span class="p">],</span> <span class="n">aweights</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">])</span>
+<span class="c1"># Calculate the Pearson correlation coefficient.</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">cov</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">cov</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">cov</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">r</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>-0.25164680901678693
+</pre></div>
+</div>
+</div>
+</div>
+<p>This shows that there is a negative correlation between <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code>. Let’s do 1000 bootstrap replicates over the data to get confidence intervals on the correlation coefficient <code class="docutils literal notranslate"><span class="pre">r</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">1234</span><span class="p">)</span>
+<span class="n">rs</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1000</span><span class="p">):</span>
+    <span class="c1"># Resample the data, with replacement.</span>
+    <span class="n">boot</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+    <span class="c1"># Calculate the (weighted) covariance matrix for this bootstrap replicate.</span>
+    <span class="n">cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">boot</span><span class="p">[</span><span class="s2">&quot;N0&quot;</span><span class="p">],</span> <span class="n">boot</span><span class="p">[</span><span class="s2">&quot;N1&quot;</span><span class="p">],</span> <span class="n">aweights</span><span class="o">=</span><span class="n">boot</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">])</span>
+    <span class="c1"># Calculate the Pearson correlation coefficient.</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">cov</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">cov</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">cov</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">rs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+
+<span class="c1"># 2.5%, 50%, and 97.5% quantiles.</span>
+<span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">rs</span><span class="p">,</span> <span class="n">q</span><span class="o">=</span><span class="p">[</span><span class="mf">0.025</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.975</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>array([-0.31805837, -0.25133503, -0.17809329])
+</pre></div>
+</div>
+</div>
+</div>
+<p>We can now be confident in concluding that there is a correlation between <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code>. Recall that we previously considered the median value for each parameter to be a reasonable point estimate. But in light of this correlation, it might be prudent to use a summary of the data that considers <code class="docutils literal notranslate"><span class="pre">N0</span></code> and <code class="docutils literal notranslate"><span class="pre">N1</span></code> jointly.</p>
+<p>One option is to take the proposal with the largest discriminator prediction.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">])</span>
+<span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(0.9925424, 9702.84947226, 147.11742045)
+</pre></div>
+</div>
+</div>
+</div>
+<p>However, our sample size is quite small (1000 proposals), so this “best” proposal could yet be quite noisy. An appealing alternative is to use the <a class="reference external" href="https://en.wikipedia.org/wiki/Geometric_median">geometric median</a>, which generalises the median to more than one dimension. This is not a trivial calculation, so we provide the <a class="reference internal" href="../api.html#dinf.Parameters.geometric_median" title="dinf.Parameters.geometric_median"><code class="xref py py-func docutils literal notranslate"><span class="pre">dinf.Parameters.geometric_median()</span></code></a> function for this as part of the API.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">numpy.lib.recfunctions</span> <span class="kn">import</span> <span class="n">structured_to_unstructured</span>
+
+<span class="c1"># Convert the model parameters to a regular 2d numpy array.</span>
+<span class="n">thetas</span> <span class="o">=</span> <span class="n">structured_to_unstructured</span><span class="p">(</span><span class="n">data</span><span class="p">[[</span><span class="s2">&quot;N0&quot;</span><span class="p">,</span> <span class="s2">&quot;N1&quot;</span><span class="p">]])</span>
+<span class="c1"># Find the point in parameter space that minimises the</span>
+<span class="c1"># L1 distance to all proposals.</span>
+<span class="n">dinf</span><span class="o">.</span><span class="n">Parameters</span><span class="o">.</span><span class="n">geometric_median</span><span class="p">(</span><span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>array([10113.25590158,   203.16706071])
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="using-the-sampling-distribution">
+<h2><span class="section-number">3.6. </span>Using the sampling distribution<a class="headerlink" href="#using-the-sampling-distribution" title="Permalink to this heading">¶</a></h2>
+<p>Finally, we note that using a point estimate as a summary of the inference process may not always be desirable. For instance, if parameter inference with Dinf was merely a first step towards doing more realistic simulations for some other analysis. In this case an arguably better approach is to draw parameters for simulation using the sampling distribution inferred in the final iteration. The following code prints 10 draws with distinct parameter values.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load the model file.</span>
+<span class="n">dinf_model</span> <span class="o">=</span> <span class="n">dinf</span><span class="o">.</span><span class="n">DinfModel</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;../../examples/bottleneck/model.py&quot;</span><span class="p">)</span>
+<span class="c1"># Draw 10 samples from the weighted KDE of the final iteration.</span>
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">314159</span><span class="p">)</span>
+<span class="n">new_thetas</span> <span class="o">=</span> <span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">sample_kde</span><span class="p">(</span>
+    <span class="n">thetas</span><span class="p">,</span> <span class="n">probs</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;_Pr&quot;</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">rng</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="c1"># Print the drawn parameters.</span>
+<span class="k">for</span> <span class="n">seed</span><span class="p">,</span> <span class="n">theta</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">new_thetas</span><span class="p">):</span>
+    <span class="n">param_dict</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">param_name</span><span class="p">:</span> <span class="n">value</span>
+        <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dinf_model</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">param_dict</span><span class="p">)</span>
+    
+    <span class="c1"># Supposing that the model&#39;s `generator_func()` was adapted for</span>
+    <span class="c1"># a new purpose, e.g. to save the tree sequence to a file,</span>
+    <span class="c1"># and renamed to `sim()`, then calling `sim(seed, **param_dict)`</span>
+    <span class="c1"># would call this function with the sampled parameters.</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>0 {&#39;N0&#39;: 8655.93341451247, &#39;N1&#39;: 231.17159307323115}
+1 {&#39;N0&#39;: 11022.533817932557, &#39;N1&#39;: 133.19436404301533}
+2 {&#39;N0&#39;: 8843.393700551951, &#39;N1&#39;: 290.60902521498645}
+3 {&#39;N0&#39;: 9667.363913212599, &#39;N1&#39;: 400.0837457897171}
+4 {&#39;N0&#39;: 10016.122770325122, &#39;N1&#39;: 375.2437263743045}
+5 {&#39;N0&#39;: 9559.53429953312, &#39;N1&#39;: 187.32153220521639}
+6 {&#39;N0&#39;: 11676.488012544825, &#39;N1&#39;: 232.54576449422353}
+7 {&#39;N0&#39;: 9585.974626142555, &#39;N1&#39;: 173.0333239314761}
+8 {&#39;N0&#39;: 10249.245868916712, &#39;N1&#39;: 153.1319379190742}
+9 {&#39;N0&#39;: 10744.694073692921, &#39;N1&#39;: 154.72931025906146}
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./guide"
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+    
+        <div id="show_right_sidebar">
+            <p><a class="toggle_right_sidebar" href="#"><span class="icon">&lt;</span><span>Page contents<span></a></p>
+        </div>
+
+        <div id="right_sidebar">
+            <p><a class="toggle_right_sidebar" href="#"><span class="icon">&gt;</span><span>Page contents:<span></a></p>
+            <div class="page_toc">
+                <ul>
+<li><a class="reference internal" href="#">3. Inferring parameters</a><ul>
+<li><a class="reference internal" href="#adversarial-monte-carlo">3.1. Adversarial Monte Carlo</a></li>
+<li><a class="reference internal" href="#the-output-folder">3.2. The output folder</a></li>
+<li><a class="reference internal" href="#plotting-results">3.3. Plotting results</a></li>
+<li><a class="reference internal" href="#exporting-results">3.4. Exporting results</a></li>
+<li><a class="reference internal" href="#loading-results-into-python">3.5. Loading results into Python</a></li>
+<li><a class="reference internal" href="#using-the-sampling-distribution">3.6. Using the sampling distribution</a></li>
+</ul>
+</li>
+</ul>
+
+            </div>
+        </div>
+    
+
+      <div class="clearer"></div>
+    </div>
+    <div class="button_nav_wrapper">
+        <div class="button_nav">
+            <div class="left">
+                
+                <a href="testing_a_model.html">
+                    <span class="icon">&lt;</span><span><span class="section-number">2. </span>Testing a Dinf model</span></a>
+                
+            </div>
+
+            <div class="right">
+                
+                    <a href="accuracy.html"><span>Improving discriminator accuracy</span><span class="icon">&gt;</span></a>
+                
+            </div>
+        </div>
+    </div>
+
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2021-2023.
+    </div>
+
+<p id="theme_credit">Styled using the <a href="https://github.com/piccolo-orm/piccolo_theme">Piccolo Theme</a></p>
+  </body>
+</html>
