@@ -1,8 +1,9 @@
 format: jb-book
-root: introduction
+root: index
 parts:
 - caption: Getting started
   chapters:
+  - file: introduction
   - file: installation
 - caption: Tutorial
   numbered: true
