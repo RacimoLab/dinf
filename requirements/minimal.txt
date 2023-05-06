@@ -6,7 +6,7 @@ jaxlib==0.4.7
 flax==0.6.9
 optax==0.1.5
 msprime==1.2.0
-demes==0.2.2
+demes==0.2.3
 demesdraw==0.4.0
 matplotlib==3.7.1
 multiprocess==0.70.14
