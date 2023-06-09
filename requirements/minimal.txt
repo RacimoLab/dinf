@@ -1,7 +1,7 @@
 cyvcf2==0.30.22
 emcee==3.1.4
 numpy==1.24.3
-jax==0.4.11
+jax==0.4.12
 jaxlib==0.4.11
 flax==0.6.10
 optax==0.1.5
