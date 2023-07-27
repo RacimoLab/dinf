@@ -4,7 +4,7 @@ numpy==1.24.3
 jax==0.4.13
 jaxlib==0.4.13
 flax==0.7.0
-optax==0.1.5
+optax==0.1.7
 msprime==1.2.0
 demes==0.2.3
 demesdraw==0.4.0
