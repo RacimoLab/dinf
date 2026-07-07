@@ -1,6 +1,6 @@
 queue_rules:
   - name: default
-    conditions:
+    merge_conditions:
       - base=main
       - check-success=build-docs
       - check-success=lint
@@ -26,17 +26,17 @@ pull_request_rules:
   - name: automatic merge when CI passes, reviewed, and has automerge label
     conditions:
       - and:
-        - or:
-          - "#approved-reviews-by>=1"
-          - author=grahamgower
-        - base=main
-        - label=automerge
-        - check-success=build-docs
-        - check-success=lint
-        - check-success=tests (macos-12, 3.8)
-        - check-success=tests (macos-12, 3.10)
-        - check-success=tests (ubuntu-22.04, 3.8)
-        - check-success=tests (ubuntu-22.04, 3.10)
+          - or:
+              - "#approved-reviews-by>=1"
+              - author=grahamgower
+          - base=main
+          - label=automerge
+          - check-success=build-docs
+          - check-success=lint
+          - check-success=tests (macos-12, 3.8)
+          - check-success=tests (macos-12, 3.10)
+          - check-success=tests (ubuntu-22.04, 3.8)
+          - check-success=tests (ubuntu-22.04, 3.10)
     actions:
       queue:
         name: default
