@@ -217,7 +217,7 @@ class _Quantiles(_DinfTabulateSubCommand):
 
 def main(args_list=None):
     top_parser = argparse.ArgumentParser(
-        prog="dinf.tabulate", description="Tabulate Dinf output."
+        prog="dinf-tabulate", description="Tabulate Dinf output."
     )
     top_parser.add_argument(
         "-V", "--version", action="version", version=dinf.__version__

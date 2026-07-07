@@ -14,9 +14,10 @@ from .parameters import Parameters
 from .misc import pytree_equal, pytree_shape, pytree_dtype
 
 FeatureCollection = Union[np.ndarray, Dict[str, np.ndarray]]
-FeatureCollection.__doc__ = (
-    """A feature array or a labelled collection of feature arrays."""
-)
+#This bit is commented out to be compatible with Python 3.14:
+#FeatureCollection.__doc__ = (
+#    """A feature array or a labelled collection of feature arrays."""
+#)
 
 
 def _sim_shim(args, *, func, keys):

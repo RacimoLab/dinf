@@ -19,6 +19,10 @@ _1kgp_test_metadata = """\
 FamilyID SampleID FatherID MotherID Sex Population Superpopulation
 HG00096 HG00096 0 0 1 GBR EUR
 HG00097 HG00097 0 0 2 GBR EUR
+HG00180 HG00180 0 0 2 FIN EUR
+HG00181 HG00181 0 0 1 FIN EUR
+HG00234 HG00234 0 0 1 GBR EUR
+HG00235 HG00235 0 0 2 GBR EUR
 SH001 HG00403 0 0 1 CHS EAS
 SH001 HG00404 0 0 2 CHS EAS
 SH001 HG00405 HG00403 HG00404 2 CHS EAS
@@ -32,13 +36,15 @@ class TestGetSamplesFrom1KgpMetadata:
         with open(filename, "w") as f:
             f.write(_1kgp_test_metadata)
         gbr = dinf.get_samples_from_1kgp_metadata(filename, populations=["GBR"])
-        assert gbr == {"GBR": ["HG00096", "HG00097"]}
+        assert gbr == {"GBR": ["HG00096", "HG00097", "HG00234", "HG00235"]}
+        fin = dinf.get_samples_from_1kgp_metadata(filename, populations=["FIN"])
+        assert fin == {"FIN": ["HG00180", "HG00181"]}
         chs = dinf.get_samples_from_1kgp_metadata(filename, populations=["CHS"])
         assert chs == {"CHS": ["HG00403", "HG00404"]}
         samples = dinf.get_samples_from_1kgp_metadata(
-            filename, populations=["GBR", "CHS"]
+            filename, populations=["GBR", "FIN", "CHS"]
         )
-        assert samples == dict(**gbr, **chs)
+        assert samples == dict(**gbr, **fin, **chs)
 
 
 class TestGetContigLengths:

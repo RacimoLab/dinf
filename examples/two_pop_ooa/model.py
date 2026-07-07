@@ -12,11 +12,11 @@ import dinf
 
 populations = ["YRI", "CEU"]
 samples = dinf.get_samples_from_1kgp_metadata(
-    "20130606_g1k_3202_samples_ped_population.txt", populations
+    "20130606_g1k_3202_samples_ped_population.txt", populations=populations
 )
 contig_lengths = dinf.get_contig_lengths(
     "GRCh38_full_analysis_set_plus_decoy_hla.fa.fai",
-    keep_contigs={f"chr{c + 1}" for c in range(21)},  # Exclude chrX, etc.
+    keep_contigs={f"chr{c + 1}" for c in range(22)},  # Exclude chrX, etc.
 )
 recombination_rate = 1.25e-8
 mutation_rate = 1.25e-8

@@ -24,7 +24,7 @@ def get_samples_from_1kgp_metadata(filename: str, /, *, populations: list) -> di
     :return:
         A dict mapping population names to a list of sample IDs.
     """
-    data = np.recfromtxt(filename, names=True, encoding="ascii")
+    data = np.genfromtxt(filename, names=True, dtype=['<U16', '<U16', '<U16', '<U16', 'i2', '<U16', '<U16'], encoding="ascii").view(np.recarray)
     # Remove related individuals.
     data = data[data.FatherID == "0"]
     data = data[data.MotherID == "0"]
@@ -121,6 +121,7 @@ def get_genotype_matrix(
     """
     gt_list = []
     positions_list = []
+    n_empty = 0
     for variant in vcf(f"{chrom}:{start}-{end}"):
         # XXX: Many variant fields are broken for ploidy > 2.
         # https://github.com/brentp/cyvcf2/issues/227
@@ -128,7 +129,16 @@ def get_genotype_matrix(
         if not variant.is_snp:
             continue
 
-        a = variant.genotype.array()
+        try:
+            a = variant.genotype.array()
+        except AttributeError as e:
+            n_empty += 1
+            if n_empty >= 10:
+                raise ValueError(
+                    f"At least 10 variants from region {chrom}:{start:d}-{end:d} failed to return valid genotypes, cannot proceed. Did any samples from your metadata get detected in the VCFs?"
+                ) from e
+            else:
+                continue
         gt = a[:, :-1]
 
         # Check phasing. For ploidy == 1, genotypes are reported as unphased.
@@ -207,6 +217,17 @@ class BagOfVcf(collections.abc.Mapping):
     will be sampled. This is a bookkeeping device that records which genotypes
     belong to which label (e.g. which population). If None, it is assumed
     that all individuals in the VCF will be treated as exchangeable.
+    """
+
+    sample_index_map: collections.abc.Mapping[str, int]
+    """
+    A dictionary that maps an individual name to a genotype matrix column index.
+
+    The individual names correspond to the VCF columns for which genotypes
+    will be sampled, and the genotype matrix column indices correspond to
+    the genotype matrix containing only the samples requested. This map
+    enables random subsampling of individuals from a population where the
+    individuals may not be in contiguous population blocks in the VCF.
     """
 
     def __init__(
@@ -311,6 +332,10 @@ class BagOfVcf(collections.abc.Mapping):
                         f"Requested individuals not found in {file}: "
                         f"{', '.join(individuals_not_found)}."
                     )
+            #This gets overwritten several times, but that's okay:
+            self.sample_index_map = {
+                id: i for i, id in enumerate(vcf.samples)
+            }
             if contigs is None:
                 try:
                     vcf.seqlens
@@ -360,6 +385,9 @@ class BagOfVcf(collections.abc.Mapping):
 
         # The VCF objects are not valid in child processes, so we set a flag
         # before forking to ensure they're reopened when used in the child.
+        #Note: Given 'spawn' is used instead of 'fork', this doesn't actually
+        # have any impact, but could be part of the code path if switched
+        # back to 'fork'.
         self._needs_reopen = False
         os.register_at_fork(before=self._close)
 

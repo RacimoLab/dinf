@@ -1189,7 +1189,7 @@ class _Gan(_DinfPlotSubCommand):
                 ax.set_xlabel("Iteration")
                 ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(integer=True))
 
-                if parameters is not None and x_param != "_Pr":
+                if parameters is not None and x_param != "_Pr" and parameters[x_param].truth is not None:
                     truth = parameters[x_param].truth
                     ax.axhline(truth, c="red", ls="-", alpha=0.7)
 
@@ -1200,7 +1200,7 @@ class _Gan(_DinfPlotSubCommand):
 
 def main(args_list=None):
     top_parser = argparse.ArgumentParser(
-        prog="dinf.plot", description="Dinf plotting tools."
+        prog="dinf-plot", description="Dinf plotting tools."
     )
     top_parser.add_argument(
         "-V", "--version", action="version", version=dinf.__version__

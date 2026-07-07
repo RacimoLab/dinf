@@ -714,8 +714,11 @@ class _MultipleFeatureMatrices:
             require_phased=self._global_phased,
             rng=rng,
         )
+        sample_indices = {
+            pop: [vb.sample_index_map[id] for id in vb.samples[pop]]
+            for pop in list(vb.samples)
+        }
         num_samples = [len(v) for v in vb.samples.values()]
-        offsets = np.cumsum([0] + num_samples[:-1])
 
         labelled_indexes = {}
         ac0 = np.zeros(len(positions))
@@ -728,8 +731,8 @@ class _MultipleFeatureMatrices:
                 )
 
             # Subsample individuals.
-            idx = offsets[j] + rng.choice(
-                num_samples[j], size=self._num_individuals[label], replace=False
+            idx = rng.choice(
+                sample_indices[label], size=self._num_individuals[label], replace=False
             )
             labelled_indexes[label] = idx
             H = G[:, idx, : self._ploidy[label]]

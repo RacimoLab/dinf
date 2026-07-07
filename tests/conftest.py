@@ -5,7 +5,7 @@ from tests import capture
 
 
 @pytest.fixture(scope="session")
-@pytest.mark.usefixtures("tmp_path_factory")
+#@pytest.mark.usefixtures("tmp_path_factory")
 def discriminator_file(tmp_path_factory):
     discriminator_file = tmp_path_factory.mktemp("discr") / "discriminator.nn"
     ex = "examples/bottleneck/model.py"
@@ -28,8 +28,8 @@ def discriminator_file(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-@pytest.mark.usefixtures("tmp_path_factory")
-@pytest.mark.usefixtures("discriminator_file")
+#@pytest.mark.usefixtures("tmp_path_factory")
+#@pytest.mark.usefixtures("discriminator_file")
 def data_file(tmp_path_factory, discriminator_file):
     data_file = tmp_path_factory.mktemp("data") / "data.npz"
     ex = "examples/bottleneck/model.py"
@@ -51,7 +51,7 @@ def data_file(tmp_path_factory, discriminator_file):
 
 
 @pytest.fixture(scope="session")
-@pytest.mark.usefixtures("tmp_path_factory")
+#@pytest.mark.usefixtures("tmp_path_factory")
 def mc_outdir(tmp_path_factory):
     output_folder = tmp_path_factory.mktemp("out")
     ex = "examples/bottleneck/model.py"
